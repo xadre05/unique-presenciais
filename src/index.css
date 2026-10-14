@@ -483,3 +483,5 @@ select option:checked { background-color: #6d5427; color: #fff3d9; }
 .tabela-com .celula-acao { display: flex; flex-direction: column; gap: 6px; align-items: stretch; }
 .tabela-wrap.sem-padding { overflow-x: auto; }
 .tabela-com .motivo { min-width: 180px; }
+.acoes-com { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
+.tabela-com td:last-child { min-width: 230px; }

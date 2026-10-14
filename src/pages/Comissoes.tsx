@@ -115,7 +115,7 @@ export default function Comissoes() {
           <table className="tabela tabela-com">
             <thead><tr>
               {isAdmin && <th><input type="checkbox" checked={filtradas.length > 0 && filtradas.every((c) => sel.has(c.id) || ['paga', 'cancelada'].includes(c.status))} onChange={(e) => setSel(e.target.checked ? new Set(filtradas.filter((c) => !['paga', 'cancelada'].includes(c.status)).map((c) => c.id)) : new Set())} /></th>}
-              {isAdmin && <th>Vendedora</th>}<th>Aluno e turma</th><th>Venda</th><th>Mês de pagamento</th><th>Pagamento do aluno</th><th className="num">Comissão</th><th>Situação</th>{isAdmin && <th>Ações</th>}
+              {isAdmin && <th>Vendedora</th>}<th>Aluno e turma</th><th>Venda</th><th>Mês de pagamento</th><th>Pagamento do aluno</th><th className="num">Comissão</th><th>Situação</th>
             </tr></thead>
             <tbody>
               {filtradas.map((c) => {
@@ -135,12 +135,12 @@ export default function Comissoes() {
                       {c.status === 'paga' && <div className="muted pequeno">em {dataBR(c.paga_em)}{c.pago_conta && ` · ${c.pago_conta}`} {c.pago_comprovante && <LinkArquivo caminho={c.pago_comprovante}>comprovante</LinkArquivo>}</div>}
                       {c.ajuste_motivo && <div className="muted pequeno">Ajuste: {c.ajuste_motivo}</div>}
                       {c.liberacao_motivo && <div className="muted pequeno">Liberada por exceção: {c.liberacao_motivo}</div>}
-                    </td>
-                    {isAdmin && <td className="celula-acao acao-curta">
+                    {isAdmin && <div className="acoes-com">
                       {c.status === 'pendente' && <button className="btn btn-contorno btn-mini" onClick={() => setModal({ tipo: 'liberar', itens: [c] })}>{mot?.excecao ? 'Liberar exceção' : 'Liberar'}</button>}
                       {c.status === 'liberada' && <button className="btn btn-ouro btn-mini" onClick={() => setModal({ tipo: 'pagar', itens: [c] })}>Registrar pagamento</button>}
                       {['pendente', 'liberada'].includes(c.status) && <button className="btn btn-mini" title="Ajustar valor" onClick={() => setModal({ tipo: 'ajustar', itens: [c] })}>Ajustar</button>}
-                    </td>}
+                    </div>}
+                    </td>
                   </tr>
                 )
               })}
