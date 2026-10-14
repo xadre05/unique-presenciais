@@ -112,7 +112,7 @@ export default function Comissoes() {
       <Erro msg={lista.erro} />
       {filtradas.length === 0 && !lista.carregando ? <Vazio>Nenhuma comissão com esses filtros.</Vazio> : (
         <div className="tabela-wrap bloco sem-padding">
-          <table className="tabela tabela-pag">
+          <table className="tabela tabela-com">
             <thead><tr>
               {isAdmin && <th><input type="checkbox" checked={filtradas.length > 0 && filtradas.every((c) => sel.has(c.id) || ['paga', 'cancelada'].includes(c.status))} onChange={(e) => setSel(e.target.checked ? new Set(filtradas.filter((c) => !['paga', 'cancelada'].includes(c.status)).map((c) => c.id)) : new Set())} /></th>}
               {isAdmin && <th>Vendedora</th>}<th>Aluno e turma</th><th>Venda</th><th>Mês de pagamento</th><th>Inscrição</th><th>Pagamento do aluno</th><th className="num">Comissão</th><th>Situação</th>{isAdmin && <th>Ações</th>}

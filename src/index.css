@@ -476,3 +476,8 @@ select option:checked { background-color: #6d5427; color: #fff3d9; }
 .resumo-modal > div:not(.muted) { display: flex; justify-content: space-between; }
 .lista-regras { margin: 0 0 14px; padding-left: 18px; line-height: 1.7; }
 @media (max-width: 900px) { .resumo-com { grid-template-columns: 1fr; } }
+.tabela-com td { vertical-align: middle; }
+.tabela-com th:first-child, .tabela-com td:first-child { width: 34px; padding-left: 16px; }
+.tabela-com td:nth-child(3) { min-width: 200px; }
+.tabela-com th { white-space: normal; }
+.tabela-com .celula-acao { display: flex; flex-direction: column; gap: 6px; align-items: stretch; }
