@@ -13,6 +13,9 @@ import Comissoes from './pages/Comissoes'
 import Alunos from './pages/Alunos'
 import Historico from './pages/Historico'
 import Equipe from './pages/Equipe'
+import Links from './pages/Links'
+import Ajuda from './pages/Ajuda'
+import { Marca } from './components/ui'
 
 function Aguardando() {
   const { perfil, recarregar } = useAuth()
@@ -20,7 +23,7 @@ function Aguardando() {
   return (
     <div className="tela-centro">
       <div className="cartao-login">
-        <div className="marca">Unique <em>Presenciais</em></div>
+        <Marca grande />
         {inativo ? (<>
           <h2>Acesso desativado</h2>
           <p className="muted">Seu acesso foi desativado. Fale com o administrador.</p>
@@ -41,15 +44,17 @@ function Layout() {
   return (
     <div className="app">
       <aside className="lateral">
-        <div className="marca">Unique <em>Presenciais</em></div>
+        <Marca />
         <nav>
           <NavLink to="/" end>Painel</NavLink>
           <NavLink to="/turmas">Turmas</NavLink>
           <NavLink to="/pagamentos">Pagamentos</NavLink>
           <NavLink to="/alunos">Alunos</NavLink>
-          <NavLink to="/comissoes">Comissões</NavLink>
+          <NavLink to="/comissoes">{isAdmin ? 'Comissões' : 'Minhas comissões'}</NavLink>
+          <NavLink to="/links">Links de pagamento</NavLink>
           {isAdmin && <NavLink to="/historico">Histórico</NavLink>}
           {isAdmin && <NavLink to="/equipe">Equipe e cadastros</NavLink>}
+          <NavLink to="/ajuda" className="nav-ajuda">Como usar</NavLink>
         </nav>
         <NavLink to="/matricula/nova" className="btn btn-ouro btn-bloco">+ Nova matrícula</NavLink>
         <div className="lateral-rodape">
@@ -68,6 +73,8 @@ function Layout() {
           <Route path="/pagamentos" element={<Pagamentos />} />
           <Route path="/alunos" element={<Alunos />} />
           <Route path="/comissoes" element={<Comissoes />} />
+          <Route path="/links" element={<Links />} />
+          <Route path="/ajuda" element={<Ajuda />} />
           {isAdmin && <Route path="/historico" element={<Historico />} />}
           {isAdmin && <Route path="/equipe" element={<Equipe />} />}
           <Route path="*" element={<Navigate to="/" />} />
@@ -91,7 +98,7 @@ function NovaSenha() {
   return (
     <div className="tela-centro">
       <form className="cartao-login" onSubmit={salvar}>
-        <div className="marca">Unique <em>Presenciais</em></div>
+        <Marca grande />
         <h2>Criar nova senha</h2>
         <label className="campo"><span className="campo-rotulo">Nova senha</span><input type="password" value={senha} onChange={(e) => setSenha(e.target.value)} autoFocus /></label>
         {erro && <div className="erro">{erro}</div>}

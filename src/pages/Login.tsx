@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { supabase } from '../lib/supabase'
-import { Campo, Erro } from '../components/ui'
+import { Campo, Erro, Marca } from '../components/ui'
 
 export default function Login() {
   const [modo, setModo] = useState<'entrar' | 'criar' | 'esqueci'>('entrar')
@@ -43,7 +43,7 @@ export default function Login() {
   return (
     <div className="tela-centro">
       <form className="cartao-login" onSubmit={enviar}>
-        <div className="marca">Unique <em>Presenciais</em></div>
+        <Marca grande />
         <p className="muted">Controle de turmas, matrículas, pagamentos e comissões dos cursos presenciais.</p>
         {modo === 'criar' && <Campo rotulo="Seu nome"><input value={nome} onChange={(e) => setNome(e.target.value)} autoFocus /></Campo>}
         <Campo rotulo="E-mail"><input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required autoFocus={modo !== 'criar'} /></Campo>

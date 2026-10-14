@@ -117,7 +117,7 @@ export default function MatriculaDetalhe() {
           )}
         </section>
         <section className="bloco">
-          <h2>Contrato e comissão</h2>
+          <h2>{isAdmin || comissao.dados ? 'Contrato e comissão' : 'Contrato'}</h2>
           <p>Contrato: {m.contrato_assinado ? <Badge tom="ok">assinado</Badge> : <Badge tom="alerta">pendente</Badge>} {m.contrato_arquivo && <LinkArquivo caminho={m.contrato_arquivo}>abrir arquivo</LinkArquivo>}</p>
           {comissao.dados ? (
             <div className="comissao-box">
@@ -134,7 +134,7 @@ export default function MatriculaDetalhe() {
                 </div>
               )}
             </div>
-          ) : <p className="muted">Sem comissão (venda sem vendedora ou não é venda).</p>}
+          ) : isAdmin ? <p className="muted">Sem comissão (venda sem vendedora ou não é venda).</p> : null}
         </section>
       </div>
 

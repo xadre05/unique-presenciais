@@ -7,12 +7,14 @@ import type { MatriculaV, Turma } from '../lib/types'
 import { Badge, Erro, Kpi, Vazio } from '../components/ui'
 import { FormTurma } from './Turmas'
 import { Ocupacao } from './Painel'
+import { useAuth } from '../auth'
 
 export default function TurmaDetalhe() {
   const { id } = useParams()
   const turma = useConsulta<Turma>(() => supabase.from('v_turmas').select('*').eq('id', id!).single(), [id])
   const mats = useConsulta<MatriculaV[]>(() => supabase.from('v_matriculas').select('*').eq('turma_id', id!).order('aluno_nome'), [id])
   const [editando, setEditando] = useState<Partial<Turma> | null>(null)
+  const { isAdmin } = useAuth()
   const t = turma.dados
   if (turma.erro) return <div className="pagina"><Erro msg={turma.erro} /></div>
   if (!t) return <div className="pagina muted">Carregando…</div>
@@ -29,7 +31,7 @@ export default function TurmaDetalhe() {
           {t.observacoes && <p className="nota">{t.observacoes}</p>}
         </div>
         <div className="acoes">
-          <button className="btn" onClick={() => setEditando(t)}>Editar turma</button>
+          {isAdmin && <button className="btn" onClick={() => setEditando(t)}>Editar turma</button>}
           <Link className="btn btn-ouro" to={`/matricula/nova?turma=${t.id}`}>+ Matricular aluno</Link>
         </div>
       </header>

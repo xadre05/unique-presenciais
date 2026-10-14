@@ -6,6 +6,7 @@ import { brl, dataBR, STATUS_TURMA } from '../lib/format'
 import type { Turma } from '../lib/types'
 import { Badge, Campo, Erro, InputNumero, Modal, Vazio } from '../components/ui'
 import { Ocupacao } from './Painel'
+import { useAuth } from '../auth'
 
 export default function Turmas() {
   const [verTodas, setVerTodas] = useState(false)
@@ -15,6 +16,7 @@ export default function Turmas() {
     return q
   }, [verTodas])
   const [editando, setEditando] = useState<Partial<Turma> | null>(null)
+  const { isAdmin } = useAuth()
 
   return (
     <div className="pagina">
@@ -22,7 +24,7 @@ export default function Turmas() {
         <div><h1>Turmas</h1><p className="muted">Cada turma tem curso, datas, local e vagas. Os alunos entram nela pela matrícula.</p></div>
         <div className="acoes">
           <label className="check"><input type="checkbox" checked={verTodas} onChange={(e) => setVerTodas(e.target.checked)} /> mostrar realizadas e canceladas</label>
-          <button className="btn btn-ouro" onClick={() => setEditando({ vagas: 12, status: 'aberta', local: 'Brasília' })}>+ Nova turma</button>
+          {isAdmin && <button className="btn btn-ouro" onClick={() => setEditando({ vagas: 12, status: 'aberta', local: 'Brasília' })}>+ Nova turma</button>}
         </div>
       </header>
       {turmas.erro && <Erro msg={turmas.erro} />}

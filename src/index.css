@@ -177,6 +177,7 @@ input[type=file] { padding: 7px; }
 .tela-centro { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
 .cartao-login { width: 100%; max-width: 400px; background: var(--painel); border: 1px solid var(--borda); border-radius: 16px; padding: 28px; display: flex; flex-direction: column; gap: 10px; }
 .cartao-login .marca { font-size: 1.6rem; }
+.cartao-login .marca-logo { align-items: center; margin-bottom: 6px; }
 .login-links { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px; font-size: 0.85rem; }
 
 @media (max-width: 900px) {
@@ -188,3 +189,33 @@ input[type=file] { padding: 7px; }
   .grade-2, .grade-3 { grid-template-columns: 1fr; }
   .busca { width: 100%; }
 }
+
+/* marca */
+.marca-logo { display: flex; flex-direction: column; gap: 6px; padding: 2px 4px 4px; }
+.marca-logo img { width: 100%; max-width: 170px; height: auto; display: block; }
+.marca-logo.grande img { max-width: 260px; }
+.marca-sub { font-family: 'Fraunces', Georgia, serif; font-style: italic; color: var(--ouro); font-size: 1rem; letter-spacing: 0.32em; text-transform: uppercase; display: flex; align-items: center; gap: 8px; }
+.marca-sub::before, .marca-sub::after { content: ''; flex: 1; height: 1px; background: linear-gradient(90deg, transparent, rgba(201,164,92,.55), transparent); }
+.marca-logo.grande .marca-sub { font-size: 1.05rem; width: 100%; max-width: 260px; }
+.lateral { background: linear-gradient(180deg, #1a1611 0%, var(--painel) 40%); }
+.cartao-login { box-shadow: 0 30px 80px rgba(0,0,0,.45), 0 0 0 1px rgba(201,164,92,.08); }
+.tela-centro { background: radial-gradient(ellipse at top, rgba(201,164,92,.10), transparent 60%), var(--fundo); }
+.lateral nav a.nav-ajuda { margin-top: 10px; border-top: 1px dashed var(--borda); border-radius: 0; padding-top: 12px; }
+
+/* links de pagamento */
+.links-grupo { margin-bottom: 26px; }
+.links-grade { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 12px; }
+.link-card { background: var(--painel); border: 1px solid var(--borda); border-radius: var(--raio); padding: 16px; display: flex; flex-direction: column; gap: 8px; }
+.link-card.inativo { opacity: .5; }
+.link-card-topo { display: flex; justify-content: space-between; gap: 8px; align-items: flex-start; }
+.link-card h3 { margin: 0; font-size: 1rem; }
+.link-endereco { font-family: 'JetBrains Mono', monospace; font-size: .78rem; background: var(--painel-2); border: 1px solid var(--borda); border-radius: 8px; padding: 8px 10px; word-break: break-all; color: var(--texto); }
+.link-valor { font-family: 'Fraunces', Georgia, serif; font-size: 1.25rem; color: var(--ouro-forte); }
+.link-card .acoes { margin-top: auto; }
+
+/* ajuda */
+.ajuda h2 { margin-top: 26px; }
+.ajuda ol, .ajuda ul { padding-left: 20px; margin: 6px 0; line-height: 1.6; }
+.ajuda .bloco { margin-bottom: 14px; }
+.tabela-permissoes td:nth-child(2), .tabela-permissoes td:nth-child(3), .tabela-permissoes th:nth-child(2), .tabela-permissoes th:nth-child(3) { text-align: center; width: 130px; }
+.form-grade > .check, .form-grade > .erro, .form-grade > .modal-acoes { grid-column: 1 / -1; }
