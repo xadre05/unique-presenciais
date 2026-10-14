@@ -8,7 +8,7 @@ import { Badge, Campo, enviarArquivo, Erro, InputMoeda, Kpi, LinkArquivo, Modal 
 import { useAuth } from '../auth'
 import { contaPadrao } from './NovaMatricula'
 
-type Acao = { tipo: 'informar' | 'confirmar' | 'editar' | 'nova' | 'cancelar'; parcela?: ParcelaV }
+export type Acao = { tipo: 'informar' | 'confirmar' | 'editar' | 'nova' | 'cancelar'; parcela?: ParcelaV }
 
 export default function MatriculaDetalhe() {
   const { id } = useParams()
@@ -187,7 +187,7 @@ export function Historia({ itens }: { itens: { id: number; tabela: string; acao:
   )
 }
 
-function AcaoParcela({ acao, matriculaId, totalParcelas, contas, isAdmin, onFechar, onSalvo }: {
+export function AcaoParcela({ acao, matriculaId, totalParcelas, contas, isAdmin, onFechar, onSalvo }: {
   acao: Acao | null; matriculaId: string; totalParcelas: number; contas: { id: string; nome: string; tipo: string; ativa: boolean }[]; isAdmin: boolean; onFechar: () => void; onSalvo: () => void
 }) {
   const p = acao?.parcela
