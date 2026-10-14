@@ -115,7 +115,7 @@ export default function Comissoes() {
           <table className="tabela tabela-com">
             <thead><tr>
               {isAdmin && <th><input type="checkbox" checked={filtradas.length > 0 && filtradas.every((c) => sel.has(c.id) || ['paga', 'cancelada'].includes(c.status))} onChange={(e) => setSel(e.target.checked ? new Set(filtradas.filter((c) => !['paga', 'cancelada'].includes(c.status)).map((c) => c.id)) : new Set())} /></th>}
-              {isAdmin && <th>Vendedora</th>}<th>Aluno e turma</th><th>Venda</th><th>Mês de pagamento</th><th>Inscrição</th><th>Pagamento do aluno</th><th className="num">Comissão</th><th>Situação</th>{isAdmin && <th>Ações</th>}
+              {isAdmin && <th>Vendedora</th>}<th>Aluno e turma</th><th>Venda</th><th>Mês de pagamento</th><th>Pagamento do aluno</th><th className="num">Comissão</th><th>Situação</th>{isAdmin && <th>Ações</th>}
             </tr></thead>
             <tbody>
               {filtradas.map((c) => {
@@ -125,10 +125,9 @@ export default function Comissoes() {
                   <tr key={c.id} className={c.status === 'cancelada' ? 'linha-apagada' : ''}>
                     {isAdmin && <td>{!['paga', 'cancelada'].includes(c.status) && <input type="checkbox" checked={sel.has(c.id)} onChange={() => alternar(c.id)} />}</td>}
                     {isAdmin && <td className="forte">{c.vendedora_nome ?? '—'}</td>}
-                    <td><Link to={`/matricula/${c.matricula_id}`} className="forte link-ouro">{c.aluno_nome}</Link><div className="muted pequeno">{turmaCurta(c.turma_nome)}</div></td>
+                    <td><Link to={`/matricula/${c.matricula_id}`} className="forte link-ouro">{c.aluno_nome}</Link><div className="muted pequeno">{turmaCurta(c.turma_nome)}</div>{c.matricula_status === 'reservada' && <div className="alerta-txt pequeno">Inscrição: só matrícula paga</div>}</td>
                     <td>{dataBR(c.data_venda)}</td>
                     <td>{mesAno(c.mes_pagamento)}</td>
-                    <td className="pequeno">{c.matricula_status === 'reservada' ? <span className="alerta-txt">Só matrícula</span> : c.matricula_status === 'confirmada' || c.matricula_status === 'concluida' ? 'Confirmada' : STATUS_MATRICULA[c.matricula_status]}</td>
                     <td><Badge tom={sa?.tom}>{sa?.rotulo}</Badge></td>
                     <td className="num">{brl(c.valor)}<div className="muted pequeno" title={c.regra_texto ?? ''}>{c.ajuste_motivo ? 'ajustada' : c.calculo === 'percentual' ? `${String(c.percentual).replace('.', ',')}%` : 'fixo'}</div></td>
                     <td><Badge tom={STATUS_COMISSAO[c.status]?.tom}>{STATUS_COMISSAO[c.status]?.rotulo}</Badge>
