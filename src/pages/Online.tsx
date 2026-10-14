@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useConsulta } from '../lib/dados'
 import { brl, dataBR, hojeISO, mesAno } from '../lib/format'
-import { Badge, Erro, Vazio } from '../components/ui'
+import { Badge, Erro, KpiIcone, Vazio } from '../components/ui'
 import { Icone } from '../components/Icone'
 
 export type CompraOnline = {
@@ -35,33 +35,31 @@ function useOnline() {
 
 /* ───────── Painel ───────── */
 const somaLiq = (xs: PagOnline[]) => xs.reduce((s, p) => s + Number(p.valor_liquido ?? 0), 0)
-const ultimosMeses = (n: number) => { const out: string[] = []; const d = new Date(); d.setDate(1); for (let i = 0; i < n; i++) { out.push(d.toISOString().slice(0, 7)); d.setMonth(d.getMonth() - 1) } return out }
 
 export function PainelOnline() {
-  const { previsao, pags, atrasos } = useOnline()
+  const { compras, previsao, pags, atrasos } = useOnline()
   const m = mesAtual()
   const todos = pags.dados ?? []
   const desde = todos.map((p) => p.dia).sort()[0]
   const doMes = todos.filter((p) => p.dia.startsWith(m))
   const prevMes = (previsao.dados ?? []).find((p) => p.mes.startsWith(m))
   const at = atrasos.dados ?? []
-  const vencido = at.reduce((s, a) => s + Number(a.valor_vencido), 0)
-  const porMesParou = [...new Set(at.map((a) => a.parou_em))].sort().map((mm) => `${mesAno(mm).split(' ')[0].slice(0, 3)}: ${at.filter((a) => a.parou_em === mm).length}`)
-  const meses = ultimosMeses(4).reverse().filter((mm) => !desde || mm >= desde.slice(0, 7))
+  const novas = (compras.dados ?? []).filter((c) => (c.primeira_data ?? '').slice(0, 7) === m && (c.ultima_cobranca == null || c.ultima_cobranca <= c.pagas))
+  const vendido = novas.reduce((s, c) => s + (c.ultima_cobranca != null ? Number(c.liquido_parcela ?? 0) * c.np : Number(c.total_liquido ?? 0)), 0)
+  const emDia = (compras.dados ?? []).filter((c) => c.situacao === 'em_dia')
+  const mesNome = mesAno(m + '-01').split(' ')[0]
   if (pags.carregando && !pags.dados) return null
-  return (
-    <section className="bloco">
-      <div className="bloco-topo"><h2><Icone nome="links" className="ouro" /> Online (Hotmart)</h2><Link to="/pagamentos?area=online" className="link pequeno">Ver tudo do online</Link></div>
-      <p className="muted pequeno" style={{ margin: '0 0 4px' }}>Valores líquidos (o que cai para você). Base: pagamentos lidos da Hotmart{desde ? ` desde ${dataBR(desde)}` : ''}, sem os cursos presenciais.</p>
-      <div className="online-kpis">
-        <div><small className="muted">Recebido em {mesAno(m + '-01')} (até hoje)</small><b>{brl(somaLiq(doMes))}</b><span className="muted pequeno">{doMes.length} pagamento(s) de 01/{m.slice(5)} a {dataBR(hojeISO()).slice(0, 5)}</span></div>
-        <div><small className="muted">Ainda deve cair em {mesAno(m + '-01').split(' ')[0]}</small><b>{brl(prevMes?.liquido_em_dia ?? 0)}</b><span className="muted pequeno">{prevMes?.parcelas_em_dia ?? 0} parcela(s) de quem está em dia</span></div>
-        <div><small className="muted">Cobranças vencidas sem pagamento</small><b className={vencido ? 'erro-txt' : ''}>{brl(vencido)}</b><span className="muted pequeno">{at.length} aluno(s) pararam de pagar{porMesParou.length ? ` (${porMesParou.join(' · ')})` : ''}</span></div>
-        <div><small className="muted">Recebido por mês</small><b className="online-meses">{meses.map((mm) => <span key={mm}>{mesAno(mm + '-01').split(' ')[0].slice(0, 3)} {brl(somaLiq(todos.filter((p) => p.dia.startsWith(mm)))).replace(/,\d\d$/, '')}{mm === m ? '*' : ''}</span>)}</b><span className="muted pequeno">* mês em andamento</span></div>
-      </div>
-      <Erro msg={previsao.erro || pags.erro || atrasos.erro} />
+  return (<>
+    <h2 className="titulo-secao">Online <span className="muted pequeno">· pagamentos da Hotmart{desde ? ` desde ${dataBR(desde)}` : ''}, valores líquidos, sem os cursos presenciais · <Link to="/pagamentos?area=online" className="link">ver tudo do online</Link></span></h2>
+    <section className="kpis kpis-5">
+      <KpiIcone icone="sacola" rotulo={`Vendido em ${mesNome}`} valor={brl(vendido)} sub={`${novas.length} compra(s) nova(s), valor do contrato`} destaque />
+      <KpiIcone icone="moedas" rotulo={`Recebido em ${mesNome}`} valor={brl(somaLiq(doMes))} tom="ok" sub={`${doMes.length} pagamento(s) até hoje`} />
+      <KpiIcone icone="relogio" rotulo={`Ainda deve cair em ${mesNome}`} valor={brl(prevMes?.liquido_em_dia ?? 0)} tom="info" sub={`${prevMes?.parcelas_em_dia ?? 0} parcela(s) de quem está em dia`} />
+      <KpiIcone icone="documento" rotulo="A receber" valor={brl(emDia.reduce((s, c) => s + Number(c.a_receber_liquido), 0))} sub={`${emDia.length} parcelamento(s) em dia`} />
+      <KpiIcone icone="alerta" rotulo="Em atraso" valor={brl(at.reduce((s, a) => s + Number(a.valor_vencido), 0))} tom="erro" sub={`${at.reduce((s, a) => s + a.cobrancas_vencidas, 0)} cobrança(s) vencida(s) · ${at.length} aluno(s)`} subTom={at.length ? 'erro' : undefined} />
     </section>
-  )
+    <Erro msg={compras.erro || previsao.erro || pags.erro || atrasos.erro} />
+  </>)
 }
 
 /* ───────── Pagamentos ───────── */

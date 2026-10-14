@@ -1,5 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import { supabase } from '../lib/supabase'
+import { Icone } from './Icone'
 
 export function Badge({ tom = 'neutro', children }: { tom?: string; children: ReactNode }) {
   return <span className={`badge badge-${tom}`}>{children}</span>
@@ -136,6 +137,16 @@ export function InputPercent({ valor, onChange, passo = 0.5, max = 100 }: { valo
         <button type="button" tabIndex={-1} onClick={() => onChange(lim((valor ?? 0) + passo))} aria-label="Aumentar">▲</button>
         <button type="button" tabIndex={-1} onClick={() => onChange(lim((valor ?? 0) - passo))} aria-label="Diminuir">▼</button>
       </div>
+    </div>
+  )
+}
+
+export function KpiIcone({ icone, rotulo, valor, sub, tom, subTom, destaque }: { icone: string; rotulo: string; valor: string; sub?: string; tom?: string; subTom?: string; destaque?: boolean }) {
+  return (
+    <div className={`kpi kpi-icone ${tom ? 'kpi-' + tom : ''}${destaque ? ' kpi-destaque' : ''}`}>
+      <div className="kpi-cabeca"><Icone nome={icone} tam={22} className={tom ?? 'ouro'} /><span className="kpi-rotulo">{rotulo}</span></div>
+      <div className="kpi-valor">{valor}</div>
+      {sub && <div className={`kpi-sub${subTom ? ' ' + subTom + '-txt' : ''}`}>{sub}</div>}
     </div>
   )
 }

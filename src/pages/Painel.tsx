@@ -4,7 +4,7 @@ import { supabase } from '../lib/supabase'
 import { useConsulta } from '../lib/dados'
 import { brl, dataBR, hojeISO, mesAno, STATUS_TURMA, whatsLink } from '../lib/format'
 import type { ParcelaV, Turma } from '../lib/types'
-import { Badge, Vazio } from '../components/ui'
+import { Badge, KpiIcone, Vazio } from '../components/ui'
 import { Icone } from '../components/Icone'
 import { PainelOnline } from './Online'
 import { useAuth } from '../auth'
@@ -71,7 +71,7 @@ export default function Painel() {
         <div className="nota">{pendentesAcesso.dados!.length} pessoa(s) criaram conta e estão esperando você liberar o acesso. <Link to="/configuracoes/equipe" className="link">Liberar agora</Link></div>
       )}
 
-      <h2 className="titulo-secao">Presencial <span className="muted pequeno">· turmas do filtro acima, valores da turma inteira (desde a venda, sem recorte de mês)</span></h2>
+      <h2 className="titulo-secao">Presencial <span className="muted pequeno">· turmas do filtro acima, valores da turma inteira (desde a venda, sem recorte de mês) · <Link to="/pagamentos" className="link">ver pagamentos</Link></span></h2>
       <section className="kpis kpis-5">
         <KpiIcone icone="sacola" rotulo="Valor fechado" valor={brl(soma('valor_fechado'))} sub={`${soma('inscritos')} alunos em ${ts.length} turmas`} destaque />
         <KpiIcone icone="moedas" rotulo="Recebido (conferido)" valor={brl(soma('recebido'))} tom="ok" sub="líquido recebido nas contas" />
@@ -213,16 +213,6 @@ export default function Painel() {
           </div>
         ))}
       </section>
-    </div>
-  )
-}
-
-function KpiIcone({ icone, rotulo, valor, sub, tom, subTom, destaque }: { icone: string; rotulo: string; valor: string; sub?: string; tom?: string; subTom?: string; destaque?: boolean }) {
-  return (
-    <div className={`kpi kpi-icone ${tom ? 'kpi-' + tom : ''}${destaque ? ' kpi-destaque' : ''}`}>
-      <div className="kpi-cabeca"><Icone nome={icone} tam={22} className={tom ?? 'ouro'} /><span className="kpi-rotulo">{rotulo}</span></div>
-      <div className="kpi-valor">{valor}</div>
-      {sub && <div className={`kpi-sub${subTom ? ' ' + subTom + '-txt' : ''}`}>{sub}</div>}
     </div>
   )
 }
