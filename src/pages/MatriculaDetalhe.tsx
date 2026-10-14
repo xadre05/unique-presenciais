@@ -87,6 +87,10 @@ export default function MatriculaDetalhe() {
                       {isAdmin && (p.status === 'informada' || p.status === 'prevista') && <button className="btn btn-mini btn-ouro" onClick={() => setAcao({ tipo: 'confirmar', parcela: p })}>Confirmar recebido</button>}
                       {(p.status !== 'confirmada' || isAdmin) && p.status !== 'cancelada' && <button className="btn btn-mini" onClick={() => setAcao({ tipo: 'editar', parcela: p })}>Editar</button>}
                       {p.status !== 'confirmada' && p.status !== 'cancelada' && <button className="btn btn-mini" onClick={() => setAcao({ tipo: 'cancelar', parcela: p })}>Cancelar</button>}
+                      {isAdmin && p.status === 'cancelada' && <button className="btn btn-mini" onClick={async () => {
+                        const { error } = await supabase.from('parcelas').update({ status: 'prevista', observacao: 'Reaberta | ' + (p.observacao ?? '') }).eq('id', p.id)
+                        if (error) alert(msgErro(error)); recarregarTudo()
+                      }}>Reabrir</button>}
                     </div></td>
                   </tr>
                 )

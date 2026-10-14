@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useConsulta } from '../lib/dados'
@@ -13,8 +14,15 @@ export default function Painel() {
   const pendentesAcesso = useConsulta<{ id: string }[]>(() => supabase.from('perfis').select('id').eq('papel', 'pendente'))
   const comissoes = useConsulta<{ vendedora_nome: string; valor: number; status: string; competencia: string | null }[]>(() => supabase.from('v_comissoes').select('vendedora_nome,valor,status,competencia').in('status', ['pendente', 'liberada']))
 
-  const ts = turmas.dados ?? []
-  const ps = pendentes.dados ?? []
+  const [escopo, setEscopo] = useState<'andamento' | 'todas'>('andamento')
+  const [curso, setCurso] = useState('')
+  const todasTurmas = turmas.dados ?? []
+  const cursos = [...new Set(todasTurmas.map((t) => t.curso_nome))]
+  const ts = todasTurmas.filter((t) =>
+    (!curso || t.curso_nome === curso) &&
+    (escopo === 'todas' || t.status === 'aberta' || t.status === 'planejada' || t.status === 'lotada' || Number(t.a_receber) > 0 || Number(t.aguardando_conferencia) > 0))
+  const idsTurmas = new Set(ts.map((t) => t.id))
+  const ps = (pendentes.dados ?? []).filter((p) => idsTurmas.has(p.turma_id))
   const hoje = hojeISO()
   const em7 = new Date(Date.now() + 7 * 864e5).toISOString().slice(0, 10)
   const atrasadas = ps.filter((p) => p.situacao === 'atrasada')
@@ -31,6 +39,16 @@ export default function Painel() {
         <div>
           <h1>Painel</h1>
           <p className="muted">Situação de hoje, {dataBR(hoje)}. Só conta como recebido o que foi conferido no extrato ou veio da Hotmart.</p>
+        </div>
+        <div className="acoes">
+          <select value={escopo} onChange={(e) => setEscopo(e.target.value as 'andamento' | 'todas')}>
+            <option value="andamento">Turmas em andamento (abertas ou com dinheiro a receber)</option>
+            <option value="todas">Todas as turmas, incluindo histórico</option>
+          </select>
+          <select value={curso} onChange={(e) => setCurso(e.target.value)}>
+            <option value="">Todos os cursos</option>
+            {cursos.map((c) => <option key={c}>{c}</option>)}
+          </select>
         </div>
       </header>
 
