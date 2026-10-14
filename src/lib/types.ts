@@ -22,7 +22,7 @@ export type ParcelaV = {
   considerada_paga: boolean
 }
 export type Opcao = { id: string; nome: string }
-export type Conta = Opcao & { tipo: string; ativa: boolean; observacao: string | null }
+export type Conta = Opcao & { tipo: string; ativa: boolean; observacao: string | null; uso?: 'padrao' | 'novas' | 'antigas' }
 export type Vendedora = Opcao & { perfil_id: string | null; ativa: boolean }
 export type Aluno = {
   id: string; nome: string; email: string | null; whatsapp: string | null; cpf: string | null; rg: string | null; conselho: string | null

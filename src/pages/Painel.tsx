@@ -67,7 +67,7 @@ export default function Painel() {
       </div>
 
       {isAdmin && (pendentesAcesso.dados?.length ?? 0) > 0 && (
-        <div className="nota">{pendentesAcesso.dados!.length} pessoa(s) criaram conta e estão esperando você liberar o acesso. <Link to="/equipe" className="link">Liberar agora</Link></div>
+        <div className="nota">{pendentesAcesso.dados!.length} pessoa(s) criaram conta e estão esperando você liberar o acesso. <Link to="/configuracoes/equipe" className="link">Liberar agora</Link></div>
       )}
 
       <section className="kpis kpis-5">

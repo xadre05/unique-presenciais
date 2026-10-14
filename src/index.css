@@ -534,3 +534,18 @@ select option:checked { background-color: #6d5427; color: #fff3d9; }
 @media (max-width: 1200px) { .hist-grade { grid-template-columns: 1fr; } .hist-detalhe { position: static; } .filtros-historico { grid-template-columns: 1fr 1fr; } .filtros-historico .filtro-datas { grid-column: 1 / -1; } }
 @media (max-width: 640px) { .hist-item { grid-template-columns: 36px 1fr; } .hist-item .hist-texto { grid-column: 1 / -1; } .hist-item > .badge, .hist-item > .icone:last-child { display: none; } }
 .hist-detalhe dl.resumo dd { font-family: inherit; }
+
+/* ── Configurações ── */
+.badge-ouro { background: rgba(201,168,106,.14); color: var(--ouro-forte); border-color: rgba(201,168,106,.35); }
+.config-grade { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 16px; align-items: start; }
+.config-lado h2 { display: flex; align-items: center; gap: 8px; font-size: 1.05rem; }
+.perfil-item { margin: 10px 0 12px; }
+.perfil-item p { margin: 6px 0 0; }
+.opcoes-papel { display: grid; gap: 8px; margin: 12px 0; }
+.opcao-papel { display: flex; gap: 12px; align-items: flex-start; padding: 12px 14px; border: 1px solid var(--borda); border-radius: 10px; background: var(--painel-2); cursor: pointer; }
+.opcao-papel:hover { border-color: #3a3a40; }
+.opcao-papel.marcada { border-color: var(--ouro); background: rgba(201,168,106,.07); }
+.opcao-papel input { margin-top: 3px; accent-color: var(--ouro); }
+.lista-confirma { margin: 10px 0 14px; padding-left: 18px; display: grid; gap: 8px; }
+.config-status { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+@media (max-width: 900px) { .config-grade { grid-template-columns: 1fr; } }

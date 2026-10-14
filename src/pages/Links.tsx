@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { msgErro, useCadastros, useConsulta } from '../lib/dados'
 import { brl, dataBR, dataHoraBR, hojeISO } from '../lib/format'
@@ -11,7 +12,6 @@ type LinkPg = {
   valor: number | null; condicao: string | null; observacao: string | null; ativo: boolean; ordem: number
   finalidade: string; aluno_id: string | null; validade: string | null; origem: string; sincronizado_em: string | null
 }
-type ProdutoHotmart = { id: number; nome: string; status: string | null; curso_id: string | null; mostrar: boolean; sincronizado_em: string }
 
 const FINALIDADES: Record<string, string> = { integral: 'Pagamento integral', matricula: 'Matrícula (entrada)', saldo: 'Saldo restante', exclusivo: 'Exclusivo de um aluno' }
 const ehUrl = (s: string) => /^https?:\/\//i.test(s.trim())
@@ -28,7 +28,6 @@ export default function Links() {
   const cad = useCadastros()
   const links = useConsulta<LinkPg[]>(() => supabase.from('links_pagamento').select('*').order('ordem').order('titulo'))
   const alunos = useConsulta<{ id: string; nome: string }[]>(() => supabase.from('alunos').select('id,nome').order('nome'))
-  const produtos = useConsulta<ProdutoHotmart[]>(() => isAdmin ? supabase.from('hotmart_produtos').select('*').order('nome') : Promise.resolve({ data: [], error: null }), [isAdmin])
   const [busca, setBusca] = useState('')
   const [curso, setCurso] = useState('')
   const [turma, setTurma] = useState('')
@@ -36,7 +35,6 @@ export default function Links() {
   const [editando, setEditando] = useState<Partial<LinkPg> | null>(null)
   const [copiado, setCopiado] = useState<string | null>(null)
   const [sinc, setSinc] = useState<{ rodando: boolean; msg: string | null; erro: string | null }>({ rodando: false, msg: null, erro: null })
-  const [verProdutos, setVerProdutos] = useState(false)
 
   const hoje = hojeISO()
   const vencido = (l: LinkPg) => !!l.validade && l.validade < hoje
@@ -70,7 +68,7 @@ export default function Links() {
       try { erro = (await (error as { context?: Response }).context?.json())?.erro ?? error.message } catch { erro = error.message }
     }
     setSinc({ rodando: false, erro, msg: erro ? null : `Hotmart sincronizada: ${data.produtos} produtos lidos, ${data.novos} links novos, ${data.atualizados} atualizados, ${data.desativados} desativados.` })
-    links.recarregar(); produtos.recarregar()
+    links.recarregar()
   }
 
   const Linha = ({ l }: { l: LinkPg }) => (
@@ -110,7 +108,7 @@ export default function Links() {
         </div>}
       </header>
       {sinc.msg && <div className="aviso">{sinc.msg}</div>}
-      {sinc.erro && <div className="erro">{sinc.erro}{/credenciais/i.test(sinc.erro) && ' Veja o passo a passo em “Produtos da Hotmart”, no fim da página.'}</div>}
+      {sinc.erro && <div className="erro">{sinc.erro}{/credenciais/i.test(sinc.erro) && <> Veja o passo a passo em <Link to="/configuracoes/integracoes" className="link">Configurações → Integrações</Link>.</>}</div>}
 
       <label className="select-icone busca-larga"><Icone nome="busca" /><input placeholder="Buscar curso, turma, aluno ou link…" value={busca} onChange={(e) => setBusca(e.target.value)} /></label>
       <div className="filtros-comissoes">
@@ -145,7 +143,7 @@ export default function Links() {
               <h2><Icone nome="livro" className="ouro" /> {c.nome} <span className="muted pequeno">{ls.length} link(s)</span></h2>
               {isAdmin && <button className="btn btn-mini" onClick={() => setEditando({ tipo: 'hotmart', ativo: true, ordem: 10, finalidade: 'integral', origem: 'manual', curso_id: c.id })}><Icone nome="mais" tam={14} /> Link</button>}
             </div>
-            {ls.length === 0 ? <p className="muted pequeno">Nenhum link {mostrar === 'ativos' ? 'ativo ' : ''}para este curso.{isAdmin && ' Cadastre à mão ou ligue o produto da Hotmart a este curso (fim da página) e clique em “Atualizar da Hotmart”.'}</p>
+            {ls.length === 0 ? <p className="muted pequeno">Nenhum link {mostrar === 'ativos' ? 'ativo ' : ''}para este curso.{isAdmin && ' Cadastre à mão ou ligue o produto da Hotmart a este curso em Configurações → Integrações.'}</p>
               : ls.map((l) => <Linha key={l.id} l={l} />)}
           </section>
         )
@@ -155,42 +153,7 @@ export default function Links() {
       )}
       {todos.length === 0 && !links.carregando && <Vazio>Nenhum link com esses filtros.</Vazio>}
 
-      {isAdmin && (
-        <section className="bloco">
-          <div className="bloco-topo">
-            <h2><Icone nome="equipe" className="ouro" /> Produtos da Hotmart</h2>
-            <button className="btn btn-mini" onClick={() => setVerProdutos((v) => !v)}>{verProdutos ? 'Esconder' : 'Mostrar'}</button>
-          </div>
-          <p className="muted pequeno">Ligue cada produto da Hotmart a um curso. Ao clicar em “Atualizar da Hotmart”, todas as ofertas desses produtos (inclusive as que você cria para um aluno específico) aparecem aqui sozinhas, e as que você apagar na Hotmart ficam desativadas.</p>
-          {verProdutos && ((produtos.dados ?? []).length === 0 ? (
-            <div className="nota pequeno">
-              <b>Para ligar a Hotmart (uma vez só):</b>
-              <ol>
-                <li>Na Hotmart da <b>Unique HOF Academy</b>: Ferramentas → <b>Credenciais Hotmart</b> → Criar credencial (tipo produção). Ela mostra Client ID, Client Secret e Basic.</li>
-                <li>No Supabase, projeto unique-presenciais: <b>Edge Functions → Secrets</b>. Crie três segredos: <code>HOTMART_CLIENT_ID</code>, <code>HOTMART_CLIENT_SECRET</code> e <code>HOTMART_BASIC</code>, colando cada valor.</li>
-                <li>Volte aqui e clique em “Atualizar da Hotmart”. Os produtos aparecem nesta lista para você ligar aos cursos.</li>
-              </ol>
-              <span>As credenciais ficam só no servidor: ninguém vê pelo sistema.</span>
-            </div>
-          ) : (
-            <table className="tabela compacta">
-              <thead><tr><th>Produto na Hotmart</th><th>Situação</th><th>Curso no sistema</th><th>Trazer ofertas</th></tr></thead>
-              <tbody>
-                {(produtos.dados ?? []).filter((p) => p.status !== 'DELETED').map((p) => (
-                  <tr key={p.id}>
-                    <td className="forte">{p.nome}<div className="muted pequeno">#{p.id}</div></td>
-                    <td className="pequeno">{p.status === 'ACTIVE' ? 'Ativo' : p.status}</td>
-                    <td><select value={p.curso_id ?? ''} onChange={async (e) => { await supabase.from('hotmart_produtos').update({ curso_id: e.target.value || null }).eq('id', p.id); produtos.recarregar() }}>
-                      <option value="">—</option>{cad.cursos.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}
-                    </select></td>
-                    <td><input type="checkbox" checked={p.mostrar || !!p.curso_id} disabled={!!p.curso_id} onChange={async (e) => { await supabase.from('hotmart_produtos').update({ mostrar: e.target.checked }).eq('id', p.id); produtos.recarregar() }} /></td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          ))}
-        </section>
-      )}
+      {isAdmin && <p className="muted pequeno">Para os links da Hotmart virem sozinhos, ligue cada produto da Hotmart a um curso em <Link to="/configuracoes/integracoes" className="link">Configurações → Integrações</Link>.</p>}
       <p className="muted pequeno">Cadastro e edição: administrador. Consulta e cópia: toda a equipe.</p>
 
       {isAdmin && <FormLink link={editando} cursos={cad.cursos} turmas={cad.turmas} alunos={alunos.dados ?? []} onFechar={() => setEditando(null)} onSalvo={() => { setEditando(null); links.recarregar() }} />}

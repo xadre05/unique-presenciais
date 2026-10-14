@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { Fragment, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { msgErro, useCadastros, useConsulta } from '../lib/dados'
@@ -16,7 +16,9 @@ export type ComissaoV = {
   pago_conta: string | null; pago_comprovante: string | null; turma_id: string; aluno_id: string; valor_fechado: number; mes_pagamento: string
 }
 type Faixa = { a_partir_de: number; fixo: number; percentual: number }
-type Regra = { id: string; curso_id: string | null; calculo: 'simples' | 'progressiva'; fixo: number; percentual: number; faixas: Faixa[] | null; observacao: string | null }
+export type Regra = { id: string; curso_id: string | null; vigente_desde: string; calculo: 'simples' | 'progressiva'; fixo: number; percentual: number; faixas: Faixa[] | null; observacao: string | null }
+// Regra valendo hoje para um curso (ou a padrão, com curso null).
+export const regraAtual = (regras: Regra[], curso: string | null) => regras.filter((r) => r.curso_id === curso && r.vigente_desde <= hojeISO()).sort((a, b) => b.vigente_desde.localeCompare(a.vigente_desde))[0]
 
 const pctTxt = (v: number) => `${String(Number(v)).replace('.', ',')}%`
 const partes = (fixo: number, pct: number) => [Number(fixo) > 0 ? brl(fixo) : '', Number(pct) > 0 ? `${pctTxt(pct)} da venda` : ''].filter(Boolean).join(' + ') || 'R$ 0,00'
@@ -47,7 +49,7 @@ export default function Comissoes() {
   const { isAdmin } = useAuth()
   const cad = useCadastros()
   const lista = useConsulta<ComissaoV[]>(() => supabase.from('v_comissoes').select('*').order('data_venda', { ascending: false }))
-  const regras = useConsulta<Regra[]>(() => supabase.from('comissao_regras').select('*'))
+  const regras = useConsulta<Regra[]>(() => supabase.from('comissao_regra_versoes').select('*').order('vigente_desde', { ascending: false }))
   const [vendedora, setVendedora] = useState('')
   const [turma, setTurma] = useState('')
   const [situacao, setSituacao] = useState('abertas')
@@ -85,7 +87,7 @@ export default function Comissoes() {
     const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' })); a.download = 'comissoes.csv'; a.click()
   }
 
-  const padrao = (regras.dados ?? []).find((r) => !r.curso_id)
+  const padrao = regraAtual(regras.dados ?? [], null)
 
   return (
     <div className="pagina">
@@ -286,62 +288,83 @@ function Ajustar({ c, onFechar, onSalvo }: { c: ComissaoV; onFechar: () => void;
   )
 }
 
-type Edicao = { id?: string; curso_id: string | null; calculo: 'simples' | 'progressiva'; fixo: number | null; percentual: number | null; faixas: Faixa[] }
+type Edicao = { id?: string; curso_id: string | null; vigente_desde: string; calculo: 'simples' | 'progressiva'; fixo: number | null; percentual: number | null; faixas: Faixa[] }
 
 function Regras({ regras, cursos, isAdmin, onFechar, onSalvo }: { regras: Regra[]; cursos: { id: string; nome: string }[]; isAdmin: boolean; onFechar: () => void; onSalvo: () => void }) {
+  return (
+    <Modal titulo="Regras de comissão" aberto onFechar={onFechar} largo>
+      <RegrasConteudo regras={regras} cursos={cursos} isAdmin={isAdmin} onSalvo={onSalvo} />
+    </Modal>
+  )
+}
+
+export function RegrasConteudo({ regras, cursos, isAdmin, onSalvo }: { regras: Regra[]; cursos: { id: string; nome: string }[]; isAdmin: boolean; onSalvo: () => void }) {
   const [ed, setEd] = useState<Edicao | null>(null)
   const [erro, setErro] = useState<string | null>(null)
+  const [verVersoes, setVerVersoes] = useState<string | null>(null)
+  const hoje = hojeISO()
   const linhas = [{ curso_id: null as string | null, nome: 'Padrão (todos os cursos)' }, ...cursos.map((c) => ({ curso_id: c.id, nome: c.nome }))]
-  const regraDe = (id: string | null) => regras.find((r) => r.curso_id === id)
-  const padrao = regraDe(null)
+  const versoesDe = (id: string | null) => regras.filter((r) => r.curso_id === id).sort((a, b) => b.vigente_desde.localeCompare(a.vigente_desde))
+  const padrao = regraAtual(regras, null)
   const abrir = (curso_id: string | null) => {
-    const r = regraDe(curso_id) ?? (curso_id ? padrao : undefined)
+    const r = regraAtual(regras, curso_id) ?? (curso_id ? padrao : undefined)
     setErro(null)
-    setEd({ id: regraDe(curso_id)?.id, curso_id, calculo: r?.calculo ?? 'simples', fixo: r?.fixo ?? 250, percentual: r?.percentual ?? 0,
+    setEd({ curso_id, vigente_desde: hoje, calculo: r?.calculo ?? 'simples', fixo: r?.fixo ?? 250, percentual: r?.percentual ?? 0,
       faixas: r?.faixas?.length ? r.faixas : [{ a_partir_de: 1, fixo: r?.fixo ?? 250, percentual: r?.percentual ?? 0 }, { a_partir_de: 4, fixo: 300, percentual: 0 }] })
   }
   const mudaFaixa = (i: number, k: keyof Faixa, v: number | null) => setEd((e) => e && ({ ...e, faixas: e.faixas.map((f, j) => j === i ? { ...f, [k]: v ?? 0 } : f) }))
   const salvar = async () => {
     if (!ed) return
     const fs = [...ed.faixas].sort((a, b) => a.a_partir_de - b.a_partir_de)
+    if (!ed.vigente_desde) return setErro('Informe a partir de quando a regra vale.')
     if (ed.calculo === 'progressiva') {
       if (fs[0].a_partir_de !== 1) return setErro('A primeira faixa precisa começar na 1ª venda.')
       if (new Set(fs.map((f) => f.a_partir_de)).size !== fs.length) return setErro('Duas faixas começam na mesma venda.')
     } else if (!(ed.fixo ?? 0) && !(ed.percentual ?? 0)) return setErro('Informe um valor fixo, um percentual ou os dois.')
-    const reg = { curso_id: ed.curso_id, calculo: ed.calculo, fixo: ed.fixo ?? 0, percentual: ed.percentual ?? 0, faixas: ed.calculo === 'progressiva' ? fs : null, atualizado_em: new Date().toISOString() }
-    const { error } = ed.id ? await supabase.from('comissao_regras').update(reg).eq('id', ed.id) : await supabase.from('comissao_regras').insert(reg)
+    const reg = { curso_id: ed.curso_id, vigente_desde: ed.vigente_desde, calculo: ed.calculo, fixo: ed.fixo ?? 0, percentual: ed.percentual ?? 0, faixas: ed.calculo === 'progressiva' ? fs : null }
+    const mesmaData = regras.find((r) => r.curso_id === ed.curso_id && r.vigente_desde === ed.vigente_desde)
+    const { error } = mesmaData ? await supabase.from('comissao_regra_versoes').update(reg).eq('id', mesmaData.id) : await supabase.from('comissao_regra_versoes').insert(reg)
     if (error) return setErro(msgErro(error))
     setEd(null); onSalvo()
   }
-  return (
-    <Modal titulo="Regras de comissão" aberto onFechar={onFechar} largo>
+  return (<>
       <ul className="lista-regras">
         <li>A comissão é de quem vendeu e é <b>por matrícula vendida</b>: um aluno que compra duas turmas gera duas comissões.</li>
         <li>Pode ser <b>valor fixo</b>, <b>percentual da venda</b> ou <b>fixo + percentual</b>. Também pode ser <b>progressiva</b>: o valor sobe conforme o número de vendas da vendedora no mês (1ª, 2ª, 3ª venda…).</li>
+        <li>Toda regra tem <b>data de início</b>: cada venda usa a regra que valia no dia da venda. Mudar a regra não mexe nas vendas anteriores.</li>
         <li>Nasce <b>pendente</b>, é <b>liberada</b> quando a inscrição está confirmada e é <b>paga no mês seguinte à venda</b>.</li>
-        <li>Matrícula cancelada cancela a comissão que ainda não foi paga.</li>
         <li>O administrador pode liberar antes (exceção) ou ajustar uma comissão específica. Os dois pedem motivo e ficam no histórico.</li>
       </ul>
       <h3>Valores por curso</h3>
       <table className="tabela compacta">
-        <thead><tr><th>Curso</th><th>Regra</th>{isAdmin && <th></th>}</tr></thead>
+        <thead><tr><th>Curso</th><th>Regra valendo hoje</th><th>Desde</th>{isAdmin && <th></th>}</tr></thead>
         <tbody>
           {linhas.map((l) => {
-            const r = regraDe(l.curso_id)
-            return (
-              <tr key={l.curso_id ?? 'padrao'}>
+            const r = regraAtual(regras, l.curso_id)
+            const vs = versoesDe(l.curso_id)
+            const futura = vs.find((v) => v.vigente_desde > hoje)
+            const chave = l.curso_id ?? 'padrao'
+            return (<Fragment key={chave}>
+              <tr>
                 <td className="forte">{l.nome}</td>
-                <td>{l.curso_id && !r ? <span className="muted">segue o padrão</span> : descreverRegra(r)}</td>
-                {isAdmin && <td className="direita"><button className="btn btn-mini" onClick={() => abrir(l.curso_id)}>{r ? 'Alterar' : 'Criar regra própria'}</button></td>}
+                <td>{l.curso_id && !r ? <span className="muted">segue o padrão</span> : descreverRegra(r)}{futura && <div className="alerta-txt pequeno">Muda em {dataBR(futura.vigente_desde)}: {descreverRegra(futura)}</div>}</td>
+                <td className="pequeno">{r ? (r.vigente_desde <= '2020-01-01' ? 'início' : dataBR(r.vigente_desde)) : '—'}{vs.length > 1 && <> · <button className="link pequeno" onClick={() => setVerVersoes(verVersoes === chave ? null : chave)}>{vs.length} versões</button></>}</td>
+                {isAdmin && <td className="direita"><button className="btn btn-mini" onClick={() => abrir(l.curso_id)}>{vs.length ? 'Mudar regra' : 'Criar regra própria'}</button></td>}
               </tr>
-            )
+              {verVersoes === chave && vs.map((v) => (
+                <tr key={v.id} className="linha-versao"><td className="muted pequeno">↳ versão</td><td className="pequeno">{descreverRegra(v)}</td><td className="pequeno">{v.vigente_desde <= '2020-01-01' ? 'início' : `desde ${dataBR(v.vigente_desde)}`}</td>{isAdmin && <td />}</tr>
+              ))}
+            </Fragment>)
           })}
         </tbody>
       </table>
-      {isAdmin && <p className="muted pequeno">Mudar uma regra recalcula as comissões pendentes e liberadas, menos as que tiveram ajuste manual. Comissões pagas não mudam.</p>}
+      {isAdmin && <p className="muted pequeno">Comissões pendentes e liberadas de vendas a partir da data da regra são recalculadas, menos as que tiveram ajuste manual. Comissões pagas não mudam.</p>}
       {ed && (
         <div className="bloco editor-regra">
           <h3>{ed.curso_id ? cursos.find((c) => c.id === ed.curso_id)?.nome : 'Regra padrão'}</h3>
+          <div className="form-grade">
+            <Campo rotulo="Vale para vendas a partir de" dica="As vendas antes dessa data continuam com a regra anterior."><input type="date" value={ed.vigente_desde} onChange={(e) => setEd({ ...ed, vigente_desde: e.target.value })} /></Campo>
+          </div>
           <div className="alternar" style={{ marginBottom: 14 }}>
             <button className={ed.calculo === 'simples' ? 'ativo' : ''} onClick={() => setEd({ ...ed, calculo: 'simples' })}>Fixo e/ou percentual</button>
             <button className={ed.calculo === 'progressiva' ? 'ativo' : ''} onClick={() => setEd({ ...ed, calculo: 'progressiva' })}>Tabela progressiva</button>
@@ -374,6 +397,5 @@ function Regras({ regras, cursos, isAdmin, onFechar, onSalvo }: { regras: Regra[
         </div>
       )}
       {!isAdmin && <p className="muted pequeno">Dúvidas sobre a sua comissão: fale com o administrador.</p>}
-    </Modal>
-  )
+  </>)
 }

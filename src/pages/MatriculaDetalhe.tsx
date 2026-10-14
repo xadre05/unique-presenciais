@@ -238,7 +238,7 @@ export function AcaoParcela({ acao, matriculaId, totalParcelas, contas, isAdmin,
     <Campo rotulo="Conta onde o dinheiro caiu">
       <select value={conta} onChange={(e) => setConta(e.target.value)}>
         <option value="">Não informada</option>
-        {contas.filter((c) => c.ativa || c.id === conta).map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}
+        {contas.filter((c) => (c.ativa && (c as { uso?: string }).uso !== 'antigas') || c.id === conta).map((c) => <option key={c.id} value={c.id}>{c.nome}{(c as { uso?: string }).uso === 'antigas' ? ' (só contratos antigos)' : ''}</option>)}
       </select>
     </Campo>
   )

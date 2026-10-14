@@ -9,10 +9,16 @@ import { useAuth } from '../auth'
 
 type Linha = { numero: number; total: number; eh_matricula: boolean; forma: string; conta_id: string; valor: number; vencimento: string; pago: boolean }
 
-export const contaPadrao = (forma: string, contas: { id: string; nome: string; tipo: string }[]) => {
-  if (forma === 'pix' || forma === 'transferencia' || forma === 'boleto') return contas.find((c) => c.tipo === 'banco')?.id ?? ''
-  if (forma === 'dinheiro') return contas.find((c) => c.tipo === 'especie')?.id ?? ''
-  if (forma.startsWith('hotmart')) return contas.find((c) => c.nome.includes('Unique HOF'))?.id ?? ''
+// Conta sugerida para cada forma de pagamento: só contas ativas e liberadas para novas vendas, preferindo a marcada como padrão.
+export const contaPadrao = (forma: string, contas: { id: string; nome: string; tipo: string; ativa?: boolean; uso?: string }[]) => {
+  const validas = contas.filter((c) => c.ativa !== false && c.uso !== 'antigas')
+  const escolher = (f: (c: { nome: string; tipo: string }) => boolean) => {
+    const xs = validas.filter(f)
+    return (xs.find((c) => c.uso === 'padrao') ?? xs[0])?.id ?? ''
+  }
+  if (forma === 'pix' || forma === 'transferencia' || forma === 'boleto') return escolher((c) => c.tipo === 'banco')
+  if (forma === 'dinheiro') return escolher((c) => c.tipo === 'especie')
+  if (forma.startsWith('hotmart')) return escolher((c) => c.tipo === 'hotmart' || /hotmart/i.test(c.nome))
   return ''
 }
 
@@ -90,7 +96,7 @@ export default function NovaMatricula() {
     if (!aluno && !nomeNovo) return setErro('Escolha um aluno já cadastrado ou cadastre um novo.')
     if (!aluno && !novo.whatsapp?.trim()) return setErro('Informe o WhatsApp do aluno.')
     if (!turmaId) return setErro('Escolha a turma.')
-    if (!isAdmin && !minhaVendedora) return setErro('Seu login ainda não está ligado a uma vendedora. Peça ao administrador para fazer isso em Equipe e cadastros.')
+    if (!isAdmin && !minhaVendedora) return setErro('Seu login ainda não está ligado a uma vendedora. Peça ao administrador para fazer isso em Configurações → Equipe e acessos.')
     if (origem === 'venda' && !vendedoraId) return setErro('Escolha quem vendeu (é por isso que a comissão é calculada).')
     if (valor === null) return setErro('Informe o valor fechado.')
     if (temEntrada && (entrada ?? 0) <= 0) return setErro('Informe o valor da entrada/matrícula.')

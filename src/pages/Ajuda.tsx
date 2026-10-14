@@ -70,7 +70,7 @@ export default function Ajuda() {
           <li><b>Alunos</b> — busca por nome, e-mail ou WhatsApp.</li>
           <li><b>{isAdmin ? 'Comissões' : 'Minhas comissões'}</b> — {isAdmin ? 'comissões de todas as vendedoras: liberar e marcar como paga.' : 'só as suas. R$ 250 por aluno, paga no mês seguinte à inscrição confirmada.'}</li>
           {isAdmin && <li><b>Histórico</b> — tudo que foi criado ou alterado, por quem e quando.</li>}
-          {isAdmin && <li><b>Equipe e cadastros</b> — liberar acesso, ligar login à vendedora, cursos e contas.</li>}
+          {isAdmin && <li><b>Configurações</b> — liberar acesso, ligar login à vendedora, vendedoras, cursos, contas, regras de comissão e Hotmart.</li>}
         </ul>
       </section>
 
@@ -99,11 +99,11 @@ export default function Ajuda() {
           <h2>Para o administrador: liberar alguém novo</h2>
           <ol>
             <li>A pessoa abre o sistema, clica em <b>Criar minha conta</b> e se cadastra com o e-mail dela.</li>
-            <li>Você vai em <b>Equipe e cadastros → Acessos</b> e muda o acesso para <b>Vendedora</b> ou <b>Administrador</b>.</li>
-            <li>Se for vendedora, ligue o login ao nome dela na coluna "É a vendedora…" — é isso que faz a matrícula sair no nome certo e a comissão aparecer para ela.</li>
+            <li>Você vai em <b>Configurações → Equipe e acessos</b>, clica em <b>Liberar</b> e escolhe <b>Vendedora</b> ou <b>Administrador</b>.</li>
+            <li>Se for vendedora, escolha na mesma tela a <b>Vendedora vinculada</b> — é isso que faz a matrícula sair no nome certo e a comissão aparecer para ela.</li>
             <li>Ela clica em "Já liberaram meu acesso — entrar" e pronto.</li>
           </ol>
-          <p className="muted pequeno">Alguém saiu da equipe? Mude o acesso para <b>Inativo</b>. O histórico dela continua guardado.</p>
+          <p className="muted pequeno">Alguém saiu da equipe? Em Alterar acesso, escolha <b>Desativado</b>. O histórico dela continua guardado.</p>
         </section>
       )}
     </div>

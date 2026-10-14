@@ -13,7 +13,7 @@ import Comissoes from './pages/Comissoes'
 import Alunos from './pages/Alunos'
 import AlunoPerfil from './pages/AlunoPerfil'
 import Historico from './pages/Historico'
-import Equipe from './pages/Equipe'
+import Configuracoes from './pages/Configuracoes'
 import Links from './pages/Links'
 import Ajuda from './pages/Ajuda'
 import Agenda from './pages/Agenda'
@@ -57,7 +57,7 @@ function Layout() {
           <NavLink to="/comissoes"><Icone nome="comissoes" /> {isAdmin ? 'Comissões' : 'Minhas comissões'}</NavLink>
           <NavLink to="/links"><Icone nome="links" /> Links de pagamento</NavLink>
           {isAdmin && <NavLink to="/historico"><Icone nome="historico" /> Histórico</NavLink>}
-          {isAdmin && <NavLink to="/equipe"><Icone nome="equipe" /> Equipe e cadastros</NavLink>}
+          {isAdmin && <NavLink to="/configuracoes"><Icone nome="equipe" /> Configurações</NavLink>}
           <NavLink to="/ajuda" className="nav-ajuda"><Icone nome="ajuda" /> Como usar</NavLink>
         </nav>
         <NavLink to="/matricula/nova" className="btn btn-ouro btn-bloco btn-grande"><Icone nome="mais" /> Nova matrícula</NavLink>
@@ -85,7 +85,9 @@ function Layout() {
           <Route path="/agenda" element={<Agenda />} />
           <Route path="/ajuda" element={<Ajuda />} />
           {isAdmin && <Route path="/historico" element={<Historico />} />}
-          {isAdmin && <Route path="/equipe" element={<Equipe />} />}
+          {isAdmin && <Route path="/configuracoes" element={<Configuracoes />} />}
+          {isAdmin && <Route path="/configuracoes/:aba" element={<Configuracoes />} />}
+          {isAdmin && <Route path="/equipe" element={<Navigate to="/configuracoes/equipe" replace />} />}
           <Route path="*" element={<Navigate to="/" />} />
         </Routes>
       </main>
