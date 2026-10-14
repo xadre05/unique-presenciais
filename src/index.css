@@ -622,3 +622,25 @@ select option:checked { background-color: #6d5427; color: #fff3d9; }
 .nm-plano { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .nm-plano.avista { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
 .nm-gerar { height: 36px; margin-left: auto; }
+
+/* ── Integrações ── */
+.integ-topo { display: flex; gap: 14px; align-items: flex-start; }
+.integ-logo { width: 42px; height: 42px; border-radius: 10px; background: #f04e23; color: #fff; display: grid; place-items: center; font-weight: 700; font-size: 1.2rem; flex: none; }
+.integ-titulo { flex: 1; min-width: 0; }
+.integ-titulo h2 { margin: 0 0 4px; }
+.integ-titulo p { margin: 0; }
+.integ-status { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
+.integ-desligada { opacity: .65; }
+.integ-grade { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin: 16px 0 12px; }
+.integ-dado { display: flex; flex-direction: column; gap: 3px; background: var(--painel-2); border: 1px solid var(--borda); border-radius: 10px; padding: 10px 12px; min-width: 0; }
+.integ-dado select { margin-top: 2px; }
+.integ-opcoes { display: flex; flex-wrap: wrap; gap: 8px 24px; margin-bottom: 12px; }
+.integ-passos { margin: 14px 0 0; padding: 14px 14px 14px 32px; background: var(--painel-2); border: 1px solid var(--borda); border-radius: 10px; display: grid; gap: 10px; font-size: .92rem; }
+.integ-url { display: flex; align-items: center; gap: 8px; margin: 8px 0; flex-wrap: wrap; }
+.integ-url code { background: var(--fundo); border: 1px solid var(--borda); padding: 6px 10px; border-radius: 6px; font-size: .8rem; overflow-wrap: anywhere; }
+.integ-motivo { max-width: 340px; }
+.integ-futuras { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.integ-futuras > div { border: 1px dashed var(--borda); border-radius: 10px; padding: 12px 14px; }
+.integ-futuras p { margin: 4px 0 8px; }
+@media (max-width: 1000px) { .integ-grade, .integ-futuras { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 640px) { .integ-grade, .integ-futuras { grid-template-columns: 1fr; } .integ-topo { flex-wrap: wrap; } }

@@ -2,13 +2,14 @@ import { useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { msgErro, useCadastros, useConsulta } from '../lib/dados'
-import { dataBR, dataHoraBR } from '../lib/format'
+import { dataBR } from '../lib/format'
 import type { Conta } from '../lib/types'
 import type { Perfil } from '../auth'
 import { useAuth } from '../auth'
 import { Badge, Campo, Erro, Modal, Vazio } from '../components/ui'
 import { Icone } from '../components/Icone'
 import { RegrasConteudo, type Regra } from './Comissoes'
+import { AbaIntegracoes } from './Integracoes'
 
 type PerfilC = Perfil & { criado_em: string }
 type Papel = Perfil['papel']
@@ -400,91 +401,5 @@ function AbaComissoes() {
     <p className="muted pequeno">Mudança de regra vale a partir da data que você escolher. Comissões já pagas ou ajustadas à mão não mudam; as em aberto de vendas a partir dessa data são recalculadas. Ajuste de uma comissão específica é feito em <Link to="/comissoes" className="link">Comissões</Link>, com motivo.</p>
     <Erro msg={regras.erro} />
     <section className="bloco"><RegrasConteudo regras={regras.dados ?? []} cursos={cad.cursos} isAdmin onSalvo={() => regras.recarregar()} /></section>
-  </>)
-}
-
-/* ───────────── Integrações ───────────── */
-
-type ProdutoHotmart = { id: number; nome: string; status: string | null; formato: string | null; curso_id: string | null; mostrar: boolean; sincronizado_em: string }
-
-function AbaIntegracoes() {
-  const cad = useCadastros()
-  const produtos = useConsulta<ProdutoHotmart[]>(() => supabase.from('hotmart_produtos').select('*').order('nome'))
-  const [sinc, setSinc] = useState<{ rodando: boolean; msg: string | null; erro: string | null }>({ rodando: false, msg: null, erro: null })
-  const [todos, setTodos] = useState(false)
-  const ps = (produtos.dados ?? []).filter((p) => p.status !== 'DELETED')
-  const ligados = ps.filter((p) => p.curso_id || p.mostrar)
-  const ultima = ps.map((p) => p.sincronizado_em).sort().at(-1)
-  const visiveis = todos ? ps : ps.filter((p) => p.curso_id || p.mostrar || p.status === 'ACTIVE')
-
-  const sincronizar = async () => {
-    setSinc({ rodando: true, msg: null, erro: null })
-    const { data, error } = await supabase.functions.invoke('hotmart-ofertas', { method: 'POST' })
-    let erro: string | null = null
-    if (error) { try { erro = (await (error as { context?: Response }).context?.json())?.erro ?? error.message } catch { erro = error.message } }
-    setSinc({ rodando: false, erro, msg: erro ? null : `${data.produtos} produtos lidos · ${data.novos} links novos · ${data.atualizados} atualizados · ${data.desativados} desativados.` })
-    produtos.recarregar()
-  }
-  const atualizar = async (id: number, campos: Partial<ProdutoHotmart>) => { await supabase.from('hotmart_produtos').update(campos).eq('id', id); produtos.recarregar() }
-
-  return (<>
-    <section className="bloco">
-      <div className="bloco-topo">
-        <div>
-          <h2><Icone nome="links" className="ouro" /> Hotmart — Unique HOF Academy</h2>
-          <p className="muted pequeno" style={{ margin: 0 }}>Traz as ofertas (links de pagamento) dos produtos ligados a um curso. Só leitura: o sistema não altera nada na Hotmart.</p>
-        </div>
-        <div className="config-status">
-          {ps.length > 0 ? <Badge tom="ok">Conectada</Badge> : <Badge tom="alerta">Aguardando credenciais</Badge>}
-          <button className="btn btn-contorno" disabled={sinc.rodando} onClick={sincronizar}><Icone nome="historico" /> {sinc.rodando ? 'Buscando…' : 'Atualizar da Hotmart'}</button>
-        </div>
-      </div>
-      {ps.length > 0 && <p className="muted pequeno">{ps.length} produtos na Hotmart · {ligados.length} trazendo ofertas{ultima && ` · última atualização ${dataHoraBR(ultima)}`}</p>}
-      {sinc.msg && <div className="nota pequeno"><Icone nome="check" tam={14} className="ok" /> {sinc.msg} <Link to="/links" className="link">Ver links</Link></div>}
-      <Erro msg={sinc.erro} />
-
-      {ps.length === 0 ? (
-        <div className="nota pequeno">
-          <b>Para ligar a Hotmart (uma vez só):</b>
-          <ol>
-            <li>Na Hotmart da <b>Unique HOF Academy</b>: Ferramentas → <b>Credenciais Hotmart</b> → Criar credencial (produção). Ela mostra Client ID, Client Secret e Basic.</li>
-            <li>No Supabase, projeto unique-presenciais: <b>Edge Functions → Secrets</b>. Crie <code>HOTMART_CLIENT_ID</code>, <code>HOTMART_CLIENT_SECRET</code> e <code>HOTMART_BASIC</code>, colando cada valor.</li>
-            <li>Volte aqui e clique em <b>Atualizar da Hotmart</b>. Os produtos aparecem abaixo para você ligar aos cursos.</li>
-          </ol>
-          <span>As credenciais ficam só no servidor: ninguém vê pelo sistema, e não precisam ser enviadas por chat.</span>
-        </div>
-      ) : (<>
-        <div className="bloco-topo" style={{ marginTop: 10 }}>
-          <h3 style={{ margin: 0 }}>Produtos e cursos</h3>
-          <label className="check pequeno"><input type="checkbox" checked={todos} onChange={(e) => setTodos(e.target.checked)} /> Mostrar também os inativos</label>
-        </div>
-        <div className="tabela-wrap">
-          <table className="tabela compacta">
-            <thead><tr><th>Produto na Hotmart</th><th>Situação</th><th>Curso no sistema</th><th>Trazer ofertas</th></tr></thead>
-            <tbody>
-              {visiveis.map((p) => (
-                <tr key={p.id}>
-                  <td className="forte">{p.nome}<div className="muted pequeno">#{p.id}</div></td>
-                  <td>{p.status === 'ACTIVE' ? <Badge tom="ok">Ativo</Badge> : <Badge>{p.status ?? '—'}</Badge>}</td>
-                  <td><select value={p.curso_id ?? ''} onChange={(e) => atualizar(p.id, { curso_id: e.target.value || null })}>
-                    <option value="">—</option>{cad.cursos.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}
-                  </select></td>
-                  <td><input type="checkbox" checked={p.mostrar || !!p.curso_id} disabled={!!p.curso_id} title={p.curso_id ? 'Produto ligado a curso sempre traz as ofertas' : ''} onChange={(e) => atualizar(p.id, { mostrar: e.target.checked })} /></td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        <p className="muted pequeno">Ofertas novas (inclusive as criadas para um aluno específico) entram sozinhas em Links de pagamento. Ofertas apagadas na Hotmart ficam desativadas aqui.</p>
-      </>)}
-    </section>
-
-    <section className="bloco">
-      <h2><Icone nome="relogio" className="ouro" /> Próximas integrações</h2>
-      <ul className="lista-confirma pequeno">
-        <li><b>Hotmart — vendas e parcelas:</b> confirmar sozinho os pagamentos feitos pela Hotmart e as vendas do online por SCK. <Badge tom="alerta">a fazer</Badge></li>
-        <li><b>Sicoob — extrato:</b> importar o extrato para conferir os Pix informados pela equipe. <Badge tom="alerta">a fazer</Badge></li>
-      </ul>
-    </section>
   </>)
 }

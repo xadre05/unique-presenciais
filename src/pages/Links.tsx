@@ -62,12 +62,13 @@ export default function Links() {
 
   const sincronizar = async () => {
     setSinc({ rodando: true, msg: null, erro: null })
-    const { data, error } = await supabase.functions.invoke('hotmart-ofertas', { method: 'POST' })
+    const { data, error } = await supabase.functions.invoke('hotmart', { body: { acao: 'ofertas', integracao: 'hotmart_unique' } })
     let erro: string | null = null
     if (error) {
       try { erro = (await (error as { context?: Response }).context?.json())?.erro ?? error.message } catch { erro = error.message }
     }
-    setSinc({ rodando: false, erro, msg: erro ? null : `Hotmart sincronizada: ${data.produtos} produtos lidos, ${data.novos} links novos, ${data.atualizados} atualizados, ${data.desativados} desativados.` })
+    const o = data?.resultado?.hotmart_unique?.ofertas
+    setSinc({ rodando: false, erro, msg: erro ? null : o ? `Hotmart sincronizada: ${o.produtos} produtos lidos, ${o.novos} links novos, ${o.atualizados} atualizados, ${o.desativados} desativados.` : 'Hotmart sincronizada.' })
     links.recarregar()
   }
 
