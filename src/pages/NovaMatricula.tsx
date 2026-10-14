@@ -353,7 +353,7 @@ export default function NovaMatricula() {
               </div>
               {temEntrada && (
                 <div className="nm-entrada">
-                  <span className="muted pequeno">Entrada de {brl(entrada)} paga em</span>
+                  <span className="muted pequeno">Entrada paga em</span>
                   <select value={entradaForma} onChange={(e) => setEntradaForma(e.target.value)}>{Object.entries(FORMAS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select>
                   <span className="muted pequeno">no dia</span>
                   <input type="date" value={entradaData} onChange={(e) => setEntradaData(e.target.value)} />
@@ -386,7 +386,7 @@ export default function NovaMatricula() {
               </div>
             </>)}
 
-            {(plano === 'a_definir' || total === 0) && (
+            {(plano === 'a_definir' || (valorTabela !== null && total === 0)) && (
               <div className="faixa-alerta"><Icone nome="alerta" tam={18} /><span>{total === 0 && plano !== 'a_definir' ? 'Venda sem valor (cortesia/bônus): nenhuma parcela será criada.' : 'Sem condições definidas, a matrícula fica com pendência financeira até alguém cadastrar as parcelas.'}</span></div>
             )}
 

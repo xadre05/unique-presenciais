@@ -616,3 +616,6 @@ select option:checked { background-color: #6d5427; color: #fff3d9; }
 .nm-entrada select { flex: 0 1 220px; min-width: 0; }
 .nm-entrada input[type=date] { flex: 0 0 auto; }
 @media (max-width: 760px) { .nm-entrada { flex-wrap: wrap; } }
+.nm-plano { grid-template-columns: minmax(140px, 1.3fr) minmax(110px, .9fr) minmax(150px, 1.3fr) auto; }
+.nm-entrada span { white-space: nowrap; }
+.nm-gerar { padding-inline: 14px; }
