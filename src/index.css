@@ -222,10 +222,10 @@ input[type=file] { padding: 7px; }
 
 /* ícones */
 .icone { flex-shrink: 0; vertical-align: middle; }
-.icone.ouro { color: var(--ouro); }
-.icone.ok { color: var(--ok); }
-.icone.erro { color: var(--erro); }
-.icone.info { color: var(--info); }
+.icone.ic-ouro { color: var(--ouro); }
+.icone.ic-ok { color: var(--ok); }
+.icone.ic-erro { color: var(--erro); }
+.icone.ic-info { color: var(--info); }
 
 /* menu lateral com ícones */
 .lateral nav a { display: flex; align-items: center; gap: 12px; padding: 10px 12px; }
@@ -248,7 +248,8 @@ input[type=file] { padding: 7px; }
 .kpis-5 { grid-template-columns: repeat(5, minmax(0, 1fr)); }
 .kpi-icone { padding: 16px 18px; border-radius: 14px; display: flex; flex-direction: column; gap: 6px; }
 .kpi-cabeca { display: flex; align-items: center; gap: 10px; }
-.kpi-icone .kpi-valor { font-size: 1.45rem; margin-top: 2px; }
+.kpi-icone .kpi-valor { font-size: clamp(1.02rem, 1.45vw, 1.45rem); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.kpi-icone { min-width: 0; }
 .kpi-destaque { border-color: rgba(201,164,92,.6); background: linear-gradient(160deg, rgba(201,164,92,.10), var(--painel) 60%); }
 .painel-grade { display: grid; grid-template-columns: 1.55fr 1fr; gap: 18px; align-items: start; }
 .painel-col { display: flex; flex-direction: column; }

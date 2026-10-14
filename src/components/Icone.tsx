@@ -13,7 +13,7 @@ const P: Record<string, string> = {
   mais: 'M12 5v14M5 12h14',
   usuario: 'M12 13a5 5 0 1 0 0-10 5 5 0 0 0 0 10M4 22a8 8 0 0 1 16 0',
   dinheiro: 'M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6',
-  moedas: 'M8 8a6 3 0 1 0 0-.01M2 8v4c0 1.66 2.69 3 6 3s6-1.34 6-3V8M2 12v4c0 1.66 2.69 3 6 3 1 0 1.95-.12 2.8-.34M14 13c0-1.66 2.69-3 6-3M14 13v4c0 1.66 2.69 3 6 3s6-1.34 6-3v-4',
+  moedas: 'M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4',
   relogio: 'M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20M12 6v6l4 2',
   documento: 'M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zM14 2v6h6M16 13H8M16 17H8M10 9H8',
   alerta: 'M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0zM12 9v4M12 17h.01',
@@ -31,7 +31,7 @@ export function Icone({ nome, tam = 18, className }: { nome: keyof typeof P | st
   const d = P[nome]
   if (!d) return null
   return (
-    <svg className={`icone ${className ?? ''}`} width={tam} height={tam} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <svg className={`icone${className ? ' ic-' + className : ''}`} width={tam} height={tam} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <path d={d} />
     </svg>
   )
