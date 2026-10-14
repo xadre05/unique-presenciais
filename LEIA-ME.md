@@ -9,7 +9,7 @@ Controle de turmas, matrículas, pagamentos e comissões dos cursos presenciais.
 3. `npm run dev`
 4. Abra **http://localhost:5174** (o Unique Clinical continua na 5173).
 
-O arquivo `.env.local` aponta para o banco **unique-presenciais** (Supabase, organização "Projetos Novos", servidor de São Paulo).
+O sistema já aponta para o banco **unique-presenciais** (Supabase, organização "Projetos Novos", servidor de São Paulo).
 
 ## Primeiro acesso
 
