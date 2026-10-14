@@ -533,3 +533,4 @@ select option:checked { background-color: #6d5427; color: #fff3d9; }
 .ad-motivo { display: flex; gap: 10px; align-items: flex-start; }
 @media (max-width: 1200px) { .hist-grade { grid-template-columns: 1fr; } .hist-detalhe { position: static; } .filtros-historico { grid-template-columns: 1fr 1fr; } .filtros-historico .filtro-datas { grid-column: 1 / -1; } }
 @media (max-width: 640px) { .hist-item { grid-template-columns: 36px 1fr; } .hist-item .hist-texto { grid-column: 1 / -1; } .hist-item > .badge, .hist-item > .icone:last-child { display: none; } }
+.hist-detalhe dl.resumo dd { font-family: inherit; }
