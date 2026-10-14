@@ -10,6 +10,7 @@ export default function Painel() {
   const { isAdmin } = useAuth()
   const turmas = useConsulta<Turma[]>(() => supabase.from('v_turmas').select('*').neq('status', 'cancelada').order('data_inicio', { ascending: true, nullsFirst: false }))
   const pendentes = useConsulta<ParcelaV[]>(() => supabase.from('v_parcelas').select('*').in('situacao', ['atrasada', 'aguardando_conferencia', 'sem_vencimento', 'a_vencer']).order('vencimento', { ascending: true, nullsFirst: true }))
+  const pendentesAcesso = useConsulta<{ id: string }[]>(() => supabase.from('perfis').select('id').eq('papel', 'pendente'))
   const comissoes = useConsulta<{ vendedora_nome: string; valor: number; status: string; competencia: string | null }[]>(() => supabase.from('v_comissoes').select('vendedora_nome,valor,status,competencia').in('status', ['pendente', 'liberada']))
 
   const ts = turmas.dados ?? []
@@ -32,6 +33,10 @@ export default function Painel() {
           <p className="muted">Situação de hoje, {dataBR(hoje)}. Só conta como recebido o que foi conferido no extrato ou veio da Hotmart.</p>
         </div>
       </header>
+
+      {isAdmin && (pendentesAcesso.dados?.length ?? 0) > 0 && (
+        <div className="nota">{pendentesAcesso.dados!.length} pessoa(s) criaram conta e estão esperando você liberar o acesso. <Link to="/equipe" className="link">Liberar agora</Link></div>
+      )}
 
       <section className="kpis">
         <Kpi rotulo="Valor fechado" valor={brl(soma('valor_fechado'))} sub={`${soma('inscritos')} alunos em ${ts.length} turmas`} />

@@ -15,18 +15,22 @@ import Historico from './pages/Historico'
 import Equipe from './pages/Equipe'
 
 function Aguardando() {
-  const { perfil } = useAuth()
+  const { perfil, recarregar } = useAuth()
+  const inativo = perfil?.papel === 'inativo'
   return (
     <div className="tela-centro">
       <div className="cartao-login">
         <div className="marca">Unique <em>Presenciais</em></div>
-        <h2>Acesso aguardando liberação</h2>
-        <p className="muted">
-          {perfil?.papel === 'inativo'
-            ? 'Seu acesso foi desativado. Fale com o administrador.'
-            : 'Sua conta foi criada. O administrador precisa liberar o seu acesso antes de você entrar.'}
-        </p>
-        <button className="btn" onClick={() => supabase.auth.signOut()}>Sair</button>
+        {inativo ? (<>
+          <h2>Acesso desativado</h2>
+          <p className="muted">Seu acesso foi desativado. Fale com o administrador.</p>
+        </>) : (<>
+          <h2>Pronto, sua conta foi criada ✓</h2>
+          <p>Agora falta só um passo: o administrador precisa <b>liberar o seu acesso</b>.</p>
+          <p className="muted">Avise o Alexandre que você criou a conta com o e-mail <b>{perfil?.email}</b>. Quando ele liberar, clique no botão abaixo.</p>
+          <button className="btn btn-ouro btn-bloco" onClick={() => recarregar()}>Já liberaram meu acesso — entrar</button>
+        </>)}
+        <button className="link pequeno" onClick={() => supabase.auth.signOut()}>Sair</button>
       </div>
     </div>
   )

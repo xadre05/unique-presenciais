@@ -21,8 +21,15 @@ export default function Login() {
         if (nome.trim().length < 2) throw new Error('Digite seu nome.')
         if (senha.length < 8) throw new Error('A senha precisa de pelo menos 8 caracteres.')
         const { data, error } = await supabase.auth.signUp({ email, password: senha, options: { data: { nome: nome.trim() }, emailRedirectTo: window.location.origin } })
-        if (error) throw error
-        if (!data.session) setAviso('Conta criada. Enviamos um e-mail de confirmação; depois de confirmar, o administrador libera seu acesso.')
+        if (error) throw new Error(error.message.includes('already') ? 'Já existe uma conta com esse e-mail. Use "Entrar".' : error.message)
+        if (!data.session) {
+          // entra direto com a conta recém-criada
+          const { error: e2 } = await supabase.auth.signInWithPassword({ email, password: senha })
+          if (e2) {
+            setModo('entrar')
+            setAviso('Conta criada! Agora é só entrar com o seu e-mail e a senha que você acabou de criar.')
+          }
+        }
       } else {
         const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: window.location.origin })
         if (error) throw error
