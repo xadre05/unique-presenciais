@@ -8,6 +8,7 @@ import { Badge, Erro, Vazio } from '../components/ui'
 import { Icone } from '../components/Icone'
 import { useAuth } from '../auth'
 import { turmaCurta } from './Agenda'
+import { AlunosOnline } from './Online'
 
 const POR_PAGINA = 25
 // Ordem de gravidade para resumir várias matrículas de um mesmo aluno.
@@ -27,7 +28,7 @@ export function BotaoWhats({ tel }: { tel: string | null }) {
 export default function Alunos() {
   const { isAdmin } = useAuth()
   const cad = useCadastros()
-  const [visao, setVisao] = useState<'alunos' | 'matriculas'>('alunos')
+  const [visao, setVisao] = useState<'alunos' | 'matriculas' | 'online'>('alunos')
   const [busca, setBusca] = useState('')
   const [turma, setTurma] = useState('')
   const [situacao, setSituacao] = useState('')
@@ -78,7 +79,9 @@ export default function Alunos() {
       <nav className="abas">
         <button className={visao === 'alunos' ? 'ativa' : ''} onClick={() => { setVisao('alunos'); setPagina(1) }}><Icone nome="alunos" tam={16} /> Alunos únicos <span className="muted">{new Set((q.dados ?? []).map((m) => m.aluno_id)).size}</span></button>
         <button className={visao === 'matriculas' ? 'ativa' : ''} onClick={() => { setVisao('matriculas'); setPagina(1) }}><Icone nome="documento" tam={16} /> Matrículas <span className="muted">{(q.dados ?? []).length}</span></button>
+        {isAdmin && <button className={visao === 'online' ? 'ativa' : ''} onClick={() => setVisao('online')}><Icone nome="links" tam={16} /> Online <span className="muted">Hotmart</span></button>}
       </nav>
+      {visao === 'online' ? <AlunosOnline /> : (<>
       <p className="muted">{visao === 'alunos' ? 'Uma linha por pessoa. Abra o aluno para ver todas as turmas, pagamentos e documentos.' : 'Uma linha por matrícula. A mesma pessoa aparece uma vez por turma.'}</p>
 
       <div className="filtros-alunos">
@@ -153,6 +156,7 @@ export default function Alunos() {
           </div>
         </div>
       )}
+      </>)}
     </div>
   )
 }

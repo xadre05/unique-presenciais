@@ -47,12 +47,12 @@ export default function ComissoesOnline() {
   const regra = regras.dados?.find((r) => r.vigente_desde <= hojeISO())
 
   const doMes = todas.filter((c) => (!mes || mesDe(c.competencia) === mes) && (!vend || c.vendedora_id === vend))
-  const filtradas = doMes.filter((c) => !situacao || c.status === situacao)
+  const filtradas = doMes.filter((c) => situacao ? c.status === situacao : c.status !== 'cancelada')
   const soma = (xs: CO[]) => xs.reduce((s, c) => s + Number(c.valor), 0)
   const porVendedora = useMemo(() => {
     const g = new Map<string, { id: string; itens: CO[] }>()
     for (const c of doMes) { const v = g.get(c.vendedora_id) ?? { id: c.vendedora_id, itens: [] }; v.itens.push(c); g.set(c.vendedora_id, v) }
-    return [...g.values()]
+    return [...g.values()].filter((v) => v.itens.some((c) => c.status !== 'cancelada'))
   }, [doMes])
   const pendentesPedido = (pedidos.dados ?? []).filter((a) => a.status === 'pendente')
   const recarregar = () => { setModal(null); lista.recarregar(); pedidos.recarregar() }
@@ -94,7 +94,7 @@ export default function ComissoesOnline() {
     <div className="filtros-comissoes">
       <label className="select-icone"><select value={mes} onChange={(e) => setMes(e.target.value)}><option value="">Todos os meses</option>{meses.map((m) => <option key={m} value={m}>Vendas recebidas em {mesAno(m + '-01')}</option>)}</select></label>
       {isAdmin && <label className="select-icone"><select value={vend} onChange={(e) => setVend(e.target.value)}><option value="">Todas as vendedoras</option>{cad.vendedoras.map((v) => <option key={v.id} value={v.id}>{v.nome}</option>)}</select></label>}
-      <label className="select-icone"><select value={situacao} onChange={(e) => setSituacao(e.target.value)}><option value="">Todas as situações</option>{Object.entries(STATUS_ONLINE).map(([k, s]) => <option key={k} value={k}>{s.rotulo}</option>)}</select></label>
+      <label className="select-icone"><select value={situacao} onChange={(e) => setSituacao(e.target.value)}><option value="">Todas (menos canceladas)</option>{Object.entries(STATUS_ONLINE).map(([k, s]) => <option key={k} value={k}>{s.rotulo}</option>)}</select></label>
     </div>
 
     <section className="por-vendedora online-fech">

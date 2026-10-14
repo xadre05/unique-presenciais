@@ -50,7 +50,7 @@ function faixaDatas(e: EventoAgenda) {
 }
 
 function exportarICS(evs: EventoAgenda[]) {
-  const linhas = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Unique Presenciais//PT-BR', 'CALSCALE:GREGORIAN']
+  const linhas = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Unique Comercial//PT-BR', 'CALSCALE:GREGORIAN']
   const esc = (s: string) => s.replace(/[\\;,]/g, (m) => '\\' + m).replace(/\n/g, '\\n')
   for (const e of evs) {
     const fim = dia(e.data_fim); fim.setDate(fim.getDate() + 1)

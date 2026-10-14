@@ -150,7 +150,7 @@ export default function Links() {
         )
       })}
       {semCurso.length > 0 && !curso && (
-        <section className="bloco"><h2><Icone nome="links" className="ouro" /> Outros links</h2>{semCurso.map((l) => <Linha key={l.id} l={l} />)}</section>
+        <section className="bloco"><h2><Icone nome="links" className="ouro" /> Online e outros links</h2>{semCurso.map((l) => <Linha key={l.id} l={l} />)}</section>
       )}
       {todos.length === 0 && !links.carregando && <Vazio>Nenhum link com esses filtros.</Vazio>}
 

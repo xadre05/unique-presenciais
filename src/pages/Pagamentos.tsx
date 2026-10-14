@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useCadastros, useConsulta } from '../lib/dados'
 import { brl, dataBR, FORMAS, SITUACAO_PARCELA, whatsLink } from '../lib/format'
@@ -9,6 +9,7 @@ import { Icone } from '../components/Icone'
 import { useAuth } from '../auth'
 import { AcaoParcela, Historia, type Acao } from './MatriculaDetalhe'
 import { turmaCurta } from './Agenda'
+import { PagamentosOnline } from './Online'
 
 const POR_PAGINA = 25
 const ehHotmart = (p: ParcelaV) => p.forma.startsWith('hotmart')
@@ -26,6 +27,8 @@ function linkCobranca(p: ParcelaV) {
 
 export default function Pagamentos() {
   const { isAdmin } = useAuth()
+  const [params, setParams] = useSearchParams()
+  const area = isAdmin && params.get('area') === 'online' ? 'online' : 'presencial'
   const cad = useCadastros()
   const [situacao, setSituacao] = useState('pendentes')
   const [turma, setTurma] = useState('')
@@ -99,8 +102,13 @@ export default function Pagamentos() {
     <div className="pagina">
       <header className="pagina-topo">
         <div><h1>Pagamentos</h1><p className="muted">Parcelas, cobranças e conferência de recebimentos.</p></div>
-        <div className="acoes"><button className="btn btn-contorno btn-grande" onClick={exportar}><Icone nome="exportar" /> Exportar CSV</button></div>
+        {area === 'presencial' && <div className="acoes"><button className="btn btn-contorno btn-grande" onClick={exportar}><Icone nome="exportar" /> Exportar CSV</button></div>}
       </header>
+      {isAdmin && <nav className="abas">
+        <button className={area === 'presencial' ? 'ativa' : ''} onClick={() => setParams({})}><Icone nome="turmas" tam={16} /> Presencial</button>
+        <button className={area === 'online' ? 'ativa' : ''} onClick={() => setParams({ area: 'online' })}><Icone nome="links" tam={16} /> Online <span className="muted">Hotmart</span></button>
+      </nav>}
+      {area === 'online' ? <PagamentosOnline /> : (<>
 
       <label className="select-icone busca-larga"><Icone nome="busca" /><input placeholder="Buscar aluno…" value={busca} onChange={mudar(setBusca)} /></label>
       <div className="filtros-pagamentos">
@@ -182,6 +190,7 @@ export default function Pagamentos() {
         </div>
       </>)}
 
+      </>)}
       {aberta && <PainelParcela p={aberta} isAdmin={isAdmin} onFechar={() => setAberta(null)} onAcao={(a) => { setAcao(a) }} />}
       {acao?.parcela && (
         <AcaoParcela acao={acao} matriculaId={acao.parcela.matricula_id} totalParcelas={acao.parcela.total_parcelas} contas={cad.contas} isAdmin={isAdmin}

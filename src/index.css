@@ -666,3 +666,16 @@ select option:checked { background-color: #6d5427; color: #fff3d9; }
 .dl-curta dt { color: var(--muted); }
 .dl-curta dd { margin: 0; }
 .linha-nova td { background: var(--alerta-fundo); }
+
+/* ── Online ── */
+.online-kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-top: 10px; }
+.online-kpis > div { display: flex; flex-direction: column; gap: 4px; background: var(--painel-2); border: 1px solid var(--borda); border-radius: 10px; padding: 12px 14px; min-width: 0; }
+.online-kpis b { font-family: 'JetBrains Mono', monospace; font-size: 1.15rem; }
+.online-meses { display: flex; flex-direction: column; gap: 2px; font-size: .85rem !important; }
+.prev-barras { display: grid; gap: 8px; margin: 10px 0; }
+.prev-linha { display: grid; grid-template-columns: 130px minmax(0, 1fr) 120px 220px; gap: 12px; align-items: center; }
+.prev-mes { color: var(--muted); }
+.prev-barra { height: 10px; background: var(--painel-2); border-radius: 6px; overflow: hidden; }
+.prev-barra i { display: block; height: 100%; background: var(--ouro); border-radius: 6px; }
+.prev-linha b { font-family: 'JetBrains Mono', monospace; text-align: right; }
+@media (max-width: 900px) { .online-kpis { grid-template-columns: 1fr 1fr; } .prev-linha { grid-template-columns: 90px 1fr 100px; } .prev-linha > span:last-child { display: none; } }

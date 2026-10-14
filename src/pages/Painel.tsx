@@ -6,6 +6,7 @@ import { brl, dataBR, hojeISO, mesAno, STATUS_TURMA, whatsLink } from '../lib/fo
 import type { ParcelaV, Turma } from '../lib/types'
 import { Badge, Vazio } from '../components/ui'
 import { Icone } from '../components/Icone'
+import { PainelOnline } from './Online'
 import { useAuth } from '../auth'
 
 export default function Painel() {
@@ -70,6 +71,7 @@ export default function Painel() {
         <div className="nota">{pendentesAcesso.dados!.length} pessoa(s) criaram conta e estão esperando você liberar o acesso. <Link to="/configuracoes/equipe" className="link">Liberar agora</Link></div>
       )}
 
+      <h2 className="titulo-secao">Presencial</h2>
       <section className="kpis kpis-5">
         <KpiIcone icone="sacola" rotulo="Valor fechado" valor={brl(soma('valor_fechado'))} sub={`${soma('inscritos')} alunos em ${ts.length} turmas`} destaque />
         <KpiIcone icone="moedas" rotulo="Recebido (conferido)" valor={brl(soma('recebido'))} tom="ok" sub="líquido recebido nas contas" />
@@ -77,6 +79,9 @@ export default function Painel() {
         <KpiIcone icone="documento" rotulo="A receber" valor={brl(soma('a_receber'))} sub="parcelas ainda não pagas" />
         <KpiIcone icone="alerta" rotulo="Em atraso" valor={brl(soma('atrasado'))} tom="erro" sub={`${atrasadas.length} parcela(s) vencida(s)`} subTom={atrasadas.length ? 'erro' : undefined} />
       </section>
+
+      {isAdmin && <PainelOnline />}
+
 
       <div className="painel-grade">
         <div className="painel-col">
