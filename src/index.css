@@ -545,7 +545,8 @@ select option:checked { background-color: #6d5427; color: #fff3d9; }
 .opcao-papel { display: flex; gap: 12px; align-items: flex-start; padding: 12px 14px; border: 1px solid var(--borda); border-radius: 10px; background: var(--painel-2); cursor: pointer; }
 .opcao-papel:hover { border-color: #3a3a40; }
 .opcao-papel.marcada { border-color: var(--ouro); background: rgba(201,168,106,.07); }
-.opcao-papel input { margin-top: 3px; accent-color: var(--ouro); }
+.opcao-papel input { margin-top: 3px; accent-color: var(--ouro); width: auto; flex: none; padding: 0; }
+.opcao-papel > div { flex: 1; text-align: left; }
 .lista-confirma { margin: 10px 0 14px; padding-left: 18px; display: grid; gap: 8px; }
 .config-status { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .config-grade .filtros-alunos { grid-template-columns: minmax(0, 1fr) 220px; }
