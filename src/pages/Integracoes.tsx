@@ -324,7 +324,7 @@ function ProdutosHotmart({ integs }: { integs: Integ[] }) {
         <h2><Icone nome="livro" className="ouro" /> Produtos da Hotmart e cursos</h2>
         <label className="check pequeno"><input type="checkbox" checked={todos} onChange={(e) => setTodos(e.target.checked)} /> Mostrar também os inativos</label>
       </div>
-      <p className="muted pequeno">Ligue cada produto presencial ao seu curso. Isso decide quais ofertas viram links e ajuda a baixar o pagamento na matrícula certa. Produto sem curso é tratado como venda do online.</p>
+      <p className="muted pequeno">Ligue ao curso só o produto que é <b>só do presencial</b> (ex.: “Comunidade de Harmonização Facial”, usado na Mini Residência). Se o produto mistura online e presencial (ex.: “Unique HOF Academy”), não ligue o produto: marque “Trazer ofertas” e, em Links de pagamento, ligue ao curso só a <b>oferta</b> do presencial. Pagamento de produto ou oferta sem curso é tratado como venda do online.</p>
       <div className="tabela-wrap">
         <table className="tabela compacta">
           <thead><tr><th>Produto na Hotmart</th><th>Conta</th><th>Situação</th><th>Curso no sistema</th><th>Trazer ofertas</th></tr></thead>
