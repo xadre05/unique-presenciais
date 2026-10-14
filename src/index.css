@@ -548,4 +548,7 @@ select option:checked { background-color: #6d5427; color: #fff3d9; }
 .opcao-papel input { margin-top: 3px; accent-color: var(--ouro); }
 .lista-confirma { margin: 10px 0 14px; padding-left: 18px; display: grid; gap: 8px; }
 .config-status { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-@media (max-width: 900px) { .config-grade { grid-template-columns: 1fr; } }
+.config-grade .filtros-alunos { grid-template-columns: minmax(0, 1fr) 220px; }
+.config-grade .tabela td, .config-grade .tabela th { white-space: nowrap; }
+@media (max-width: 1350px) { .config-grade { grid-template-columns: 1fr; } .config-lado { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0 18px; } .config-lado h2, .config-lado > p { grid-column: 1 / -1; } }
+@media (max-width: 800px) { .config-lado { grid-template-columns: 1fr 1fr; } .config-grade .filtros-alunos { grid-template-columns: 1fr; } }
