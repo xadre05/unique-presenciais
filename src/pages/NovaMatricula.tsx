@@ -349,7 +349,6 @@ export default function NovaMatricula() {
                 {plano === 'parcelado' && <Campo rotulo="Entrada"><InputMoeda valor={entrada} onChange={setEntrada} passo={100} /></Campo>}
                 {plano === 'parcelado' && <Campo rotulo="Número de parcelas"><InputNumero valor={nParc} onChange={setNParc} min={0} max={24} placeholder="Quantidade" /></Campo>}
                 <Campo rotulo={plano === 'a_vista' ? 'Vencimento' : 'Primeiro vencimento'}><input type="date" value={primeiroVenc || (plano === 'a_vista' ? dataVenda : '')} onChange={(e) => setPrimeiroVenc(e.target.value)} /></Campo>
-                <button className="btn btn-contorno nm-gerar" onClick={gerar}>{linhas ? 'Gerar de novo' : 'Gerar parcelas'}</button>
               </div>
               {temEntrada && (
                 <div className="nm-entrada">
@@ -365,6 +364,7 @@ export default function NovaMatricula() {
                 <div className="nm-previa-topo"><Icone nome="documento" tam={16} /> <b>Prévia das parcelas</b>
                   {!linhas && <span className="muted pequeno">Informe os valores e vencimentos e clique em “Gerar parcelas”.</span>}
                   {desatualizada && <span className="aviso-txt pequeno">As condições mudaram. Clique em “Gerar de novo”.</span>}
+                  <button className="btn btn-contorno nm-gerar" onClick={gerar}>{linhas ? 'Gerar de novo' : 'Gerar parcelas'}</button>
                 </div>
                 {linhas && (
                   <table className="tabela compacta">

@@ -619,3 +619,6 @@ select option:checked { background-color: #6d5427; color: #fff3d9; }
 .nm-plano { grid-template-columns: minmax(140px, 1.3fr) minmax(110px, .9fr) minmax(150px, 1.3fr) auto; }
 .nm-entrada span { white-space: nowrap; }
 .nm-gerar { padding-inline: 14px; }
+.nm-plano { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.nm-plano.avista { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+.nm-gerar { height: 36px; margin-left: auto; }
