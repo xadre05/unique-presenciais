@@ -117,3 +117,25 @@ export function Marca({ grande }: { grande?: boolean }) {
     </div>
   )
 }
+
+// Percentual com máscara (vírgula) e setas de 0,5 em 0,5.
+export function InputPercent({ valor, onChange, passo = 0.5, max = 100 }: { valor: number | null; onChange: (v: number | null) => void; passo?: number; max?: number }) {
+  const txt = valor === null || valor === undefined ? '' : String(valor).replace('.', ',')
+  const lim = (v: number) => Math.min(max, Math.max(0, Math.round(v * 100) / 100))
+  const mudar = (s: string) => {
+    const limpo = s.replace(/[^\d,]/g, '').replace(/,(?=.*,)/g, '')
+    if (limpo === '') return onChange(null)
+    if (limpo.endsWith(',')) return onChange(Number(limpo.slice(0, -1)) || 0)
+    onChange(lim(Number(limpo.replace(',', '.'))))
+  }
+  return (
+    <div className="moeda">
+      <input inputMode="decimal" value={txt} onChange={(e) => mudar(e.target.value)} placeholder="0" />
+      <span className="moeda-prefixo" style={{ paddingRight: 10 }}>%</span>
+      <div className="moeda-setas">
+        <button type="button" tabIndex={-1} onClick={() => onChange(lim((valor ?? 0) + passo))} aria-label="Aumentar">▲</button>
+        <button type="button" tabIndex={-1} onClick={() => onChange(lim((valor ?? 0) - passo))} aria-label="Diminuir">▼</button>
+      </div>
+    </div>
+  )
+}

@@ -485,3 +485,7 @@ select option:checked { background-color: #6d5427; color: #fff3d9; }
 .tabela-com .motivo { min-width: 180px; }
 .acoes-com { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
 .tabela-com td:last-child { min-width: 230px; }
+.ouro-txt { color: var(--ouro-forte); }
+.editor-regra { margin-top: 14px; background: var(--painel-2); }
+.tabela-faixas td { vertical-align: middle; }
+.tabela-faixas .moeda { min-width: 130px; }
