@@ -10,6 +10,7 @@ import { Badge, Campo, Erro, Modal, Vazio } from '../components/ui'
 import { Icone } from '../components/Icone'
 import { RegrasConteudo, type Regra } from './Comissoes'
 import { AbaIntegracoes } from './Integracoes'
+import { RegrasOnline } from './ComissoesOnline'
 
 type PerfilC = Perfil & { criado_em: string }
 type Papel = Perfil['papel']
@@ -400,6 +401,7 @@ function AbaComissoes() {
   return (<>
     <p className="muted pequeno">Mudança de regra vale a partir da data que você escolher. Comissões já pagas ou ajustadas à mão não mudam; as em aberto de vendas a partir dessa data são recalculadas. Ajuste de uma comissão específica é feito em <Link to="/comissoes" className="link">Comissões</Link>, com motivo.</p>
     <Erro msg={regras.erro} />
-    <section className="bloco"><RegrasConteudo regras={regras.dados ?? []} cursos={cad.cursos} isAdmin onSalvo={() => regras.recarregar()} /></section>
+    <section className="bloco"><h2><Icone nome="turmas" className="ouro" /> Comissão do presencial (por matrícula)</h2><RegrasConteudo regras={regras.dados ?? []} cursos={cad.cursos} isAdmin onSalvo={() => regras.recarregar()} /></section>
+    <RegrasOnline />
   </>)
 }

@@ -647,3 +647,22 @@ select option:checked { background-color: #6d5427; color: #fff3d9; }
 .integ-auto { display: flex; gap: 10px; align-items: flex-start; padding: 10px 12px; border: 1px solid var(--borda); border-radius: 10px; margin-bottom: 12px; }
 .integ-auto input { margin-top: 3px; }
 .integ-auto.ligado { border-color: var(--alerta); background: var(--alerta-fundo); }
+
+/* ── Comissões do online ── */
+.online-meu { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.online-meu p { margin: 4px 0 0; }
+.online-fech { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; margin-bottom: 16px; }
+.online-card { display: flex; flex-direction: column; gap: 10px; align-items: stretch; }
+.online-card-topo { display: flex; gap: 10px; align-items: center; }
+.online-valores { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.online-valores span { display: flex; flex-direction: column; gap: 2px; }
+.online-valores b { font-family: 'JetBrains Mono', monospace; font-size: .92rem; }
+.online-hist summary { cursor: pointer; color: var(--muted); }
+.online-regra { display: flex; gap: 22px; align-items: center; flex-wrap: wrap; margin: 12px 0 16px; }
+.online-regra > div { display: flex; flex-direction: column; gap: 2px; }
+.online-regra b { font-size: 1.2rem; color: var(--ouro-forte); }
+.lista-rolagem { max-height: 260px; overflow: auto; border: 1px solid var(--borda); border-radius: 8px; margin: 10px 0; }
+.dl-curta { display: grid; grid-template-columns: 130px 1fr; gap: 8px 12px; margin: 0 0 14px; }
+.dl-curta dt { color: var(--muted); }
+.dl-curta dd { margin: 0; }
+.linha-nova td { background: var(--alerta-fundo); }

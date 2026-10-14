@@ -95,17 +95,20 @@ async function pagamentos(db: SupabaseClient, integ: Integ, tk: string, dias: nu
     const rec = Number(pu.recurrency_number ?? pu.recurrence_number ?? 0) || null
     const id = rec ? `${transacao}#${rec}` : transacao
     const bruto = Number(pu.price?.value ?? 0) || null
+    // líquido do produtor = base da taxa (preço sem os juros do parcelamento) − taxa da Hotmart
+    const baseTaxa = Number(pu.hotmart_fee?.base ?? 0) || bruto
     const taxa = Number(pu.hotmart_fee?.total ?? 0) || 0
+    const liquido = baseTaxa ? Math.round((baseTaxa - taxa) * 100) / 100 : null
     const { data: ja } = await db.from('hotmart_pagamentos').select('situacao').eq('id', id).maybeSingle()
     const reg = {
       id, transacao, integracao_id: integ.id, status: pu.status ?? null, evento: 'busca',
       comprador_nome: v.buyer?.name ?? null, comprador_email: v.buyer?.email ?? null,
       produto_id: v.product?.id ?? null, produto_nome: v.product?.name ?? null, oferta_codigo: pu.offer?.code ?? null,
-      valor: bruto, valor_liquido: bruto && taxa ? Math.round((bruto - taxa) * 100) / 100 : null,
+      valor: bruto, valor_liquido: liquido,
       forma: pu.payment?.type ?? pu.payment?.method ?? null, parcelas_cartao: pu.payment?.installments_number ?? null, recorrencia: rec,
       data_pedido: quando(pu.order_date), data_aprovacao: quando(pu.approved_date), bruto: v, atualizado_em: new Date().toISOString(),
     }
-    if (ja) await db.from('hotmart_pagamentos').update({ status: reg.status, bruto: v, atualizado_em: reg.atualizado_em }).eq('id', id)
+    if (ja) await db.from('hotmart_pagamentos').update({ status: reg.status, bruto: v, valor_liquido: liquido, atualizado_em: reg.atualizado_em }).eq('id', id)
     else await db.from('hotmart_pagamentos').insert(reg)
     const { data: r } = await db.rpc('processar_pagamento_hotmart', { p_id: id })
     cont[String(r)] = (cont[String(r)] ?? 0) + 1

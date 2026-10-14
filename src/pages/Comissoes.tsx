@@ -1,11 +1,12 @@
 import { Fragment, useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { msgErro, useCadastros, useConsulta } from '../lib/dados'
 import { brl, dataBR, hojeISO, mesAno, SITUACAO_ALUNO, STATUS_COMISSAO, STATUS_MATRICULA } from '../lib/format'
 import { Badge, Campo, enviarArquivo, Erro, InputMoeda, InputNumero, InputPercent, LinkArquivo, Modal, Vazio } from '../components/ui'
 import { Icone } from '../components/Icone'
 import { useAuth } from '../auth'
+import ComissoesOnline from './ComissoesOnline'
 import { turmaCurta } from './Agenda'
 
 export type ComissaoV = {
@@ -47,6 +48,8 @@ export function motivoPendente(c: ComissaoV) {
 
 export default function Comissoes() {
   const { isAdmin } = useAuth()
+  const [params, setParams] = useSearchParams()
+  const area = params.get('area') === 'online' ? 'online' : 'presencial'
   const cad = useCadastros()
   const lista = useConsulta<ComissaoV[]>(() => supabase.from('v_comissoes').select('*').order('data_venda', { ascending: false }))
   const regras = useConsulta<Regra[]>(() => supabase.from('comissao_regra_versoes').select('*').order('vigente_desde', { ascending: false }))
@@ -93,11 +96,17 @@ export default function Comissoes() {
     <div className="pagina">
       <header className="pagina-topo">
         <div><h1>{isAdmin ? 'Comissões' : 'Minhas comissões'}</h1><p className="muted">Liberação e controle dos pagamentos da equipe.</p></div>
-        <div className="acoes">
+        {area === 'presencial' && <div className="acoes">
           <button className="btn btn-contorno btn-grande" onClick={() => setVerRegra(true)}><Icone nome="documento" /> {isAdmin ? 'Regras de comissão' : 'Ver regra'}</button>
           <button className="btn btn-ouro btn-grande" onClick={exportar}><Icone nome="exportar" /> Exportar</button>
-        </div>
+        </div>}
       </header>
+
+      <nav className="abas">
+        <button className={area === 'presencial' ? 'ativa' : ''} onClick={() => setParams({})}><Icone nome="turmas" tam={16} /> Presencial <span className="muted">por matrícula</span></button>
+        <button className={area === 'online' ? 'ativa' : ''} onClick={() => setParams({ area: 'online' })}><Icone nome="links" tam={16} /> Online <span className="muted">por pagamento na Hotmart</span></button>
+      </nav>
+      {area === 'online' ? <ComissoesOnline /> : (<>
 
       <div className="faixa-info"><Icone nome="info" tam={18} /> <span><b>{descreverRegra(padrao)} por matrícula vendida</b> · libera quando a inscrição é confirmada · paga no mês seguinte à venda.{(regras.dados ?? []).some((r) => r.curso_id) && ' Alguns cursos têm regra própria.'}</span></div>
 
@@ -178,6 +187,7 @@ export default function Comissoes() {
       {modal?.tipo === 'pagar' && <RegistrarPagamento itens={modal.itens} contas={cad.contas} onFechar={() => setModal(null)} onSalvo={recarregar} />}
       {modal?.tipo === 'ajustar' && <Ajustar c={modal.itens[0]} onFechar={() => setModal(null)} onSalvo={recarregar} />}
       {verRegra && <Regras regras={regras.dados ?? []} cursos={cad.cursos} isAdmin={isAdmin} onFechar={() => setVerRegra(false)} onSalvo={() => { regras.recarregar(); lista.recarregar() }} />}
+      </>)}
     </div>
   )
 }
