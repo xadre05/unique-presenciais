@@ -42,12 +42,19 @@ async function paginas(url: string, tk: string, extra: Record<string, string> = 
 const FORMAS: Record<string, string> = { PAY_IN_FULL: 'Pagamento único (Pix, boleto ou cartão)', SUBSCRIPTION: 'Assinatura', SMART_INSTALLMENT: 'Parcelado Hotmart', INSTALLMENT: 'Parcelado' }
 const quando = (ms: unknown) => (typeof ms === 'number' && ms > 0 ? new Date(ms).toISOString() : null)
 
-async function ofertas(db: SupabaseClient, integ: Integ, tk: string) {
+// lista de produtos da conta (para ligar cada produto ao curso presencial)
+async function lerProdutos(db: SupabaseClient, integ: Integ, tk: string) {
   const agora = new Date().toISOString()
   const produtos = await paginas(`${API}/products/api/v1/products`, tk)
   for (const p of produtos) {
     await db.from('hotmart_produtos').upsert({ id: p.id, ucode: p.ucode, nome: p.name, status: p.status, formato: p.format, sincronizado_em: agora, integracao_id: integ.id }, { onConflict: 'id' })
   }
+  return produtos
+}
+
+async function ofertas(db: SupabaseClient, integ: Integ, tk: string) {
+  const agora = new Date().toISOString()
+  const produtos = await lerProdutos(db, integ, tk)
   const { data: escolhidos } = await db.from('hotmart_produtos').select('*').eq('integracao_id', integ.id).or('mostrar.eq.true,curso_id.not.is.null')
   let novos = 0, atualizados = 0, desativados = 0
   for (const p of escolhidos ?? []) {
@@ -76,7 +83,8 @@ async function ofertas(db: SupabaseClient, integ: Integ, tk: string) {
   return { produtos: produtos.length, novos, atualizados, desativados }
 }
 
-async function pagamentos(db: SupabaseClient, integ: Integ, tk: string, dias: number) {
+async function pagamentos(db: SupabaseClient, integ: Integ, tk: string, dias: number, jaLeuProdutos: boolean) {
+  if (!jaLeuProdutos) await lerProdutos(db, integ, tk)
   const fim = Date.now(), inicio = fim - dias * 86400000
   const vendas = await paginas(`${API}/payments/api/v1/sales/history`, tk, { start_date: String(inicio), end_date: String(fim) })
   const cont: Record<string, number> = { baixado: 0, a_conferir: 0, sem_acao: 0, ignorado: 0 }
@@ -138,7 +146,7 @@ Deno.serve(async (req) => {
       const tk = await token(cred as Cred)
       const r: Record<string, unknown> = {}
       if (acao === 'ofertas' || (acao === 'tudo' && integ.traz_ofertas)) r.ofertas = await ofertas(db, integ, tk)
-      if (acao === 'pagamentos' || (acao === 'tudo' && integ.traz_pagamentos)) r.pagamentos = await pagamentos(db, integ, tk, Math.min(365, Math.max(1, Number(corpo.dias ?? 3))))
+      if (acao === 'pagamentos' || (acao === 'tudo' && integ.traz_pagamentos)) r.pagamentos = await pagamentos(db, integ, tk, Math.min(365, Math.max(1, Number(corpo.dias ?? 3))), !!r.ofertas)
       await db.from('integracoes').update({ ultimo_teste_em: agora, ultimo_teste_ok: true, ultimo_erro: null, ...(acao === 'testar' ? {} : { ultima_sinc_em: agora }) }).eq('id', integ.id)
       resultado[integ.id] = { ok: true, ...r }
     } catch (e) {

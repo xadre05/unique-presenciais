@@ -7,7 +7,7 @@ import { Badge, Campo, Erro, Modal, Vazio } from '../components/ui'
 import { Icone } from '../components/Icone'
 
 type Integ = {
-  id: string; nome: string; tipo: string; descricao: string | null; conta_id: string | null; traz_ofertas: boolean; traz_pagamentos: boolean; ativa: boolean
+  id: string; nome: string; tipo: string; descricao: string | null; conta_id: string | null; traz_ofertas: boolean; traz_pagamentos: boolean; ativa: boolean; baixa_automatica: boolean
   credenciais_em: string | null; ultimo_teste_em: string | null; ultimo_teste_ok: boolean | null; ultimo_erro: string | null; ultima_sinc_em: string | null; ultimo_aviso_em: string | null
 }
 type Pag = {
@@ -19,7 +19,7 @@ type Produto = { id: number; nome: string; status: string | null; curso_id: stri
 
 const URL_AVISO = 'https://gpvxzkmqiikuftbjvncd.supabase.co/functions/v1/hotmart-aviso?conta='
 const SITUACOES: Record<string, { rotulo: string; tom: string }> = {
-  a_conferir: { rotulo: 'Para conferir', tom: 'alerta' }, baixado: { rotulo: 'Baixados', tom: 'ok' },
+  sugerido: { rotulo: 'Sugeridos — confirme', tom: 'ouro' }, a_conferir: { rotulo: 'Para conferir', tom: 'alerta' }, baixado: { rotulo: 'Baixados', tom: 'ok' },
   sem_acao: { rotulo: 'Fora dos presenciais', tom: 'neutro' }, ignorado: { rotulo: 'Ignorados', tom: 'neutro' },
 }
 
@@ -81,7 +81,7 @@ function CartaoHotmart({ i, onMudou }: { i: Integ; onMudou: () => void }) {
       const r = d?.resultado?.[i.id] ?? {}
       const partes: string[] = []
       if (acao === 'testar') partes.push('Conexão com a Hotmart funcionando.')
-      if (r.pagamentos) partes.push(`${r.pagamentos.vendas} pagamento(s) lido(s): ${r.pagamentos.baixado ?? 0} baixado(s), ${r.pagamentos.a_conferir ?? 0} para conferir, ${r.pagamentos.sem_acao ?? 0} fora dos presenciais.`)
+      if (r.pagamentos) partes.push(`${r.pagamentos.vendas} pagamento(s) lido(s): ${r.pagamentos.sugerido ?? 0} com baixa sugerida para você confirmar, ${r.pagamentos.a_conferir ?? 0} para conferir, ${r.pagamentos.baixado ?? 0} baixado(s), ${r.pagamentos.sem_acao ?? 0} fora dos presenciais.`)
       if (r.ofertas) partes.push(`${r.ofertas.produtos} produtos · ${r.ofertas.novos} links novos, ${r.ofertas.atualizados} atualizados, ${r.ofertas.desativados} desativados.`)
       if (r.pulada) partes.push('Nada feito: cadastre as credenciais primeiro.')
       setMsg(partes.join(' ') || 'Pronto.')
@@ -114,9 +114,13 @@ function CartaoHotmart({ i, onMudou }: { i: Integ; onMudou: () => void }) {
       </div>
 
       <div className="integ-opcoes">
-        <label className="check"><input type="checkbox" checked={i.traz_pagamentos} onChange={(e) => mudar({ traz_pagamentos: e.target.checked })} /> Baixar pagamentos dos alunos automaticamente</label>
+        <label className="check"><input type="checkbox" checked={i.traz_pagamentos} onChange={(e) => mudar({ traz_pagamentos: e.target.checked })} /> Ler os pagamentos dos alunos</label>
         <label className="check"><input type="checkbox" checked={i.traz_ofertas} onChange={(e) => mudar({ traz_ofertas: e.target.checked })} /> Trazer as ofertas como links de pagamento</label>
       </div>
+      <label className={`check pequeno integ-auto ${i.baixa_automatica ? 'ligado' : ''}`}>
+        <input type="checkbox" checked={i.baixa_automatica} onChange={(e) => mudar({ baixa_automatica: e.target.checked })} />
+        <span><b>Dar baixa sozinho, sem eu confirmar</b> — {i.baixa_automatica ? 'LIGADO: pagamentos que baterem com uma parcela são baixados direto.' : 'desligado (recomendado): o sistema só sugere a parcela e você confirma com um clique em “Sugeridos — confirme”.'}</span>
+      </label>
       {i.ultimo_teste_ok === false && i.ultimo_erro && <div className="erro">{i.ultimo_erro}</div>}
       {msg && <div className="nota pequeno"><Icone nome="check" tam={14} className="ok" /> {msg}</div>}
       <Erro msg={erro} />
@@ -178,7 +182,17 @@ function Credenciais({ i, campos, onFechar, onSalvo }: { i: Integ; campos: strin
 }
 
 function PagamentosHotmart({ pags, integs, onMudou }: { pags: Pag[]; integs: Integ[]; onMudou: () => void }) {
-  const [aba, setAba] = useState('a_conferir')
+  const [aba, setAba] = useState(pags.some((p) => p.situacao === 'sugerido') ? 'sugerido' : 'a_conferir')
+  const [confirmando, setConfirmando] = useState<string | null>(null)
+  const [erro, setErro] = useState<string | null>(null)
+  const confirmar = async (p: Pag) => {
+    if (!p.parcela_id) return
+    setConfirmando(p.id); setErro(null)
+    const { error } = await supabase.rpc('vincular_pagamento_hotmart', { p_id: p.id, p_parcelas: [p.parcela_id] })
+    setConfirmando(null)
+    if (error) return setErro(msgErro(error))
+    onMudou()
+  }
   const [ligar, setLigar] = useState<Pag | null>(null)
   const [ignorar, setIgnorar] = useState<Pag | null>(null)
   const lista = pags.filter((p) => p.situacao === aba)
@@ -193,7 +207,9 @@ function PagamentosHotmart({ pags, integs, onMudou }: { pags: Pag[]; integs: Int
       <nav className="abas">
         {Object.entries(SITUACOES).map(([k, s]) => <button key={k} className={aba === k ? 'ativa' : ''} onClick={() => setAba(k)}>{s.rotulo} <span className="muted">{pags.filter((p) => p.situacao === k).length}</span></button>)}
       </nav>
-      {lista.length === 0 ? <Vazio>{aba === 'a_conferir' ? 'Nada para conferir. Tudo o que chegou da Hotmart foi baixado sozinho.' : 'Nenhum pagamento aqui.'}</Vazio> : (
+      {aba === 'sugerido' && lista.length > 0 && <p className="muted pequeno">A Hotmart aprovou estes pagamentos e o sistema achou a parcela que eles quitam. Confira e clique em <b>Confirmar baixa</b>. Nada é baixado sem você confirmar.</p>}
+      <Erro msg={erro} />
+      {lista.length === 0 ? <Vazio>{aba === 'a_conferir' ? 'Nada para conferir.' : aba === 'sugerido' ? 'Nenhuma baixa esperando confirmação.' : 'Nenhum pagamento aqui.'}</Vazio> : (
         <div className="tabela-wrap">
           <table className="tabela compacta">
             <thead><tr><th>Data</th><th>Comprador</th><th>Produto</th><th className="num">Valor</th><th>Situação</th><th></th></tr></thead>
@@ -205,7 +221,10 @@ function PagamentosHotmart({ pags, integs, onMudou }: { pags: Pag[]; integs: Int
                   <td className="pequeno">{p.produto_nome}<div className="muted">{nomeInteg(p.integracao_id)}{p.recorrencia ? ` · cobrança ${p.recorrencia}` : ''}{(p.parcelas_cartao ?? 1) > 1 ? ` · ${p.parcelas_cartao}x no cartão` : ''}</div></td>
                   <td className="num">{brl(p.valor)}{p.valor_liquido ? <div className="muted pequeno">líquido {brl(p.valor_liquido)}</div> : null}</td>
                   <td className="pequeno integ-motivo">{p.motivo ?? (p.situacao === 'baixado' ? 'Parcela baixada' : '')}{p.aluno_id && <> · <Link to={`/alunos/${p.aluno_id}`} className="link">ver aluno</Link></>}</td>
-                  <td className="celula-acao acao-curta">{aba === 'a_conferir' && <><button className="btn btn-ouro btn-mini" onClick={() => setLigar(p)}>Ligar à parcela</button> <button className="btn btn-mini" onClick={() => setIgnorar(p)}>Ignorar</button></>}</td>
+                  <td className="celula-acao acao-curta">
+                    {aba === 'sugerido' && <><button className="btn btn-ouro btn-mini" disabled={confirmando === p.id} onClick={() => confirmar(p)}>{confirmando === p.id ? 'Baixando…' : 'Confirmar baixa'}</button> <button className="btn btn-mini" onClick={() => setLigar(p)}>Outra parcela</button> <button className="btn btn-mini" onClick={() => setIgnorar(p)}>Ignorar</button></>}
+                    {aba === 'a_conferir' && <><button className="btn btn-ouro btn-mini" onClick={() => setLigar(p)}>Ligar à parcela</button> <button className="btn btn-mini" onClick={() => setIgnorar(p)}>Ignorar</button></>}
+                  </td>
                 </tr>
               ))}
             </tbody>

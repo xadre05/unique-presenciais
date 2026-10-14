@@ -644,3 +644,6 @@ select option:checked { background-color: #6d5427; color: #fff3d9; }
 .integ-futuras p { margin: 4px 0 8px; }
 @media (max-width: 1000px) { .integ-grade, .integ-futuras { grid-template-columns: 1fr 1fr; } }
 @media (max-width: 640px) { .integ-grade, .integ-futuras { grid-template-columns: 1fr; } .integ-topo { flex-wrap: wrap; } }
+.integ-auto { display: flex; gap: 10px; align-items: flex-start; padding: 10px 12px; border: 1px solid var(--borda); border-radius: 10px; margin-bottom: 12px; }
+.integ-auto input { margin-top: 3px; }
+.integ-auto.ligado { border-color: var(--alerta); background: var(--alerta-fundo); }
