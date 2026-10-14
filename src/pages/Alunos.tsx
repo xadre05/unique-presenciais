@@ -49,7 +49,8 @@ export default function Alunos() {
     const todas = q.dados ?? []
     return [...g.entries()].map(([id, ms]) => {
       const dele = todas.filter((m) => m.aluno_id === id)
-      const ultima = [...dele].sort((a, b) => (b.data_inicio ?? b.data_venda).localeCompare(a.data_inicio ?? a.data_venda))[0]
+      const base = dele.some(ativa) ? dele.filter(ativa) : dele
+      const ultima = [...base].sort((a, b) => (b.data_inicio ?? b.data_venda).localeCompare(a.data_inicio ?? a.data_venda))[0]
       return {
         id, nome: ms[0].aluno_nome, whatsapp: ms[0].aluno_whatsapp, email: ms[0].aluno_email,
         cursos: dele.filter(ativa).length, ultima, situacao: pior(dele),
@@ -114,7 +115,7 @@ export default function Alunos() {
                     <td className="num">{brl(a.fechado)}</td>
                     <td className="num">{a.aberto > 0 ? brl(a.aberto) : '—'}</td>
                     <td><Badge tom={SITUACAO_ALUNO[a.situacao]?.tom}>{SITUACAO_ALUNO[a.situacao]?.rotulo}</Badge></td>
-                    <td className="celula-acao"><Link to={`/alunos/${a.id}`} className="btn btn-contorno btn-mini">Abrir</Link> <BotaoWhats tel={a.whatsapp} /></td>
+                    <td className="celula-acao acao-curta"><Link to={`/alunos/${a.id}`} className="btn btn-contorno btn-mini">Abrir</Link> <BotaoWhats tel={a.whatsapp} /></td>
                   </tr>
                 ))}
               </tbody>
@@ -135,7 +136,7 @@ export default function Alunos() {
                       <td><Badge tom={s?.tom}>{s?.rotulo}</Badge>
                         {Number(m.considerado_pago) > 0 && <div className="muted pequeno">baixa de {brl(m.considerado_pago)}</div>}
                         {Number(m.diferenca_taxas) > 0.01 && m.situacao_financeira === 'quitado' && <div className="muted pequeno">taxas Hotmart {brl(m.diferenca_taxas)}</div>}</td>
-                      <td className="celula-acao"><Link to={`/matricula/${m.id}`} className="btn btn-contorno btn-mini">Abrir</Link> <BotaoWhats tel={m.aluno_whatsapp} /></td>
+                      <td className="celula-acao acao-curta"><Link to={`/matricula/${m.id}`} className="btn btn-contorno btn-mini">Abrir</Link> <BotaoWhats tel={m.aluno_whatsapp} /></td>
                     </tr>
                   )
                 })}
