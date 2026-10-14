@@ -57,11 +57,11 @@ export function InputMoeda({ valor, onChange, passo = 100, autoFocus }: { valor:
   )
 }
 
-export function InputNumero({ valor, onChange, min = 1, max = 36, sufixo }: { valor: number; onChange: (v: number) => void; min?: number; max?: number; sufixo?: string }) {
+export function InputNumero({ valor, onChange, min = 1, max = 36, sufixo, placeholder }: { valor: number; onChange: (v: number) => void; min?: number; max?: number; sufixo?: string; placeholder?: string }) {
   const lim = (v: number) => Math.min(max, Math.max(min, v || min))
   return (
     <div className="moeda">
-      <input inputMode="numeric" value={valor} onChange={(e) => onChange(lim(Number(e.target.value.replace(/\D/g, ''))))} />
+      <input inputMode="numeric" value={placeholder && !valor ? '' : valor} placeholder={placeholder} onChange={(e) => onChange(lim(Number(e.target.value.replace(/\D/g, ''))))} />
       {sufixo && <span className="moeda-prefixo">{sufixo}</span>}
       <div className="moeda-setas">
         <button type="button" tabIndex={-1} onClick={() => onChange(lim(valor + 1))} aria-label="Aumentar">▲</button>

@@ -22,13 +22,13 @@ export function useCadastros() {
   const [contas, setContas] = useState<Conta[]>([])
   const [vendedoras, setVendedoras] = useState<Vendedora[]>([])
   const [cursos, setCursos] = useState<Opcao[]>([])
-  const [turmas, setTurmas] = useState<(Opcao & { status: string; data_inicio: string | null; curso_nome: string; vendas_abertas: boolean; vagas: number; inscritos: number })[]>([])
+  const [turmas, setTurmas] = useState<(Opcao & { status: string; curso_id: string; data_inicio: string | null; data_fim: string | null; curso_nome: string; vendas_abertas: boolean; vagas: number; inscritos: number })[]>([])
   const carregar = useCallback(async () => {
     const [c, v, cu, t] = await Promise.all([
       supabase.from('contas').select('*').order('nome'),
       supabase.from('vendedoras').select('*').order('nome'),
       supabase.from('cursos').select('id,nome').eq('ativo', true).order('nome'),
-      supabase.from('v_turmas').select('id,nome,status,data_inicio,curso_nome,vendas_abertas,vagas,inscritos').order('data_inicio', { ascending: true, nullsFirst: false }),
+      supabase.from('v_turmas').select('id,nome,status,curso_id,data_inicio,data_fim,curso_nome,vendas_abertas,vagas,inscritos').order('data_inicio', { ascending: true, nullsFirst: false }),
     ])
     setContas((c.data as Conta[]) ?? [])
     setVendedoras((v.data as Vendedora[]) ?? [])
@@ -42,5 +42,6 @@ export function useCadastros() {
 export const msgErro = (e: unknown) => {
   const m = (e as { message?: string })?.message || String(e)
   if (m.includes('row-level security')) return 'Você não tem permissão para fazer isso.'
+  if (m.includes('matricula_ativa_unica')) return 'Esse aluno já tem matrícula ativa nessa turma.'
   return m
 }

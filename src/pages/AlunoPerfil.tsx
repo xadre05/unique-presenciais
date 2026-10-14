@@ -46,7 +46,7 @@ export default function AlunoPerfil() {
         <div className="acoes">
           <BotaoWhats tel={a.whatsapp} />
           <button className="btn" onClick={() => setEditando(true)}>Editar dados</button>
-          <Link to="/matricula/nova" className="btn btn-ouro"><Icone nome="mais" tam={16} /> Nova matrícula</Link>
+          <Link to={`/matricula/nova?aluno=${id}`} className="btn btn-ouro"><Icone nome="mais" tam={16} /> Nova matrícula</Link>
         </div>
       </header>
 
@@ -120,7 +120,7 @@ export default function AlunoPerfil() {
             <p className="muted pequeno">Já fez: {[...cursosFeitos].join(', ') || 'nenhum curso presencial'}.</p>
             {naoFez.length === 0 ? <p className="ok-txt pequeno">Já fez todos os cursos presenciais ativos.</p> : (
               <ul className="lista">
-                {naoFez.map((c) => <li key={c.id}><span>{c.nome}</span><Link to="/matricula/nova" className="btn btn-contorno btn-mini">Oferecer</Link></li>)}
+                {naoFez.map((c) => <li key={c.id}><span>{c.nome}</span><Link to={`/matricula/nova?aluno=${id}&curso=${c.id}`} className="btn btn-contorno btn-mini">Matricular</Link></li>)}
               </ul>
             )}
           </section>
