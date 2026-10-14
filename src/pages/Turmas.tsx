@@ -127,7 +127,7 @@ export default function Turmas() {
                   <Link to={`/turmas/${t.id}`} className="btn btn-contorno">Ver turma</Link>
                   {encerrada ? (isAdmin && <button className="btn btn-contorno" onClick={() => setEditando(t)}>Editar</button>)
                     : lotada || !t.vendas_abertas
-                      ? (isAdmin ? <Link to={`/matricula/nova?turma=${t.id}`} className="btn">Matricular mesmo assim</Link> : <button className="btn" disabled>{lotada ? 'Turma lotada' : 'Vendas encerradas'}</button>)
+                      ? (isAdmin ? <Link to={`/matricula/nova?turma=${t.id}`} className="btn">Matricular extra</Link> : <button className="btn" disabled>{lotada ? 'Turma lotada' : 'Vendas encerradas'}</button>)
                       : <Link to={`/matricula/nova?turma=${t.id}`} className="btn btn-ouro">Matricular</Link>}
                 </div>
               </article>
