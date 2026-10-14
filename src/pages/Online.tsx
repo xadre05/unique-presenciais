@@ -1,5 +1,5 @@
 // Área do online: tudo o que vem da Hotmart e não é curso presencial.
-import { useMemo, useState } from 'react'
+import { Fragment, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useConsulta } from '../lib/dados'
@@ -14,7 +14,8 @@ export type CompraOnline = {
   situacao: 'em_dia' | 'atrasado' | 'quitado' | 'estornado'; a_receber_liquido: number; a_receber_bruto: number; vendedora_nome: string | null
 }
 type PagOnline = { id: string; comprador_nome: string | null; comprador_email: string; produto_nome: string | null; valor: number | null; valor_liquido: number | null; forma: string | null; parcelas_cartao: number | null; recorrencia: number | null; dia: string; rastreio: string | null; comissao: number | null; vendedora_nome: string | null }
-type Previsao = { mes: string; parcelas: number; bruto: number; liquido: number; de_atrasados: number }
+type Previsao = { mes: string; parcelas: number; bruto: number; liquido: number; de_atrasados: number; liquido_em_dia: number; parcelas_em_dia: number }
+type Atraso = CompraOnline & { cobrancas_vencidas: number; valor_vencido: number; parou_em: string }
 
 export const SITUACAO_ONLINE: Record<string, { rotulo: string; tom: string }> = {
   em_dia: { rotulo: 'Em dia', tom: 'ok' }, atrasado: { rotulo: 'Atrasado', tom: 'erro' }, quitado: { rotulo: 'Quitado', tom: 'neutro' }, estornado: { rotulo: 'Estornado', tom: 'alerta' },
@@ -27,75 +28,86 @@ const dias = (iso: string | null) => iso ? Math.floor((Date.now() - new Date(iso
 function useOnline() {
   const compras = useConsulta<CompraOnline[]>(() => supabase.from('v_online_compras').select('*'))
   const previsao = useConsulta<Previsao[]>(() => supabase.from('v_online_previsao').select('*').order('mes'))
-  const pags = useConsulta<PagOnline[]>(() => supabase.from('v_online_pagamentos').select('id,comprador_nome,comprador_email,produto_nome,valor,valor_liquido,forma,parcelas_cartao,recorrencia,dia,rastreio,comissao,vendedora_nome').order('dia', { ascending: false }).limit(1000))
-  return { compras, previsao, pags }
+  const pags = useConsulta<PagOnline[]>(() => supabase.from('v_online_pagamentos').select('id,comprador_nome,comprador_email,produto_nome,valor,valor_liquido,forma,parcelas_cartao,recorrencia,dia,rastreio,comissao,vendedora_nome').order('dia', { ascending: false }).limit(2000))
+  const atrasos = useConsulta<Atraso[]>(() => supabase.from('v_online_atrasos').select('*').order('proxima_data'))
+  return { compras, previsao, pags, atrasos }
 }
 
 /* ───────── Painel ───────── */
+const somaLiq = (xs: PagOnline[]) => xs.reduce((s, p) => s + Number(p.valor_liquido ?? 0), 0)
+const ultimosMeses = (n: number) => { const out: string[] = []; const d = new Date(); d.setDate(1); for (let i = 0; i < n; i++) { out.push(d.toISOString().slice(0, 7)); d.setMonth(d.getMonth() - 1) } return out }
+
 export function PainelOnline() {
-  const { compras, previsao, pags } = useOnline()
+  const { previsao, pags, atrasos } = useOnline()
   const m = mesAtual()
-  const doMes = (pags.dados ?? []).filter((p) => p.dia.startsWith(m))
-  const recebido = doMes.reduce((s, p) => s + Number(p.valor_liquido ?? 0), 0)
-  const atrasados = (compras.dados ?? []).filter((c) => c.situacao === 'atrasado')
+  const todos = pags.dados ?? []
+  const desde = todos.map((p) => p.dia).sort()[0]
+  const doMes = todos.filter((p) => p.dia.startsWith(m))
   const prevMes = (previsao.dados ?? []).find((p) => p.mes.startsWith(m))
-  const aindaEsteMes = Math.max(0, Number(prevMes?.liquido ?? 0))
-  const proximos = (previsao.dados ?? []).filter((p) => p.mes.slice(0, 7) > m).slice(0, 3)
-  if (compras.carregando && !compras.dados) return null
+  const at = atrasos.dados ?? []
+  const vencido = at.reduce((s, a) => s + Number(a.valor_vencido), 0)
+  const porMesParou = [...new Set(at.map((a) => a.parou_em))].sort().map((mm) => `${mesAno(mm).split(' ')[0].slice(0, 3)}: ${at.filter((a) => a.parou_em === mm).length}`)
+  const meses = ultimosMeses(4).reverse().filter((mm) => !desde || mm >= desde.slice(0, 7))
+  if (pags.carregando && !pags.dados) return null
   return (
     <section className="bloco">
       <div className="bloco-topo"><h2><Icone nome="links" className="ouro" /> Online (Hotmart)</h2><Link to="/pagamentos?area=online" className="link pequeno">Ver tudo do online</Link></div>
+      <p className="muted pequeno" style={{ margin: '0 0 4px' }}>Valores líquidos (o que cai para você). Base: pagamentos lidos da Hotmart{desde ? ` desde ${dataBR(desde)}` : ''}, sem os cursos presenciais.</p>
       <div className="online-kpis">
-        <div><small className="muted">Recebido em {mesAno(m + '-01')} (líquido)</small><b>{brl(recebido)}</b><span className="muted pequeno">{doMes.length} pagamento(s)</span></div>
-        <div><small className="muted">Ainda deve cair este mês</small><b>{brl(aindaEsteMes)}</b><span className="muted pequeno">parcelas previstas</span></div>
-        <div><small className="muted">Atrasados</small><b className={atrasados.length ? 'erro-txt' : ''}>{atrasados.length}</b><span className="muted pequeno">{brl(atrasados.reduce((s, c) => s + Number(c.a_receber_liquido), 0))} em aberto</span></div>
-        <div><small className="muted">Próximos meses</small><b className="online-meses">{proximos.map((p) => <span key={p.mes}>{mesAno(p.mes).split(' ')[0].slice(0, 3)} {brl(p.liquido).replace(',00', '')}</span>)}</b></div>
+        <div><small className="muted">Recebido em {mesAno(m + '-01')} (até hoje)</small><b>{brl(somaLiq(doMes))}</b><span className="muted pequeno">{doMes.length} pagamento(s) de 01/{m.slice(5)} a {dataBR(hojeISO()).slice(0, 5)}</span></div>
+        <div><small className="muted">Ainda deve cair em {mesAno(m + '-01').split(' ')[0]}</small><b>{brl(prevMes?.liquido_em_dia ?? 0)}</b><span className="muted pequeno">{prevMes?.parcelas_em_dia ?? 0} parcela(s) de quem está em dia</span></div>
+        <div><small className="muted">Cobranças vencidas sem pagamento</small><b className={vencido ? 'erro-txt' : ''}>{brl(vencido)}</b><span className="muted pequeno">{at.length} aluno(s) pararam de pagar{porMesParou.length ? ` (${porMesParou.join(' · ')})` : ''}</span></div>
+        <div><small className="muted">Recebido por mês</small><b className="online-meses">{meses.map((mm) => <span key={mm}>{mesAno(mm + '-01').split(' ')[0].slice(0, 3)} {brl(somaLiq(todos.filter((p) => p.dia.startsWith(mm)))).replace(/,\d\d$/, '')}{mm === m ? '*' : ''}</span>)}</b><span className="muted pequeno">* mês em andamento</span></div>
       </div>
-      <Erro msg={compras.erro || previsao.erro || pags.erro} />
+      <Erro msg={previsao.erro || pags.erro || atrasos.erro} />
     </section>
   )
 }
 
 /* ───────── Pagamentos ───────── */
 export function PagamentosOnline() {
-  const { compras, previsao, pags } = useOnline()
+  const { compras, previsao, pags, atrasos } = useOnline()
   const [aba, setAba] = useState<'atrasados' | 'previsao' | 'recebidos'>('atrasados')
   const [busca, setBusca] = useState('')
   const [mes, setMes] = useState(mesAtual())
-  const atrasados = (compras.dados ?? []).filter((c) => c.situacao === 'atrasado').sort((a, b) => (a.proxima_data ?? '').localeCompare(b.proxima_data ?? ''))
+  const atrasados = atrasos.dados ?? []
   const emDia = (compras.dados ?? []).filter((c) => c.situacao === 'em_dia')
   const futuro = (previsao.dados ?? []).filter((p) => p.mes.slice(0, 7) >= mesAtual())
   const t = busca.trim().toLowerCase()
   const meses = [...new Set((pags.dados ?? []).map((p) => p.dia.slice(0, 7)))].sort().reverse()
   const recebidos = (pags.dados ?? []).filter((p) => (!mes || p.dia.startsWith(mes)) && (!t || `${p.comprador_nome} ${p.comprador_email} ${p.produto_nome}`.toLowerCase().includes(t)))
-  const maxPrev = Math.max(1, ...futuro.map((p) => Number(p.liquido)))
+  const maxPrev = Math.max(1, ...futuro.map((p) => Number(p.liquido_em_dia)))
 
   return (<>
     <div className="faixa-info"><Icone nome="info" tam={18} /><span>Vendas do online lidas da Hotmart (as duas contas), sem os cursos presenciais. Valores <b>líquidos</b> (o que cai para você). A previsão considera as cobranças mensais dos parcelamentos da Hotmart; cartão parcelado comum já caiu inteiro.</span></div>
     <section className="resumo-com">
-      <button className={`resumo-card rc-pend${aba === 'atrasados' ? ' ativo' : ''}`} onClick={() => setAba('atrasados')}><span className="resumo-icone ic-erro"><Icone nome="alerta" tam={22} /></span><div><div>Atrasados</div><b>{brl(atrasados.reduce((s, c) => s + Number(c.a_receber_liquido), 0))}</b><small>{atrasados.length} aluno(s) sem pagar a cobrança do mês</small></div><Icone nome="seta" /></button>
-      <button className={`resumo-card rc-lib${aba === 'previsao' ? ' ativo' : ''}`} onClick={() => setAba('previsao')}><span className="resumo-icone ic-info"><Icone nome="agenda" tam={22} /></span><div><div>A receber (em dia)</div><b>{brl(emDia.reduce((s, c) => s + Number(c.a_receber_liquido), 0))}</b><small>{emDia.length} parcelamento(s) em andamento</small></div><Icone nome="seta" /></button>
+      <button className={`resumo-card rc-pend${aba === 'atrasados' ? ' ativo' : ''}`} onClick={() => setAba('atrasados')}><span className="resumo-icone ic-erro"><Icone nome="alerta" tam={22} /></span><div><div>Vencido sem pagamento</div><b>{brl(atrasados.reduce((s, c) => s + Number(c.valor_vencido), 0))}</b><small>{atrasados.length} aluno(s) · {atrasados.reduce((s, c) => s + c.cobrancas_vencidas, 0)} cobrança(s)</small></div><Icone nome="seta" /></button>
+      <button className={`resumo-card rc-lib${aba === 'previsao' ? ' ativo' : ''}`} onClick={() => setAba('previsao')}><span className="resumo-icone ic-info"><Icone nome="agenda" tam={22} /></span><div><div>Ainda a receber de quem está em dia</div><b>{brl(emDia.reduce((s, c) => s + Number(c.a_receber_liquido), 0))}</b><small>{emDia.length} parcelamento(s), de {mesAno(mesAtual() + '-01')} em diante</small></div><Icone nome="seta" /></button>
       <button className={`resumo-card rc-paga${aba === 'recebidos' ? ' ativo' : ''}`} onClick={() => setAba('recebidos')}><span className="resumo-icone ic-ok"><Icone nome="check" tam={22} /></span><div><div>Recebido em {mesAno(mesAtual() + '-01')}</div><b>{brl((pags.dados ?? []).filter((p) => p.dia.startsWith(mesAtual())).reduce((s, p) => s + Number(p.valor_liquido ?? 0), 0))}</b><small>líquido</small></div><Icone nome="seta" /></button>
     </section>
     <Erro msg={compras.erro || previsao.erro || pags.erro} />
 
     {aba === 'atrasados' && (atrasados.length === 0 ? <Vazio>Nenhum aluno do online atrasado.</Vazio> : (
       <div className="tabela-wrap bloco sem-padding">
+        <p className="muted pequeno" style={{ padding: '12px 16px 0', margin: 0 }}><b>Vencido</b> = cobranças que já deviam ter caído e não caíram. <b>Restante do plano</b> = tudo que falta, se a pessoa voltar a pagar até o fim. “Atrasado” só depois de 5 dias da data esperada.</p>
         <table className="tabela">
-          <thead><tr><th>Aluno</th><th>Produto</th><th>Parcela</th><th>Último pagamento</th><th>Deveria ter pago</th><th className="num">Parcela</th><th className="num">Falta</th><th>Vendedora</th></tr></thead>
-          <tbody>{atrasados.map((c) => (
-            <tr key={c.em + c.produto_id + c.oferta_codigo + c.np}>
-              <td><div className="forte">{c.comprador_nome}</div><div className="muted pequeno">{c.em}</div></td>
-              <td className="pequeno">{c.produto_nome}</td>
-              <td>{parcelaTxt(c)}</td>
-              <td className="pequeno">{dataBR(c.ultima_data)}</td>
-              <td><b className="erro-txt">{dataBR(c.proxima_data)}</b><div className="muted pequeno">{dias(c.proxima_data)} dias</div></td>
-              <td className="num">{brl(c.liquido_parcela)}</td>
-              <td className="num forte">{brl(c.a_receber_liquido)}<div className="muted pequeno">{c.restantes} parcela(s)</div></td>
-              <td className="pequeno">{c.vendedora_nome ?? '—'}</td>
-            </tr>))}</tbody>
+          <thead><tr><th>Aluno</th><th>Produto</th><th>Última paga</th><th>Parou em</th><th className="num">Vencido</th><th className="num">Restante do plano</th><th>Vendedora</th></tr></thead>
+          <tbody>{[...new Set(atrasados.map((a) => a.parou_em))].sort().map((mm) => (
+            <Fragment key={mm}>
+              <tr className="linha-grupo"><td colSpan={7}>Pararam de pagar em <b>{mesAno(mm)}</b> · {atrasados.filter((a) => a.parou_em === mm).length} aluno(s) · vencido {brl(atrasados.filter((a) => a.parou_em === mm).reduce((s, a) => s + Number(a.valor_vencido), 0))}</td></tr>
+              {atrasados.filter((a) => a.parou_em === mm).map((c) => (
+                <tr key={c.em + c.produto_id + c.oferta_codigo + c.np}>
+                  <td><div className="forte">{c.comprador_nome}</div><div className="muted pequeno">{c.em}</div></td>
+                  <td className="pequeno">{c.produto_nome}</td>
+                  <td className="pequeno">parcela {parcelaTxt(c)}<div className="muted">em {dataBR(c.ultima_data)}</div></td>
+                  <td><b className="erro-txt">{dataBR(c.proxima_data)}</b><div className="muted pequeno">{dias(c.proxima_data)} dias</div></td>
+                  <td className="num forte">{brl(c.valor_vencido)}<div className="muted pequeno">{c.cobrancas_vencidas} cobrança(s) de {brl(c.liquido_parcela)}</div></td>
+                  <td className="num">{brl(c.a_receber_liquido)}<div className="muted pequeno">{c.restantes} parcela(s)</div></td>
+                  <td className="pequeno">{c.vendedora_nome ?? '—'}</td>
+                </tr>))}
+            </Fragment>))}</tbody>
         </table>
-        <p className="muted pequeno" style={{ padding: '0 16px 12px' }}>“Atrasado” = a cobrança do mês não apareceu na Hotmart mais de 5 dias depois da data esperada. Pode ser cartão recusado ou boleto não pago; confira na Hotmart antes de cobrar.</p>
+        <p className="muted pequeno" style={{ padding: '0 16px 12px' }}>Pode ser cartão recusado, boleto não pago ou plano cancelado na Hotmart. Confira lá antes de cobrar.</p>
       </div>
     ))}
 
@@ -106,11 +118,11 @@ export function PagamentosOnline() {
           <div className="prev-barras">{futuro.map((p) => (
             <div key={p.mes} className="prev-linha">
               <span className="prev-mes">{mesAno(p.mes)}</span>
-              <span className="prev-barra"><i style={{ width: `${(Number(p.liquido) / maxPrev) * 100}%` }} /></span>
-              <b>{brl(p.liquido)}</b><span className="muted pequeno">{p.parcelas} parcela(s){p.de_atrasados > 0 ? ` · ${p.de_atrasados} de quem está atrasado` : ''}</span>
+              <span className="prev-barra"><i style={{ width: `${(Number(p.liquido_em_dia) / maxPrev) * 100}%` }} /></span>
+              <b>{brl(p.liquido_em_dia)}</b><span className="muted pequeno">{p.parcelas_em_dia} parcela(s){p.de_atrasados > 0 ? ` · +${brl(Number(p.liquido) - Number(p.liquido_em_dia))} se os atrasados voltarem` : ''}</span>
             </div>))}</div>
         )}
-        <p className="muted pequeno">Inclui as parcelas de quem está atrasado (se a pessoa voltar a pagar). Não inclui vendas novas.</p>
+        <p className="muted pequeno">Só parcelas de quem está em dia. Não inclui vendas novas nem cartão parcelado comum (esse já caiu inteiro).</p>
       </section>
       <div className="tabela-wrap bloco sem-padding">
         <table className="tabela compacta">

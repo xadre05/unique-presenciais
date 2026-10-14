@@ -679,3 +679,4 @@ select option:checked { background-color: #6d5427; color: #fff3d9; }
 .prev-barra i { display: block; height: 100%; background: var(--ouro); border-radius: 6px; }
 .prev-linha b { font-family: 'JetBrains Mono', monospace; text-align: right; }
 @media (max-width: 900px) { .online-kpis { grid-template-columns: 1fr 1fr; } .prev-linha { grid-template-columns: 90px 1fr 100px; } .prev-linha > span:last-child { display: none; } }
+.linha-grupo td { background: var(--painel-2); color: var(--muted); font-size: .85rem; }
