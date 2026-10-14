@@ -335,7 +335,7 @@ dl.resumo dt { color: var(--muted); }
 .alternar { display: grid; grid-template-columns: 1fr 1fr; background: var(--painel); border: 1px solid var(--borda); border-radius: 10px; padding: 4px; gap: 4px; }
 .alternar button { background: none; border: none; color: var(--muted); font: inherit; border-radius: 7px; cursor: pointer; padding: 8px; }
 .alternar button.ativo { background: var(--ouro); color: #1a1408; font-weight: 600; }
-.agenda .agenda-grade { grid-template-columns: 1fr 380px; }
+.agenda .agenda-grade { grid-template-columns: 1fr 340px; }
 .agenda-lado { display: flex; flex-direction: column; }
 .agenda .cal-topo { gap: 8px; }
 .agenda .cal-topo h2 { font-size: 1.6rem; }
@@ -350,7 +350,7 @@ dl.resumo dt { color: var(--muted); }
 .cal2-dia.fora .cal2-num { color: #5f584c; }
 .cal2-num { font-size: 0.95rem; color: var(--texto); }
 .cal2-dia.hoje .cal2-num { background: var(--ouro); color: #1a1408; border-radius: 999px; width: 26px; height: 26px; display: inline-grid; place-items: center; font-weight: 700; }
-.cal2-faixa { z-index: 1; margin: 2px 6px; padding: 5px 10px; border-radius: 7px; font-size: 0.8rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: center; align-self: center; }
+.cal2-faixa { z-index: 1; margin: 2px 5px; padding: 5px 8px; border-radius: 7px; font-size: 0.78rem; line-height: 1.2; font-weight: 600; overflow: hidden; text-align: center; align-self: center; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
 .cal2-faixa.ev-ouro { background: linear-gradient(180deg, #c9a45c, #a8843f); color: #1a1408; }
 .cal2-faixa.ev-azul { background: linear-gradient(180deg, #4f7584, #3d5f6c); color: #eef6f8; }
 .cal2-faixa.ev-verde { background: linear-gradient(180deg, #5c9b72, #467a58); color: #f0fff4; }

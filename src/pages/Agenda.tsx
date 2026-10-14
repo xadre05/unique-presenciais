@@ -26,6 +26,7 @@ export function corCurso(nome: string) {
 
 // "Mini Residência — 1ª Turma" → "Mini Residência · 1ª turma"
 export const turmaCurta = (n: string) => n.replace(' — ', ' · ').replace(/Turma/, 'turma')
+export const rotuloCal = (e: EventoAgenda) => rotuloEvento(e).replace('Unique Codes Experience', 'Unique Codes').replace('Módulo ', 'Mód. ')
 export const rotuloEvento = (e: EventoAgenda) => e.tipo === 'encontro' ? `${turmaCurta(e.turma_nome)} — ${e.titulo}` : turmaCurta(e.turma_nome)
 
 export function linkGoogle(e: EventoAgenda) {
@@ -148,7 +149,7 @@ export default function Agenda() {
                   {s.faixas.map((f) => (
                     <Link key={f.e.id} to={`/turmas/${f.e.turma_id}`} className={`cal2-faixa ${corCurso(f.e.curso_nome)}`}
                       style={{ gridColumn: `${f.c1 + 1} / ${f.c2 + 2}`, gridRow: f.linha + 2 }} title={`${rotuloEvento(f.e)}${f.e.local ? ' · ' + f.e.local : ''}`}>
-                      {f.corta ? '… ' : ''}{rotuloEvento(f.e)}
+                      {f.corta ? '… ' : ''}{rotuloCal(f.e)}
                     </Link>
                   ))}
                 </div>
