@@ -73,8 +73,7 @@ export const STATUS_MATRICULA: Record<string, string> = {
 
 export const STATUS_TURMA: Record<string, string> = {
   planejada: 'Planejada',
-  aberta: 'Vendas abertas',
-  lotada: 'Lotada',
+  confirmada: 'Confirmada',
   realizada: 'Realizada',
   cancelada: 'Cancelada',
 }

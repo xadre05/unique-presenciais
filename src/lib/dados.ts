@@ -22,13 +22,13 @@ export function useCadastros() {
   const [contas, setContas] = useState<Conta[]>([])
   const [vendedoras, setVendedoras] = useState<Vendedora[]>([])
   const [cursos, setCursos] = useState<Opcao[]>([])
-  const [turmas, setTurmas] = useState<(Opcao & { status: string; data_inicio: string | null; curso_nome: string })[]>([])
+  const [turmas, setTurmas] = useState<(Opcao & { status: string; data_inicio: string | null; curso_nome: string; vendas_abertas: boolean; vagas: number; inscritos: number })[]>([])
   const carregar = useCallback(async () => {
     const [c, v, cu, t] = await Promise.all([
       supabase.from('contas').select('*').order('nome'),
       supabase.from('vendedoras').select('*').order('nome'),
       supabase.from('cursos').select('id,nome').eq('ativo', true).order('nome'),
-      supabase.from('v_turmas').select('id,nome,status,data_inicio,curso_nome').order('data_inicio', { ascending: true, nullsFirst: false }),
+      supabase.from('v_turmas').select('id,nome,status,data_inicio,curso_nome,vendas_abertas,vagas,inscritos').order('data_inicio', { ascending: true, nullsFirst: false }),
     ])
     setContas((c.data as Conta[]) ?? [])
     setVendedoras((v.data as Vendedora[]) ?? [])

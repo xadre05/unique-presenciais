@@ -21,7 +21,7 @@ export default function Painel() {
   const cursos = [...new Set(todasTurmas.map((t) => t.curso_nome))]
   const ts = todasTurmas.filter((t) =>
     (!curso || t.curso_nome === curso) &&
-    (escopo === 'todas' || t.status === 'aberta' || t.status === 'planejada' || t.status === 'lotada' || Number(t.a_receber) > 0 || Number(t.aguardando_conferencia) > 0))
+    (escopo === 'todas' || t.status === 'confirmada' || t.status === 'planejada' || Number(t.a_receber) > 0 || Number(t.aguardando_conferencia) > 0))
   const idsTurmas = new Set(ts.map((t) => t.id))
   const ps = (pendentes.dados ?? []).filter((p) => idsTurmas.has(p.turma_id))
   const hoje = hojeISO()
@@ -54,7 +54,7 @@ export default function Painel() {
       <div className="filtros-painel">
         <label className="select-icone"><Icone nome="turmas" />
           <select value={escopo} onChange={(e) => setEscopo(e.target.value as 'andamento' | 'todas')}>
-            <option value="andamento">Turmas em andamento (abertas ou com dinheiro a receber)</option>
+            <option value="andamento">Turmas em andamento (planejadas, confirmadas ou com dinheiro a receber)</option>
             <option value="todas">Todas as turmas, incluindo histórico</option>
           </select>
         </label>

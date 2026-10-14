@@ -178,7 +178,7 @@ export default function NovaMatricula() {
           <Campo rotulo="Turma" dica={turmaSel ? (turmaSel.data_inicio ? `Começa em ${dataBR(turmaSel.data_inicio)}` : 'Turma sem data definida') : undefined}>
             <select value={turmaId} onChange={(e) => setTurmaId(e.target.value)}>
               <option value="">Escolha…</option>
-              {turmas.filter((t) => t.status === 'aberta' || t.status === 'planejada' || t.id === turmaId).map((t) => <option key={t.id} value={t.id}>{t.nome}</option>)}
+              {turmas.filter((t) => ((t.status === 'confirmada' || t.status === 'planejada') && (t.vendas_abertas || isAdmin)) || t.id === turmaId).map((t) => <option key={t.id} value={t.id}>{t.nome}{t.inscritos >= t.vagas ? ' — lotada' : ` — ${t.vagas - t.inscritos} vaga(s)`}{!t.vendas_abertas ? ' (vendas encerradas)' : ''}</option>)}
             </select>
           </Campo>
           {isAdmin ? (
