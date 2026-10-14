@@ -610,3 +610,9 @@ select option:checked { background-color: #6d5427; color: #fff3d9; }
 .lateral .btn-ouro.active { box-shadow: 0 0 0 2px var(--fundo), 0 0 0 3px var(--ouro); }
 @media (max-width: 1200px) { .nm-grade { grid-template-columns: 1fr; } .nm-lado { position: static; } }
 @media (max-width: 760px) { .nm-plano, .nm-condicao { grid-template-columns: 1fr; } }
+.nm-passo .escolhido { margin-bottom: 14px; }
+.nm-turma b.erro-txt { color: var(--erro); }
+.nm-entrada { flex-wrap: nowrap; }
+.nm-entrada select { flex: 0 1 220px; min-width: 0; }
+.nm-entrada input[type=date] { flex: 0 0 auto; }
+@media (max-width: 760px) { .nm-entrada { flex-wrap: wrap; } }
