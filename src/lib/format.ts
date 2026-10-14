@@ -46,6 +46,7 @@ export const FORMAS: Record<string, string> = {
 
 export const SITUACAO_PARCELA: Record<string, { rotulo: string; tom: string }> = {
   recebida: { rotulo: 'Recebida', tom: 'ok' },
+  considerada_paga: { rotulo: 'Considerada paga (baixa)', tom: 'alerta' },
   aguardando_conferencia: { rotulo: 'Aguardando conferência', tom: 'info' },
   atrasada: { rotulo: 'Atrasada', tom: 'erro' },
   a_vencer: { rotulo: 'A vencer', tom: 'neutro' },
@@ -55,6 +56,8 @@ export const SITUACAO_PARCELA: Record<string, { rotulo: string; tom: string }> =
 
 export const SITUACAO_ALUNO: Record<string, { rotulo: string; tom: string }> = {
   quitado: { rotulo: 'Quitado', tom: 'ok' },
+  considerado_pago: { rotulo: 'Considerado pago (baixa)', tom: 'alerta' },
+  transferida: { rotulo: 'Transferida', tom: 'apagado' },
   em_dia: { rotulo: 'Em dia', tom: 'neutro' },
   atrasado: { rotulo: 'Atrasado', tom: 'erro' },
   aguardando_conferencia: { rotulo: 'Aguardando conferência', tom: 'info' },

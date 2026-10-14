@@ -111,6 +111,7 @@ export default function Pagamentos() {
           <option value="aguardando_conferencia">Aguardando conferência</option>
           <option value="a_vencer">A vencer</option>
           <option value="recebida">Recebidas</option>
+          <option value="considerada_paga">Consideradas pagas (baixa)</option>
           <option value="cancelada">Canceladas</option>
           <option value="">Todas</option>
         </select></label>

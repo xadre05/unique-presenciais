@@ -43,7 +43,7 @@ export default function MatriculaDetalhe() {
 
   return (
     <div className="pagina">
-      <div className="migalha"><Link to="/turmas">Turmas</Link> / <Link to={`/turmas/${m.turma_id}`}>{m.turma_nome}</Link> / {m.aluno_nome}</div>
+      <div className="migalha"><Link to="/turmas">Turmas</Link> / <Link to={`/turmas/${m.turma_id}`}>{m.turma_nome}</Link> / <Link to={`/alunos/${m.aluno_id}`}>{m.aluno_nome}</Link></div>
       <header className="pagina-topo">
         <div>
           <h1>{m.aluno_nome}</h1>
@@ -64,6 +64,8 @@ export default function MatriculaDetalhe() {
         <Kpi rotulo="A receber" valor={brl(m.a_receber)} sub={m.proximo_vencimento ? `próximo: ${dataBR(m.proximo_vencimento)}` : undefined} />
         <Kpi rotulo="Atrasado" valor={brl(m.atrasado)} tom="erro" sub={m.parcelas_atrasadas ? `${m.parcelas_atrasadas} parcela(s)` : undefined} />
       </section>
+
+      <Composicao m={m} />
 
       <section className="bloco">
         <div className="bloco-topo"><h2>Pagamentos</h2><button className="btn" onClick={() => setAcao({ tipo: 'nova' })}>+ Adicionar parcela</button></div>
@@ -88,7 +90,7 @@ export default function MatriculaDetalhe() {
                       {(p.status !== 'confirmada' || isAdmin) && p.status !== 'cancelada' && <button className="btn btn-mini" onClick={() => setAcao({ tipo: 'editar', parcela: p })}>Editar</button>}
                       {p.status !== 'confirmada' && p.status !== 'cancelada' && <button className="btn btn-mini" onClick={() => setAcao({ tipo: 'cancelar', parcela: p })}>Cancelar</button>}
                       {isAdmin && p.status === 'cancelada' && <button className="btn btn-mini" onClick={async () => {
-                        const { error } = await supabase.from('parcelas').update({ status: 'prevista', observacao: 'Reaberta | ' + (p.observacao ?? '') }).eq('id', p.id)
+                        const { error } = await supabase.from('parcelas').update({ status: 'prevista', considerada_paga: false, observacao: 'Reaberta | ' + (p.observacao ?? '') }).eq('id', p.id)
                         if (error) alert(msgErro(error)); recarregarTudo()
                       }}>Reabrir</button>}
                     </div></td>
@@ -353,5 +355,30 @@ export function EditarAluno({ aberto, a, onFechar, onSalvo }: { aberto: boolean;
       <Erro msg={erro} />
       <div className="modal-acoes"><button className="btn" onClick={onFechar}>Voltar</button><button className="btn btn-ouro" onClick={salvar}>Salvar</button></div>
     </Modal>
+  )
+}
+
+export function Composicao({ m }: { m: MatriculaV }) {
+  const fech = Number(m.valor_fechado)
+  const itens = [
+    { rotulo: 'Recebido (líquido, conferido)', valor: Number(m.recebido), cls: 'comp-ok' },
+    { rotulo: 'Taxas e juros da Hotmart (diferença entre parcela e líquido)', valor: Number(m.diferenca_taxas), cls: 'comp-taxa' },
+    { rotulo: 'Considerado pago na virada (baixa sem comprovante)', valor: Number(m.considerado_pago), cls: 'comp-baixa' },
+    { rotulo: 'Informado, aguardando conferência', valor: Number(m.aguardando_conferencia), cls: 'comp-info' },
+    { rotulo: 'A receber (parcelas abertas)', valor: Number(m.a_receber), cls: 'comp-aberto' },
+  ].filter((i) => Math.abs(i.valor) >= 0.01)
+  const somado = itens.reduce((s, i) => s + i.valor, 0)
+  const sobra = Math.round((fech - somado) * 100) / 100
+  if (Math.abs(sobra) >= 0.01) itens.push({ rotulo: sobra > 0 ? 'Sem parcela lançada (falta registrar)' : 'Recebido acima do fechado', valor: Math.abs(sobra), cls: 'comp-sobra' })
+  const total = Math.max(fech, somado)
+  return (
+    <section className="bloco">
+      <h2>Composição do valor fechado · {brl(fech)}</h2>
+      <div className="comp-barra">{itens.map((i) => <div key={i.rotulo} className={i.cls} style={{ width: `${(i.valor / total) * 100}%` }} title={`${i.rotulo}: ${brl(i.valor)}`} />)}</div>
+      <ul className="comp-lista">
+        {itens.map((i) => <li key={i.rotulo}><i className={i.cls} />{i.rotulo}<b>{brl(i.valor)}</b></li>)}
+      </ul>
+      {Number(m.considerado_pago) > 0 && <p className="nota pequeno">Este saldo foi dado como pago na virada para o sistema (curso já realizado). Se o aluno ainda deve, reabra a parcela em Pagamentos abaixo.</p>}
+    </section>
   )
 }

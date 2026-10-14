@@ -11,6 +11,7 @@ import NovaMatricula from './pages/NovaMatricula'
 import Pagamentos from './pages/Pagamentos'
 import Comissoes from './pages/Comissoes'
 import Alunos from './pages/Alunos'
+import AlunoPerfil from './pages/AlunoPerfil'
 import Historico from './pages/Historico'
 import Equipe from './pages/Equipe'
 import Links from './pages/Links'
@@ -78,6 +79,7 @@ function Layout() {
           <Route path="/matricula/:id" element={<MatriculaDetalhe />} />
           <Route path="/pagamentos" element={<Pagamentos />} />
           <Route path="/alunos" element={<Alunos />} />
+          <Route path="/alunos/:id" element={<AlunoPerfil />} />
           <Route path="/comissoes" element={<Comissoes />} />
           <Route path="/links" element={<Links />} />
           <Route path="/agenda" element={<Agenda />} />

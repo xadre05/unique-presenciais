@@ -11,6 +11,7 @@ export type MatriculaV = {
   turma_nome: string; data_inicio: string | null; curso_nome: string; vendedora_nome: string | null
   recebido: number; aguardando_conferencia: number; a_receber: number; atrasado: number; parcelas_atrasadas: number
   parcelas_total: number; parcelas_pagas: number; total_programado: number; proximo_vencimento: string | null; situacao_financeira: string
+  considerado_pago: number; diferenca_taxas: number; aluno_cpf: string | null
 }
 export type ParcelaV = {
   id: string; matricula_id: string; numero: number; total_parcelas: number; eh_matricula: boolean; forma: string; conta_id: string | null
@@ -18,6 +19,7 @@ export type ParcelaV = {
   comprovante: string | null; hotmart_transacao: string | null; observacao: string | null; informado_por: string | null; confirmado_por: string | null
   situacao: string; dias_atraso: number; turma_id: string; aluno_id: string; vendedora_id: string | null
   aluno_nome: string; aluno_whatsapp: string | null; turma_nome: string; curso_nome: string; conta_nome: string | null; vendedora_nome: string | null
+  considerada_paga: boolean
 }
 export type Opcao = { id: string; nome: string }
 export type Conta = Opcao & { tipo: string; ativa: boolean; observacao: string | null }
