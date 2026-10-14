@@ -1,0 +1,1 @@
+-- Estrutura aplicada no projeto Supabase unique-presenciais (gpvxzkmqiikuftbjvncd) em 14/10/2026 pelas migrações 001_estrutura e 002_visoes_e_arquivos.

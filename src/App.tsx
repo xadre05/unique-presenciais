@@ -1,0 +1,118 @@
+import { useState } from 'react'
+import { BrowserRouter, NavLink, Navigate, Route, Routes } from 'react-router-dom'
+import { AuthProvider, useAuth } from './auth'
+import { supabase } from './lib/supabase'
+import Login from './pages/Login'
+import Painel from './pages/Painel'
+import Turmas from './pages/Turmas'
+import TurmaDetalhe from './pages/TurmaDetalhe'
+import MatriculaDetalhe from './pages/MatriculaDetalhe'
+import NovaMatricula from './pages/NovaMatricula'
+import Pagamentos from './pages/Pagamentos'
+import Comissoes from './pages/Comissoes'
+import Alunos from './pages/Alunos'
+import Historico from './pages/Historico'
+import Equipe from './pages/Equipe'
+
+function Aguardando() {
+  const { perfil } = useAuth()
+  return (
+    <div className="tela-centro">
+      <div className="cartao-login">
+        <div className="marca">Unique <em>Presenciais</em></div>
+        <h2>Acesso aguardando liberação</h2>
+        <p className="muted">
+          {perfil?.papel === 'inativo'
+            ? 'Seu acesso foi desativado. Fale com o administrador.'
+            : 'Sua conta foi criada. O administrador precisa liberar o seu acesso antes de você entrar.'}
+        </p>
+        <button className="btn" onClick={() => supabase.auth.signOut()}>Sair</button>
+      </div>
+    </div>
+  )
+}
+
+function Layout() {
+  const { perfil, isAdmin } = useAuth()
+  return (
+    <div className="app">
+      <aside className="lateral">
+        <div className="marca">Unique <em>Presenciais</em></div>
+        <nav>
+          <NavLink to="/" end>Painel</NavLink>
+          <NavLink to="/turmas">Turmas</NavLink>
+          <NavLink to="/pagamentos">Pagamentos</NavLink>
+          <NavLink to="/alunos">Alunos</NavLink>
+          <NavLink to="/comissoes">Comissões</NavLink>
+          {isAdmin && <NavLink to="/historico">Histórico</NavLink>}
+          {isAdmin && <NavLink to="/equipe">Equipe e cadastros</NavLink>}
+        </nav>
+        <NavLink to="/matricula/nova" className="btn btn-ouro btn-bloco">+ Nova matrícula</NavLink>
+        <div className="lateral-rodape">
+          <div className="quem">{perfil?.nome || perfil?.email}</div>
+          <div className="muted pequeno">{isAdmin ? 'Administrador' : 'Vendedora'}</div>
+          <button className="link pequeno" onClick={() => supabase.auth.signOut()}>Sair</button>
+        </div>
+      </aside>
+      <main className="conteudo">
+        <Routes>
+          <Route path="/" element={<Painel />} />
+          <Route path="/turmas" element={<Turmas />} />
+          <Route path="/turmas/:id" element={<TurmaDetalhe />} />
+          <Route path="/matricula/nova" element={<NovaMatricula />} />
+          <Route path="/matricula/:id" element={<MatriculaDetalhe />} />
+          <Route path="/pagamentos" element={<Pagamentos />} />
+          <Route path="/alunos" element={<Alunos />} />
+          <Route path="/comissoes" element={<Comissoes />} />
+          {isAdmin && <Route path="/historico" element={<Historico />} />}
+          {isAdmin && <Route path="/equipe" element={<Equipe />} />}
+          <Route path="*" element={<Navigate to="/" />} />
+        </Routes>
+      </main>
+    </div>
+  )
+}
+
+function NovaSenha() {
+  const { fimRecuperacao } = useAuth()
+  const [senha, setSenha] = useState('')
+  const [erro, setErro] = useState<string | null>(null)
+  const salvar = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (senha.length < 8) return setErro('A senha precisa de pelo menos 8 caracteres.')
+    const { error } = await supabase.auth.updateUser({ password: senha })
+    if (error) return setErro(error.message)
+    fimRecuperacao()
+  }
+  return (
+    <div className="tela-centro">
+      <form className="cartao-login" onSubmit={salvar}>
+        <div className="marca">Unique <em>Presenciais</em></div>
+        <h2>Criar nova senha</h2>
+        <label className="campo"><span className="campo-rotulo">Nova senha</span><input type="password" value={senha} onChange={(e) => setSenha(e.target.value)} autoFocus /></label>
+        {erro && <div className="erro">{erro}</div>}
+        <button className="btn btn-ouro btn-bloco">Salvar senha</button>
+      </form>
+    </div>
+  )
+}
+
+function Portao() {
+  const { session, perfil, carregando, recuperando } = useAuth()
+  if (recuperando) return <NovaSenha />
+  if (carregando) return <div className="tela-centro muted">Carregando…</div>
+  if (!session) return <Login />
+  if (!perfil) return <div className="tela-centro muted">Carregando seu perfil…</div>
+  if (perfil.papel !== 'admin' && perfil.papel !== 'vendedora') return <Aguardando />
+  return <Layout />
+}
+
+export default function App() {
+  return (
+    <AuthProvider>
+      <BrowserRouter>
+        <Portao />
+      </BrowserRouter>
+    </AuthProvider>
+  )
+}
