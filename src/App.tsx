@@ -15,6 +15,8 @@ import Historico from './pages/Historico'
 import Equipe from './pages/Equipe'
 import Links from './pages/Links'
 import Ajuda from './pages/Ajuda'
+import Agenda from './pages/Agenda'
+import { Icone } from './components/Icone'
 import { Marca } from './components/ui'
 
 function Aguardando() {
@@ -46,21 +48,25 @@ function Layout() {
       <aside className="lateral">
         <Marca />
         <nav>
-          <NavLink to="/" end>Painel</NavLink>
-          <NavLink to="/turmas">Turmas</NavLink>
-          <NavLink to="/pagamentos">Pagamentos</NavLink>
-          <NavLink to="/alunos">Alunos</NavLink>
-          <NavLink to="/comissoes">{isAdmin ? 'Comissões' : 'Minhas comissões'}</NavLink>
-          <NavLink to="/links">Links de pagamento</NavLink>
-          {isAdmin && <NavLink to="/historico">Histórico</NavLink>}
-          {isAdmin && <NavLink to="/equipe">Equipe e cadastros</NavLink>}
-          <NavLink to="/ajuda" className="nav-ajuda">Como usar</NavLink>
+          <NavLink to="/" end><Icone nome="painel" /> Painel</NavLink>
+          <NavLink to="/turmas"><Icone nome="turmas" /> Turmas</NavLink>
+          <NavLink to="/agenda"><Icone nome="agenda" /> Agenda</NavLink>
+          <NavLink to="/pagamentos"><Icone nome="pagamentos" /> Pagamentos</NavLink>
+          <NavLink to="/alunos"><Icone nome="alunos" /> Alunos</NavLink>
+          <NavLink to="/comissoes"><Icone nome="comissoes" /> {isAdmin ? 'Comissões' : 'Minhas comissões'}</NavLink>
+          <NavLink to="/links"><Icone nome="links" /> Links de pagamento</NavLink>
+          {isAdmin && <NavLink to="/historico"><Icone nome="historico" /> Histórico</NavLink>}
+          {isAdmin && <NavLink to="/equipe"><Icone nome="equipe" /> Equipe e cadastros</NavLink>}
+          <NavLink to="/ajuda" className="nav-ajuda"><Icone nome="ajuda" /> Como usar</NavLink>
         </nav>
-        <NavLink to="/matricula/nova" className="btn btn-ouro btn-bloco">+ Nova matrícula</NavLink>
+        <NavLink to="/matricula/nova" className="btn btn-ouro btn-bloco btn-grande"><Icone nome="mais" /> Nova matrícula</NavLink>
         <div className="lateral-rodape">
-          <div className="quem">{perfil?.nome || perfil?.email}</div>
-          <div className="muted pequeno">{isAdmin ? 'Administrador' : 'Vendedora'}</div>
-          <button className="link pequeno" onClick={() => supabase.auth.signOut()}>Sair</button>
+          <div className="avatar"><Icone nome="usuario" tam={20} /></div>
+          <div>
+            <div className="quem">{perfil?.nome || perfil?.email}</div>
+            <div className="muted pequeno">{isAdmin ? 'Administrador' : 'Vendedora'}</div>
+            <button className="link pequeno" onClick={() => supabase.auth.signOut()}>Sair</button>
+          </div>
         </div>
       </aside>
       <main className="conteudo">
@@ -74,6 +80,7 @@ function Layout() {
           <Route path="/alunos" element={<Alunos />} />
           <Route path="/comissoes" element={<Comissoes />} />
           <Route path="/links" element={<Links />} />
+          <Route path="/agenda" element={<Agenda />} />
           <Route path="/ajuda" element={<Ajuda />} />
           {isAdmin && <Route path="/historico" element={<Historico />} />}
           {isAdmin && <Route path="/equipe" element={<Equipe />} />}

@@ -8,6 +8,7 @@ import { Badge, Erro, Kpi, Vazio } from '../components/ui'
 import { FormTurma } from './Turmas'
 import { Ocupacao } from './Painel'
 import { useAuth } from '../auth'
+import { Encontros } from '../components/Encontros'
 
 export default function TurmaDetalhe() {
   const { id } = useParams()
@@ -43,6 +44,7 @@ export default function TurmaDetalhe() {
         <Kpi rotulo="A receber" valor={brl(t.a_receber)} />
         <Kpi rotulo="Atrasado" valor={brl(t.atrasado)} tom="erro" />
       </section>
+      <Encontros turma={t} onMudou={() => turma.recarregar()} />
       <section className="bloco">
         <h2>Alunos ({ativos.length})</h2>
         {ms.length === 0 ? <Vazio>Nenhum aluno matriculado ainda.</Vazio> : (

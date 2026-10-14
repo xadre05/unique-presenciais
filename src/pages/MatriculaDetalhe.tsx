@@ -159,7 +159,7 @@ const NOMES_CAMPO: Record<string, string> = {
   cpf: 'CPF', data_venda: 'data da venda', origem: 'tipo', motivo_cancelamento: 'motivo do cancelamento', competencia: 'mês de pagamento', papel: 'papel',
   data_inicio: 'início', data_fim: 'fim', vagas: 'vagas', numero: 'número', informado_por: 'informado por', confirmado_por: 'confirmado por', liberada_em: 'liberada em', paga_em: 'paga em',
 }
-const TABELAS: Record<string, string> = { parcelas: 'Pagamento', matriculas: 'Matrícula', alunos: 'Aluno', comissoes: 'Comissão', turmas: 'Turma', perfis: 'Acesso', vendedoras: 'Vendedora', cursos: 'Curso', contas: 'Conta' }
+const TABELAS: Record<string, string> = { parcelas: 'Pagamento', matriculas: 'Matrícula', alunos: 'Aluno', comissoes: 'Comissão', turmas: 'Turma', perfis: 'Acesso', vendedoras: 'Vendedora', cursos: 'Curso', contas: 'Conta', encontros: 'Data de curso', links_pagamento: 'Link de pagamento' }
 
 export function Historia({ itens }: { itens: { id: number; tabela: string; acao: string; usuario_nome: string; em: string; antes: Record<string, unknown> | null; depois: Record<string, unknown> | null }[] }) {
   if (!itens.length) return <p className="muted">Sem alterações registradas.</p>

@@ -8,7 +8,7 @@ const PERMISSOES: [string, string, string][] = [
   ['Confirmar que o dinheiro caiu', 'Não', 'Sim'],
   ["Cancelar uma parcela que ainda não foi confirmada", "Sim", "Sim"],
   ['Reabrir parcela cancelada ou confirmada', 'Não', 'Sim'],
-  ['Criar ou editar turma', 'Não', 'Sim'],
+  ['Criar ou editar turma e as datas dos módulos', 'Não', 'Sim'],
   ['Copiar links de pagamento', 'Sim', 'Sim'],
   ['Cadastrar ou alterar links de pagamento', 'Não', 'Sim'],
   ['Ver comissão', 'Só a própria', 'Todas'],
@@ -64,6 +64,7 @@ export default function Ajuda() {
         <h2>O que cada tela mostra</h2>
         <ul>
           <li><b>Painel</b> — quanto foi fechado, recebido, a receber e atrasado. Listas de quem cobrar hoje e quem vence nos próximos 7 dias.</li>
+          <li><b>Agenda</b> — calendário com as datas de todas as turmas e dos módulos da Mini Residência. Dá para pôr cada data na sua agenda do Google com um clique.</li>
           <li><b>Turmas</b> — cada turma com vagas, alunos e situação financeira. Clique para ver os alunos.</li>
           <li><b>Pagamentos</b> — todas as parcelas, com filtros (atrasadas, a vencer, aguardando conferência) e exportação.</li>
           <li><b>Alunos</b> — busca por nome, e-mail ou WhatsApp.</li>
