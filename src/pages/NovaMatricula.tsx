@@ -19,7 +19,7 @@ export const contaPadrao = (forma: string, contas: { id: string; nome: string; t
 export default function NovaMatricula() {
   const nav = useNavigate()
   const [params] = useSearchParams()
-  const { perfil } = useAuth()
+  const { perfil, isAdmin } = useAuth()
   const { contas, vendedoras, turmas } = useCadastros()
 
   // aluno
@@ -52,12 +52,10 @@ export default function NovaMatricula() {
   const [erro, setErro] = useState<string | null>(null)
   const [salvando, setSalvando] = useState(false)
 
+  const minhaVendedora = perfil ? vendedoras.find((v) => v.perfil_id === perfil.id) : undefined
   useEffect(() => {
-    if (!vendedoraId && perfil && vendedoras.length) {
-      const minha = vendedoras.find((v) => v.perfil_id === perfil.id)
-      if (minha) setVendedoraId(minha.id)
-    }
-  }, [vendedoras, perfil, vendedoraId])
+    if (!vendedoraId && minhaVendedora) setVendedoraId(minhaVendedora.id)
+  }, [minhaVendedora, vendedoraId])
 
   useEffect(() => {
     const t = setTimeout(async () => {
@@ -92,6 +90,7 @@ export default function NovaMatricula() {
     if (!aluno && !nomeNovo) return setErro('Escolha um aluno já cadastrado ou cadastre um novo.')
     if (!aluno && !novo.whatsapp?.trim()) return setErro('Informe o WhatsApp do aluno.')
     if (!turmaId) return setErro('Escolha a turma.')
+    if (!isAdmin && !minhaVendedora) return setErro('Seu login ainda não está ligado a uma vendedora. Peça ao administrador para fazer isso em Equipe e cadastros.')
     if (origem === 'venda' && !vendedoraId) return setErro('Escolha quem vendeu (é por isso que a comissão é calculada).')
     if (valor === null) return setErro('Informe o valor fechado.')
     if (temEntrada && (entrada ?? 0) <= 0) return setErro('Informe o valor da entrada/matrícula.')
@@ -182,12 +181,18 @@ export default function NovaMatricula() {
               {turmas.filter((t) => t.status === 'aberta' || t.status === 'planejada' || t.id === turmaId).map((t) => <option key={t.id} value={t.id}>{t.nome}</option>)}
             </select>
           </Campo>
-          <Campo rotulo="Quem vendeu" dica="A comissão de R$ 250 vai para essa pessoa">
-            <select value={vendedoraId} onChange={(e) => setVendedoraId(e.target.value)}>
-              <option value="">Escolha…</option>
-              {vendedoras.filter((v) => v.ativa).map((v) => <option key={v.id} value={v.id}>{v.nome}</option>)}
-            </select>
-          </Campo>
+          {isAdmin ? (
+            <Campo rotulo="Quem vendeu" dica="A comissão de R$ 250 vai para essa pessoa">
+              <select value={vendedoraId} onChange={(e) => setVendedoraId(e.target.value)}>
+                <option value="">Escolha…</option>
+                {vendedoras.filter((v) => v.ativa).map((v) => <option key={v.id} value={v.id}>{v.nome}</option>)}
+              </select>
+            </Campo>
+          ) : (
+            <Campo rotulo="Quem vendeu" dica="Preenchido pelo seu login. A comissão vai para você.">
+              <input value={minhaVendedora?.nome ?? 'Seu login ainda não está ligado a uma vendedora'} disabled />
+            </Campo>
+          )}
           <Campo rotulo="Data da venda"><input type="date" value={dataVenda} onChange={(e) => setDataVenda(e.target.value)} /></Campo>
           <Campo rotulo="Tipo">
             <select value={origem} onChange={(e) => setOrigem(e.target.value)}>

@@ -146,7 +146,7 @@ export default function MatriculaDetalhe() {
       )}
 
       <AcaoParcela acao={acao} matriculaId={m.id} totalParcelas={ps.length} contas={cad.contas} isAdmin={isAdmin} onFechar={() => setAcao(null)} onSalvo={() => { setAcao(null); recarregarTudo() }} />
-      <EditarMatricula aberto={editMat} m={m} vendedoras={cad.vendedoras} turmas={cad.turmas} onFechar={() => setEditMat(false)} onSalvo={() => { setEditMat(false); recarregarTudo() }} />
+      <EditarMatricula aberto={editMat} m={m} isAdmin={isAdmin} vendedoras={cad.vendedoras} turmas={cad.turmas} onFechar={() => setEditMat(false)} onSalvo={() => { setEditMat(false); recarregarTudo() }} />
       {aluno.dados && <EditarAluno aberto={editAluno} a={aluno.dados} onFechar={() => setEditAluno(false)} onSalvo={() => { setEditAluno(false); aluno.recarregar(); mat.recarregar() }} />}
     </div>
   )
@@ -286,8 +286,8 @@ function AcaoParcela({ acao, matriculaId, totalParcelas, contas, isAdmin, onFech
   )
 }
 
-function EditarMatricula({ aberto, m, vendedoras, turmas, onFechar, onSalvo }: {
-  aberto: boolean; m: MatriculaV; vendedoras: { id: string; nome: string; ativa: boolean }[]; turmas: { id: string; nome: string; status: string }[]; onFechar: () => void; onSalvo: () => void
+function EditarMatricula({ aberto, m, isAdmin, vendedoras, turmas, onFechar, onSalvo }: {
+  aberto: boolean; m: MatriculaV; isAdmin: boolean; vendedoras: { id: string; nome: string; ativa: boolean }[]; turmas: { id: string; nome: string; status: string }[]; onFechar: () => void; onSalvo: () => void
 }) {
   const [f, setF] = useState<Partial<MatriculaV>>(m)
   const [arquivo, setArquivo] = useState<File | null>(null)
@@ -314,7 +314,7 @@ function EditarMatricula({ aberto, m, vendedoras, turmas, onFechar, onSalvo }: {
     <Modal titulo="Editar matrícula" aberto onFechar={onFechar} largo>
       <div className="form-grade">
         <Campo rotulo="Turma" dica="Trocar de turma aqui registra no histórico"><select value={f.turma_id} onChange={(e) => set('turma_id', e.target.value)}>{turmas.map((t) => <option key={t.id} value={t.id}>{t.nome}</option>)}</select></Campo>
-        <Campo rotulo="Quem vendeu"><select value={f.vendedora_id ?? ''} onChange={(e) => set('vendedora_id', e.target.value)}><option value="">Ninguém</option>{vendedoras.map((v) => <option key={v.id} value={v.id}>{v.nome}</option>)}</select></Campo>
+        <Campo rotulo="Quem vendeu" dica={isAdmin ? undefined : 'Só o administrador troca quem vendeu'}><select value={f.vendedora_id ?? ''} disabled={!isAdmin} onChange={(e) => set('vendedora_id', e.target.value)}><option value="">Ninguém</option>{vendedoras.map((v) => <option key={v.id} value={v.id}>{v.nome}</option>)}</select></Campo>
         <Campo rotulo="Data da venda"><input type="date" value={f.data_venda ?? ''} onChange={(e) => set('data_venda', e.target.value)} /></Campo>
         <Campo rotulo="Valor fechado"><InputMoeda valor={f.valor_fechado !== undefined ? Number(f.valor_fechado) : null} onChange={(v) => set('valor_fechado', v ?? 0)} /></Campo>
         <Campo rotulo="Tipo"><select value={f.origem} onChange={(e) => set('origem', e.target.value)}>{Object.entries(ORIGENS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></Campo>
