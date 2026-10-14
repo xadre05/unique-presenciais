@@ -21,7 +21,7 @@ type RegraOnline = { id: string; vigente_desde: string; pct_proprio: number; pct
 type Compra = { comprador_email: string; email_exibido: string; comprador_nome: string; produto_id: number | null; produto_nome: string; primeira: string; ultima: string; pagamentos: number; liquido: number | null; vendedora_atual: string | null; origem_atual: string | null; pedido_pendente: boolean; minha: boolean }
 
 export const STATUS_ONLINE: Record<string, { rotulo: string; tom: string }> = {
-  pendente: { rotulo: 'Em conferência', tom: 'alerta' }, liberada: { rotulo: 'Aprovada para pagamento', tom: 'info' },
+  pendente: { rotulo: 'Em apuração', tom: 'neutro' }, liberada: { rotulo: 'Aprovada para pagar', tom: 'info' },
   paga: { rotulo: 'Paga', tom: 'ok' }, cancelada: { rotulo: 'Cancelada', tom: 'neutro' },
 }
 export const TIPO_LEAD: Record<string, string> = { proprio: 'Lead da vendedora', campanha: 'Lead de campanha' }
@@ -104,7 +104,7 @@ export default function ComissoesOnline() {
           <div key={g.id} className="pv-card online-card">
             <div className="online-card-topo"><span className="avatar"><Icone nome="usuario" /></span><div><b>{nomeV(g.id)}</b><div className="muted pequeno">{mes ? `recebidas em ${mesAno(mes + '-01')}` : 'todos os meses'} · {g.itens.filter((c) => c.status !== 'cancelada').length} pagamento(s)</div></div></div>
             <div className="online-valores">
-              <span><small>Em conferência</small><b className="alerta-txt">{brl(soma(p))}</b></span>
+              <span><small>Em apuração</small><b>{brl(soma(p))}</b></span>
               <span><small>Aprovado</small><b className="info-txt">{brl(soma(l))}</b></span>
               <span><small>Pago</small><b className="ok-txt">{brl(soma(pg))}</b></span>
             </div>

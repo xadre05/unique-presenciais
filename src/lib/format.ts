@@ -90,8 +90,8 @@ export const ORIGENS: Record<string, string> = {
 }
 
 export const STATUS_COMISSAO: Record<string, { rotulo: string; tom: string }> = {
-  pendente: { rotulo: 'Pendente', tom: 'alerta' },
-  liberada: { rotulo: 'Liberada', tom: 'info' },
+  pendente: { rotulo: 'Em apuração', tom: 'neutro' },
+  liberada: { rotulo: 'Aprovada para pagar', tom: 'info' },
   paga: { rotulo: 'Paga', tom: 'ok' },
   cancelada: { rotulo: 'Cancelada', tom: 'apagado' },
 }

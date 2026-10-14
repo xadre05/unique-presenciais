@@ -42,8 +42,8 @@ const mesAtual = () => hojeISO().slice(0, 7)
 export function motivoPendente(c: ComissaoV) {
   if (c.status !== 'pendente') return null
   if (c.matricula_status === 'reservada') return { texto: 'Só a matrícula foi paga: libera quando a inscrição for confirmada.', excecao: true }
-  if (c.data_venda.slice(0, 7) >= mesAtual()) return { texto: `Venda deste mês: entra no fechamento e é paga em ${mesAno(c.mes_pagamento)}.`, excecao: true }
-  return { texto: 'Inscrição confirmada: falta o administrador liberar.', excecao: false }
+  if (c.data_venda.slice(0, 7) >= mesAtual()) return { texto: `Venda deste mês: entra no fechamento e é paga em ${mesAno(c.mes_pagamento)}. Nada em atraso.`, excecao: true }
+  return { texto: `Inscrição confirmada: falta o administrador conferir e aprovar (pagamento em ${mesAno(c.mes_pagamento)}).`, excecao: false }
 }
 
 export default function Comissoes() {
@@ -114,15 +114,15 @@ export default function Comissoes() {
         {isAdmin && <label className="select-icone"><select value={vendedora} onChange={(e) => setVendedora(e.target.value)}><option value="">Todas as vendedoras</option>{cad.vendedoras.map((v) => <option key={v.id} value={v.id}>{v.nome}</option>)}</select></label>}
         <label className="select-icone"><select value={turma} onChange={(e) => setTurma(e.target.value)}><option value="">Todas as turmas</option>{cad.turmas.map((t) => <option key={t.id} value={t.id}>{t.nome}</option>)}</select></label>
         <label className="select-icone"><select value={situacao} onChange={(e) => { setSituacao(e.target.value); setSel(new Set()) }}>
-          <option value="abertas">Pendentes e liberadas</option><option value="pendente">Pendentes</option><option value="liberada">Liberadas</option><option value="paga">Pagas</option><option value="cancelada">Canceladas</option><option value="">Todas</option>
+          <option value="abertas">Em apuração e aprovadas</option><option value="pendente">Em apuração</option><option value="liberada">Aprovadas para pagar</option><option value="paga">Pagas</option><option value="cancelada">Canceladas</option><option value="">Todas</option>
         </select></label>
         <label className="select-icone"><select value={mes} onChange={(e) => setMes(e.target.value)}><option value="">Todos os meses de pagamento</option>{meses.map((m) => <option key={m} value={m}>{mesAno(m + '-01')}</option>)}</select></label>
       </div>
 
       <h2 className="titulo-secao">Resumo do filtro atual</h2>
       <section className="resumo-com">
-        <button className={`resumo-card rc-pend${situacao === 'pendente' ? ' ativo' : ''}`} onClick={() => setSituacao('pendente')}><span className="resumo-icone"><Icone nome="relogio" tam={22} /></span><div><div>Pendente</div><b>{brl(soma(total('pendente')))}</b><small>{total('pendente').length} comissão(ões)</small></div><Icone nome="seta" /></button>
-        <button className={`resumo-card rc-lib${situacao === 'liberada' ? ' ativo' : ''}`} onClick={() => setSituacao('liberada')}><span className="resumo-icone"><Icone nome="documento" tam={22} /></span><div><div>Liberado para pagar</div><b>{brl(soma(total('liberada')))}</b><small>{total('liberada').length} comissão(ões)</small></div><Icone nome="seta" /></button>
+        <button className={`resumo-card rc-pend${situacao === 'pendente' ? ' ativo' : ''}`} onClick={() => setSituacao('pendente')}><span className="resumo-icone"><Icone nome="relogio" tam={22} /></span><div><div>Em apuração</div><b>{brl(soma(total('pendente')))}</b><small>{total('pendente').length} venda(s) que entram nos próximos fechamentos</small></div><Icone nome="seta" /></button>
+        <button className={`resumo-card rc-lib${situacao === 'liberada' ? ' ativo' : ''}`} onClick={() => setSituacao('liberada')}><span className="resumo-icone"><Icone nome="documento" tam={22} /></span><div><div>Aprovado para pagar</div><b>{brl(soma(total('liberada')))}</b><small>{total('liberada').length} comissão(ões) conferida(s)</small></div><Icone nome="seta" /></button>
         <button className={`resumo-card rc-paga${situacao === 'paga' ? ' ativo' : ''}`} onClick={() => setSituacao('paga')}><span className="resumo-icone"><Icone nome="check" tam={22} /></span><div><div>Pago</div><b>{brl(soma(total('paga')))}</b><small>{total('paga').length} comissão(ões)</small></div><Icone nome="seta" /></button>
       </section>
 
@@ -130,7 +130,7 @@ export default function Comissoes() {
         <h2 className="titulo-secao">Por vendedora <span className="muted">(no filtro atual)</span></h2>
         <section className="por-vendedora">
           {porVendedora.map((v) => (
-            <div key={v.nome} className="pv-card"><span className="avatar"><Icone nome="usuario" /></span><div><b>{v.nome}</b><div className="pequeno"><span className="info-txt">{brl(v.lib)} liberados</span>{v.pend > 0 && <> · <span className="alerta-txt">{brl(v.pend)} pendentes</span></>}</div></div></div>
+            <div key={v.nome} className="pv-card"><span className="avatar"><Icone nome="usuario" /></span><div><b>{v.nome}</b><div className="pequeno"><span className="info-txt">{brl(v.lib)} aprovados</span>{v.pend > 0 && <> · <span className="muted">{brl(v.pend)} em apuração</span></>}</div></div></div>
           ))}
         </section>
       </>)}
@@ -219,7 +219,7 @@ function Liberar({ itens, onFechar, onSalvo }: { itens: ComissaoV[]; onFechar: (
   return (
     <Modal titulo="Liberar comissões" aberto onFechar={onFechar}>
       <Resumo itens={itens} />
-      <p className="muted pequeno">Liberada quer dizer: pode pagar no mês de pagamento. O pagamento em si você registra depois.</p>
+      <p className="muted pequeno">Aprovar quer dizer: você conferiu e pode pagar no mês de pagamento. O pagamento em si você registra depois.</p>
       {excecoes.length > 0 && (<>
         <div className="nota pequeno"><b>{excecoes.length} delas ainda não cumprem a regra:</b> {excecoes.map((c) => `${c.aluno_nome} (${motivoPendente(c)?.texto.split(':')[0]})`).join('; ')}.</div>
         <Campo rotulo="Motivo da exceção"><textarea rows={2} value={motivo} onChange={(e) => setMotivo(e.target.value)} placeholder="Ex.: combinado com a Patrícia, aluna vai pagar à vista na semana que vem" /></Campo>
@@ -342,7 +342,7 @@ export function RegrasConteudo({ regras, cursos, isAdmin, onSalvo }: { regras: R
         <li>A comissão é de quem vendeu e é <b>por matrícula vendida</b>: um aluno que compra duas turmas gera duas comissões.</li>
         <li>Pode ser <b>valor fixo</b>, <b>percentual da venda</b> ou <b>fixo + percentual</b>. Também pode ser <b>progressiva</b>: o valor sobe conforme o número de vendas da vendedora no mês (1ª, 2ª, 3ª venda…).</li>
         <li>Toda regra tem <b>data de início</b>: cada venda usa a regra que valia no dia da venda. Mudar a regra não mexe nas vendas anteriores.</li>
-        <li>Nasce <b>pendente</b>, é <b>liberada</b> quando a inscrição está confirmada e é <b>paga no mês seguinte à venda</b>.</li>
+        <li>Nasce <b>em apuração</b> (entra no fechamento do mês seguinte, não é atraso), fica <b>aprovada para pagar</b> quando a inscrição está confirmada e você confere, e é <b>paga no mês seguinte à venda</b>. Valor único por matrícula, mesmo que o aluno pague parcelado.</li>
         <li>O administrador pode liberar antes (exceção) ou ajustar uma comissão específica. Os dois pedem motivo e ficam no histórico.</li>
       </ul>
       <h3>Valores por curso</h3>
@@ -368,7 +368,7 @@ export function RegrasConteudo({ regras, cursos, isAdmin, onSalvo }: { regras: R
           })}
         </tbody>
       </table>
-      {isAdmin && <p className="muted pequeno">Comissões pendentes e liberadas de vendas a partir da data da regra são recalculadas, menos as que tiveram ajuste manual. Comissões pagas não mudam.</p>}
+      {isAdmin && <p className="muted pequeno">Comissões em apuração e aprovadas de vendas a partir da data da regra são recalculadas, menos as que tiveram ajuste manual. Comissões pagas não mudam.</p>}
       {ed && (
         <div className="bloco editor-regra">
           <h3>{ed.curso_id ? cursos.find((c) => c.id === ed.curso_id)?.nome : 'Regra padrão'}</h3>

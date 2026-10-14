@@ -161,9 +161,9 @@ export default function Painel() {
           <section className="bloco">
             <h2><Icone nome="moedas" className="ouro" /> {isAdmin ? 'Comissões' : 'Minhas comissões'}</h2>
             <dl className="resumo">
-              <dt>Pendentes</dt><dd>{pendentesCom}</dd>
-              <dt>Liberadas para pagar</dt><dd>{liberadas.length}</dd>
-              <dt>Valor liberado</dt><dd><b>{brl(liberadas.reduce((s, c) => s + Number(c.valor), 0))}</b>{liberadas[0]?.competencia && <div className="muted pequeno">{mesAno(liberadas[0].competencia)}</div>}</dd>
+              <dt>Em apuração</dt><dd>{pendentesCom}</dd>
+              <dt>Aprovadas para pagar</dt><dd>{liberadas.length}</dd>
+              <dt>Valor aprovado</dt><dd><b>{brl(liberadas.reduce((s, c) => s + Number(c.valor), 0))}</b>{liberadas[0]?.competencia && <div className="muted pequeno">{mesAno(liberadas[0].competencia)}</div>}</dd>
             </dl>
             <Link to="/comissoes" className="btn btn-contorno btn-bloco"><Icone nome="dinheiro" tam={16} /> Ver comissões</Link>
           </section>
