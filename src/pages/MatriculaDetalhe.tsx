@@ -34,13 +34,6 @@ export default function MatriculaDetalhe() {
   const s = SITUACAO_ALUNO[m.situacao_financeira]
   const ps = parcelas.dados ?? []
 
-  const mudarComissao = async (status: string) => {
-    if (!comissao.dados) return
-    const { error } = await supabase.from('comissoes').update({ status }).eq('id', comissao.dados.id)
-    if (error) alert(msgErro(error))
-    recarregarTudo()
-  }
-
   return (
     <div className="pagina">
       <div className="migalha"><Link to="/turmas">Turmas</Link> / <Link to={`/turmas/${m.turma_id}`}>{m.turma_nome}</Link> / <Link to={`/alunos/${m.aluno_id}`}>{m.aluno_nome}</Link></div>
@@ -127,14 +120,7 @@ export default function MatriculaDetalhe() {
                 {comissao.dados.competencia && <span className="muted"> · pagar em {mesAno(comissao.dados.competencia)}</span>}</div>
               {comissao.dados.observacao && <div className="muted pequeno">{comissao.dados.observacao}</div>}
               {m.status === 'reservada' && comissao.dados.status === 'pendente' && <div className="muted pequeno">Só a matrícula foi paga: normalmente a comissão espera a inscrição ser confirmada.</div>}
-              {isAdmin && (
-                <div className="acoes">
-                  {comissao.dados.status === 'pendente' && <button className="btn btn-mini btn-ouro" onClick={() => mudarComissao('liberada')}>Liberar (paga no mês que vem)</button>}
-                  {comissao.dados.status === 'liberada' && <button className="btn btn-mini btn-ouro" onClick={() => mudarComissao('paga')}>Marcar como paga</button>}
-                  {comissao.dados.status === 'liberada' && <button className="btn btn-mini" onClick={() => mudarComissao('pendente')}>Voltar para pendente</button>}
-                  {comissao.dados.status !== 'paga' && comissao.dados.status !== 'cancelada' && <button className="btn btn-mini" onClick={() => mudarComissao('cancelada')}>Cancelar comissão</button>}
-                </div>
-              )}
+              <Link to="/comissoes" className="link pequeno">{isAdmin ? 'Liberar, ajustar ou registrar pagamento em Comissões' : 'Ver em Minhas comissões'}</Link>
             </div>
           ) : isAdmin ? <p className="muted">Sem comissão (venda sem vendedora ou não é venda).</p> : null}
         </section>
