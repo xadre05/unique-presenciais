@@ -29,7 +29,13 @@ Deno.serve(async (req) => {
   const d = corpo.data ?? {}
   const pu = d.purchase ?? {}
   const transacao = String(pu.transaction ?? '')
-  if (!transacao) return resp({ ok: true, ignorado: 'sem transação' })   // ex.: abandono de carrinho, acesso à área de membros
+  // CRM: compra, Pix/boleto gerado, carrinho abandonado, reembolso → contato com telefone + follow-up (só da conta Unique)
+  let crm: unknown = null
+  if (conta === 'hotmart_unique') {
+    const { data, error } = await db.rpc('crm_evento_hotmart', { p_corpo: corpo })
+    crm = error ? { erro: error.message } : data
+  }
+  if (!transacao) return resp({ ok: true, ignorado: 'sem transação', crm })   // ex.: abandono de carrinho, acesso à área de membros
   const rec = Number(pu.recurrence_number ?? pu.recurrency_number ?? 0) || null
   const id = rec ? `${transacao}#${rec}` : transacao
   const bruto = Number(pu.price?.value ?? pu.full_price?.value ?? 0) || null
@@ -48,5 +54,5 @@ Deno.serve(async (req) => {
   if (ja) await db.from('hotmart_pagamentos').update({ status, evento, bruto: corpo, valor_liquido: reg.valor_liquido, comprador_doc: reg.comprador_doc, data_aprovacao: reg.data_aprovacao, atualizado_em: reg.atualizado_em }).eq('id', id)
   else await db.from('hotmart_pagamentos').insert(reg)
   const { data: r } = await db.rpc('processar_pagamento_hotmart', { p_id: id })
-  return resp({ ok: true, resultado: r })
+  return resp({ ok: true, resultado: r, crm })
 })

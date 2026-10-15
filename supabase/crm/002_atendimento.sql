@@ -244,7 +244,7 @@ revoke execute on function crm_resumo_disparos(uuid) from public, anon;
 -- registra uma mensagem recebida: acha/cria contato e conversa, guarda a mensagem
 create function crm_receber_mensagem(p_canal uuid, p_telefone text, p_nome text, p_texto text, p_tipo text default 'texto', p_midia text default null, p_id_externo text default null)
 returns jsonb language plpgsql security definer set search_path = public as $$
-declare k crm_canais; v_contato uuid; v_conversa crm_conversas; v_msg uuid;
+declare k crm_canais; v_contato uuid; v_conversa crm_conversas; v_msg uuid; v_dona uuid;
 begin
   select * into k from crm_canais where id = p_canal;
   if k.id is null then raise exception 'canal não existe'; end if;
@@ -264,6 +264,14 @@ begin
             order by i.enviado_em desc limit 1))
   on conflict (canal_id, contato_id) do nothing;
   select * into v_conversa from crm_conversas where canal_id = p_canal and contato_id = v_contato;
+  -- (048) sem dona: a dona do contato (carteira) ou a próxima do rodízio
+  if v_conversa.atendente_id is null and not v_conversa.com_ia then
+    v_dona := crm_escolher_atendente(k.empresa_id, v_contato);
+    if v_dona is not null then
+      update crm_conversas set atendente_id = v_dona where id = v_conversa.id;
+      v_conversa.atendente_id := v_dona;
+    end if;
+  end if;
   insert into crm_mensagens (empresa_id, conversa_id, direcao, autor, tipo, texto, midia_url, status, id_externo)
   values (k.empresa_id, v_conversa.id, 'entrada', 'contato', coalesce(p_tipo, 'texto'), p_texto, p_midia, 'recebida', p_id_externo)
   returning id into v_msg;
@@ -273,7 +281,8 @@ begin
   -- quem responde entra no funil (primeira etapa), se ainda não estiver
   update crm_contatos set etapa_id = (select id from crm_etapas where empresa_id = k.empresa_id and final is null order by ordem limit 1), etapa_em = now()
   where id = v_contato and etapa_id is null;
-  return jsonb_build_object('mensagem', v_msg, 'conversa', v_conversa.id, 'contato', v_contato, 'com_ia', v_conversa.com_ia);
+  perform crm_parar_cadencias(v_contato, 'respondeu');   -- (048) respondeu: follow-ups param
+  return jsonb_build_object('mensagem', v_msg, 'conversa', v_conversa.id, 'contato', v_contato, 'com_ia', v_conversa.com_ia, 'atendente', v_conversa.atendente_id);
 end $$;
 revoke execute on function crm_receber_mensagem(uuid, text, text, text, text, text, text) from public, anon, authenticated;
 

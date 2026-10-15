@@ -137,6 +137,36 @@ async function processarFila(db: SupabaseClient) {
   return { enviados, erros }
 }
 
+// follow-ups automáticos: tarefas já são criadas no banco; aqui só saem as mensagens
+async function processarCadencias(db: SupabaseClient) {
+  const { data: itens, error } = await db.rpc('crm_cadencias_vencidas', { p_max: 50 })
+  if (error) throw new Error(error.message)
+  let enviadas = 0, sem_canal = 0
+  for (const it of (itens ?? []) as { inscricao_id: string; empresa_id: string; contato_id: string; texto: string | null; dados: Record<string, string> | null }[]) {
+    const { data: c } = await db.from('crm_contatos').select('nome, telefone, nao_contatar, telefone_invalido').eq('id', it.contato_id).single()
+    if (!c?.telefone || c.nao_contatar || c.telefone_invalido || !it.texto) continue
+    // conversa existente com esse contato; senão o número padrão da empresa
+    const { data: conv0 } = await db.from('crm_conversas').select('id, canal_id').eq('contato_id', it.contato_id).order('ultima_em', { ascending: false, nullsFirst: false }).limit(1).maybeSingle()
+    let canalId = conv0?.canal_id as string | undefined
+    if (!canalId) {
+      const { data: emp } = await db.from('crm_empresas').select('config').eq('id', it.empresa_id).single()
+      canalId = emp?.config?.canal_padrao
+      if (!canalId) { const { data: k } = await db.from('crm_canais').select('id').eq('empresa_id', it.empresa_id).eq('status', 'conectado').neq('tipo', 'teste').limit(1).maybeSingle(); canalId = k?.id }
+    }
+    if (!canalId) { sem_canal++; continue }
+    const { canal, seg } = await canalESegredos(db, canalId)
+    if (canal.status !== 'conectado') { sem_canal++; continue }
+    await db.from('crm_conversas').upsert({ empresa_id: it.empresa_id, contato_id: it.contato_id, canal_id: canalId }, { onConflict: 'canal_id,contato_id', ignoreDuplicates: true })
+    const { data: conv } = await db.from('crm_conversas').select('id').eq('canal_id', canalId).eq('contato_id', it.contato_id).single()
+    let texto = preencher(it.texto, c.nome)
+    for (const [k, v] of Object.entries(it.dados ?? {})) texto = texto.replaceAll(`{${k}}`, String(v ?? ''))
+    const { data: msgId } = await db.rpc('crm_registrar_saida', { p_conversa: conv!.id, p_texto: texto, p_autor: 'disparo', p_autor_id: null })
+    const r = await despachar(db, msgId as string, canal, seg, c.telefone, texto)
+    if (r.ok) enviadas++
+  }
+  return { enviadas, sem_canal }
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors })
   const url = Deno.env.get('SUPABASE_URL')!
@@ -173,7 +203,7 @@ Deno.serve(async (req) => {
     if (acao === 'processar_fila') {
       const { data: chave } = await db.rpc('crm_chave_cron')
       if (!chave || req.headers.get('x-cron-chave') !== chave) return json({ erro: 'chave' }, 403)
-      return json(await processarFila(db))
+      return json({ disparos: await processarFila(db), followups: await processarCadencias(db) })
     }
 
     // daqui para baixo: pessoa logada, com as regras de acesso dela

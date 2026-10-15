@@ -6,16 +6,17 @@ import { Badge, Erro, Modal, Vazio } from '../components/ui'
 import { Icone } from '../components/Icone'
 import { telefoneLegivel } from './nucleo'
 import { horaCurta, servidorWhats, type BaseCRM, type Conversa, type Mensagem } from './tipos'
+import ProximasAcoes from './Acoes'
 
-type Aba = 'minhas' | 'fila' | 'todas' | 'resolvidas'
+export type Aba = 'minhas' | 'fila' | 'todas' | 'resolvidas'
 
-export default function Conversas({ empresaId, usuarioId, base, painelExtra }: {
-  empresaId: string; usuarioId: string; base: BaseCRM; painelExtra?: (contatoId: string) => ReactNode
+export default function Conversas({ empresaId, usuarioId, base, painelExtra, inicial, abaInicial }: {
+  empresaId: string; usuarioId: string; base: BaseCRM; painelExtra?: (contatoId: string) => ReactNode; inicial?: string | null; abaInicial?: Aba | null
 }) {
   const [convs, setConvs] = useState<Conversa[]>([])
-  const [aba, setAba] = useState<Aba>('minhas')
+  const [aba, setAba] = useState<Aba>(abaInicial ?? 'minhas')
   const [busca, setBusca] = useState('')
-  const [sel, setSel] = useState<string | null>(null)
+  const [sel, setSel] = useState<string | null>(inicial ?? null)
   const [erro, setErro] = useState<string | null>(null)
   const [simular, setSimular] = useState(false)
 
@@ -261,6 +262,7 @@ export function PainelContato({ contatoId, base, aberto, onFechar, extra }: { co
       </label>
       {c.nao_contatar && <div className="erro-txt pequeno">Pediu para não receber mensagens.</div>}
       <Erro msg={erro} />
+      <ProximasAcoes contatoId={contatoId} base={base} />
       {extra?.(contatoId)}
     </aside>
   )

@@ -2,22 +2,26 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { Badge, Campo, Erro, InputNumero, Modal } from '../components/ui'
-import { STATUS_CANAL, TIPO_CANAL, type BaseCRM, type Canal, type Etapa } from './tipos'
+import { STATUS_CANAL, TIPO_CANAL, type BaseCRM, type Cadencia, type Canal, type Etapa, type Passo } from './tipos'
 
 const URL_FUNCAO = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/crm-whatsapp`
 
 export default function ConfigAtendimento({ empresaId, base }: { empresaId: string; base: BaseCRM }) {
-  const [aba, setAba] = useState<'numeros' | 'etapas' | 'respostas'>('numeros')
+  const [aba, setAba] = useState<'numeros' | 'etapas' | 'respostas' | 'followups' | 'motivos'>('numeros')
   return (
     <div>
       <nav className="abas">
         <button className={aba === 'numeros' ? 'ativa' : ''} onClick={() => setAba('numeros')}>Números de WhatsApp</button>
         <button className={aba === 'etapas' ? 'ativa' : ''} onClick={() => setAba('etapas')}>Etapas do funil</button>
         <button className={aba === 'respostas' ? 'ativa' : ''} onClick={() => setAba('respostas')}>Respostas prontas</button>
+        <button className={aba === 'followups' ? 'ativa' : ''} onClick={() => setAba('followups')}>Follow-ups automáticos</button>
+        <button className={aba === 'motivos' ? 'ativa' : ''} onClick={() => setAba('motivos')}>Motivos de perda</button>
       </nav>
       {aba === 'numeros' && <Numeros empresaId={empresaId} base={base} />}
       {aba === 'etapas' && <Etapas empresaId={empresaId} base={base} />}
       {aba === 'respostas' && <Respostas empresaId={empresaId} base={base} />}
+      {aba === 'followups' && <Followups empresaId={empresaId} base={base} />}
+      {aba === 'motivos' && <Motivos empresaId={empresaId} base={base} />}
     </div>
   )
 }
@@ -174,6 +178,86 @@ function Respostas({ empresaId, base }: { empresaId: string; base: BaseCRM }) {
       </div>
       <Erro msg={erro} />
       <button className="btn btn-mini" onClick={add} disabled={!atalho.trim() || !texto.trim()}>Adicionar</button>
+    </section>
+  )
+}
+
+const EVENTO: Record<string, string> = {
+  compra_aprovada: 'Compra aprovada', aguardando_pagamento: 'Pix ou boleto gerado', carrinho_abandonado: 'Carrinho abandonado',
+  reembolso: 'Reembolso', pagamento_expirou: 'Pagamento expirou', compra_cancelada: 'Compra cancelada',
+}
+const ACAO: Record<string, string> = {
+  marcar_ganho: 'marca como Comprou e para os follow-ups', iniciar_cadencia: 'começa o follow-up', parar_cadencias: 'para os follow-ups',
+  criar_tarefa: 'cria a tarefa', etiqueta: 'põe a etiqueta', mover_etapa: 'muda a etapa',
+}
+type Regra = { id: string; evento: string; acao: string; parametros: Record<string, string>; ativa: boolean }
+
+function Followups({ empresaId, base }: { empresaId: string; base: BaseCRM }) {
+  const [regras, setRegras] = useState<Regra[]>([])
+  const [ed, setEd] = useState<Cadencia | null>(null)
+  const [erro, setErro] = useState<string | null>(null)
+  useEffect(() => { supabase.from('crm_regras').select('*').eq('empresa_id', empresaId).order('evento').order('ordem').then(({ data }) => setRegras((data as Regra[]) ?? [])) }, [empresaId])
+  const salvar = async (c: Cadencia) => {
+    const reg = { empresa_id: empresaId, nome: c.nome, passos: c.passos, ativa: c.ativa, tipo_tarefa: c.tipo_tarefa }
+    const { error } = c.id ? await supabase.from('crm_cadencias').update(reg).eq('id', c.id) : await supabase.from('crm_cadencias').insert(reg)
+    if (error) return setErro(error.message)
+    setEd(null); base.recarregar()
+  }
+  const passo = (i: number, campo: keyof Passo, v: string) => ed && setEd({ ...ed, passos: ed.passos.map((p, j) => (j === i ? { ...p, [campo]: campo === 'apos_horas' ? Number(v) * 24 : v } : p)) })
+  return (
+    <section>
+      <p className="muted">Sequências de passos com prazo. Cada passo vira uma tarefa para a dona do contato (ou uma mensagem automática). Tudo para sozinho quando a pessoa responde, compra ou é marcada como perdida.</p>
+      <div className="cards">
+        {base.cadencias.map((c) => (
+          <div key={c.id} className="card-lista">
+            <div className="card-lista-topo"><h3>{c.nome}</h3>{!c.ativa && <span className="muted pequeno">desligado</span>}</div>
+            <ol className="pequeno lista-passos">{c.passos.map((p, i) => <li key={i}><b>Dia {Math.round(p.apos_horas / 24)}</b> · {p.tipo === 'mensagem' ? 'mensagem automática' : 'tarefa'}: {p.titulo ?? p.texto}</li>)}</ol>
+            <div className="acoes"><button className="btn btn-mini" onClick={() => setEd(c)}>Ajustar</button></div>
+          </div>
+        ))}
+      </div>
+      <button className="btn btn-contorno mt" onClick={() => setEd({ id: '', nome: 'Novo follow-up', passos: [{ apos_horas: 0, tipo: 'tarefa', titulo: 'Primeiro contato' }], ativa: true, tipo_tarefa: 'follow_up' })}>+ Novo follow-up</button>
+
+      <h3 className="mt">O que acontece sozinho</h3>
+      <ul className="lista-compras">{regras.map((r) => (
+        <li key={r.id}><span className="pequeno"><b>{EVENTO[r.evento] ?? r.evento}</b> → {ACAO[r.acao] ?? r.acao}{r.acao === 'iniciar_cadencia' ? ` “${base.cadencias.find((c) => c.id === r.parametros.cadencia_id)?.nome ?? ''}”` : r.parametros.titulo ? ` “${r.parametros.titulo}”` : r.parametros.tag ? ` “${r.parametros.tag}”` : ''}</span></li>
+      ))}</ul>
+
+      {ed && (
+        <Modal titulo={ed.id ? `Ajustar ${ed.nome}` : 'Novo follow-up'} aberto onFechar={() => setEd(null)} largo>
+          <div className="form-grade">
+            <Campo rotulo="Nome"><input value={ed.nome} onChange={(e) => setEd({ ...ed, nome: e.target.value })} /></Campo>
+            <Campo rotulo="Ligado"><select value={ed.ativa ? 's' : 'n'} onChange={(e) => setEd({ ...ed, ativa: e.target.value === 's' })}><option value="s">Sim</option><option value="n">Não</option></select></Campo>
+          </div>
+          {ed.passos.map((p, i) => (
+            <div key={i} className="editor-msg">
+              <div className="nova-tarefa-linha">
+                <span className="pequeno">Dia</span><input type="number" min={0} style={{ width: 70 }} value={Math.round(p.apos_horas / 24)} onChange={(e) => passo(i, 'apos_horas', e.target.value)} />
+                <select value={p.tipo} onChange={(e) => passo(i, 'tipo', e.target.value)}><option value="tarefa">Tarefa para a vendedora</option><option value="mensagem">Mensagem automática</option></select>
+                {ed.passos.length > 1 && <button className="link pequeno" onClick={() => setEd({ ...ed, passos: ed.passos.filter((_, j) => j !== i) })}>remover</button>}
+              </div>
+              {p.tipo === 'tarefa' && <input value={p.titulo ?? ''} onChange={(e) => passo(i, 'titulo', e.target.value)} placeholder="O que fazer (aparece na fila)" />}
+              <textarea rows={2} value={p.texto ?? ''} onChange={(e) => passo(i, 'texto', e.target.value)} placeholder={p.tipo === 'mensagem' ? 'Texto da mensagem ({nome}, {produto}, {link_pagamento})' : 'Dica para a vendedora (opcional)'} />
+            </div>
+          ))}
+          <button className="btn btn-mini" onClick={() => setEd({ ...ed, passos: [...ed.passos, { apos_horas: (ed.passos.at(-1)?.apos_horas ?? 0) + 24, tipo: 'tarefa', titulo: '' }] })}>+ passo</button>
+          <Erro msg={erro} />
+          <div className="modal-acoes"><button className="btn" onClick={() => setEd(null)}>Cancelar</button><button className="btn btn-ouro" onClick={() => salvar(ed)}>Salvar</button></div>
+        </Modal>
+      )}
+    </section>
+  )
+}
+
+function Motivos({ empresaId, base }: { empresaId: string; base: BaseCRM }) {
+  const [novo, setNovo] = useState('')
+  const add = async () => { if (!novo.trim()) return; await supabase.from('crm_motivos_perda').insert({ empresa_id: empresaId, nome: novo.trim(), ordem: base.motivos.length + 1 }); setNovo(''); base.recarregar() }
+  const tirar = async (nome: string) => { await supabase.from('crm_motivos_perda').delete().eq('empresa_id', empresaId).eq('nome', nome); base.recarregar() }
+  return (
+    <section className="bloco">
+      <p className="muted">Para marcar um contato como perdido, a pessoa escolhe um destes. O painel mostra quais aparecem mais.</p>
+      <ul className="lista-compras">{base.motivos.map((m) => <li key={m}><span>{m} <button className="link pequeno" onClick={() => tirar(m)}>remover</button></span></li>)}</ul>
+      <div className="nova-tarefa-linha mt"><input value={novo} onChange={(e) => setNovo(e.target.value)} placeholder="Novo motivo" /><button className="btn btn-mini" onClick={add}>Adicionar</button></div>
     </section>
   )
 }

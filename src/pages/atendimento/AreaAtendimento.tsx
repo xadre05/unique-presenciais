@@ -1,13 +1,15 @@
 // Área "Atendimento" da Unique: monta as telas do núcleo do CRM (src/crm) com o que é só da Unique
 // (contatos cruzados com a Hotmart, listas manuais das vendedoras, resumo de compras no painel do contato).
 import { useEffect, useState } from 'react'
-import { Link, NavLink, Navigate, Route, Routes, useLocation } from 'react-router-dom'
+import { Link, NavLink, Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../auth'
 import { Badge, Marca, Vazio } from '../../components/ui'
 import { Icone } from '../../components/Icone'
 import { useBaseCRM } from '../../crm/tipos'
-import Conversas from '../../crm/Conversas'
+import Conversas, { type Aba } from '../../crm/Conversas'
+import MinhaFila from '../../crm/MinhaFila'
+import PainelGestor from '../../crm/PainelGestor'
 import Funil from '../../crm/Funil'
 import Disparos from '../../crm/Disparos'
 import ConfigAtendimento from '../../crm/ConfigAtendimento'
@@ -52,13 +54,18 @@ export default function AreaAtendimento() {
   const local = useLocation()
   const naConversa = local.pathname === '/atendimento' || local.pathname === '/atendimento/'
   const extra = (id: string) => <ResumoUnique contatoId={id} />
+  const nav = useNavigate()
+  const qs = new URLSearchParams(local.search)
+  const abrirConversa = (id: string) => nav(id ? `/atendimento?c=${id}` : '/atendimento?aba=fila')
   const [menu, setMenu] = useState(false)
   useEffect(() => { setMenu(false) }, [local.pathname])
   useEffect(() => { document.body.classList.toggle('menu-aberto', menu) }, [menu])
   const itens = (<>
+    <NavLink to="/atendimento/fila"><Icone nome="check" /> Minha fila</NavLink>
     <NavLink to="/atendimento" end><Icone nome="whats" /> Conversas</NavLink>
     <NavLink to="/atendimento/funil"><Icone nome="comissoes" /> Funil</NavLink>
     <NavLink to="/atendimento/listas"><Icone nome="lista" /> {isAdmin ? 'Listas manuais' : 'Minhas listas'}</NavLink>
+    {isAdmin && <NavLink to="/atendimento/painel"><Icone nome="grafico" /> Painel</NavLink>}
     {isAdmin && <NavLink to="/atendimento/contatos"><Icone nome="contatos" /> Contatos</NavLink>}
     {isAdmin && <NavLink to="/atendimento/disparos"><Icone nome="sacola" /> Disparos</NavLink>}
     {isAdmin && <NavLink to="/atendimento/ia"><Icone nome="info" /> Agente IA</NavLink>}
@@ -86,15 +93,17 @@ export default function AreaAtendimento() {
         </div>
       </aside>
       <nav className="barra-inferior">
+        <NavLink to="/atendimento/fila"><Icone nome="check" /><span>Fila</span></NavLink>
         <NavLink to="/atendimento" end><Icone nome="whats" /><span>Conversas</span></NavLink>
-        <NavLink to="/atendimento/funil"><Icone nome="comissoes" /><span>Funil</span></NavLink>
         <NavLink to="/atendimento/listas"><Icone nome="lista" /><span>Listas</span></NavLink>
         <NavLink to="/" end><Icone nome="painel" /><span>Comercial</span></NavLink>
         <button onClick={() => setMenu(true)}><Icone nome="menu" /><span>Mais</span></button>
       </nav>
       <main className="conteudo at-conteudo">
         <Routes>
-          <Route index element={perfil ? <Conversas empresaId={EMPRESA_UNIQUE} usuarioId={perfil.id} base={base} painelExtra={extra} /> : null} />
+          <Route index element={perfil ? <Conversas key={local.search} empresaId={EMPRESA_UNIQUE} usuarioId={perfil.id} base={base} painelExtra={extra} inicial={qs.get('c')} abaInicial={(qs.get('aba') as Aba) ?? null} /> : null} />
+          <Route path="fila" element={perfil ? <MinhaFila empresaId={EMPRESA_UNIQUE} usuarioId={perfil.id} base={base} abrirConversa={abrirConversa} prazoMin={base.config.prazo_primeiro_contato_min ?? 5} /> : null} />
+          {isAdmin && <Route path="painel" element={<PainelGestor empresaId={EMPRESA_UNIQUE} base={base} />} />}
           <Route path="funil" element={<div className="pagina larga"><h1>Funil</h1><Funil empresaId={EMPRESA_UNIQUE} base={base} painelExtra={extra} /></div>} />
           <Route path="listas" element={<Listas />} />
           <Route path="listas/:id" element={<ListaTrabalho />} />

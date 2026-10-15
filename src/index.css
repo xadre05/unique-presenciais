@@ -898,3 +898,24 @@ select option:checked { background-color: #6d5427; color: #fff3d9; }
 }
 .caixa-itens .vazio { margin: 16px; }
 .abas-mini button { white-space: nowrap; font-size: .8rem; }
+
+/* fila, tarefas, painel */
+.interruptor { display: inline-flex; align-items: center; gap: 8px; padding: 7px 12px; border-radius: 99px; border: 1px solid var(--borda); background: var(--painel); font-size: .88rem; color: var(--muted); cursor: pointer; }
+.interruptor input { accent-color: var(--ok); }
+.interruptor.ligado { border-color: rgba(111,191,138,.45); color: var(--ok); background: var(--ok-fundo); }
+.item-fila { display: flex; flex-direction: column; gap: 5px; width: 100%; text-align: left; background: var(--painel); border: 1px solid var(--borda); border-left: 3px solid var(--ouro); border-radius: var(--raio); padding: 12px 16px; color: var(--texto); font: inherit; cursor: pointer; }
+.item-fila:hover { background: var(--painel-2); }
+.item-fila.fora-prazo { border-left-color: var(--erro); }
+.item-lista.atrasada { border-left: 3px solid var(--erro); }
+.acoes-contato { border-top: 1px solid var(--borda); padding-top: 10px; display: flex; flex-direction: column; gap: 8px; }
+.acoes-contato h3 { margin: 0; }
+.tarefa-linha { display: flex; gap: 10px; align-items: flex-start; }
+.check-redondo { flex-shrink: 0; width: 18px; height: 18px; margin-top: 2px; border-radius: 50%; border: 1.5px solid var(--muted); background: none; cursor: pointer; }
+.check-redondo:hover { border-color: var(--ok); background: var(--ok-fundo); }
+.nova-tarefa { display: flex; flex-direction: column; gap: 6px; }
+.nova-tarefa-linha { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.nova-tarefa-linha select, .nova-tarefa-linha input { flex: 1; min-width: 0; padding: 7px 9px; font-size: .88rem; }
+.lista-passos { margin: 0; padding-left: 18px; line-height: 1.6; }
+.funil-barra { display: grid; grid-template-columns: 140px 1fr 70px; gap: 10px; align-items: center; padding: 5px 0; }
+.fb-trilho { height: 10px; background: var(--painel-2); border-radius: 99px; overflow: hidden; }
+.fb-trilho > div { height: 100%; border-radius: 99px; min-width: 2px; }
