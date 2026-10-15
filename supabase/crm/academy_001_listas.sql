@@ -406,3 +406,8 @@ revoke all on interno.cambio_export from anon;
 
 -- resumo atualizado de hora em hora (depois da busca da Hotmart, que roda aos :23)
 select cron.schedule('crm-resumo', '35 * * * *', 'select public.atualizar_resumo_contatos()');
+
+-- (038) funções internas não ficam abertas para quem não está logado
+revoke execute on function crm_sou_membro(uuid), crm_sou_admin(uuid), crm_pode_ver_contato(uuid), contato_da_hotmart(), contato_do_aluno(), sync_membro_crm() from public, anon;
+revoke execute on function contato_da_hotmart(), contato_do_aluno(), sync_membro_crm() from authenticated;
+alter function empresa_unique() set search_path = public;
