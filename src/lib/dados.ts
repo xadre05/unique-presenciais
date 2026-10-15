@@ -45,3 +45,8 @@ export const msgErro = (e: unknown) => {
   if (m.includes('matricula_ativa_unica')) return 'Esse aluno já tem matrícula ativa nessa turma.'
   return m
 }
+
+// Id da vendedora ligada ao login atual (vendedora); null para admin ou sem vínculo.
+export function minhaVendedoraId(vendedoras: { id: string; perfil_id: string | null }[], perfilId: string | null | undefined) {
+  return perfilId ? vendedoras.find((v) => v.perfil_id === perfilId)?.id ?? null : null
+}

@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
-import { useCadastros, useConsulta } from '../lib/dados'
+import { useCadastros, useConsulta, minhaVendedoraId } from '../lib/dados'
 import { brl, dataBR, FORMAS, SITUACAO_PARCELA, whatsLink } from '../lib/format'
 import type { ParcelaV } from '../lib/types'
 import { Badge, Erro, LinkArquivo, Vazio } from '../components/ui'
@@ -26,14 +26,15 @@ function linkCobranca(p: ParcelaV) {
 }
 
 export default function Pagamentos() {
-  const { isAdmin } = useAuth()
+  const { isAdmin, perfil } = useAuth()
   const [params, setParams] = useSearchParams()
   const area = isAdmin && params.get('area') === 'online' ? 'online' : 'presencial'
   const cad = useCadastros()
+  const minha = minhaVendedoraId(cad.vendedoras, isAdmin ? null : perfil?.id)
   const [situacao, setSituacao] = useState('pendentes')
   const [turma, setTurma] = useState('')
   const [conta, setConta] = useState('')
-  const [vendedora, setVendedora] = useState('')
+  const [vendedora, setVendedora] = useState(isAdmin ? '' : 'minhas')
   const [de, setDe] = useState('')
   const [ate, setAte] = useState('')
   const [busca, setBusca] = useState('')
@@ -47,11 +48,13 @@ export default function Pagamentos() {
     else if (situacao) x = x.eq('situacao', situacao)
     if (turma) x = x.eq('turma_id', turma)
     if (conta) x = x.eq('conta_id', conta)
-    if (vendedora) x = x.eq('vendedora_id', vendedora)
+    const vid = vendedora === 'minhas' ? minha : vendedora
+    if (vendedora === 'minhas' && !minha) x = x.eq('vendedora_id', '00000000-0000-0000-0000-000000000000')
+    else if (vid) x = x.eq('vendedora_id', vid)
     if (de) x = x.gte('vencimento', de)
     if (ate) x = x.lte('vencimento', ate)
     return x
-  }, [situacao, turma, conta, vendedora, de, ate])
+  }, [situacao, turma, conta, vendedora, de, ate, minha])
 
   const lista = useMemo(() => {
     const t = busca.trim().toLowerCase()
@@ -64,14 +67,16 @@ export default function Pagamentos() {
   const pag = Math.min(pagina, totalPaginas)
   const visiveis = lista.slice((pag - 1) * POR_PAGINA, pag * POR_PAGINA)
 
-  const emAberto = lista.filter((p) => ['atrasada', 'a_vencer', 'sem_vencimento'].includes(p.situacao))
+  // vendedora vendo a equipe: os totais em dinheiro continuam só das vendas dela
+  const baseResumo = isAdmin ? lista : lista.filter((p) => p.vendedora_id === minha)
+  const emAberto = baseResumo.filter((p) => ['atrasada', 'a_vencer', 'sem_vencimento'].includes(p.situacao))
   const soma = (xs: ParcelaV[], campo: 'valor' | 'valor_recebido' = 'valor') => xs.reduce((s, p) => s + Number(p[campo] ?? p.valor ?? 0), 0)
-  const vencidas = lista.filter((p) => p.situacao === 'atrasada')
-  const semVenc = lista.filter((p) => p.situacao === 'sem_vencimento')
-  const conferir = lista.filter((p) => p.situacao === 'aguardando_conferencia')
-  const recebidas = lista.filter((p) => p.situacao === 'recebida')
-  const filtrosAtivos = situacao !== 'pendentes' || turma || conta || vendedora || de || ate || busca
-  const limpar = () => { setSituacao('pendentes'); setTurma(''); setConta(''); setVendedora(''); setDe(''); setAte(''); setBusca(''); setPagina(1) }
+  const vencidas = baseResumo.filter((p) => p.situacao === 'atrasada')
+  const semVenc = baseResumo.filter((p) => p.situacao === 'sem_vencimento')
+  const conferir = baseResumo.filter((p) => p.situacao === 'aguardando_conferencia')
+  const recebidas = baseResumo.filter((p) => p.situacao === 'recebida')
+  const filtrosAtivos = situacao !== 'pendentes' || turma || conta || vendedora !== (isAdmin ? '' : 'minhas') || de || ate || busca
+  const limpar = () => { setSituacao('pendentes'); setTurma(''); setConta(''); setVendedora(isAdmin ? '' : 'minhas'); setDe(''); setAte(''); setBusca(''); setPagina(1) }
   const mudar = (f: (v: string) => void) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => { f(e.target.value); setPagina(1) }
 
   const exportar = () => {
@@ -125,7 +130,7 @@ export default function Pagamentos() {
         </select></label>
         <label className="select-icone"><select value={turma} onChange={mudar(setTurma)}><option value="">Todas as turmas</option>{cad.turmas.map((t) => <option key={t.id} value={t.id}>{t.nome}</option>)}</select></label>
         <label className="select-icone"><select value={conta} onChange={mudar(setConta)}><option value="">Todas as contas</option>{cad.contas.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}</select></label>
-        {isAdmin && <label className="select-icone"><select value={vendedora} onChange={mudar(setVendedora)}><option value="">Todas as vendedoras</option>{cad.vendedoras.map((v) => <option key={v.id} value={v.id}>{v.nome}</option>)}</select></label>}
+        <label className="select-icone"><select value={vendedora} onChange={mudar(setVendedora)}>{!isAdmin && <option value="minhas">Minhas vendas</option>}<option value="">{isAdmin ? 'Todas as vendedoras' : 'Toda a equipe'}</option>{cad.vendedoras.filter((v) => isAdmin || (v.ativa && v.id !== minha)).map((v) => <option key={v.id} value={v.id}>{v.nome}</option>)}</select></label>
         <div className="filtro-datas">
           <span className="muted">Vencimento</span>
           <label className="select-icone"><Icone nome="agenda" tam={16} /><input type="date" value={de} onChange={mudar(setDe)} title="De" /></label>
@@ -134,7 +139,7 @@ export default function Pagamentos() {
         {filtrosAtivos && <button className="link" onClick={limpar}>Limpar filtros</button>}
       </div>
 
-      <h2 className="titulo-secao">Resumo do filtro atual</h2>
+      <h2 className="titulo-secao">Resumo do filtro atual{!isAdmin && vendedora !== 'minhas' && <span className="muted pequeno"> · os valores somam só as suas vendas</span>}</h2>
       <section className="resumo-pag">
         {situacao === 'recebida' ? (
           <div className="resumo-item"><span className="resumo-icone ic-ok"><Icone nome="check" tam={22} /></span><div><div className="muted">Recebidas</div><b>{recebidas.length}</b> parcelas · <b className="ok-txt">{brl(soma(recebidas, 'valor_recebido'))}</b> líquido</div></div>

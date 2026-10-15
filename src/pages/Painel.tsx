@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
-import { useConsulta } from '../lib/dados'
+import { minhaVendedoraId, useCadastros, useConsulta } from '../lib/dados'
 import { brl, dataBR, hojeISO, mesAno, STATUS_TURMA, whatsLink } from '../lib/format'
 import type { ParcelaV, Turma } from '../lib/types'
 import { Badge, KpiIcone, Vazio } from '../components/ui'
@@ -10,7 +10,9 @@ import { PainelOnline } from './Online'
 import { useAuth } from '../auth'
 
 export default function Painel() {
-  const { isAdmin } = useAuth()
+  const { isAdmin, perfil } = useAuth()
+  const cad = useCadastros()
+  const minha = minhaVendedoraId(cad.vendedoras, isAdmin ? null : perfil?.id)
   const turmas = useConsulta<Turma[]>(() => supabase.from('v_turmas').select('*').neq('status', 'cancelada').order('data_inicio', { ascending: true, nullsFirst: false }))
   const pendentes = useConsulta<ParcelaV[]>(() => supabase.from('v_parcelas').select('*').in('situacao', ['atrasada', 'aguardando_conferencia', 'sem_vencimento', 'a_vencer']).order('vencimento', { ascending: true, nullsFirst: true }))
   const pendentesAcesso = useConsulta<{ id: string }[]>(() => supabase.from('perfis').select('id').eq('papel', 'pendente'))
@@ -24,7 +26,7 @@ export default function Painel() {
     (!curso || t.curso_nome === curso) &&
     (escopo === 'todas' || t.status === 'confirmada' || t.status === 'planejada' || Number(t.a_receber) > 0 || Number(t.aguardando_conferencia) > 0))
   const idsTurmas = new Set(ts.map((t) => t.id))
-  const ps = (pendentes.dados ?? []).filter((p) => idsTurmas.has(p.turma_id))
+  const ps = (pendentes.dados ?? []).filter((p) => idsTurmas.has(p.turma_id) && (isAdmin || p.vendedora_id === minha))
   const hoje = hojeISO()
   const em7 = new Date(Date.now() + 7 * 864e5).toISOString().slice(0, 10)
   const atrasadas = ps.filter((p) => p.situacao === 'atrasada')

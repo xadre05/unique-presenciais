@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
-import { useCadastros, useConsulta } from '../lib/dados'
+import { minhaVendedoraId, useCadastros, useConsulta } from '../lib/dados'
 import { brl, SITUACAO_ALUNO, whatsLink } from '../lib/format'
 import type { MatriculaV } from '../lib/types'
 import { Badge, Erro, Vazio } from '../components/ui'
@@ -9,6 +9,7 @@ import { Icone } from '../components/Icone'
 import { useAuth } from '../auth'
 import { turmaCurta } from './Agenda'
 import { AlunosOnline } from './Online'
+import OnlineEquipe from './OnlineEquipe'
 
 const POR_PAGINA = 25
 // Ordem de gravidade para resumir várias matrículas de um mesmo aluno.
@@ -26,13 +27,14 @@ export function BotaoWhats({ tel }: { tel: string | null }) {
 }
 
 export default function Alunos() {
-  const { isAdmin } = useAuth()
+  const { isAdmin, perfil } = useAuth()
   const cad = useCadastros()
+  const minha = minhaVendedoraId(cad.vendedoras, isAdmin ? null : perfil?.id)
   const [visao, setVisao] = useState<'alunos' | 'matriculas' | 'online'>('alunos')
   const [busca, setBusca] = useState('')
   const [turma, setTurma] = useState('')
   const [situacao, setSituacao] = useState('')
-  const [vendedora, setVendedora] = useState('')
+  const [vendedora, setVendedora] = useState(isAdmin ? '' : 'minhas')
   const [pagina, setPagina] = useState(1)
   const q = useConsulta<MatriculaV[]>(() => supabase.from('v_matriculas').select('*').order('aluno_nome'))
 
@@ -41,7 +43,7 @@ export default function Alunos() {
     (!termo || `${m.aluno_nome} ${m.aluno_email ?? ''} ${m.aluno_whatsapp ?? ''} ${m.aluno_cpf ?? ''}`.toLowerCase().includes(termo)) &&
     (!turma || m.turma_id === turma) &&
     (!situacao || m.situacao_financeira === situacao) &&
-    (!vendedora || m.vendedora_id === vendedora)), [q.dados, termo, turma, situacao, vendedora])
+    (!vendedora || m.vendedora_id === (vendedora === 'minhas' ? minha : vendedora))), [q.dados, termo, turma, situacao, vendedora, minha])
 
   const alunos = useMemo(() => {
     const g = new Map<string, MatriculaV[]>()
@@ -79,9 +81,9 @@ export default function Alunos() {
       <nav className="abas">
         <button className={visao === 'alunos' ? 'ativa' : ''} onClick={() => { setVisao('alunos'); setPagina(1) }}><Icone nome="alunos" tam={16} /> Alunos únicos <span className="muted">{new Set((q.dados ?? []).map((m) => m.aluno_id)).size}</span></button>
         <button className={visao === 'matriculas' ? 'ativa' : ''} onClick={() => { setVisao('matriculas'); setPagina(1) }}><Icone nome="documento" tam={16} /> Matrículas <span className="muted">{(q.dados ?? []).length}</span></button>
-        {isAdmin && <button className={visao === 'online' ? 'ativa' : ''} onClick={() => setVisao('online')}><Icone nome="links" tam={16} /> Online <span className="muted">Hotmart</span></button>}
+        <button className={visao === 'online' ? 'ativa' : ''} onClick={() => setVisao('online')}><Icone nome="links" tam={16} /> Online <span className="muted">Hotmart</span></button>
       </nav>
-      {visao === 'online' ? <AlunosOnline /> : (<>
+      {visao === 'online' ? (isAdmin ? <AlunosOnline /> : <OnlineEquipe />) : (<>
       <p className="muted">{visao === 'alunos' ? 'Uma linha por pessoa. Abra o aluno para ver todas as turmas, pagamentos e documentos.' : 'Uma linha por matrícula. A mesma pessoa aparece uma vez por turma.'}</p>
 
       <div className="filtros-alunos">
@@ -91,7 +93,7 @@ export default function Alunos() {
           <option value="">Todas as situações</option>
           {Object.entries(SITUACAO_ALUNO).map(([k, v]) => <option key={k} value={k}>{v.rotulo}</option>)}
         </select></label>
-        {isAdmin && <label className="select-icone"><Icone nome="usuario" tam={16} /><select value={vendedora} onChange={mudar(setVendedora)}><option value="">Todas as vendedoras</option>{cad.vendedoras.map((v) => <option key={v.id} value={v.id}>{v.nome}</option>)}</select></label>}
+        <label className="select-icone"><Icone nome="usuario" tam={16} /><select value={vendedora} onChange={mudar(setVendedora)}>{!isAdmin && <option value="minhas">Minhas vendas</option>}<option value="">{isAdmin ? 'Todas as vendedoras' : 'Toda a equipe'}</option>{cad.vendedoras.filter((v) => isAdmin || (v.ativa && v.id !== minha)).map((v) => <option key={v.id} value={v.id}>{v.nome}</option>)}</select></label>
       </div>
 
       {baixas.length > 0 && situacao !== 'considerado_pago' && (
@@ -107,14 +109,14 @@ export default function Alunos() {
         <div className="tabela-wrap bloco sem-padding">
           {visao === 'alunos' ? (
             <table className="tabela tabela-pag">
-              <thead><tr><th>Aluno</th><th>Cursos</th><th>Última turma</th>{isAdmin && <th>Vendedora</th>}<th className="num">Fechado</th><th className="num">Em aberto</th><th>Pagamento</th><th>Ações</th></tr></thead>
+              <thead><tr><th>Aluno</th><th>Cursos</th><th>Última turma</th><th>Vendedora</th><th className="num">Fechado</th><th className="num">Em aberto</th><th>Pagamento</th><th>Ações</th></tr></thead>
               <tbody>
                 {fatia(alunos).map((a) => (
                   <tr key={a.id}>
                     <td><Link to={`/alunos/${a.id}`} className="forte link-ouro">{a.nome}</Link></td>
                     <td>{a.cursos}</td>
                     <td className="pequeno">{a.ultima ? <Link to={`/turmas/${a.ultima.turma_id}`} className="sublinhado">{turmaCurta(a.ultima.turma_nome)}</Link> : '—'}</td>
-                    {isAdmin && <td className="pequeno">{a.vendedoras || '—'}</td>}
+                    <td className="pequeno">{a.vendedoras || '—'}</td>
                     <td className="num">{brl(a.fechado)}</td>
                     <td className="num">{a.aberto > 0 ? brl(a.aberto) : '—'}</td>
                     <td><Badge tom={SITUACAO_ALUNO[a.situacao]?.tom}>{SITUACAO_ALUNO[a.situacao]?.rotulo}</Badge></td>
