@@ -15,6 +15,8 @@ const PERMISSOES: [string, string, string][] = [
   ['Copiar links de pagamento', 'Sim', 'Sim'],
   ['Cadastrar ou alterar links de pagamento', 'Não', 'Sim'],
   ['Ver comissão', 'Só a própria', 'Todas'],
+  ['Listas de contatos para chamar no WhatsApp', 'Só a parte dela, sem valores pagos', 'Todas, com o andamento de cada vendedora'],
+  ['Ver a base inteira de contatos, importar e criar listas', 'Não', 'Sim'],
   ['Liberar e marcar comissão como paga', 'Não', 'Sim'],
   ['Ver histórico de alterações', 'Não', 'Sim'],
   ['Liberar acesso, cadastrar vendedora, curso e conta', 'Não', 'Sim'],
@@ -71,10 +73,24 @@ export default function Ajuda() {
           <li><b>Turmas</b> — cada turma com vagas, alunos e situação financeira. Clique para ver os alunos.</li>
           <li><b>Pagamentos</b> — todas as parcelas, com filtros (atrasadas, a vencer, aguardando conferência) e exportação.</li>
           <li><b>Alunos</b> — busca por nome, e-mail ou WhatsApp.</li>
+          <li><b>{isAdmin ? 'Listas' : 'Minhas listas'}</b> — contatos para chamar no WhatsApp, com mensagem pronta e o resultado de cada um.</li>
+          {isAdmin && <li><b>Contatos</b> — a base inteira (leads, compradores da Hotmart, alunos), com filtros, importação e criação de listas.</li>}
           <li><b>{isAdmin ? 'Comissões' : 'Minhas comissões'}</b> — {isAdmin ? 'comissões de todas as vendedoras: liberar e marcar como paga.' : 'só as suas. R$ 250 por aluno, paga no mês seguinte à inscrição confirmada.'}</li>
           {isAdmin && <li><b>Histórico</b> — tudo que foi criado ou alterado, por quem e quando.</li>}
           {isAdmin && <li><b>Configurações</b> — liberar acesso, ligar login à vendedora, vendedoras, cursos, contas, regras de comissão e Hotmart.</li>}
         </ul>
+      </section>
+
+      <section className="bloco">
+        <h2>Listas de contatos (WhatsApp)</h2>
+        <ol>
+          <li>Abra <b>{isAdmin ? 'Listas' : 'Minhas listas'}</b> e entre na lista.</li>
+          <li>Na aba <b>A contatar</b>, toque em <b>WhatsApp</b>: abre a conversa no seu WhatsApp com a mensagem pronta, já com o nome da pessoa. Ajuste se quiser e envie.</li>
+          <li>Depois marque o que aconteceu: <b>Respondeu</b>, <b>Interessado</b>, <b>Comprou</b>, <b>Não respondeu</b>, <b>Sem interesse</b>, <b>Número errado</b> ou <b>Não quer receber</b>. Use <b>Anotar</b> para guardar o que combinaram e a <b>data</b> para lembrar de retornar (aparece em “Retornar hoje”).</li>
+          <li>Se a pessoa comprar depois que entrou na lista, o sistema mostra sozinho “Comprou depois da lista” (pela Hotmart ou pela matrícula).</li>
+        </ol>
+        <p className="muted pequeno">Mande com calma, sem disparar dezenas iguais em sequência: o WhatsApp bloqueia números que parecem spam. Quem pede para não receber sai de todas as listas novas.</p>
+        {isAdmin && <p className="muted pequeno">Para criar uma lista: <b>Contatos</b> → filtre quem você quer chamar (compradores, quem comprou tal produto, quem não comprou tal outro...) → <b>Criar lista com esse filtro</b> → escolha as vendedoras. Os contatos são divididos com a mesma mistura para cada uma.</p>}
       </section>
 
       <section className="bloco">

@@ -56,7 +56,7 @@ export default function Contatos() {
         {Object.entries(SEGMENTOS).map(([k, s]) => (
           <button key={k} className={`seg-card${f.segmento === k ? ' ativo' : ''}`} onClick={() => mudar('segmento', f.segmento === k ? '' : k)} title={s.explica}>
             <span className="seg-rotulo"><Badge tom={s.tom}>{s.rotulo}</Badge></span>
-            <span className="seg-num">{(c[k]?.total ?? 0).toLocaleString('pt-BR')}</span>
+            <span className="seg-num">{cont.carregando && !cont.dados ? '…' : (c[k]?.total ?? 0).toLocaleString('pt-BR')}</span>
             <span className="muted pequeno">{(c[k]?.com_whats ?? 0).toLocaleString('pt-BR')} com WhatsApp · {(c[k]?.livres ?? 0).toLocaleString('pt-BR')} fora de lista</span>
           </button>
         ))}
@@ -89,7 +89,7 @@ export default function Contatos() {
       </div>
 
       <Erro msg={res.erro || cont.erro} />
-      {!res.carregando && total === 0 ? <Vazio>Nenhum contato com esses filtros.{soma('total') === 0 && ' A base ainda está vazia: use “Importar contatos”.'}</Vazio> : (
+      {res.carregando && !res.dados ? <Vazio>Carregando contatos…</Vazio> : total === 0 ? <Vazio>Nenhum contato com esses filtros.{soma('total') === 0 && ' A base ainda está vazia: use “Importar contatos”.'}</Vazio> : (
         <div className="tabela-wrap bloco sem-padding">
           <table className="tabela tabela-pag">
             <thead><tr><th>Contato</th><th>WhatsApp</th><th>Tipo</th><th>O que comprou</th><th className="num">Total pago</th><th>Última compra</th><th>Lista</th><th></th></tr></thead>

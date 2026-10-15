@@ -41,7 +41,7 @@ export default function CriarLista({ filtro, disponiveis, onFechar }: { filtro: 
   const [msgs, setMsgs] = useState<Mensagem[]>(PADRAO)
   const [escolhidas, setEscolhidas] = useState<string[] | null>(null)
   const [limitar, setLimitar] = useState(false)
-  const [limite, setLimite] = useState(500)
+  const [limite, setLimite] = useState(Math.max(10, Math.min(500, disponiveis)))
   const [erro, setErro] = useState<string | null>(null)
   const [salvando, setSalvando] = useState(false)
   const sel = escolhidas ?? ativas.map((v) => v.id)

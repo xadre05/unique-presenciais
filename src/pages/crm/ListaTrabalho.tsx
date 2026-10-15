@@ -8,7 +8,7 @@ import { Badge, Erro, Modal, Vazio } from '../../components/ui'
 import { Icone } from '../../components/Icone'
 import { useAuth } from '../../auth'
 import { linkWhats, preencherMensagem, telefoneLegivel } from '../../crm/nucleo'
-import { SEGMENTOS, STATUS_LISTA, somar, type Campanha, type ItemLista, type Mensagem } from './comum'
+import { SEGMENTOS, STATUS_LISTA, somar, type Campanha, type ItemLista, type Mensagem, type PorVendedora } from './comum'
 import { BarraLista } from './Listas'
 import { EditorMensagens } from './CriarLista'
 
@@ -67,7 +67,26 @@ export default function ListaTrabalho() {
   }
 
   if (!q.carregando && !camp.carregando && !c) return <div className="pagina"><Vazio>Lista não encontrada. <Link to="/listas" className="link">Voltar</Link></Vazio></div>
-  const t = somar(c?.por_vendedora ?? [])
+  // andamento calculado na hora a partir dos contatos (atualiza a cada marcação)
+  const porVend = useMemo<PorVendedora[]>(() => {
+    const g = new Map<string, PorVendedora>()
+    for (const i of lista) {
+      const k = i.vendedora_id ?? ''
+      const v = g.get(k) ?? { vendedora_id: i.vendedora_id, vendedora_nome: i.vendedora_nome ?? 'Sem vendedora', total: 0, a_contatar: 0, enviada: 0, conversando: 0, comprou: 0, encerrados: 0, retornar_hoje: 0, compraram: 0 }
+      const gr = STATUS_LISTA[i.status]?.grupo
+      v.total++
+      if (i.status === 'a_contatar') v.a_contatar++
+      if (i.status === 'enviada') v.enviada++
+      if (i.status === 'conversando' || i.status === 'interessado') v.conversando++
+      if (i.status === 'comprou') v.comprou++
+      if (gr === 'fim') v.encerrados++
+      if (i.comprou_depois || i.status === 'comprou') v.compraram++
+      if (i.retornar_em && i.retornar_em <= hoje && ABERTOS.includes(i.status)) v.retornar_hoje++
+      g.set(k, v)
+    }
+    return [...g.values()].sort((a, b) => a.vendedora_nome.localeCompare(b.vendedora_nome))
+  }, [lista, hoje])
+  const t = somar(porVend)
   const ABAS: [Aba, string][] = [['a_contatar', 'A contatar'], ['retornar', 'Retornar hoje'], ['andamento', 'Em andamento'], ['comprou', 'Compraram'], ['fim', 'Encerrados'], ['todos', 'Todos']]
 
   return (
@@ -92,11 +111,11 @@ export default function ListaTrabalho() {
           <span><b>{t.conversando}</b> responderam</span>
           <span className="ok-txt"><b>{t.compraram}</b> compraram</span>
         </div>
-        {isAdmin && c.por_vendedora.length > 1 && (
+        {isAdmin && porVend.length > 1 && (
           <div className="tabela-wrap"><table className="tabela compacta">
             <thead><tr><th>Vendedora</th><th className="num">Contatos</th><th className="num">A contatar</th><th className="num">Mensagem enviada</th><th className="num">Responderam</th><th className="num">Compraram</th><th className="num">Encerrados</th></tr></thead>
-            <tbody>{c.por_vendedora.map((v) => <tr key={v.vendedora_id ?? '-'} className="linha-clicavel" onClick={() => setVend(vend === v.vendedora_id ? '' : v.vendedora_id ?? '')}>
-              <td className={vend === v.vendedora_id ? 'ouro-txt forte' : ''}>{v.vendedora_nome}</td><td className="num">{v.total}</td><td className="num">{v.a_contatar}</td><td className="num">{v.enviada}</td><td className="num">{v.conversando}</td><td className="num ok-txt">{Math.max(v.comprou, v.compraram)}</td><td className="num">{v.encerrados}</td></tr>)}</tbody>
+            <tbody>{porVend.map((v) => <tr key={v.vendedora_id ?? '-'} className="linha-clicavel" onClick={() => setVend(vend === v.vendedora_id ? '' : v.vendedora_id ?? '')}>
+              <td className={vend === v.vendedora_id ? 'ouro-txt forte' : ''}>{v.vendedora_nome}</td><td className="num">{v.total}</td><td className="num">{v.a_contatar}</td><td className="num">{v.enviada}</td><td className="num">{v.conversando}</td><td className="num ok-txt">{v.compraram}</td><td className="num">{v.encerrados}</td></tr>)}</tbody>
           </table></div>
         )}
       </section>}
@@ -106,8 +125,8 @@ export default function ListaTrabalho() {
       </nav>
       <div className="filtros-lista">
         <label className="select-icone"><Icone nome="busca" /><input placeholder="Buscar nome ou telefone" value={busca} onChange={(e) => setBusca(e.target.value)} /></label>
-        {isAdmin && c && c.por_vendedora.length > 1 && <label className="select-icone"><Icone nome="usuario" tam={16} /><select value={vend} onChange={(e) => setVend(e.target.value)}>
-          <option value="">Todas as vendedoras</option>{c.por_vendedora.map((v) => <option key={v.vendedora_id ?? '-'} value={v.vendedora_id ?? ''}>{v.vendedora_nome}</option>)}
+        {isAdmin && porVend.length > 1 && <label className="select-icone"><Icone nome="usuario" tam={16} /><select value={vend} onChange={(e) => setVend(e.target.value)}>
+          <option value="">Todas as vendedoras</option>{porVend.map((v) => <option key={v.vendedora_id ?? '-'} value={v.vendedora_id ?? ''}>{v.vendedora_nome}</option>)}
         </select></label>}
       </div>
       {aba === 'a_contatar' && conta('a_contatar') > 0 && <p className="muted pequeno">Mande no seu ritmo, com calma: muitas mensagens iguais em sequência fazem o WhatsApp bloquear o número. Personalize quando der.</p>}
