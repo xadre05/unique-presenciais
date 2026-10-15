@@ -95,6 +95,7 @@ async function pagamentos(db: SupabaseClient, integ: Integ, tk: string, janela: 
     catch (e) { if (APROVADOS.includes(st)) throw e } // status raro que a Hotmart não aceite não derruba a busca
   }
   const cont: Record<string, number> = { baixado: 0, a_conferir: 0, sem_acao: 0, ignorado: 0 }
+  const erros: string[] = []
   for (const v of vendas) {
     const pu = v.purchase ?? {}
     const transacao = String(pu.transaction ?? '')
@@ -115,12 +116,14 @@ async function pagamentos(db: SupabaseClient, integ: Integ, tk: string, janela: 
       forma: pu.payment?.type ?? pu.payment?.method ?? null, parcelas_cartao: pu.payment?.installments_number ?? null, recorrencia: rec,
       data_pedido: quando(pu.order_date), data_aprovacao: quando(pu.approved_date), bruto: v, atualizado_em: new Date().toISOString(),
     }
-    if (ja) await db.from('hotmart_pagamentos').update({ status: reg.status, bruto: v, valor_liquido: liquido, atualizado_em: reg.atualizado_em }).eq('id', id)
-    else await db.from('hotmart_pagamentos').insert(reg)
+    const { error: eg } = ja
+      ? await db.from('hotmart_pagamentos').update({ status: reg.status, bruto: v, valor_liquido: liquido, atualizado_em: reg.atualizado_em }).eq('id', id)
+      : await db.from('hotmart_pagamentos').insert(reg)
+    if (eg) { if (erros.length < 3) erros.push(`${id}: ${eg.message}`); continue }
     const { data: r } = await db.rpc('processar_pagamento_hotmart', { p_id: id })
     cont[String(r)] = (cont[String(r)] ?? 0) + 1
   }
-  return { vendas: vendas.length, ...cont }
+  return { vendas: vendas.length, ...cont, ...(erros.length ? { erros } : {}) }
 }
 
 Deno.serve(async (req) => {
@@ -155,6 +158,23 @@ Deno.serve(async (req) => {
       if (!cred?.client_id && acao === 'tudo') { resultado[integ.id] = { pulada: 'sem credenciais' }; continue }
       const tk = await token(cred as Cred)
       const r: Record<string, unknown> = {}
+      if (acao === 'preco') {
+        const rr = await fetch(`${API}/payments/api/v1/sales/price/details?transaction=${encodeURIComponent(String(corpo.transacao))}`, { headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${tk}` } })
+        resultado[integ.id] = { ok: true, status: rr.status, corpo: await rr.text() }
+        continue
+      }
+      if (acao === 'diagnostico') {
+        const extra: Record<string, string> = {}
+        if (corpo.inicio) extra.start_date = String(corpo.inicio)
+        if (corpo.fim) extra.end_date = String(corpo.fim)
+        if (corpo.status) extra.transaction_status = String(corpo.status)
+        const it = await paginas(`${API}/payments/api/v1/sales/history`, tk, extra)
+        const datas = it.map((v) => Number(v.purchase?.approved_date ?? v.purchase?.order_date ?? 0)).filter(Boolean).sort((a, b) => a - b)
+        const st: Record<string, number> = {}
+        for (const v of it) st[String(v.purchase?.status)] = (st[String(v.purchase?.status)] ?? 0) + 1
+        resultado[integ.id] = { ok: true, extra, total: it.length, primeira: quando(datas[0]), ultima: quando(datas[datas.length - 1]), status: st }
+        continue
+      }
       if (acao === 'ofertas' || (acao === 'tudo' && integ.traz_ofertas)) r.ofertas = await ofertas(db, integ, tk)
       if (acao === 'pagamentos' || (acao === 'tudo' && integ.traz_pagamentos)) {
         // janela: datas exatas (histórico, mês a mês) ou os últimos N dias

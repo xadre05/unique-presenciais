@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
-import { useConsulta } from '../lib/dados'
+import { buscarTudo, useConsulta } from '../lib/dados'
 import { dataBR } from '../lib/format'
 import { Badge, Erro, Vazio } from '../components/ui'
 import { Icone } from '../components/Icone'
@@ -11,7 +11,7 @@ const SIT: Record<string, { rotulo: string; tom: string }> = { em_dia: { rotulo:
 
 // Visão do online para a vendedora: quem comprou, de quem é, e se está em dia. Sem valores.
 export default function OnlineEquipe() {
-  const q = useConsulta<Linha[]>(() => supabase.rpc('online_equipe'))
+  const q = useConsulta<Linha[]>(() => buscarTudo<Linha>((de, ate) => supabase.rpc('online_equipe').range(de, ate)))
   const [busca, setBusca] = useState('')
   const [de, setDe] = useState<'todas' | 'minhas' | 'sem'>('todas')
   const [sit, setSit] = useState('')

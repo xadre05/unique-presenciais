@@ -2,7 +2,7 @@
 import { Fragment, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
-import { useConsulta } from '../lib/dados'
+import { useConsulta, buscarTudo } from '../lib/dados'
 import { brl, dataBR, hojeISO, mesAno } from '../lib/format'
 import { Badge, Erro, KpiIcone, Vazio } from '../components/ui'
 import { Icone } from '../components/Icone'
@@ -26,7 +26,9 @@ const parcelaTxt = (c: CompraOnline) => c.ultima_cobranca ? `${c.ultima_cobranca
 const dias = (iso: string | null) => iso ? Math.floor((Date.now() - new Date(iso + 'T12:00:00').getTime()) / 86400000) : 0
 
 function useOnline() {
-  const compras = useConsulta<CompraOnline[]>(() => supabase.from('v_online_compras').select('*'))
+  // compras com pagamento nos últimos 24 meses (o histórico inteiro tem milhares de linhas)
+  const compras = useConsulta<CompraOnline[]>(() => buscarTudo<CompraOnline>((de, ate) => supabase.from('v_online_compras').select('*')
+    .gte('ultima_data', new Date(Date.now() - 730 * 864e5).toISOString()).order('em').order('produto_id').order('oferta_codigo').order('np').range(de, ate)))
   const previsao = useConsulta<Previsao[]>(() => supabase.from('v_online_previsao').select('*').order('mes'))
   const pags = useConsulta<PagOnline[]>(() => supabase.from('v_online_pagamentos').select('id,comprador_nome,comprador_email,produto_nome,valor,valor_liquido,forma,parcelas_cartao,recorrencia,dia,rastreio,comissao,vendedora_nome').order('dia', { ascending: false }).limit(2000))
   const atrasos = useConsulta<Atraso[]>(() => supabase.from('v_online_atrasos').select('*').order('proxima_data'))
@@ -40,7 +42,6 @@ export function PainelOnline() {
   const { compras, previsao, pags, atrasos } = useOnline()
   const m = mesAtual()
   const todos = pags.dados ?? []
-  const desde = todos.map((p) => p.dia).sort()[0]
   const doMes = todos.filter((p) => p.dia.startsWith(m))
   const prevMes = (previsao.dados ?? []).find((p) => p.mes.startsWith(m))
   const at = atrasos.dados ?? []
@@ -50,7 +51,7 @@ export function PainelOnline() {
   const mesNome = mesAno(m + '-01').split(' ')[0]
   if (pags.carregando && !pags.dados) return null
   return (<>
-    <h2 className="titulo-secao">Online <span className="muted pequeno">· pagamentos da Hotmart{desde ? ` desde ${dataBR(desde)}` : ''}, valores líquidos, sem os cursos presenciais · <Link to="/pagamentos?area=online" className="link">ver tudo do online</Link></span></h2>
+    <h2 className="titulo-secao">Online <span className="muted pequeno">· pagamentos da Hotmart, valores líquidos, sem os cursos presenciais · <Link to="/pagamentos?area=online" className="link">ver tudo do online</Link></span></h2>
     <section className="kpis kpis-5">
       <KpiIcone icone="sacola" rotulo={`Vendido em ${mesNome}`} valor={brl(vendido)} sub={`${novas.length} compra(s) nova(s), valor do contrato`} destaque />
       <KpiIcone icone="moedas" rotulo={`Recebido em ${mesNome}`} valor={brl(somaLiq(doMes))} tom="ok" sub={`${doMes.length} pagamento(s) até hoje`} />
@@ -172,7 +173,7 @@ export function AlunosOnline() {
       .sort((a, b) => b.ultima.localeCompare(a.ultima))
   }, [compras.dados, t, situacao])
   return (<>
-    <p className="muted">Quem comprou no online (Hotmart), juntando as duas contas. Uma linha por pessoa; valores líquidos.</p>
+    <p className="muted">Quem comprou no online (Hotmart) com pagamento nos últimos 2 anos, juntando as duas contas. Uma linha por pessoa; valores líquidos.</p>
     <div className="filtros-alunos">
       <label className="select-icone"><Icone nome="busca" /><input placeholder="Buscar por nome, e-mail ou produto" value={busca} onChange={(e) => setBusca(e.target.value)} /></label>
       <label className="select-icone"><select value={situacao} onChange={(e) => setSituacao(e.target.value)}><option value="">Todas as situações</option>{Object.entries(SITUACAO_ONLINE).map(([k, v]) => <option key={k} value={k}>{v.rotulo}</option>)}</select></label>

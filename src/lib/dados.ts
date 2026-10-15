@@ -50,3 +50,15 @@ export const msgErro = (e: unknown) => {
 export function minhaVendedoraId(vendedoras: { id: string; perfil_id: string | null }[], perfilId: string | null | undefined) {
   return perfilId ? vendedoras.find((v) => v.perfil_id === perfilId)?.id ?? null : null
 }
+
+// Busca todas as linhas de uma consulta, de 1000 em 1000 (o banco devolve no máximo 1000 por vez).
+export async function buscarTudo<T>(montar: (de: number, ate: number) => PromiseLike<{ data: T[] | null; error: { message: string } | null }>) {
+  const todos: T[] = []
+  for (let de = 0; de < 50000; de += 1000) {
+    const { data, error } = await montar(de, de + 999)
+    if (error) return { data: null, error }
+    todos.push(...(data ?? []))
+    if (!data || data.length < 1000) break
+  }
+  return { data: todos, error: null }
+}
