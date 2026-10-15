@@ -940,14 +940,14 @@ select option:checked { background-color: #6d5427; color: #fff3d9; }
 .chat-escrever.modo-nota textarea { background: var(--alerta-fundo); border-color: var(--alerta); }
 .faixa-numero-caido { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; padding: 10px 14px; margin: 0 0 12px; border-radius: 10px; background: var(--erro-fundo); border: 1px solid var(--erro); color: var(--erro); font-size: 14px; }
 .faixa-numero-caido span { flex: 1; min-width: 220px; }
-.toasts { position: fixed; right: 16px; bottom: 56px; display: grid; gap: 8px; z-index: 80; width: min(340px, calc(100vw - 32px)); }
+.toasts { position: fixed; right: 16px; top: 64px; display: grid; gap: 8px; z-index: 80; width: min(340px, calc(100vw - 32px)); }
 .toast { display: grid; gap: 2px; text-align: left; padding: 10px 14px; border-radius: 10px; background: var(--painel-2); border: 1px solid var(--ouro); color: inherit; cursor: pointer; box-shadow: 0 6px 24px rgba(0,0,0,.35); font-size: 13px; animation: toast-entra .2s ease-out; }
 .toast span { color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 @keyframes toast-entra { from { transform: translateY(8px); opacity: 0; } to { transform: none; opacity: 1; } }
 .avisos-config { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; margin-top: 4px; }
 .chat-escrever { flex-wrap: wrap; }
 .modo-escrever { width: 100%; }
-@media (max-width: 860px) { .toasts { bottom: 120px; } }
+@media (max-width: 860px) { .toasts { top: 70px; } }
 .area-atendimento.tela-cheia .at-conteudo { flex-direction: column; }
 .area-atendimento.tela-cheia .faixa-numero-caido { margin: 0; border-radius: 0; flex: 0 0 auto; }
 .area-atendimento.tela-cheia .caixa { height: auto; min-height: 0; }
