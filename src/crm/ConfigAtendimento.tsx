@@ -39,18 +39,20 @@ function Numeros({ empresaId, base }: { empresaId: string; base: BaseCRM }) {
             <div className="card-lista-topo"><h3>{k.nome}</h3><Badge tom={STATUS_CANAL[k.status].tom}>{STATUS_CANAL[k.status].rotulo}</Badge></div>
             <div className="muted pequeno">{TIPO_CANAL[k.tipo]}{k.telefone ? ` · ${k.telefone}` : ''}</div>
             <div className="pequeno">Disparo: até <b>{k.ritmo_por_hora}</b> por hora, das {k.janela_inicio.slice(0, 5)} às {k.janela_fim.slice(0, 5)}</div>
+            {k.atendente_id && <div className="pequeno">Número de <b>{base.nomeDe(k.atendente_id)}</b>: o que chegar vai para ela</div>}
             {k.status_info && <div className="muted pequeno">{k.status_info}</div>}
             <div className="acoes"><button className="btn btn-mini" onClick={() => setEditar(k)}>Ajustar</button></div>
           </div>
         ))}
       </div>
       <button className="btn btn-contorno mt" onClick={() => setEditar('novo')}>+ Ligar outro número</button>
-      {editar && <EditarCanal empresaId={empresaId} canal={editar === 'novo' ? null : editar} onFechar={() => setEditar(null)} onFeito={() => { setEditar(null); base.recarregar() }} />}
+      {editar && <EditarCanal empresaId={empresaId} base={base} canal={editar === 'novo' ? null : editar} onFechar={() => setEditar(null)} onFeito={() => { setEditar(null); base.recarregar() }} />}
     </section>
   )
 }
 
-function EditarCanal({ empresaId, canal, onFechar, onFeito }: { empresaId: string; canal: Canal | null; onFechar: () => void; onFeito: () => void }) {
+function EditarCanal({ empresaId, base, canal, onFechar, onFeito }: { empresaId: string; base: BaseCRM; canal: Canal | null; onFechar: () => void; onFeito: () => void }) {
+  const [dona, setDona] = useState(canal?.atendente_id ?? '')
   const [nome, setNome] = useState(canal?.nome ?? '')
   const [tipo, setTipo] = useState<Canal['tipo']>(canal?.tipo ?? 'whatsapp_qr')
   const [telefone, setTelefone] = useState(canal?.telefone ?? '')
@@ -66,7 +68,7 @@ function EditarCanal({ empresaId, canal, onFechar, onFeito }: { empresaId: strin
 
   const salvar = async () => {
     setErro(null)
-    const reg = { empresa_id: empresaId, nome: nome.trim(), tipo, telefone: telefone.trim() || null, ritmo_por_hora: ritmo, janela_inicio: ini, janela_fim: fim, config: cfg,
+    const reg = { empresa_id: empresaId, nome: nome.trim(), tipo, telefone: telefone.trim() || null, ritmo_por_hora: ritmo, janela_inicio: ini, janela_fim: fim, config: cfg, atendente_id: dona || null,
       ...(tipo === 'teste' ? { status: 'conectado' } : {}) }
     const r = canal ? await supabase.from('crm_canais').update(reg).eq('id', canal.id).select('id').single() : await supabase.from('crm_canais').insert(reg).select('id').single()
     if (r.error) return setErro(r.error.message)
@@ -85,6 +87,9 @@ function EditarCanal({ empresaId, canal, onFechar, onFeito }: { empresaId: strin
           {Object.entries(TIPO_CANAL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
         </select></Campo>
         <Campo rotulo="Número (com 55 e DDD)"><input value={telefone} onChange={(e) => setTelefone(e.target.value)} placeholder="5511999998888" /></Campo>
+        <Campo rotulo="De quem é o número" dica="Número de uma vendedora: tudo que chega nele vai para ela, e o que ela manda pelo celular aparece aqui com o nome dela">
+          <select value={dona} onChange={(e) => setDona(e.target.value)}><option value="">Da empresa (rodízio entre a equipe)</option>{base.equipe.filter((m) => m.ativo).map((m) => <option key={m.usuario_id} value={m.usuario_id}>{m.nome}</option>)}</select>
+        </Campo>
         <Campo rotulo="Disparo: mensagens por hora" dica="Número novo: comece com 10–20 e vá subindo"><InputNumero valor={ritmo} onChange={setRitmo} min={1} max={1000} /></Campo>
         <Campo rotulo="Disparo começa às"><input type="time" value={ini} onChange={(e) => setIni(e.target.value)} /></Campo>
         <Campo rotulo="Disparo para às"><input type="time" value={fim} onChange={(e) => setFim(e.target.value)} /></Campo>

@@ -5,10 +5,11 @@ import { supabase } from '../lib/supabase'
 import { Badge, Erro, Modal, Vazio } from '../components/ui'
 import { Icone } from '../components/Icone'
 import { telefoneLegivel } from './nucleo'
-import { horaCurta, servidorWhats, type BaseCRM, type Conversa, type Mensagem } from './tipos'
+import { horaCurta, servidorWhats, type BaseCRM, type Conversa, type Mensagem, type Nota } from './tipos'
 import ProximasAcoes from './Acoes'
 
 export type Aba = 'minhas' | 'fila' | 'todas' | 'resolvidas'
+const STATUS_MSG: Record<string, string> = { pendente: ' · enviando…', enviada: ' · ✓', entregue: ' · ✓✓', lida: ' · ✓✓ lida', erro: ' · não enviada' }
 
 export default function Conversas({ empresaId, usuarioId, base, painelExtra, inicial, abaInicial }: {
   empresaId: string; usuarioId: string; base: BaseCRM; painelExtra?: (contatoId: string) => ReactNode; inicial?: string | null; abaInicial?: Aba | null
@@ -85,6 +86,8 @@ function Chat({ conv, usuarioId, base, onVoltar, onMudou, painelExtra }: {
   conv: Conversa; usuarioId: string; base: BaseCRM; onVoltar: () => void; onMudou: () => void; painelExtra?: (contatoId: string) => ReactNode
 }) {
   const [msgs, setMsgs] = useState<Mensagem[]>([])
+  const [notas, setNotas] = useState<Nota[]>([])
+  const [modoNota, setModoNota] = useState(false)
   const [texto, setTexto] = useState('')
   const [enviando, setEnviando] = useState(false)
   const [erro, setErro] = useState<string | null>(null)
@@ -93,8 +96,11 @@ function Chat({ conv, usuarioId, base, onVoltar, onMudou, painelExtra }: {
   const canal = base.canais.find((k) => k.id === conv.canal_id)
 
   const carregar = useCallback(async () => {
-    const { data } = await supabase.from('crm_mensagens').select('*').eq('conversa_id', conv.id).order('criado_em').limit(500)
-    setMsgs((data as Mensagem[]) ?? [])
+    const [m, n] = await Promise.all([
+      supabase.from('crm_mensagens').select('*').eq('conversa_id', conv.id).order('criado_em').limit(500),
+      supabase.from('crm_notas').select('*').eq('conversa_id', conv.id).order('criado_em').limit(200),
+    ])
+    setMsgs((m.data as Mensagem[]) ?? []); setNotas((n.data as Nota[]) ?? [])
   }, [conv.id])
 
   useEffect(() => {
@@ -105,10 +111,19 @@ function Chat({ conv, usuarioId, base, onVoltar, onMudou, painelExtra }: {
         const m = p.new as Mensagem
         setMsgs((xs) => (xs.some((x) => x.id === m.id) ? xs.map((x) => (x.id === m.id ? m : x)) : [...xs, m]))
         if (m.direcao === 'entrada') supabase.rpc('crm_marcar_lida', { p_conversa: conv.id })
+      })
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'crm_notas', filter: `conversa_id=eq.${conv.id}` }, (p) => {
+        const n = p.new as Nota
+        setNotas((xs) => (xs.some((x) => x.id === n.id) ? xs : [...xs, n]))
       }).subscribe()
     return () => { supabase.removeChannel(ch) }
   }, [carregar, conv.id, conv.nao_lidas])
-  useEffect(() => { fim.current?.scrollIntoView({ block: 'end' }) }, [msgs.length])
+  useEffect(() => { fim.current?.scrollIntoView({ block: 'end' }) }, [msgs.length, notas.length])
+  // mensagens e notas internas na mesma linha do tempo
+  const linha = useMemo(() => [
+    ...msgs.map((m) => ({ k: 'm' as const, em: m.criado_em, m })),
+    ...notas.map((n) => ({ k: 'n' as const, em: n.criado_em, n })),
+  ].sort((a, b) => a.em.localeCompare(b.em)), [msgs, notas])
 
   const sugestoes = texto.startsWith('/') ? base.respostas.filter((r) => r.atalho.toLowerCase().startsWith(texto.slice(1).toLowerCase())).slice(0, 6) : []
 
@@ -116,9 +131,20 @@ function Chat({ conv, usuarioId, base, onVoltar, onMudou, painelExtra }: {
     const t = texto.trim()
     if (!t || enviando) return
     setEnviando(true); setErro(null)
-    try { await servidorWhats({ acao: 'enviar', conversa_id: conv.id, texto: t }); setTexto(''); onMudou() }
-    catch (e) { setErro((e as Error).message) }
+    if (modoNota) {
+      const { error } = await supabase.rpc('crm_nota_interna', { p_conversa: conv.id, p_texto: t })
+      if (error) setErro(error.message); else { setTexto(''); carregar() }
+    } else {
+      try { await servidorWhats({ acao: 'enviar', conversa_id: conv.id, texto: t }); setTexto(''); onMudou() }
+      catch (e) { setErro((e as Error).message) }
+    }
     setEnviando(false)
+  }
+  const [reenviando, setReenviando] = useState<string | null>(null)
+  const reenviar = async (id: string) => {
+    setReenviando(id); setErro(null)
+    try { await servidorWhats({ acao: 'reenviar', mensagem_id: id }) } catch (e) { setErro((e as Error).message) }
+    setReenviando(null); carregar()
   }
   const assumir = async (para?: string) => {
     const { error } = await supabase.rpc('crm_assumir_conversa', { p_conversa: conv.id, p_atendente: para ?? null })
@@ -155,27 +181,33 @@ function Chat({ conv, usuarioId, base, onVoltar, onMudou, painelExtra }: {
       </header>
 
       <div className="chat-msgs">
-        {msgs.map((m) => m.autor === 'sistema'
-          ? <div key={m.id} className="msg-sistema">{base.nomeDe(m.autor_id) ?? 'Sistema'} {m.texto} · {horaCurta(m.criado_em)}</div>
-          : (
+        {linha.map((x) => x.k === 'n'
+          ? <div key={x.n.id} className="msg msg-nota"><div className="msg-autor">Nota interna · {base.nomeDe(x.n.autor_id) ?? ''}</div><div className="msg-texto">{x.n.texto}</div><div className="msg-rodape">{horaCurta(x.n.criado_em)} · só a equipe vê</div></div>
+          : x.m.autor === 'sistema'
+          ? <div key={x.m.id} className="msg-sistema">{base.nomeDe(x.m.autor_id) ?? 'Sistema'} {x.m.texto} · {horaCurta(x.m.criado_em)}</div>
+          : (() => { const m = x.m; return (
             <div key={m.id} className={`msg msg-${m.direcao}${m.status === 'erro' ? ' msg-erro' : ''}`}>
-              {m.direcao === 'saida' && <div className="msg-autor">{m.autor === 'disparo' ? 'Disparo' : m.autor === 'ia' ? 'IA' : base.nomeDe(m.autor_id) ?? ''}</div>}
+              {m.direcao === 'saida' && <div className="msg-autor">{m.autor === 'disparo' ? 'Disparo' : m.autor === 'ia' ? 'IA' : m.autor_id ? base.nomeDe(m.autor_id) : 'Pelo celular'}</div>}
               <div className="msg-texto">{m.texto ?? `[${m.tipo}]`}</div>
-              <div className="msg-rodape">{horaCurta(m.criado_em)}{m.direcao === 'saida' && (m.status === 'erro' ? ' · não enviada' : m.status === 'pendente' ? ' · enviando…' : m.status === 'lida' ? ' · ✓✓ lida' : ' · ✓')}</div>
-              {m.erro && <div className="erro-txt pequeno">{m.erro}</div>}
-            </div>
-          ))}
+              <div className="msg-rodape">{horaCurta(m.criado_em)}{m.direcao === 'saida' && <span className={`msg-status st-${m.status}`}>{STATUS_MSG[m.status] ?? ''}</span>}</div>
+              {m.status === 'erro' && <div className="msg-falhou"><span className="pequeno">{m.erro ?? 'Não foi enviada.'}</span>
+                <button className="btn btn-mini" onClick={() => reenviar(m.id)} disabled={reenviando === m.id}>{reenviando === m.id ? 'Tentando…' : 'Tentar de novo'}</button></div>}
+            </div>) })())}
         <div ref={fim} />
       </div>
 
       <Erro msg={erro} />
       {podeEscrever ? (
-        <div className="chat-escrever">
-          {sugestoes.length > 0 && <div className="sugestoes">{sugestoes.map((r) => <button key={r.id} onClick={() => setTexto(r.texto)}><b>/{r.atalho}</b> {r.texto.slice(0, 80)}</button>)}</div>}
-          <textarea rows={2} value={texto} placeholder={`Escreva… (Enter envia, Shift+Enter pula linha${base.respostas.length ? ', / para respostas prontas' : ''})`}
+        <div className={`chat-escrever${modoNota ? ' modo-nota' : ''}`}>
+          <div className="modo-escrever">
+            <button className={!modoNota ? 'ativo' : ''} onClick={() => setModoNota(false)}>Mensagem</button>
+            <button className={modoNota ? 'ativo' : ''} onClick={() => setModoNota(true)} title="Só a equipe vê; não vai para o WhatsApp">Nota interna</button>
+          </div>
+          {!modoNota && sugestoes.length > 0 && <div className="sugestoes">{sugestoes.map((r) => <button key={r.id} onClick={() => setTexto(r.texto)}><b>/{r.atalho}</b> {r.texto.slice(0, 80)}</button>)}</div>}
+          <textarea rows={2} value={texto} placeholder={modoNota ? 'Nota para a equipe (a pessoa não vê)…' : `Escreva… (Enter envia, Shift+Enter pula linha${base.respostas.length ? ', / para respostas prontas' : ''})`}
             onChange={(e) => setTexto(e.target.value)}
             onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); enviar() } }} />
-          <button className="btn btn-ouro" onClick={enviar} disabled={enviando || !texto.trim()}>{enviando ? '…' : 'Enviar'}</button>
+          <button className="btn btn-ouro" onClick={enviar} disabled={enviando || !texto.trim()}>{enviando ? '…' : modoNota ? 'Anotar' : 'Enviar'}</button>
         </div>
       ) : <div className="nota pequeno">Esta conversa é de {base.nomeDe(conv.atendente_id)}.</div>}
       {canal?.tipo === 'teste' && base.souAdmin && <RespostaSimulada canalId={canal.id} telefone={conv.contato?.telefone ?? ''} />}
@@ -188,15 +220,16 @@ function Chat({ conv, usuarioId, base, onVoltar, onMudou, painelExtra }: {
 function RespostaSimulada({ canalId, telefone }: { canalId: string; telefone: string }) {
   const [t, setT] = useState('')
   const [erro, setErro] = useState<string | null>(null)
-  const mandar = async () => {
+  const mandar = async (doCelular = false) => {
     if (!t.trim()) return
-    try { await servidorWhats({ acao: 'simular_entrada', canal_id: canalId, telefone, texto: t }); setT('') } catch (e) { setErro((e as Error).message) }
+    try { await servidorWhats({ acao: 'simular_entrada', canal_id: canalId, telefone, texto: t, do_celular: doCelular }); setT('') } catch (e) { setErro((e as Error).message) }
   }
   return (
     <div className="simulador">
-      <span className="muted pequeno">Número de teste — simular o contato respondendo:</span>
+      <span className="muted pequeno">Número de teste — simular:</span>
       <input value={t} onChange={(e) => setT(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && mandar()} placeholder="Ex.: Oi! Quero saber mais" />
-      <button className="btn btn-mini" onClick={mandar}>Simular</button>
+      <button className="btn btn-mini" onClick={() => mandar()}>A pessoa respondeu</button>
+      <button className="btn btn-mini" onClick={() => mandar(true)} title="Como se a vendedora tivesse mandado pelo WhatsApp do celular">Vendedora mandou pelo celular</button>
       <Erro msg={erro} />
     </div>
   )

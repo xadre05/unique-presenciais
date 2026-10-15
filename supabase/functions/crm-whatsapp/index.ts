@@ -3,7 +3,8 @@
 //
 // Ações (POST JSON {acao}):
 //   enviar           tela (login)       {conversa_id, texto} ou {contato_id, canal_id, texto}
-//   simular_entrada  tela (admin)       {canal_id, telefone, nome, texto}  — só no número de teste
+//   reenviar         tela (login)       {mensagem_id}  — tenta de novo uma mensagem que não saiu
+//   simular_entrada  tela (admin)       {canal_id, telefone, nome, texto, do_celular?}  — só no número de teste
 //   processar_fila   cron (x-cron-chave) manda o próximo lote dos disparos, no ritmo de cada número
 //   webhook          provedor            ?canal=<id>&chave=<chave_webhook>  (mensagens que chegam)
 // ════════════════════════════════════════════════════════════════════
@@ -20,8 +21,9 @@ type Canal = { id: string; empresa_id: string; tipo: 'teste' | 'whatsapp_qr' | '
 type Segredos = { segredos: Record<string, string>; chave_webhook: string }
 
 // ── conectores: cada tipo de número sabe mandar uma mensagem de texto ──
-async function mandarTexto(canal: Canal, seg: Segredos, telefone: string, texto: string): Promise<string | null> {
-  if (canal.tipo === 'teste') return `teste-${crypto.randomUUID()}`
+async function mandarTexto(canal: Canal, seg: Segredos, telefone: string, texto: string, reenvio = false): Promise<string | null> {
+  // número de teste: "#falha" no texto simula uma mensagem que não saiu (na nova tentativa, sai)
+  if (canal.tipo === 'teste') { if (texto.includes('#falha') && !reenvio) throw new Error('Falha simulada no número de teste.'); return `teste-${crypto.randomUUID()}` }
 
   if (canal.tipo === 'whatsapp_qr') {
     // servidor próprio (Evolution API): config.url, config.instancia; segredo: apikey
@@ -48,22 +50,46 @@ async function mandarTexto(canal: Canal, seg: Segredos, telefone: string, texto:
   throw new Error('Tipo de número desconhecido.')
 }
 
-// ── conectores: o que chega pelo webhook vira {telefone, nome, texto, id} ──
+// ── conectores: o que chega pelo webhook ──
+// recebidas: a pessoa escreveu · ecos: a equipe mandou direto pelo celular · status: entregue/lida/falhou
 type Recebida = { telefone: string; nome: string | null; texto: string | null; tipo: string; id: string | null }
-function lerWebhook(canal: Canal, corpo: any): Recebida[] {
-  const saida: Recebida[] = []
+type Status = { id: string; status: 'enviada' | 'entregue' | 'lida' | 'erro'; erro?: string }
+type Lido = { recebidas: Recebida[]; ecos: Recebida[]; status: Status[] }
+
+function tipoEvolution(msg: any) {
+  const texto = msg.conversation ?? msg.extendedTextMessage?.text ?? msg.imageMessage?.caption ?? msg.videoMessage?.caption ?? msg.documentMessage?.caption ?? null
+  const tipo = msg.imageMessage ? 'imagem' : msg.audioMessage ? 'audio' : msg.videoMessage ? 'video' : msg.documentMessage ? 'documento' : texto ? 'texto' : 'outro'
+  return { texto, tipo }
+}
+function tipoMeta(m: any) {
+  const texto = m.text?.body ?? m.image?.caption ?? m.video?.caption ?? m.document?.caption ?? m.button?.text ?? m.interactive?.button_reply?.title ?? m.interactive?.list_reply?.title ?? null
+  const tipo = m.type === 'image' ? 'imagem' : m.type === 'audio' ? 'audio' : m.type === 'video' ? 'video' : m.type === 'document' ? 'documento' : texto ? 'texto' : 'outro'
+  return { texto, tipo }
+}
+const STATUS_EVOLUTION: Record<string, Status['status']> = { SERVER_ACK: 'enviada', DELIVERY_ACK: 'entregue', READ: 'lida', PLAYED: 'lida', ERROR: 'erro', '2': 'enviada', '3': 'entregue', '4': 'lida', '5': 'lida', '0': 'erro' }
+const STATUS_META: Record<string, Status['status']> = { sent: 'enviada', delivered: 'entregue', read: 'lida', failed: 'erro' }
+
+function lerWebhook(canal: Canal, corpo: any): Lido {
+  const r: Lido = { recebidas: [], ecos: [], status: [] }
   if (canal.tipo === 'whatsapp_qr') {
-    const evento = String(corpo?.event ?? '').toLowerCase()
-    if (!evento.includes('messages.upsert') && !evento.includes('messages_upsert')) return saida
-    const lista = Array.isArray(corpo.data) ? corpo.data : [corpo.data]
-    for (const m of lista) {
-      if (!m?.key || m.key.fromMe) continue
-      const jid = String(m.key.remoteJid ?? '')
-      if (!jid.endsWith('@s.whatsapp.net')) continue          // ignora grupos e status
-      const msg = m.message ?? {}
-      const texto = msg.conversation ?? msg.extendedTextMessage?.text ?? msg.imageMessage?.caption ?? msg.videoMessage?.caption ?? null
-      const tipo = msg.imageMessage ? 'imagem' : msg.audioMessage ? 'audio' : msg.videoMessage ? 'video' : msg.documentMessage ? 'documento' : texto ? 'texto' : 'outro'
-      saida.push({ telefone: jid.split('@')[0], nome: m.pushName ?? null, texto, tipo, id: m.key.id ?? null })
+    const evento = String(corpo?.event ?? '').toLowerCase().replace('_', '.')
+    const lista = Array.isArray(corpo?.data) ? corpo.data : [corpo?.data]
+    if (evento.includes('messages.upsert')) {
+      for (const m of lista) {
+        if (!m?.key) continue
+        const jid = String(m.key.remoteJid ?? '')
+        if (!jid.endsWith('@s.whatsapp.net')) continue          // ignora grupos, status e contatos sem número
+        const { texto, tipo } = tipoEvolution(m.message ?? {})
+        const item = { telefone: jid.split('@')[0], nome: m.key.fromMe ? null : (m.pushName ?? null), texto, tipo, id: m.key.id ?? null }
+        if (m.key.fromMe) r.ecos.push(item); else r.recebidas.push(item)
+      }
+    }
+    if (evento.includes('messages.update')) {
+      for (const u of lista) {
+        const id = u?.keyId ?? u?.key?.id
+        const st = STATUS_EVOLUTION[String(u?.status ?? u?.update?.status ?? '')]
+        if (id && st) r.status.push({ id, status: st })
+      }
     }
   }
   if (canal.tipo === 'whatsapp_oficial') {
@@ -72,13 +98,21 @@ function lerWebhook(canal: Canal, corpo: any): Recebida[] {
       const nomes: Record<string, string> = {}
       for (const ct of v.contacts ?? []) nomes[ct.wa_id] = ct.profile?.name
       for (const m of v.messages ?? []) {
-        const texto = m.text?.body ?? m.image?.caption ?? m.button?.text ?? m.interactive?.button_reply?.title ?? null
-        const tipo = m.type === 'image' ? 'imagem' : m.type === 'audio' ? 'audio' : m.type === 'video' ? 'video' : m.type === 'document' ? 'documento' : texto ? 'texto' : 'outro'
-        saida.push({ telefone: m.from, nome: nomes[m.from] ?? null, texto, tipo, id: m.id ?? null })
+        const { texto, tipo } = tipoMeta(m)
+        r.recebidas.push({ telefone: m.from, nome: nomes[m.from] ?? null, texto, tipo, id: m.id ?? null })
+      }
+      // coexistência: o que a vendedora mandou pelo app WhatsApp Business do celular
+      for (const m of v.message_echoes ?? []) {
+        const { texto, tipo } = tipoMeta(m)
+        if (m.to) r.ecos.push({ telefone: String(m.to), nome: null, texto, tipo, id: m.id ?? null })
+      }
+      for (const s of v.statuses ?? []) {
+        const st = STATUS_META[String(s.status ?? '')]
+        if (s.id && st) r.status.push({ id: s.id, status: st, erro: s.errors?.[0]?.error_data?.details ?? s.errors?.[0]?.message ?? s.errors?.[0]?.title })
       }
     }
   }
-  return saida
+  return r
 }
 
 const sortear = <T,>(xs: T[]) => xs[Math.floor(Math.random() * xs.length)]
@@ -93,9 +127,9 @@ async function canalESegredos(db: SupabaseClient, canalId: string) {
 }
 
 // manda uma mensagem já registrada e atualiza o status
-async function despachar(db: SupabaseClient, msgId: string, canal: Canal, seg: Segredos, telefone: string, texto: string) {
+async function despachar(db: SupabaseClient, msgId: string, canal: Canal, seg: Segredos, telefone: string, texto: string, reenvio = false) {
   try {
-    const idExt = await mandarTexto(canal, seg, telefone, texto)
+    const idExt = await mandarTexto(canal, seg, telefone, texto, reenvio)
     await db.from('crm_mensagens').update({ status: 'enviada', id_externo: idExt }).eq('id', msgId)
     return { ok: true as const }
   } catch (e) {
@@ -190,9 +224,18 @@ Deno.serve(async (req) => {
         await db.from('crm_canais').update({ status: st === 'open' ? 'conectado' : st === 'connecting' ? 'conectando' : 'desconectado' }).eq('id', canal.id)
         return json({ ok: true })
       }
-      for (const m of lerWebhook(canal, corpo)) {
+      const lido = lerWebhook(canal, corpo)
+      for (const m of lido.recebidas) {
         await db.rpc('crm_receber_mensagem', { p_canal: canal.id, p_telefone: m.telefone, p_nome: m.nome, p_texto: m.texto, p_tipo: m.tipo, p_id_externo: m.id })
       }
+      for (const m of lido.ecos) {
+        await db.rpc('crm_registrar_eco', { p_canal: canal.id, p_telefone: m.telefone, p_texto: m.texto, p_tipo: m.tipo, p_id_externo: m.id })
+      }
+      for (const s of lido.status) {
+        await db.rpc('crm_status_mensagem', { p_canal: canal.id, p_id_externo: s.id, p_status: s.status, p_erro: s.erro ?? null })
+      }
+      // qualquer aviso do número prova que ele está vivo
+      if (canal.status !== 'conectado' && (lido.recebidas.length || lido.ecos.length)) await db.from('crm_canais').update({ status: 'conectado', status_info: null }).eq('id', canal.id)
       return json({ ok: true })
     }
 
@@ -237,6 +280,20 @@ Deno.serve(async (req) => {
       return json(r.ok ? { ok: true, mensagem: msgId, conversa: conv.id } : { erro: r.erro, mensagem: msgId }, r.ok ? 200 : 502)
     }
 
+    if (acao === 'reenviar') {
+      // a pessoa só consegue ler a mensagem se pode ver a conversa (regras de acesso dela)
+      const { data: m } = await usuario.from('crm_mensagens').select('id, conversa_id, texto, status, direcao').eq('id', String(corpo.mensagem_id ?? '')).maybeSingle()
+      if (!m || m.direcao !== 'saida') return json({ erro: 'Mensagem não encontrada.' }, 404)
+      if (m.status !== 'erro') return json({ erro: 'Essa mensagem já saiu.' }, 400)
+      const { data: conv } = await db.from('crm_conversas').select('canal_id, contato_id').eq('id', m.conversa_id).single()
+      const { data: contato } = await db.from('crm_contatos').select('telefone').eq('id', conv!.contato_id).single()
+      const { canal, seg } = await canalESegredos(db, conv!.canal_id)
+      if (canal.status !== 'conectado') return json({ erro: `O número "${canal.nome}" não está conectado.` }, 400)
+      await db.from('crm_mensagens').update({ status: 'pendente', erro: null }).eq('id', m.id)
+      const r = await despachar(db, m.id, canal, seg, contato!.telefone, m.texto ?? '', true)
+      return json(r.ok ? { ok: true } : { erro: r.erro }, r.ok ? 200 : 502)
+    }
+
     if (acao === 'simular_entrada') {
       const { canal } = await canalESegredos(db, String(corpo.canal_id ?? ''))
       const { data: admin } = await usuario.rpc('crm_sou_admin', { p_empresa: canal.empresa_id })
@@ -244,7 +301,9 @@ Deno.serve(async (req) => {
       if (canal.tipo !== 'teste') return json({ erro: 'Simulação só no número de teste.' }, 400)
       const tel = String(corpo.telefone ?? '').replace(/\D/g, '')
       if (tel.length < 10) return json({ erro: 'Telefone inválido.' }, 400)
-      const { data, error } = await db.rpc('crm_receber_mensagem', { p_canal: canal.id, p_telefone: tel, p_nome: corpo.nome ?? null, p_texto: String(corpo.texto ?? ''), p_id_externo: `sim-${crypto.randomUUID()}` })
+      const { data, error } = corpo.do_celular
+        ? await db.rpc('crm_registrar_eco', { p_canal: canal.id, p_telefone: tel, p_texto: String(corpo.texto ?? ''), p_id_externo: `sim-${crypto.randomUUID()}` })
+        : await db.rpc('crm_receber_mensagem', { p_canal: canal.id, p_telefone: tel, p_nome: corpo.nome ?? null, p_texto: String(corpo.texto ?? ''), p_id_externo: `sim-${crypto.randomUUID()}` })
       if (error) return json({ erro: error.message }, 400)
       return json({ ok: true, ...data })
     }

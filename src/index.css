@@ -927,3 +927,24 @@ select option:checked { background-color: #6d5427; color: #fff3d9; }
 .linha-arquivada td { opacity: .6; }
 .zona-lgpd { display: grid; gap: 8px; justify-items: start; padding-top: 12px; border-top: 1px solid var(--borda, rgba(255,255,255,.08)); }
 .btn-perigo { background: var(--erro); color: #111; border-color: var(--erro); }
+
+/* caixa: notas internas, falha de envio, status, número fora do ar, avisos */
+.msg-nota { align-self: center; max-width: 80%; background: var(--alerta-fundo); border: 1px dashed var(--alerta); }
+.msg-nota .msg-autor { color: var(--alerta); }
+.msg-falhou { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 6px; color: var(--erro); }
+.msg-status.st-lida { color: #53bdeb; }
+.msg-status.st-erro { color: var(--erro); }
+.modo-escrever { display: flex; gap: 4px; grid-column: 1 / -1; }
+.modo-escrever button { background: none; border: 1px solid transparent; color: var(--muted); font-size: 12px; padding: 3px 10px; border-radius: 999px; cursor: pointer; }
+.modo-escrever button.ativo { border-color: var(--ouro); color: var(--texto, inherit); }
+.chat-escrever.modo-nota textarea { background: var(--alerta-fundo); border-color: var(--alerta); }
+.faixa-numero-caido { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; padding: 10px 14px; margin: 0 0 12px; border-radius: 10px; background: var(--erro-fundo); border: 1px solid var(--erro); color: var(--erro); font-size: 14px; }
+.faixa-numero-caido span { flex: 1; min-width: 220px; }
+.toasts { position: fixed; right: 16px; bottom: 56px; display: grid; gap: 8px; z-index: 80; width: min(340px, calc(100vw - 32px)); }
+.toast { display: grid; gap: 2px; text-align: left; padding: 10px 14px; border-radius: 10px; background: var(--painel-2); border: 1px solid var(--ouro); color: inherit; cursor: pointer; box-shadow: 0 6px 24px rgba(0,0,0,.35); font-size: 13px; animation: toast-entra .2s ease-out; }
+.toast span { color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+@keyframes toast-entra { from { transform: translateY(8px); opacity: 0; } to { transform: none; opacity: 1; } }
+.avisos-config { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; margin-top: 4px; }
+.chat-escrever { flex-wrap: wrap; }
+.modo-escrever { width: 100%; }
+@media (max-width: 860px) { .toasts { bottom: 120px; } }

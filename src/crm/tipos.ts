@@ -5,7 +5,7 @@ import { supabase } from '../lib/supabase'
 export type Canal = {
   id: string; empresa_id: string; nome: string; tipo: 'teste' | 'whatsapp_qr' | 'whatsapp_oficial'; telefone: string | null
   status: 'desconectado' | 'conectando' | 'conectado' | 'erro'; status_info: string | null; ritmo_por_hora: number
-  janela_inicio: string; janela_fim: string; config: Record<string, string>; ativo: boolean
+  janela_inicio: string; janela_fim: string; config: Record<string, string>; ativo: boolean; atendente_id: string | null
 }
 export type Etapa = { id: string; empresa_id: string; nome: string; ordem: number; cor: string | null; final: 'ganho' | 'perdido' | null }
 export type Conversa = {
@@ -18,6 +18,7 @@ export type Mensagem = {
   id: string; conversa_id: string; direcao: 'entrada' | 'saida'; autor: 'contato' | 'atendente' | 'ia' | 'sistema' | 'disparo'
   autor_id: string | null; tipo: string; texto: string | null; midia_url: string | null; status: string; erro: string | null; criado_em: string
 }
+export type Nota = { id: string; conversa_id: string; autor_id: string | null; texto: string; criado_em: string }
 export type Membro = { usuario_id: string; nome: string | null; papel: 'admin' | 'atendente'; ativo: boolean; disponivel: boolean; recebe_leads: boolean }
 export type Resposta = { id: string; atalho: string; texto: string }
 export type ConfigEmpresa = { rodizio?: boolean; prazo_primeiro_contato_min?: number; devolver_fila_min?: number | null; canal_padrao?: string; tentativas_max?: number; dias_entre_tentativas?: number }

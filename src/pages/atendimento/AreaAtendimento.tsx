@@ -13,6 +13,7 @@ import PainelGestor from '../../crm/PainelGestor'
 import Funil from '../../crm/Funil'
 import Disparos from '../../crm/Disparos'
 import ConfigAtendimento from '../../crm/ConfigAtendimento'
+import { AvisoNumeros, AvisosConversas } from '../../crm/Avisos'
 import Contatos from '../crm/Contatos'
 import Listas from '../crm/Listas'
 import ListaTrabalho from '../crm/ListaTrabalho'
@@ -89,6 +90,7 @@ export default function AreaAtendimento() {
             <div className="quem">{perfil?.nome || perfil?.email}</div>
             <div className="muted pequeno">{isAdmin ? 'Administrador' : 'Atendimento'}</div>
             <button className="link pequeno" onClick={() => supabase.auth.signOut()}>Sair</button>
+            <div id="avisos-slot" />
           </div>
         </div>
       </aside>
@@ -100,6 +102,7 @@ export default function AreaAtendimento() {
         <button onClick={() => setMenu(true)}><Icone nome="menu" /><span>Mais</span></button>
       </nav>
       <main className="conteudo at-conteudo">
+        <AvisoNumeros empresaId={EMPRESA_UNIQUE} onAbrirConfig={isAdmin ? () => nav('/atendimento/config') : undefined} />
         <Routes>
           <Route index element={perfil ? <Conversas key={local.search} empresaId={EMPRESA_UNIQUE} usuarioId={perfil.id} base={base} painelExtra={extra} inicial={qs.get('c')} abaInicial={(qs.get('aba') as Aba) ?? null} /> : null} />
           <Route path="fila" element={perfil ? <MinhaFila empresaId={EMPRESA_UNIQUE} usuarioId={perfil.id} base={base} abrirConversa={abrirConversa} prazoMin={base.config.prazo_primeiro_contato_min ?? 5} /> : null} />
@@ -114,6 +117,7 @@ export default function AreaAtendimento() {
           <Route path="*" element={<Navigate to="/atendimento" replace />} />
         </Routes>
       </main>
+      {perfil && <AvisosConversas empresaId={EMPRESA_UNIQUE} usuarioId={perfil.id} abrir={(id) => nav(`/atendimento?c=${id}`)} slotControles="avisos-slot" />}
     </div>
   )
 }
