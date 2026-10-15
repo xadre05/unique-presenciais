@@ -75,7 +75,7 @@ export default function Painel() {
 
       <h2 className="titulo-secao">Presencial <span className="muted pequeno">· {isAdmin ? 'turmas do filtro acima, valores da turma inteira' : 'só as suas vendas, nas turmas do filtro acima'} (desde a venda, sem recorte de mês) · <Link to="/pagamentos" className="link">ver pagamentos</Link></span></h2>
       <section className="kpis kpis-5">
-        <KpiIcone icone="sacola" rotulo="Valor fechado" valor={brl(soma('valor_fechado'))} sub={`${soma('inscritos')} alunos em ${ts.length} turmas`} destaque />
+        <KpiIcone icone="sacola" rotulo="Valor fechado" valor={brl(soma('valor_fechado'))} sub={isAdmin ? `${soma('inscritos')} alunos em ${ts.length} turmas` : `${soma('inscritos_meus')} aluno(s) seus em ${ts.filter((t) => Number(t.inscritos_meus) > 0).length} turma(s)`} destaque />
         <KpiIcone icone="moedas" rotulo="Recebido (conferido)" valor={brl(soma('recebido'))} tom="ok" sub="líquido recebido nas contas" />
         <KpiIcone icone="relogio" rotulo="Aguardando conferência" valor={brl(soma('aguardando_conferencia'))} tom="info" sub={conferir.length ? `${conferir.length} pagamento(s) para conferir` : 'nenhum pagamento pendente'} />
         <KpiIcone icone="documento" rotulo="A receber" valor={brl(soma('a_receber'))} sub="parcelas ainda não pagas" />

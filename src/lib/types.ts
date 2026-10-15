@@ -1,7 +1,7 @@
 export type Turma = {
   id: string; curso_id: string; nome: string; data_inicio: string | null; data_fim: string | null; local: string | null
   vagas: number; status: string; observacoes: string | null; curso_nome: string
-  inscritos: number; valor_fechado: number; recebido: number; aguardando_conferencia: number; a_receber: number; atrasado: number
+  inscritos: number; inscritos_meus?: number; valor_fechado: number; recebido: number; aguardando_conferencia: number; a_receber: number; atrasado: number
   alunos_atrasados: number; sem_contrato: number; vendas_abertas: boolean
 }
 export type MatriculaV = {

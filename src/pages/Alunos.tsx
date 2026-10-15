@@ -69,7 +69,7 @@ export default function Alunos() {
   const pag = Math.min(pagina, totalPag)
   const fatia = <T,>(xs: T[]) => xs.slice((pag - 1) * POR_PAGINA, pag * POR_PAGINA)
   const mudar = (f: (v: string) => void) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => { f(e.target.value); setPagina(1) }
-  const baixas = (q.dados ?? []).filter((m) => m.situacao_financeira === 'considerado_pago')
+  const baixas = (q.dados ?? []).filter((m) => m.situacao_financeira === 'considerado_pago' && (isAdmin || m.vendedora_id === minha))
 
   return (
     <div className="pagina">
