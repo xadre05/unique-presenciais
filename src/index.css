@@ -948,3 +948,6 @@ select option:checked { background-color: #6d5427; color: #fff3d9; }
 .chat-escrever { flex-wrap: wrap; }
 .modo-escrever { width: 100%; }
 @media (max-width: 860px) { .toasts { bottom: 120px; } }
+.area-atendimento.tela-cheia .at-conteudo { flex-direction: column; }
+.area-atendimento.tela-cheia .faixa-numero-caido { margin: 0; border-radius: 0; flex: 0 0 auto; }
+.area-atendimento.tela-cheia .caixa { height: auto; min-height: 0; }
