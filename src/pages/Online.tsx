@@ -30,7 +30,7 @@ function useOnline() {
   const compras = useConsulta<CompraOnline[]>(() => buscarTudo<CompraOnline>((de, ate) => supabase.from('v_online_compras').select('*')
     .gte('ultima_data', new Date(Date.now() - 730 * 864e5).toISOString()).order('em').order('produto_id').order('oferta_codigo').order('np').range(de, ate)))
   const previsao = useConsulta<Previsao[]>(() => supabase.from('v_online_previsao').select('*').order('mes'))
-  const pags = useConsulta<PagOnline[]>(() => supabase.from('v_online_pagamentos').select('id,comprador_nome,comprador_email,produto_nome,valor,valor_liquido,forma,parcelas_cartao,recorrencia,dia,rastreio,comissao,vendedora_nome').order('dia', { ascending: false }).limit(2000))
+  const pags = useConsulta<PagOnline[]>(() => supabase.from('v_online_pagamentos').select('id,comprador_nome,comprador_email,produto_nome,valor,valor_liquido,forma,parcelas_cartao,recorrencia,dia,rastreio,comissao,vendedora_nome').gte('data_aprovacao', new Date(Date.now() - 400 * 864e5).toISOString()).order('data_aprovacao', { ascending: false }).limit(1000))
   const atrasos = useConsulta<Atraso[]>(() => supabase.from('v_online_atrasos').select('*').order('proxima_data'))
   return { compras, previsao, pags, atrasos }
 }
