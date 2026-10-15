@@ -130,11 +130,14 @@ function AbaEquipe() {
 }
 
 const NOVA = '__nova'
+const primeiroNome = (n?: string | null) => (n ?? '').trim().split(/\s+/)[0]?.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase() || ''
 
 function AlterarAcesso({ p, vendedoras, onFechar, onSalvo }: { p: PerfilC; vendedoras: { id: string; nome: string; perfil_id: string | null; ativa: boolean; email?: string | null }[]; onFechar: () => void; onSalvo: () => void }) {
   const vincAtual = vendedoras.find((v) => v.perfil_id === p.id)?.id ?? ''
   // vendedora cadastrada antes com o mesmo e-mail da conta: já vem escolhida
   const pelaEmail = vendedoras.find((v) => !v.perfil_id && v.ativa && v.email && v.email.toLowerCase() === p.email?.toLowerCase())
+    // senão, vendedora antiga (sem login) com o mesmo primeiro nome — para não perder o histórico de vendas dela
+    ?? (() => { const pn = primeiroNome(p.nome); return pn ? vendedoras.find((v) => !v.perfil_id && v.ativa && primeiroNome(v.nome) === pn) : undefined })()
   const [papel, setPapel] = useState<Papel>(p.papel === 'pendente' ? 'vendedora' : p.papel)
   // sem cadastro de vendedora para ela: já sugere criar um com o nome e o e-mail da conta
   const [vend, setVend] = useState(vincAtual || pelaEmail?.id || (p.papel === 'pendente' || p.papel === 'vendedora' ? NOVA : ''))
@@ -198,7 +201,8 @@ function AlterarAcesso({ p, vendedoras, onFechar, onSalvo }: { p: PerfilC; vende
         </div>
         {papel !== 'inativo' && papel !== 'pendente' && (
           <Campo rotulo="Vendedora vinculada" dica={papel === 'vendedora' ? 'Obrigatório para ela fazer matrícula e ver as próprias comissões.' : 'Opcional. Só se o administrador também vende.'}>
-            {pelaEmail && vend === pelaEmail.id && !vincAtual && <p className="ok-txt pequeno" style={{ margin: '0 0 6px' }}>✓ E-mail confere com o cadastro da vendedora {pelaEmail.nome}.</p>}
+            {pelaEmail && vend === pelaEmail.id && !vincAtual && <p className="ok-txt pequeno" style={{ margin: '0 0 6px' }}>✓ {pelaEmail.email && pelaEmail.email.toLowerCase() === p.email?.toLowerCase() ? 'E-mail confere' : 'Mesmo nome'} da vendedora {pelaEmail.nome} — as vendas e comissões dela continuam.</p>}
+            {vend === NOVA && <p className="muted pequeno" style={{ margin: '0 0 6px' }}>Se ela já vendia antes, escolha o nome dela na lista para manter o histórico de vendas e comissões.</p>}
             <select value={vend} onChange={(e) => setVend(e.target.value)}>
               <option value="">Nenhuma</option>
               {!vincAtual && <option value={NOVA}>+ Criar cadastro de vendedora: {p.nome || p.email}</option>}
