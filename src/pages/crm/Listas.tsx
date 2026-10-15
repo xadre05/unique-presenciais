@@ -28,7 +28,7 @@ export default function Listas() {
   const card = (c: Campanha) => {
     const t = somar(c.por_vendedora)
     return (
-      <Link key={c.id} to={`/listas/${c.id}`} className="card-lista">
+      <Link key={c.id} to={`/atendimento/listas/${c.id}`} className="card-lista">
         <div className="card-lista-topo">
           <h3>{c.nome}</h3>
           {c.status === 'encerrada' && <Badge tom="apagado">Encerrada</Badge>}
@@ -55,7 +55,7 @@ export default function Listas() {
     <div className="pagina">
       <header className="pagina-topo">
         <div><h1>{isAdmin ? 'Listas' : 'Minhas listas'}</h1><p className="muted">{isAdmin ? 'Listas de contatos divididas entre as vendedoras. Para criar uma nova, filtre em Contatos.' : 'Os contatos que são seus para chamar no WhatsApp. Abra a lista, mande a mensagem e marque o que aconteceu.'}</p></div>
-        {isAdmin && <Link to="/contatos" className="btn btn-ouro btn-grande"><Icone nome="mais" /> Nova lista</Link>}
+        {isAdmin && <Link to="/atendimento/contatos" className="btn btn-ouro btn-grande"><Icone nome="mais" /> Nova lista</Link>}
       </header>
       <Erro msg={q.erro} />
       {!q.carregando && ativas.length === 0 && <Vazio>{isAdmin ? 'Nenhuma lista ativa. Vá em Contatos, filtre quem você quer chamar e clique em “Criar lista com esse filtro”.' : 'Nenhuma lista para você ainda.'}</Vazio>}

@@ -66,7 +66,7 @@ export default function ListaTrabalho() {
     if (error) setErro(error.message); else camp.recarregar()
   }
 
-  if (!q.carregando && !camp.carregando && !c) return <div className="pagina"><Vazio>Lista não encontrada. <Link to="/listas" className="link">Voltar</Link></Vazio></div>
+  if (!q.carregando && !camp.carregando && !c) return <div className="pagina"><Vazio>Lista não encontrada. <Link to="/atendimento/listas" className="link">Voltar</Link></Vazio></div>
   // andamento calculado na hora a partir dos contatos (atualiza a cada marcação)
   const porVend = useMemo<PorVendedora[]>(() => {
     const g = new Map<string, PorVendedora>()
@@ -91,7 +91,7 @@ export default function ListaTrabalho() {
 
   return (
     <div className="pagina">
-      <div className="migalha"><Link to="/listas" className="link"><Icone nome="esquerda" tam={14} /> {isAdmin ? 'Listas' : 'Minhas listas'}</Link></div>
+      <div className="migalha"><Link to="/atendimento/listas" className="link"><Icone nome="esquerda" tam={14} /> {isAdmin ? 'Listas' : 'Minhas listas'}</Link></div>
       <header className="pagina-topo">
         <div>
           <h1>{c?.nome ?? 'Lista'} {c?.status === 'encerrada' && <Badge tom="apagado">Encerrada</Badge>}</h1>

@@ -419,3 +419,26 @@ insert into crm_etapas (empresa_id, nome, ordem, cor, final) values
  (empresa_unique(), 'Comprou', 5, '#6fbf8a', 'ganho'), (empresa_unique(), 'Perdido', 6, '#a3a3a9', 'perdido');
 insert into crm_canais (empresa_id, nome, tipo, status, ritmo_por_hora, status_info)
 values (empresa_unique(), 'Número de teste (simulador)', 'teste', 'conectado', 60, 'Não envia nada de verdade: serve para testar conversas e disparos.');
+
+-- (043) o que o contato comprou, para o painel da conversa (sem valores para quem não é admin)
+create function resumo_do_contato(p_contato uuid) returns jsonb
+language sql stable security definer set search_path = public as $$
+  select case when crm_pode_ver_contato(p_contato) then jsonb_build_object(
+    'segmento', r.segmento, 'produtos', r.produtos, 'ultima_compra', r.ultima_compra, 'primeira_compra', r.primeira_compra,
+    'aluno_presencial', r.aluno_presencial, 'reembolsou', r.reembolsou,
+    'total_liquido', case when is_admin() then r.total_liquido end,
+    'listas', (select coalesce(jsonb_agg(jsonb_build_object('campanha', k.nome, 'status', cc.status, 'vendedora', vd.nome, 'nota', cc.nota) order by k.criado_em desc), '[]')
+               from campanha_contatos cc join campanhas k on k.id = cc.campanha_id left join vendedoras vd on vd.id = cc.vendedora_id where cc.contato_id = p_contato))
+  end
+  from (select 1) x left join contato_resumo r on r.contato_id = p_contato
+$$;
+revoke execute on function resumo_do_contato(uuid) from public, anon;
+
+-- ids dos contatos de um filtro (para disparo)
+create function ids_contatos_filtrados(p jsonb) returns uuid[]
+language plpgsql stable security definer set search_path = public as $$
+begin
+  if not is_admin() then raise exception 'Só o administrador.'; end if;
+  return (select coalesce(array_agg(id), '{}') from contatos_filtrados(p || '{"so_whats": true}'));
+end $$;
+revoke execute on function ids_contatos_filtrados(jsonb) from public, anon;

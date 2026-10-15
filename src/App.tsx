@@ -17,9 +17,7 @@ import Configuracoes from './pages/Configuracoes'
 import Links from './pages/Links'
 import Ajuda from './pages/Ajuda'
 import Agenda from './pages/Agenda'
-import Contatos from './pages/crm/Contatos'
-import Listas from './pages/crm/Listas'
-import ListaTrabalho from './pages/crm/ListaTrabalho'
+import AreaAtendimento from './pages/atendimento/AreaAtendimento'
 import { Icone } from './components/Icone'
 import { Marca } from './components/ui'
 
@@ -63,14 +61,13 @@ function Layout() {
       <aside className={`lateral${menu ? ' aberta' : ''}`}>
         <button className="btn btn-quadrado fechar-menu" aria-label="Fechar menu" onClick={() => setMenu(false)}><Icone nome="fechar" /></button>
         <Marca />
+        <div className="troca-area"><span className="ativa">Comercial</span><Link to="/atendimento">Atendimento</Link></div>
         <nav>
           <NavLink to="/" end><Icone nome="painel" /> Painel</NavLink>
           <NavLink to="/turmas"><Icone nome="turmas" /> Turmas</NavLink>
           <NavLink to="/agenda"><Icone nome="agenda" /> Agenda</NavLink>
           <NavLink to="/pagamentos"><Icone nome="pagamentos" /> Pagamentos</NavLink>
           <NavLink to="/alunos"><Icone nome="alunos" /> Alunos</NavLink>
-          <NavLink to="/listas"><Icone nome="lista" /> {isAdmin ? 'Listas' : 'Minhas listas'}</NavLink>
-          {isAdmin && <NavLink to="/contatos"><Icone nome="contatos" /> Contatos</NavLink>}
           <NavLink to="/comissoes"><Icone nome="comissoes" /> {isAdmin ? 'Comissões' : 'Minhas comissões'}</NavLink>
           <NavLink to="/links"><Icone nome="links" /> Links de pagamento</NavLink>
           {isAdmin && <NavLink to="/historico"><Icone nome="historico" /> Histórico</NavLink>}
@@ -90,7 +87,7 @@ function Layout() {
       {/* celular: atalhos embaixo */}
       <nav className="barra-inferior">
         <NavLink to="/" end><Icone nome="painel" /><span>Painel</span></NavLink>
-        <NavLink to="/listas"><Icone nome="lista" /><span>Listas</span></NavLink>
+        <NavLink to="/atendimento"><Icone nome="whats" /><span>Atendimento</span></NavLink>
         <NavLink to="/alunos"><Icone nome="alunos" /><span>Alunos</span></NavLink>
         <NavLink to="/comissoes"><Icone nome="comissoes" /><span>Comissões</span></NavLink>
         <button onClick={() => setMenu(true)}><Icone nome="menu" /><span>Mais</span></button>
@@ -108,9 +105,8 @@ function Layout() {
           <Route path="/comissoes" element={<Comissoes />} />
           <Route path="/links" element={<Links />} />
           <Route path="/agenda" element={<Agenda />} />
-          <Route path="/listas" element={<Listas />} />
-          <Route path="/listas/:id" element={<ListaTrabalho />} />
-          {isAdmin && <Route path="/contatos" element={<Contatos />} />}
+          <Route path="/listas/*" element={<Navigate to="/atendimento/listas" replace />} />
+          <Route path="/contatos" element={<Navigate to="/atendimento/contatos" replace />} />
           <Route path="/ajuda" element={<Ajuda />} />
           {isAdmin && <Route path="/historico" element={<Historico />} />}
           {isAdmin && <Route path="/configuracoes" element={<Configuracoes />} />}
@@ -154,7 +150,12 @@ function Portao() {
   if (!session) return <Login />
   if (!perfil) return <div className="tela-centro muted">Carregando seu perfil…</div>
   if (perfil.papel !== 'admin' && perfil.papel !== 'vendedora') return <Aguardando />
-  return <Layout />
+  return (
+    <Routes>
+      <Route path="/atendimento/*" element={<AreaAtendimento />} />
+      <Route path="*" element={<Layout />} />
+    </Routes>
+  )
 }
 
 export default function App() {

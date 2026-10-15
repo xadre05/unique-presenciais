@@ -354,3 +354,34 @@ select cron.schedule('crm-fila-disparos', '* * * * *', $$
     timeout_milliseconds := 55000)
   where exists (select 1 from public.crm_disparos where status = 'enviando')
 $$);
+
+-- (043) nomes da equipe para quem é membro
+create function crm_equipe(p_empresa uuid) returns table (usuario_id uuid, nome text, papel text, ativo boolean)
+language sql stable security definer set search_path = public as $$
+  select m.usuario_id, m.nome, m.papel, m.ativo from crm_membros m where m.empresa_id = p_empresa and crm_sou_membro(p_empresa) order by m.nome
+$$;
+revoke execute on function crm_equipe(uuid) from public, anon;
+
+-- (044) admin grava chaves do número (sem poder ler de volta) e vê o endereço de recebimento
+create function crm_salvar_segredo_canal(p_canal uuid, p_campo text, p_valor text) returns void
+language plpgsql security definer set search_path = public as $$
+declare v_emp uuid;
+begin
+  select empresa_id into v_emp from crm_canais where id = p_canal;
+  if v_emp is null or not crm_sou_admin(v_emp) then raise exception 'Só o administrador.'; end if;
+  if p_campo not in ('apikey', 'token') then raise exception 'Campo inválido.'; end if;
+  insert into crm_canais_segredos (canal_id) values (p_canal) on conflict do nothing;
+  update crm_canais_segredos set segredos = segredos || jsonb_build_object(p_campo, p_valor) where canal_id = p_canal;
+end $$;
+revoke execute on function crm_salvar_segredo_canal(uuid, text, text) from public, anon;
+
+create function crm_info_canal(p_canal uuid) returns jsonb
+language plpgsql stable security definer set search_path = public as $$
+declare v_emp uuid; s crm_canais_segredos;
+begin
+  select empresa_id into v_emp from crm_canais where id = p_canal;
+  if v_emp is null or not crm_sou_admin(v_emp) then raise exception 'Só o administrador.'; end if;
+  select * into s from crm_canais_segredos where canal_id = p_canal;
+  return jsonb_build_object('chave_webhook', s.chave_webhook, 'salvos', (select coalesce(jsonb_agg(k), '[]') from jsonb_object_keys(coalesce(s.segredos, '{}')) k));
+end $$;
+revoke execute on function crm_info_canal(uuid) from public, anon;

@@ -800,3 +800,99 @@ select option:checked { background-color: #6d5427; color: #fff3d9; }
   .il-whats { flex: 1 1 100%; }
   .il-whats .btn { flex: 1; justify-content: center; }
 }
+
+/* ───────── troca de área (Comercial | Atendimento) ───────── */
+.troca-area { display: grid; grid-template-columns: 1fr 1fr; background: var(--painel-2); border: 1px solid var(--borda); border-radius: 10px; padding: 3px; margin: 4px 0 14px; font-size: .88rem; }
+.troca-area > * { text-align: center; padding: 7px 4px; border-radius: 8px; color: var(--muted); text-decoration: none; }
+.troca-area .ativa { background: var(--ouro-fundo); color: var(--ouro-forte); font-weight: 600; }
+.troca-area a:hover { color: var(--texto); }
+
+/* ───────── área Atendimento ───────── */
+.area-atendimento { min-height: 100vh; display: flex; flex-direction: column; background: var(--fundo); }
+.at-topo { position: sticky; top: 0; z-index: 30; display: flex; align-items: center; gap: 18px; padding: 0 18px; height: 58px; background: var(--painel); border-bottom: 1px solid var(--borda); }
+.at-marca { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+.at-marca img { height: 26px; }
+.at-marca span { font-family: 'Fraunces', Georgia, serif; color: var(--ouro); font-size: 1rem; letter-spacing: .06em; text-transform: uppercase; }
+.at-nav { display: flex; gap: 2px; overflow-x: auto; flex: 1; scrollbar-width: none; }
+.at-nav a { display: flex; align-items: center; gap: 7px; padding: 8px 12px; border-radius: 8px; color: var(--muted); text-decoration: none; white-space: nowrap; font-size: .93rem; }
+.at-nav a:hover { color: var(--texto); background: var(--painel-2); }
+.at-nav a.active { color: var(--ouro-forte); background: var(--ouro-fundo); }
+.at-voltar { flex-shrink: 0; }
+.at-conteudo { flex: 1; min-height: 0; }
+.area-atendimento.tela-cheia { height: 100vh; overflow: hidden; }
+.area-atendimento.tela-cheia .at-conteudo { display: flex; }
+.pagina.larga { max-width: none; }
+.nowrap { white-space: nowrap; }
+
+/* caixa de conversas: lista | conversa | contato */
+.caixa { flex: 1; display: grid; grid-template-columns: 330px minmax(0, 1fr) 300px; min-height: 0; height: calc(100vh - 58px); }
+.caixa-lista { border-right: 1px solid var(--borda); display: flex; flex-direction: column; min-height: 0; background: var(--painel); }
+.caixa-lista-topo { padding: 12px; display: flex; flex-direction: column; gap: 8px; border-bottom: 1px solid var(--borda); }
+.abas-mini { display: flex; gap: 2px; background: var(--painel-2); border-radius: 9px; padding: 3px; }
+.abas-mini button { flex: 1; background: none; border: none; color: var(--muted); font: inherit; font-size: .85rem; padding: 6px 4px; border-radius: 7px; cursor: pointer; }
+.abas-mini button.ativa { background: var(--painel); color: var(--texto); }
+.abas-mini .bolinha { background: var(--ouro); color: #111; border-radius: 99px; padding: 0 6px; font-size: .75rem; font-weight: 700; }
+.caixa-itens { overflow-y: auto; flex: 1; }
+.caixa-item { display: flex; flex-direction: column; gap: 3px; width: 100%; text-align: left; background: none; border: none; border-bottom: 1px solid var(--borda); padding: 11px 14px; color: var(--texto); font: inherit; cursor: pointer; }
+.caixa-item:hover { background: var(--painel-2); }
+.caixa-item.sel { background: var(--ouro-fundo); box-shadow: inset 3px 0 0 var(--ouro); }
+.caixa-item.nova b { color: var(--ouro-forte); }
+.ci-linha { display: flex; justify-content: space-between; gap: 8px; align-items: center; min-width: 0; }
+.ci-msg { color: var(--muted); font-size: .88rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ci-nao-lidas { background: var(--ok); color: #0b1a10; border-radius: 99px; min-width: 20px; height: 20px; font-size: .75rem; font-weight: 700; display: grid; place-items: center; padding: 0 6px; }
+.caixa-vazia { display: grid; place-content: center; justify-items: center; gap: 8px; color: var(--muted); }
+.caixa-chat { display: flex; flex-direction: column; min-height: 0; min-width: 0; }
+.chat-topo { display: flex; align-items: center; gap: 10px; padding: 10px 16px; border-bottom: 1px solid var(--borda); background: var(--painel); }
+.chat-quem { flex: 1; min-width: 0; display: flex; flex-direction: column; text-align: left; background: none; border: none; color: var(--texto); font: inherit; cursor: pointer; padding: 0; }
+.chat-quem span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.chat-acoes { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; justify-content: flex-end; }
+.chat-acoes select { width: auto; padding: 6px 8px; font-size: .85rem; }
+.chat-msgs { flex: 1; overflow-y: auto; padding: 18px; display: flex; flex-direction: column; gap: 6px; background: radial-gradient(circle at 20% 0%, rgba(201,164,92,.04), transparent 60%); }
+.msg { max-width: min(560px, 80%); padding: 8px 12px; border-radius: 12px; display: flex; flex-direction: column; gap: 2px; }
+.msg-entrada { align-self: flex-start; background: var(--painel-2); border: 1px solid var(--borda); border-top-left-radius: 4px; }
+.msg-saida { align-self: flex-end; background: rgba(201,164,92,.16); border: 1px solid rgba(201,164,92,.28); border-top-right-radius: 4px; }
+.msg-erro { border-color: var(--erro); }
+.msg-autor { font-size: .72rem; color: var(--ouro); }
+.msg-texto { white-space: pre-wrap; word-break: break-word; }
+.msg-rodape { font-size: .72rem; color: var(--muted); align-self: flex-end; }
+.msg-sistema { align-self: center; font-size: .78rem; color: var(--muted); background: var(--painel); border: 1px solid var(--borda); border-radius: 99px; padding: 3px 12px; margin: 4px 0; }
+.chat-escrever { position: relative; display: flex; gap: 8px; align-items: flex-end; padding: 12px 16px; border-top: 1px solid var(--borda); background: var(--painel); }
+.chat-escrever textarea { flex: 1; resize: none; min-height: 44px; max-height: 160px; }
+.sugestoes { position: absolute; left: 16px; right: 16px; bottom: 100%; background: var(--painel); border: 1px solid var(--borda); border-radius: 10px; overflow: hidden; box-shadow: 0 -10px 30px rgba(0,0,0,.4); }
+.sugestoes button { display: block; width: 100%; text-align: left; padding: 9px 12px; background: none; border: none; border-bottom: 1px solid var(--borda); color: var(--texto); font: inherit; font-size: .88rem; cursor: pointer; }
+.sugestoes button:hover { background: var(--painel-2); }
+.simulador { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 8px 16px; border-top: 1px dashed var(--borda); background: var(--painel-2); }
+.simulador input { flex: 1; min-width: 160px; padding: 7px 10px; }
+.caixa-contato { border-left: 1px solid var(--borda); padding: 16px; display: flex; flex-direction: column; gap: 10px; overflow-y: auto; background: var(--painel); }
+.caixa-contato h3 { margin: 0; }
+.cc-nome { font-family: 'Fraunces', Georgia, serif; font-size: 1.15rem; background: transparent; border: 1px solid transparent; padding: 4px 6px; margin-left: -6px; }
+.cc-nome:hover, .cc-nome:focus { border-color: var(--borda); }
+.tags { display: flex; flex-wrap: wrap; gap: 4px; }
+.resumo-unique { border-top: 1px solid var(--borda); padding-top: 10px; display: flex; flex-direction: column; gap: 6px; }
+.so-celular { display: none; }
+.msg-previa { white-space: pre-wrap; background: var(--painel-2); border-radius: 8px; padding: 8px 10px; margin: 6px 0; }
+.gaveta .caixa-contato { border: none; padding: 0; }
+
+/* funil */
+.funil-topo { display: flex; gap: 16px; align-items: center; flex-wrap: wrap; margin-bottom: 12px; }
+.funil-topo .select-icone { min-width: 240px; }
+.funil { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(250px, 1fr); gap: 12px; overflow-x: auto; padding-bottom: 12px; align-items: start; }
+.funil-col { background: var(--painel); border: 1px solid var(--borda); border-radius: var(--raio); display: flex; flex-direction: column; max-height: calc(100vh - 210px); }
+.funil-col.sobre { border-color: var(--ouro); background: var(--ouro-fundo); }
+.funil-col header { display: flex; justify-content: space-between; padding: 12px 14px; border-top: 3px solid; border-radius: var(--raio) var(--raio) 0 0; border-bottom: 1px solid var(--borda); }
+.funil-cartoes { overflow-y: auto; padding: 8px; display: flex; flex-direction: column; gap: 8px; min-height: 60px; }
+.funil-cartao { background: var(--painel-2); border: 1px solid var(--borda); border-radius: 9px; padding: 10px 12px; display: flex; flex-direction: column; gap: 2px; cursor: grab; }
+.funil-cartao:hover { border-color: var(--muted); }
+
+@media (max-width: 1200px) { .caixa { grid-template-columns: 300px minmax(0, 1fr); } .caixa-contato { display: none; } .caixa-contato.aberto { display: flex; position: fixed; inset: 58px 0 0 auto; width: min(360px, 100%); z-index: 40; box-shadow: -20px 0 60px rgba(0,0,0,.5); } .so-celular { display: inline-flex; } }
+@media (max-width: 760px) {
+  .at-topo { gap: 10px; padding: 0 10px; }
+  .at-marca span { display: none; }
+  .at-voltar { padding: 6px 8px; }
+  .caixa { grid-template-columns: 1fr; }
+  .caixa.com-conversa .caixa-lista { display: none; }
+  .caixa:not(.com-conversa) .caixa-chat, .caixa:not(.com-conversa) .caixa-vazia { display: none; }
+  .chat-msgs { padding: 12px; }
+  .msg { max-width: 90%; }
+  .caixa-contato.aberto { inset: 58px 0 0 0; width: 100%; }
+}

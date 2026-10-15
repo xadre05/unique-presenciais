@@ -55,7 +55,7 @@ export default function CriarLista({ filtro, disponiveis, onFechar }: { filtro: 
     })
     setSalvando(false)
     if (error) return setErro(error.message)
-    nav(`/listas/${(data as { id: string }).id}`)
+    nav(`/atendimento/listas/${(data as { id: string }).id}`)
   }
 
   return (

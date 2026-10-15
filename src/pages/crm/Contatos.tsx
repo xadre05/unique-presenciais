@@ -9,6 +9,10 @@ import { linkWhats, telefoneLegivel } from '../../crm/nucleo'
 import { descreverFiltro, limparFiltro, SEGMENTOS, STATUS_LISTA, type ContatoLinha, type Filtro } from './comum'
 import ImportarContatos from './ImportarContatos'
 import CriarLista from './CriarLista'
+import { NovoDisparo } from '../../crm/Disparos'
+import { useBaseCRM } from '../../crm/tipos'
+import { EMPRESA_UNIQUE } from './comum'
+import { useNavigate } from 'react-router-dom'
 
 const POR_PAGINA = 50
 type Contagem = Record<string, { total: number; com_whats: number; livres: number }>
@@ -22,6 +26,10 @@ export default function Contatos() {
   const [importar, setImportar] = useState(false)
   const [criar, setCriar] = useState(false)
   const [versao, setVersao] = useState(0)
+  const [disparo, setDisparo] = useState<string[] | null>(null)
+  const [erroDisparo, setErroDisparo] = useState<string | null>(null)
+  const base = useBaseCRM(EMPRESA_UNIQUE)
+  const nav = useNavigate()
 
   // busca só dispara depois que a pessoa para de digitar
   useEffect(() => { const t = setTimeout(() => { setF((x) => ({ ...x, busca: buscaTxt.trim() })); setPagina(1) }, 350); return () => clearTimeout(t) }, [buscaTxt])
@@ -48,7 +56,12 @@ export default function Contatos() {
         <div><h1>Contatos</h1><p className="muted">Toda a base: leads do SellFlux, compradores da Hotmart e alunos presenciais, juntos por WhatsApp e e-mail.</p></div>
         <div className="acoes">
           <button className="btn btn-contorno" onClick={() => setImportar(true)}><Icone nome="importar" /> Importar contatos</button>
-          <button className="btn btn-ouro btn-grande" onClick={() => setCriar(true)} disabled={!disponiveis}><Icone nome="lista" /> Criar lista com esse filtro</button>
+          <button className="btn btn-contorno" onClick={() => setCriar(true)} disabled={!disponiveis} title="Cada vendedora chama do próprio celular"><Icone nome="lista" /> Dividir para as vendedoras</button>
+          <button className="btn btn-ouro btn-grande" disabled={!disponiveis} onClick={async () => {
+            setErroDisparo(null)
+            const { data, error } = await supabase.rpc('ids_contatos_filtrados', { p: filtro })
+            if (error) setErroDisparo(error.message); else setDisparo(data as string[])
+          }}><Icone nome="whats" /> Disparar pelo WhatsApp da empresa</button>
         </div>
       </header>
 
@@ -88,7 +101,7 @@ export default function Contatos() {
         {Object.keys(filtro).length > 1 && <button className="link pequeno" onClick={() => { setF({ so_whats: true }); setBuscaTxt(''); setPagina(1) }}>limpar filtros</button>}
       </div>
 
-      <Erro msg={res.erro || cont.erro} />
+      <Erro msg={res.erro || cont.erro || erroDisparo} />
       {res.carregando && !res.dados ? <Vazio>Carregando contatos…</Vazio> : total === 0 ? <Vazio>Nenhum contato com esses filtros.{soma('total') === 0 && ' A base ainda está vazia: use “Importar contatos”.'}</Vazio> : (
         <div className="tabela-wrap bloco sem-padding">
           <table className="tabela tabela-pag">
@@ -123,6 +136,7 @@ export default function Contatos() {
 
       {aberto && <FichaContato id={aberto} onFechar={() => setAberto(null)} onMudou={() => setVersao((v) => v + 1)} />}
       {importar && <ImportarContatos onFechar={() => setImportar(false)} onFeito={() => setVersao((v) => v + 1)} />}
+      {disparo && <NovoDisparo empresaId={EMPRESA_UNIQUE} base={base} contatoIds={disparo} origem={descreverFiltro(filtro)} onFechar={() => setDisparo(null)} onFeito={() => nav('/atendimento/disparos')} />}
       {criar && <CriarLista filtro={filtro} disponiveis={disponiveis} onFechar={() => setCriar(false)} />}
     </div>
   )
