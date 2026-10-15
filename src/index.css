@@ -896,3 +896,5 @@ select option:checked { background-color: #6d5427; color: #fff3d9; }
   .msg { max-width: 90%; }
   .caixa-contato.aberto { inset: 58px 0 0 0; width: 100%; }
 }
+.caixa-itens .vazio { margin: 16px; }
+.abas-mini button { white-space: nowrap; font-size: .8rem; }
