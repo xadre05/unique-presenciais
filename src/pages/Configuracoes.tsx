@@ -125,23 +125,38 @@ function AbaEquipe() {
         <Link to="/configuracoes/vendedoras" className="btn btn-contorno btn-bloco"><Icone nome="mais" tam={16} /> Cadastrar vendedora (antes de ela criar a conta)</Link>
       </aside>
     </div>
-    {editar && <AlterarAcesso p={editar} vendedoras={cad.vendedoras} onFechar={() => setEditar(null)} onSalvo={() => { setEditar(null); perfis.recarregar(); cad.recarregar() }} />}
+    {editar && <AlterarAcesso p={editar} vendedoras={cad.vendedoras} onFechar={() => { setEditar(null); perfis.recarregar(); cad.recarregar() }} onSalvo={() => { setEditar(null); perfis.recarregar(); cad.recarregar() }} />}
   </>)
 }
+
+const NOVA = '__nova'
 
 function AlterarAcesso({ p, vendedoras, onFechar, onSalvo }: { p: PerfilC; vendedoras: { id: string; nome: string; perfil_id: string | null; ativa: boolean; email?: string | null }[]; onFechar: () => void; onSalvo: () => void }) {
   const vincAtual = vendedoras.find((v) => v.perfil_id === p.id)?.id ?? ''
   // vendedora cadastrada antes com o mesmo e-mail da conta: já vem escolhida
   const pelaEmail = vendedoras.find((v) => !v.perfil_id && v.ativa && v.email && v.email.toLowerCase() === p.email?.toLowerCase())
   const [papel, setPapel] = useState<Papel>(p.papel === 'pendente' ? 'vendedora' : p.papel)
-  const [vend, setVend] = useState(vincAtual || pelaEmail?.id || '')
+  // sem cadastro de vendedora para ela: já sugere criar um com o nome e o e-mail da conta
+  const [vend, setVend] = useState(vincAtual || pelaEmail?.id || (p.papel === 'pendente' || p.papel === 'vendedora' ? NOVA : ''))
+  const [funcao, setFuncao] = useState('Vendedora')
+  const [dados, setDados] = useState({ nome: p.nome ?? '', email: p.email ?? '' })
+  const [editandoDados, setEditandoDados] = useState(false)
+  const [salvandoDados, setSalvandoDados] = useState(false)
+  const salvarDados = async () => {
+    setErro(null); setSalvandoDados(true)
+    const { data, error } = await supabase.functions.invoke('equipe', { body: { acao: 'alterar_dados', perfil_id: p.id, nome: dados.nome, email: dados.email } })
+    setSalvandoDados(false)
+    const msg = (data as { erro?: string } | null)?.erro ?? (error ? 'Não consegui salvar. Tente de novo.' : null)
+    if (msg) return setErro(msg)
+    p.nome = dados.nome.trim(); p.email = dados.email.trim().toLowerCase(); setEditandoDados(false)
+  }
   const [confirmar, setConfirmar] = useState(false)
   const [erro, setErro] = useState<string | null>(null)
   const [salvando, setSalvando] = useState(false)
   const opcoes: Papel[] = ['vendedora', 'admin', 'inativo', ...(p.papel === 'pendente' ? ['pendente' as Papel] : [])]
   const vendFinal = papel === 'inativo' ? vincAtual : vend
   const mudouPapel = papel !== p.papel, mudouVend = vendFinal !== vincAtual
-  const nomeVend = (id: string) => vendedoras.find((v) => v.id === id)?.nome ?? 'nenhuma'
+  const nomeVend = (id: string) => id === NOVA ? `${p.nome || p.email} (novo cadastro, ${funcao})` : vendedoras.find((v) => v.id === id)?.nome ?? 'nenhuma'
 
   const salvar = async () => {
     setSalvando(true); setErro(null)
@@ -151,7 +166,10 @@ function AlterarAcesso({ p, vendedoras, onFechar, onSalvo }: { p: PerfilC; vende
     }
     if (mudouVend) {
       if (vincAtual) { const { error } = await supabase.from('vendedoras').update({ perfil_id: null }).eq('id', vincAtual); if (error) { setSalvando(false); return setErro(msgErro(error)) } }
-      if (vendFinal) { const { error } = await supabase.from('vendedoras').update({ perfil_id: p.id }).eq('id', vendFinal); if (error) { setSalvando(false); return setErro(msgErro(error)) } }
+      if (vendFinal === NOVA) {
+        const { error } = await supabase.from('vendedoras').insert({ nome: (p.nome || p.email || '').trim(), email: p.email?.toLowerCase() ?? null, funcao, perfil_id: p.id })
+        if (error) { setSalvando(false); return setErro(error.message.includes('vendedoras_email_unico') ? 'Já existe uma vendedora com esse e-mail. Escolha ela na lista.' : msgErro(error)) }
+      } else if (vendFinal) { const { error } = await supabase.from('vendedoras').update({ perfil_id: p.id }).eq('id', vendFinal); if (error) { setSalvando(false); return setErro(msgErro(error)) } }
     }
     onSalvo()
   }
@@ -159,7 +177,17 @@ function AlterarAcesso({ p, vendedoras, onFechar, onSalvo }: { p: PerfilC; vende
   return (
     <Modal titulo={confirmar ? 'Confirmar alteração' : `Acesso de ${p.nome || p.email}`} aberto onFechar={onFechar}>
       {!confirmar ? (<>
-        <p className="muted pequeno">{p.email} · conta criada em {dataBR(p.criado_em)}</p>
+        {!editandoDados ? (
+          <div className="nota pequeno"><b>{p.nome || '—'}</b> · {p.email} · conta criada em {dataBR(p.criado_em)} <button className="link" onClick={() => setEditandoDados(true)}>corrigir nome ou e-mail</button></div>
+        ) : (
+          <div className="bloco" style={{ padding: 12 }}>
+            <div className="form-grade">
+              <Campo rotulo="Nome completo"><input value={dados.nome} onChange={(e) => setDados({ ...dados, nome: e.target.value })} /></Campo>
+              <Campo rotulo="E-mail de login" dica="Depois de salvar, ela entra com esse e-mail e a mesma senha."><input type="email" value={dados.email} onChange={(e) => setDados({ ...dados, email: e.target.value })} /></Campo>
+            </div>
+            <div className="modal-acoes"><button className="btn" onClick={() => { setEditandoDados(false); setDados({ nome: p.nome ?? '', email: p.email ?? '' }) }}>Cancelar</button><button className="btn btn-ouro" disabled={salvandoDados} onClick={salvarDados}>{salvandoDados ? 'Salvando…' : 'Salvar dados'}</button></div>
+          </div>
+        )}
         <div className="opcoes-papel">
           {opcoes.map((k) => (
             <label key={k} className={`opcao-papel ${papel === k ? 'marcada' : ''}`}>
@@ -173,9 +201,13 @@ function AlterarAcesso({ p, vendedoras, onFechar, onSalvo }: { p: PerfilC; vende
             {pelaEmail && vend === pelaEmail.id && !vincAtual && <p className="ok-txt pequeno" style={{ margin: '0 0 6px' }}>✓ E-mail confere com o cadastro da vendedora {pelaEmail.nome}.</p>}
             <select value={vend} onChange={(e) => setVend(e.target.value)}>
               <option value="">Nenhuma</option>
+              {!vincAtual && <option value={NOVA}>+ Criar cadastro de vendedora: {p.nome || p.email}</option>}
               {vendedoras.filter((v) => v.ativa || v.id === vincAtual).map((v) => <option key={v.id} value={v.id} disabled={!!v.perfil_id && v.perfil_id !== p.id}>{v.nome}{v.perfil_id && v.perfil_id !== p.id ? ' (já tem login)' : ''}</option>)}
             </select>
           </Campo>
+        )}
+        {papel !== 'inativo' && papel !== 'pendente' && vend === NOVA && (
+          <Campo rotulo="Função" dica="Só para identificar. A comissão segue as mesmas regras de todas."><select value={funcao} onChange={(e) => setFuncao(e.target.value)}><option>Vendedora</option><option>CS / suporte</option><option>Gestão</option></select></Campo>
         )}
         {papel === 'inativo' && <p className="nota pequeno">Desativar o login não apaga nada: matrículas, pagamentos e comissões continuam no nome da vendedora.</p>}
         {papel === 'vendedora' && !vend && <p className="nota pequeno">Sem vendedora vinculada, ela entra no sistema mas não consegue fazer matrícula.</p>}
