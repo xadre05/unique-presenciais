@@ -411,3 +411,11 @@ select cron.schedule('crm-resumo', '35 * * * *', 'select public.atualizar_resumo
 revoke execute on function crm_sou_membro(uuid), crm_sou_admin(uuid), crm_pode_ver_contato(uuid), contato_da_hotmart(), contato_do_aluno(), sync_membro_crm() from public, anon;
 revoke execute on function contato_da_hotmart(), contato_do_aluno(), sync_membro_crm() from authenticated;
 alter function empresa_unique() set search_path = public;
+
+-- (039–041) etapas do funil da Unique e um número de teste (simulador)
+insert into crm_etapas (empresa_id, nome, ordem, cor, final) values
+ (empresa_unique(), 'Novo contato', 1, '#7fa9d9', null), (empresa_unique(), 'Em conversa', 2, '#c9a45c', null),
+ (empresa_unique(), 'Interessado', 3, '#e0b04f', null), (empresa_unique(), 'Negociando', 4, '#dcb96f', null),
+ (empresa_unique(), 'Comprou', 5, '#6fbf8a', 'ganho'), (empresa_unique(), 'Perdido', 6, '#a3a3a9', 'perdido');
+insert into crm_canais (empresa_id, nome, tipo, status, ritmo_por_hora, status_info)
+values (empresa_unique(), 'Número de teste (simulador)', 'teste', 'conectado', 60, 'Não envia nada de verdade: serve para testar conversas e disparos.');
