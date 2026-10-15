@@ -136,7 +136,10 @@ function Chat({ conv, usuarioId, base, onVoltar, onMudou, painelExtra }: {
       if (error) setErro(error.message); else { setTexto(''); carregar() }
     } else {
       try { await servidorWhats({ acao: 'enviar', conversa_id: conv.id, texto: t }); setTexto(''); onMudou() }
-      catch (e) { setErro((e as Error).message) }
+      catch (e) {
+        // se ela ficou gravada como "não enviada", o botão "Tentar de novo" está nela: limpa a caixa para não mandar duas vezes
+        if ((e as { registrada?: boolean }).registrada) { setTexto(''); carregar(); onMudou() } else setErro((e as Error).message)
+      }
     }
     setEnviando(false)
   }

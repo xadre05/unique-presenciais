@@ -39,9 +39,10 @@ export const STATUS_CANAL: Record<Canal['status'], { rotulo: string; tom: string
 export async function servidorWhats<T = Record<string, unknown>>(corpo: Record<string, unknown>): Promise<T> {
   const { data, error } = await supabase.functions.invoke('crm-whatsapp', { body: corpo })
   if (error) {
-    let msg = error.message
-    try { const r = await (error as { context?: Response }).context?.json(); if (r?.erro) msg = r.erro } catch { /* sem corpo */ }
-    throw new Error(msg)
+    let msg = error.message, registrada = false
+    try { const r = await (error as { context?: Response }).context?.json(); if (r?.erro) msg = r.erro; registrada = !!r?.mensagem } catch { /* sem corpo */ }
+    // registrada: a mensagem ficou gravada como "não enviada" (dá para tentar de novo por ela)
+    throw Object.assign(new Error(msg), { registrada })
   }
   if ((data as { erro?: string })?.erro) throw new Error((data as { erro: string }).erro)
   return data as T
