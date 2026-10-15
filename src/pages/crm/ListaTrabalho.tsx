@@ -66,7 +66,6 @@ export default function ListaTrabalho() {
     if (error) setErro(error.message); else camp.recarregar()
   }
 
-  if (!q.carregando && !camp.carregando && !c) return <div className="pagina"><Vazio>Lista não encontrada. <Link to="/listas" className="link">Voltar</Link></Vazio></div>
   // andamento calculado na hora a partir dos contatos (atualiza a cada marcação)
   const porVend = useMemo<PorVendedora[]>(() => {
     const g = new Map<string, PorVendedora>()
@@ -87,6 +86,7 @@ export default function ListaTrabalho() {
     return [...g.values()].sort((a, b) => a.vendedora_nome.localeCompare(b.vendedora_nome))
   }, [lista, hoje])
   const t = somar(porVend)
+  if (!q.carregando && !camp.carregando && !c) return <div className="pagina"><Vazio>Lista não encontrada. <Link to="/listas" className="link">Voltar</Link></Vazio></div>
   const ABAS: [Aba, string][] = [['a_contatar', 'A contatar'], ['retornar', 'Retornar hoje'], ['andamento', 'Em andamento'], ['comprou', 'Compraram'], ['fim', 'Encerrados'], ['todos', 'Todos']]
 
   return (
