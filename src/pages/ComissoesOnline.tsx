@@ -63,6 +63,12 @@ export default function ComissoesOnline() {
       {isAdmin && <> <Link to="/configuracoes/comissoes" className="link">Percentuais e links das vendedoras</Link></>}
     </span></div>
 
+    {isAdmin && (
+      <div className="bloco online-meu">
+        <div><b>Venda online que veio sem o nome da vendedora?</b><p className="muted pequeno">Procure o aluno e diga de quem é a venda. A comissão é calculada na hora (inclusive das parcelas que já caíram) e entra em “Em apuração”.</p></div>
+        <button className="btn btn-ouro" onClick={() => setModal({ tipo: 'meu' })}><Icone nome="mais" /> Dar venda para vendedora</button>
+      </div>
+    )}
     {!isAdmin && (
       <div className="bloco online-meu">
         <div><b>Vendeu e o link não tinha seu nome?</b><p className="muted pequeno">Diga qual aluno é seu. O administrador confere e, se aprovar, a comissão entra (inclusive das parcelas que já caíram).</p></div>
@@ -149,14 +155,16 @@ export default function ComissoesOnline() {
       </details>
     )}
 
-    {modal?.tipo === 'meu' && <EsseAlunoEMeu onFechar={() => setModal(null)} onSalvo={recarregar} />}
+    {modal?.tipo === 'meu' && <EsseAlunoEMeu vendedoras={isAdmin ? cad.vendedoras.filter((x) => x.ativa) : undefined} onFechar={() => setModal(null)} onSalvo={recarregar} />}
     {modal?.tipo === 'decidir' && <Decidir a={modal.a} nomeV={nomeV} onFechar={() => setModal(null)} onSalvo={recarregar} />}
     {modal?.tipo === 'trocar' && <Corrigir c={modal.c} vendedoras={cad.vendedoras} onFechar={() => setModal(null)} onSalvo={recarregar} />}
     {(modal?.tipo === 'liberar' || modal?.tipo === 'pagar') && <Fechamento tipo={modal.tipo} itens={modal.itens} nomeV={nomeV} onFechar={() => setModal(null)} onSalvo={recarregar} />}
   </>)
 }
 
-function EsseAlunoEMeu({ onFechar, onSalvo }: { onFechar: () => void; onSalvo: () => void }) {
+function EsseAlunoEMeu({ vendedoras, onFechar, onSalvo }: { vendedoras?: { id: string; nome: string }[]; onFechar: () => void; onSalvo: () => void }) {
+  const admin = !!vendedoras
+  const [vend, setVend] = useState('')
   const [termo, setTermo] = useState('')
   const [res, setRes] = useState<Compra[]>([])
   const [esc, setEsc] = useState<Compra | null>(null)
@@ -175,16 +183,18 @@ function EsseAlunoEMeu({ onFechar, onSalvo }: { onFechar: () => void; onSalvo: (
   }, [termo, esc])
   const enviar = async () => {
     if (!esc) return
-    const { error } = await supabase.rpc('pedir_atribuicao_online', { p_email: esc.comprador_email, p_produto: esc.produto_id, p_tipo: tipo, p_justificativa: just })
+    const { error } = admin
+      ? await supabase.rpc('atribuir_compra_online', { p_email: esc.comprador_email, p_produto: esc.produto_id, p_vendedora: vend, p_tipo: tipo, p_motivo: just })
+      : await supabase.rpc('pedir_atribuicao_online', { p_email: esc.comprador_email, p_produto: esc.produto_id, p_tipo: tipo, p_justificativa: just })
     if (error) return setErro(msgErro(error))
     onSalvo()
   }
   return (
-    <Modal titulo="Esse aluno é meu" aberto onFechar={onFechar} largo>
+    <Modal titulo={admin ? 'Dar venda online para vendedora' : 'Esse aluno é meu'} aberto onFechar={onFechar} largo>
       {!esc ? (<>
         <Campo rotulo="Nome ou e-mail do aluno" dica="Digite pelo menos 4 letras. Aparecem só compras do online."><input value={termo} autoFocus onChange={(e) => setTermo(e.target.value)} /></Campo>
         {res.length > 0 && <ul className="lista selecionavel">{res.map((c) => (
-          <li key={c.comprador_email + c.produto_id} onClick={() => !c.minha && !c.pedido_pendente && setEsc(c)} className={c.minha || c.pedido_pendente ? 'linha-apagada' : ''}>
+          <li key={c.comprador_email + c.produto_id} onClick={() => (admin || (!c.minha && !c.pedido_pendente)) && setEsc(c)} className={!admin && (c.minha || c.pedido_pendente) ? 'linha-apagada' : ''}>
             <b>{c.comprador_nome}</b>
             <span className="muted pequeno">{c.email_exibido} · {c.produto_nome} · {c.pagamentos} pagamento(s) de {dataBR(c.primeira)} a {dataBR(c.ultima)}</span>
             <span className="pequeno">{c.minha ? '✓ já é sua' : c.pedido_pendente ? 'já tem pedido em conferência' : c.vendedora_atual ? <span className="alerta-txt">hoje está com {c.vendedora_atual} ({c.origem_atual})</span> : <span className="muted">sem vendedora</span>}</span>
@@ -192,14 +202,15 @@ function EsseAlunoEMeu({ onFechar, onSalvo }: { onFechar: () => void; onSalvo: (
         {termo.trim().length >= 4 && res.length === 0 && !erro && <p className="muted pequeno">Nenhuma compra do online com esse nome ou e-mail.</p>}
       </>) : (<>
         <div className="nota pequeno"><b>{esc.comprador_nome}</b> · {esc.produto_nome} · {esc.pagamentos} pagamento(s){esc.vendedora_atual && <> · <span className="alerta-txt">hoje está com {esc.vendedora_atual}</span></>} <button className="link" onClick={() => setEsc(null)}>trocar</button></div>
+        {admin && <Campo rotulo="Vendedora"><select value={vend} onChange={(e) => setVend(e.target.value)}><option value="">Escolha…</option>{vendedoras!.map((x) => <option key={x.id} value={x.id}>{x.nome}</option>)}</select></Campo>}
         <div className="opcoes-papel">
-          <label className={`opcao-papel ${tipo === 'proprio' ? 'marcada' : ''}`}><input type="radio" checked={tipo === 'proprio'} onChange={() => setTipo('proprio')} /><div><b>O lead é meu</b><div className="muted pequeno">Eu encontrei e conquistei esse aluno.</div></div></label>
-          <label className={`opcao-papel ${tipo === 'campanha' ? 'marcada' : ''}`}><input type="radio" checked={tipo === 'campanha'} onChange={() => setTipo('campanha')} /><div><b>O lead veio de campanha</b><div className="muted pequeno">Lead captado com tráfego pago; eu fiz o atendimento e fechei.</div></div></label>
+          <label className={`opcao-papel ${tipo === 'proprio' ? 'marcada' : ''}`}><input type="radio" checked={tipo === 'proprio'} onChange={() => setTipo('proprio')} /><div><b>{admin ? 'O lead é dela' : 'O lead é meu'}</b><div className="muted pequeno">{admin ? 'Ela encontrou e conquistou esse aluno (comissão maior).' : 'Eu encontrei e conquistei esse aluno.'}</div></div></label>
+          <label className={`opcao-papel ${tipo === 'campanha' ? 'marcada' : ''}`}><input type="radio" checked={tipo === 'campanha'} onChange={() => setTipo('campanha')} /><div><b>O lead veio de campanha</b><div className="muted pequeno">{admin ? 'Lead do tráfego pago; ela atendeu e fechou.' : 'Lead captado com tráfego pago; eu fiz o atendimento e fechei.'}</div></div></label>
         </div>
-        <Campo rotulo="Como você fechou essa venda?" dica="Ex.: atendi pelo WhatsApp dia 12/09 e mandei o link sem meu nome."><textarea rows={3} value={just} onChange={(e) => setJust(e.target.value)} /></Campo>
+        <Campo rotulo={admin ? 'Motivo (fica no Histórico)' : 'Como você fechou essa venda?'} dica={admin ? 'Ex.: ela me avisou que atendeu e mandou o link sem o código.' : 'Ex.: atendi pelo WhatsApp dia 12/09 e mandei o link sem meu nome.'}><textarea rows={3} value={just} onChange={(e) => setJust(e.target.value)} /></Campo>
       </>)}
       <Erro msg={erro} />
-      <div className="modal-acoes"><button className="btn" onClick={onFechar}>Cancelar</button><button className="btn btn-ouro" disabled={!esc || just.trim().length < 10} onClick={enviar}>Enviar para conferência</button></div>
+      <div className="modal-acoes"><button className="btn" onClick={onFechar}>Cancelar</button><button className="btn btn-ouro" disabled={!esc || (admin ? !vend || just.trim().length < 3 : just.trim().length < 10)} onClick={enviar}>{admin ? 'Dar a venda para ela' : 'Enviar para conferência'}</button></div>
     </Modal>
   )
 }
