@@ -7,6 +7,7 @@ import { Badge, Campo, enviarArquivo, Erro, InputMoeda, InputNumero, InputPercen
 import { Icone } from '../components/Icone'
 import { useAuth } from '../auth'
 import ComissoesOnline from './ComissoesOnline'
+import Fechamentos from './Fechamentos'
 import { turmaCurta } from './Agenda'
 
 export type ComissaoV = {
@@ -49,7 +50,7 @@ export function motivoPendente(c: ComissaoV) {
 export default function Comissoes() {
   const { isAdmin } = useAuth()
   const [params, setParams] = useSearchParams()
-  const area = params.get('area') === 'online' ? 'online' : 'presencial'
+  const area = params.get('area') === 'online' ? 'online' : params.get('area') === 'fechamento' ? 'fechamento' : 'presencial'
   const cad = useCadastros()
   const lista = useConsulta<ComissaoV[]>(() => supabase.from('v_comissoes').select('*').order('data_venda', { ascending: false }))
   const regras = useConsulta<Regra[]>(() => supabase.from('comissao_regra_versoes').select('*').order('vigente_desde', { ascending: false }))
@@ -105,8 +106,9 @@ export default function Comissoes() {
       <nav className="abas">
         <button className={area === 'presencial' ? 'ativa' : ''} onClick={() => setParams({})}><Icone nome="turmas" tam={16} /> Presencial <span className="muted">por matrícula</span></button>
         <button className={area === 'online' ? 'ativa' : ''} onClick={() => setParams({ area: 'online' })}><Icone nome="links" tam={16} /> Online <span className="muted">por pagamento na Hotmart</span></button>
+        <button className={area === 'fechamento' ? 'ativa' : ''} onClick={() => setParams({ area: 'fechamento' })}><Icone nome="agenda" tam={16} /> Fechamento por mês <span className="muted">devido, pago e comprovante</span></button>
       </nav>
-      {area === 'online' ? <ComissoesOnline /> : (<>
+      {area === 'online' ? <ComissoesOnline /> : area === 'fechamento' ? <Fechamentos /> : (<>
 
       <div className="faixa-info"><Icone nome="info" tam={18} /> <span><b>{descreverRegra(padrao)} por matrícula vendida</b> · libera quando a inscrição é confirmada · paga no mês seguinte à venda.{(regras.dados ?? []).some((r) => r.curso_id) && ' Alguns cursos têm regra própria.'}</span></div>
 
