@@ -48,8 +48,8 @@ export function AbaIntegracoes() {
     <section className="bloco">
       <h2><Icone nome="mais" className="ouro" /> Outras integrações</h2>
       <div className="integ-futuras">
-        <div><b>Sicoob — extrato</b><p className="muted pequeno">Importar o extrato para conferir sozinho os Pix informados pela equipe.</p><Badge tom="alerta">a fazer</Badge></div>
-        <div><b>Vendas do online (SCK)</b><p className="muted pequeno">Comissão das vendedoras nas vendas online, pelo código de rastreio do link da Hotmart.</p><Badge tom="alerta">a fazer</Badge></div>
+        <div><b>Sicoob — extrato</b><p className="muted pequeno">Pix são poucos: a conferência continua manual, pelo comprovante que a equipe anexa.</p><Badge>não necessário por enquanto</Badge></div>
+        <div><b>Vendas do online (SCK)</b><p className="muted pequeno">Comissão das vendedoras nas vendas online, pelo nome no link da Hotmart. Os nomes de cada vendedora ficam em Comissões.</p><Badge tom="ok">funcionando</Badge></div>
         <div><b>Outro sistema</b><p className="muted pequeno">Agenda, CRM, WhatsApp… Cada nova integração entra aqui como um cartão.</p><Badge>quando precisar</Badge></div>
       </div>
     </section>
