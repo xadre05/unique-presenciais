@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { Link, NavLink, Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../auth'
-import { Badge, Vazio } from '../../components/ui'
+import { Badge, Marca, Vazio } from '../../components/ui'
 import { Icone } from '../../components/Icone'
 import { useBaseCRM } from '../../crm/tipos'
 import Conversas from '../../crm/Conversas'
@@ -52,22 +52,47 @@ export default function AreaAtendimento() {
   const local = useLocation()
   const naConversa = local.pathname === '/atendimento' || local.pathname === '/atendimento/'
   const extra = (id: string) => <ResumoUnique contatoId={id} />
+  const [menu, setMenu] = useState(false)
+  useEffect(() => { setMenu(false) }, [local.pathname])
+  useEffect(() => { document.body.classList.toggle('menu-aberto', menu) }, [menu])
+  const itens = (<>
+    <NavLink to="/atendimento" end><Icone nome="whats" /> Conversas</NavLink>
+    <NavLink to="/atendimento/funil"><Icone nome="comissoes" /> Funil</NavLink>
+    <NavLink to="/atendimento/listas"><Icone nome="lista" /> {isAdmin ? 'Listas manuais' : 'Minhas listas'}</NavLink>
+    {isAdmin && <NavLink to="/atendimento/contatos"><Icone nome="contatos" /> Contatos</NavLink>}
+    {isAdmin && <NavLink to="/atendimento/disparos"><Icone nome="sacola" /> Disparos</NavLink>}
+    {isAdmin && <NavLink to="/atendimento/ia"><Icone nome="info" /> Agente IA</NavLink>}
+    {isAdmin && <NavLink to="/atendimento/config"><Icone nome="equipe" /> Configurações</NavLink>}
+  </>)
   return (
-    <div className={`area-atendimento${naConversa ? ' tela-cheia' : ''}`}>
-      <header className="at-topo">
-        <div className="at-marca"><img src="/logo-unique.png" alt="Unique" /><span>Atendimento</span></div>
-        <nav className="at-nav">
-          <NavLink to="/atendimento" end><Icone nome="whats" tam={17} /> Conversas</NavLink>
-          <NavLink to="/atendimento/funil"><Icone nome="comissoes" tam={17} /> Funil</NavLink>
-          {isAdmin && <NavLink to="/atendimento/contatos"><Icone nome="contatos" tam={17} /> Contatos</NavLink>}
-          {isAdmin && <NavLink to="/atendimento/disparos"><Icone nome="sacola" tam={17} /> Disparos</NavLink>}
-          <NavLink to="/atendimento/listas"><Icone nome="lista" tam={17} /> {isAdmin ? 'Listas manuais' : 'Minhas listas'}</NavLink>
-          {isAdmin && <NavLink to="/atendimento/ia"><Icone nome="info" tam={17} /> Agente IA</NavLink>}
-          {isAdmin && <NavLink to="/atendimento/config"><Icone nome="equipe" tam={17} /> Configurações</NavLink>}
-        </nav>
-        <Link to="/" className="btn btn-mini at-voltar" title="Voltar para a área Comercial"><Icone nome="painel" tam={15} /> Comercial</Link>
+    <div className={`app area-atendimento${naConversa ? ' tela-cheia' : ''}`}>
+      <header className="topo-movel">
+        <Link to="/atendimento" className="topo-marca"><img src="/logo-unique.png" alt="Unique" /><span>Atendimento</span></Link>
+        <button className="btn btn-quadrado topo-menu" aria-label="Abrir menu" onClick={() => setMenu(true)}><Icone nome="menu" /></button>
       </header>
-      <main className="at-conteudo">
+      {menu && <div className="fundo-menu" onClick={() => setMenu(false)} />}
+      <aside className={`lateral${menu ? ' aberta' : ''}`}>
+        <button className="btn btn-quadrado fechar-menu" aria-label="Fechar menu" onClick={() => setMenu(false)}><Icone nome="fechar" /></button>
+        <Marca sub="Atendimento" />
+        <div className="troca-area"><Link to="/">Comercial</Link><span className="ativa">Atendimento</span></div>
+        <nav>{itens}</nav>
+        <div className="lateral-rodape">
+          <div className="avatar"><Icone nome="usuario" tam={20} /></div>
+          <div>
+            <div className="quem">{perfil?.nome || perfil?.email}</div>
+            <div className="muted pequeno">{isAdmin ? 'Administrador' : 'Atendimento'}</div>
+            <button className="link pequeno" onClick={() => supabase.auth.signOut()}>Sair</button>
+          </div>
+        </div>
+      </aside>
+      <nav className="barra-inferior">
+        <NavLink to="/atendimento" end><Icone nome="whats" /><span>Conversas</span></NavLink>
+        <NavLink to="/atendimento/funil"><Icone nome="comissoes" /><span>Funil</span></NavLink>
+        <NavLink to="/atendimento/listas"><Icone nome="lista" /><span>Listas</span></NavLink>
+        <NavLink to="/" end><Icone nome="painel" /><span>Comercial</span></NavLink>
+        <button onClick={() => setMenu(true)}><Icone nome="menu" /><span>Mais</span></button>
+      </nav>
+      <main className="conteudo at-conteudo">
         <Routes>
           <Route index element={perfil ? <Conversas empresaId={EMPRESA_UNIQUE} usuarioId={perfil.id} base={base} painelExtra={extra} /> : null} />
           <Route path="funil" element={<div className="pagina larga"><h1>Funil</h1><Funil empresaId={EMPRESA_UNIQUE} base={base} painelExtra={extra} /></div>} />

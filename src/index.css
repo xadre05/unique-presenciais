@@ -750,7 +750,7 @@ select option:checked { background-color: #6d5427; color: #fff3d9; }
 .seg-card:hover { border-color: var(--muted); }
 .seg-card.ativo { border-color: var(--ouro); background: var(--ouro-fundo); }
 .seg-num { font-family: 'Fraunces', Georgia, serif; font-size: 1.6rem; font-weight: 600; }
-.filtros-contatos { display: grid; grid-template-columns: 2fr repeat(5, minmax(0, 1fr)); gap: 10px; margin-bottom: 10px; }
+.filtros-contatos { display: grid; grid-template-columns: 2fr repeat(6, minmax(0, 1fr)); gap: 10px; margin-bottom: 10px; }
 .filtros-contatos select, .filtros-lista select { min-width: 0; width: 100%; text-overflow: ellipsis; }
 .filtros-check { display: flex; flex-wrap: wrap; gap: 8px 22px; align-items: center; margin-bottom: 16px; }
 .filtros-lista { display: grid; grid-template-columns: 2fr 1fr; gap: 10px; margin-bottom: 12px; }
@@ -791,7 +791,7 @@ select option:checked { background-color: #6d5427; color: #fff3d9; }
 .il-data input { border: none; background: transparent; padding: 7px 0; width: 132px; }
 .il-anotar { display: flex; flex-direction: column; gap: 8px; }
 .il-anotar textarea { width: 100%; }
-@media (max-width: 1200px) { .filtros-contatos { grid-template-columns: 1fr 1fr 1fr; } .filtros-contatos .busca-larga { grid-column: 1 / -1; } }
+@media (max-width: 1400px) { .filtros-contatos { grid-template-columns: 1fr 1fr 1fr; } .filtros-contatos .busca-larga { grid-column: 1 / -1; } }
 @media (max-width: 800px) { .segmentos-crm { grid-template-columns: 1fr 1fr; } }
 @media (max-width: 640px) {
   .filtros-contatos, .filtros-lista { grid-template-columns: 1fr; }
@@ -808,7 +808,6 @@ select option:checked { background-color: #6d5427; color: #fff3d9; }
 .troca-area a:hover { color: var(--texto); }
 
 /* ───────── área Atendimento ───────── */
-.area-atendimento { min-height: 100vh; display: flex; flex-direction: column; background: var(--fundo); }
 .at-topo { position: sticky; top: 0; z-index: 30; display: flex; align-items: center; gap: 18px; padding: 0 18px; height: 58px; background: var(--painel); border-bottom: 1px solid var(--borda); }
 .at-marca { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
 .at-marca img { height: 26px; }
@@ -818,14 +817,13 @@ select option:checked { background-color: #6d5427; color: #fff3d9; }
 .at-nav a:hover { color: var(--texto); background: var(--painel-2); }
 .at-nav a.active { color: var(--ouro-forte); background: var(--ouro-fundo); }
 .at-voltar { flex-shrink: 0; }
-.at-conteudo { flex: 1; min-height: 0; }
 .area-atendimento.tela-cheia { height: 100vh; overflow: hidden; }
-.area-atendimento.tela-cheia .at-conteudo { display: flex; }
+.area-atendimento.tela-cheia .at-conteudo { display: flex; min-height: 0; height: 100vh; }
 .pagina.larga { max-width: none; }
 .nowrap { white-space: nowrap; }
 
 /* caixa de conversas: lista | conversa | contato */
-.caixa { flex: 1; display: grid; grid-template-columns: 330px minmax(0, 1fr) 300px; min-height: 0; height: calc(100vh - 58px); }
+.caixa { flex: 1; display: grid; grid-template-columns: 320px minmax(0, 1fr) 290px; min-height: 0; height: 100vh; }
 .caixa-lista { border-right: 1px solid var(--borda); display: flex; flex-direction: column; min-height: 0; background: var(--painel); }
 .caixa-lista-topo { padding: 12px; display: flex; flex-direction: column; gap: 8px; border-bottom: 1px solid var(--borda); }
 .abas-mini { display: flex; gap: 2px; background: var(--painel-2); border-radius: 9px; padding: 3px; }
@@ -884,17 +882,19 @@ select option:checked { background-color: #6d5427; color: #fff3d9; }
 .funil-cartao { background: var(--painel-2); border: 1px solid var(--borda); border-radius: 9px; padding: 10px 12px; display: flex; flex-direction: column; gap: 2px; cursor: grab; }
 .funil-cartao:hover { border-color: var(--muted); }
 
-@media (max-width: 1200px) { .caixa { grid-template-columns: 300px minmax(0, 1fr); } .caixa-contato { display: none; } .caixa-contato.aberto { display: flex; position: fixed; inset: 58px 0 0 auto; width: min(360px, 100%); z-index: 40; box-shadow: -20px 0 60px rgba(0,0,0,.5); } .so-celular { display: inline-flex; } }
+@media (max-width: 1400px) { .caixa { grid-template-columns: 300px minmax(0, 1fr); } .caixa-contato { display: none; } .caixa-contato.aberto { display: flex; position: fixed; inset: 0 0 0 auto; width: min(360px, 100%); z-index: 40; box-shadow: -20px 0 60px rgba(0,0,0,.5); } .so-celular { display: inline-flex; } }
+@media (max-width: 900px) {
+  .area-atendimento.tela-cheia { height: auto; overflow: visible; }
+  .area-atendimento.tela-cheia .at-conteudo { height: calc(100dvh - 120px); }
+  .caixa { height: 100%; }
+}
 @media (max-width: 760px) {
-  .at-topo { gap: 10px; padding: 0 10px; }
-  .at-marca span { display: none; }
-  .at-voltar { padding: 6px 8px; }
   .caixa { grid-template-columns: 1fr; }
   .caixa.com-conversa .caixa-lista { display: none; }
   .caixa:not(.com-conversa) .caixa-chat, .caixa:not(.com-conversa) .caixa-vazia { display: none; }
   .chat-msgs { padding: 12px; }
   .msg { max-width: 90%; }
-  .caixa-contato.aberto { inset: 58px 0 0 0; width: 100%; }
+  .caixa-contato.aberto { inset: 0; width: 100%; }
 }
 .caixa-itens .vazio { margin: 16px; }
 .abas-mini button { white-space: nowrap; font-size: .8rem; }

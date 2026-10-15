@@ -195,12 +195,17 @@ $$;
 revoke execute on function comprou_desde(uuid, timestamptz) from public, anon, authenticated;
 
 -- filtro único usado na busca e na montagem das listas
-create function contatos_filtrados(p jsonb) returns table (id uuid)
+create or replace function contatos_filtrados(p jsonb) returns table (id uuid)
 language sql stable security definer set search_path = public as $$
   select c.id from crm_contatos c left join contato_resumo r on r.contato_id = c.id
   where c.empresa_id = empresa_unique()
     and (coalesce(p->>'segmento', '') = '' or r.segmento = p->>'segmento'
          or (p->>'segmento' = 'comprador_ou_quase' and r.segmento in ('comprador', 'quase')))
+    and (coalesce(p->>'compra', '') = ''
+         or (p->>'compra' = 'sim' and r.segmento = 'comprador')
+         or (p->>'compra' = 'nao' and coalesce(r.segmento, 'frio') <> 'comprador')
+         or (p->>'compra' = 'online' and cardinality(coalesce(r.produtos, '{}')) > 0)
+         or (p->>'compra' = 'presencial' and coalesce(r.aluno_presencial, false)))
     and (coalesce(p->>'produto', '') = '' or p->>'produto' = any (r.produtos))
     and (coalesce(p->>'sem_produto', '') = '' or not (p->>'sem_produto' = any (coalesce(r.produtos, '{}'))))
     and (coalesce(p->>'ano_compra', '') = '' or (p->>'ano_compra')::int = any (r.anos_compra))

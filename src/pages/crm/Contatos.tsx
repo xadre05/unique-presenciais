@@ -82,6 +82,13 @@ export default function Contatos() {
           <option value="comprador_ou_quase">Compradores + quase compraram</option>
           {Object.entries(SEGMENTOS).map(([k, s]) => <option key={k} value={k}>{s.rotulo}</option>)}
         </select></label>
+        <label className="select-icone"><Icone nome="check" tam={16} /><select value={f.compra ?? ''} onChange={(e) => mudar('compra', e.target.value)}>
+          <option value="">Comprou ou não</option>
+          <option value="sim">Já comprou (aluno)</option>
+          <option value="nao">Nunca comprou</option>
+          <option value="online">Aluno do online</option>
+          <option value="presencial">Aluno do presencial</option>
+        </select></label>
         <label className="select-icone"><Icone nome="sacola" tam={16} /><select value={f.produto ?? ''} onChange={(e) => mudar('produto', e.target.value)}>
           <option value="">Comprou qualquer produto</option>{nomesProdutos.map((p) => <option key={p} value={p}>Comprou {p}</option>)}
         </select></label>

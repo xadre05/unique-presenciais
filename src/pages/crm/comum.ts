@@ -24,7 +24,7 @@ export const STATUS_LISTA: Record<string, { rotulo: string; tom: string; grupo: 
 }
 
 export type Filtro = {
-  busca?: string; segmento?: string; produto?: string; sem_produto?: string; ano_compra?: string; ano_entrada?: string
+  busca?: string; segmento?: string; compra?: string; produto?: string; sem_produto?: string; ano_compra?: string; ano_entrada?: string
   tag?: string; so_whats?: boolean; fora_de_lista?: boolean
 }
 export const limparFiltro = (f: Filtro) => Object.fromEntries(Object.entries(f).filter(([, v]) => v !== '' && v !== undefined && v !== false)) as Filtro
@@ -33,6 +33,7 @@ export function descreverFiltro(f: Filtro) {
   const p: string[] = []
   if (f.segmento === 'comprador_ou_quase') p.push('Compradores e quase compraram')
   else if (f.segmento) p.push(SEGMENTOS[f.segmento]?.rotulo ?? f.segmento)
+  if (f.compra) p.push(({ sim: 'já comprou', nao: 'nunca comprou', online: 'comprou no online', presencial: 'aluno do presencial' } as Record<string, string>)[f.compra] ?? f.compra)
   if (f.produto) p.push(`comprou ${f.produto}`)
   if (f.sem_produto) p.push(`não comprou ${f.sem_produto}`)
   if (f.ano_compra) p.push(`comprou em ${f.ano_compra}`)

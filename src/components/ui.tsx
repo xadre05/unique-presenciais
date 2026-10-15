@@ -110,11 +110,11 @@ export function Kpi({ rotulo, valor, tom, sub }: { rotulo: string; valor: string
   )
 }
 
-export function Marca({ grande }: { grande?: boolean }) {
+export function Marca({ grande, sub = 'Comercial' }: { grande?: boolean; sub?: string }) {
   return (
     <div className={`marca-logo${grande ? ' grande' : ''}`}>
       <img src="/logo-unique.png" alt="Unique HOF Academy" />
-      <span className="marca-sub">Comercial</span>
+      <span className="marca-sub">{sub}</span>
     </div>
   )
 }
