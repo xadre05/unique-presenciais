@@ -726,3 +726,10 @@ select option:checked { background-color: #6d5427; color: #fff3d9; }
   .kpis-5 { grid-template-columns: 1fr; }
   .topo-marca span { display: none; }
 }
+
+/* Celular: filtros em 2 colunas (busca ocupa a linha toda) para a lista aparecer mais cedo */
+@media (max-width: 640px) {
+  .filtros-pagamentos, .filtros-alunos, .filtros-comissoes, .filtros-turmas, .filtros-agenda, .filtros-historico, .filtros-painel { grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; }
+  .filtros-pagamentos > :first-child, .filtros-alunos > :first-child, .filtros-turmas > :first-child, .filtro-datas, .alternar { grid-column: 1 / -1; }
+  .filtros-pagamentos select, .filtros-alunos select, .filtros-comissoes select, .filtros-turmas select, .filtros-agenda select, .filtros-historico select, .filtros-painel select { font-size: 0.82rem; padding-top: 9px; padding-bottom: 9px; }
+}
