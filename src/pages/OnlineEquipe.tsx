@@ -7,7 +7,7 @@ import { Badge, Erro, Vazio } from '../components/ui'
 import { Icone } from '../components/Icone'
 
 type Linha = { comprador_nome: string; produto_nome: string; primeira_data: string; pagas: number; restantes: number; proxima_data: string | null; situacao: string; vendedora_nome: string | null; minha: boolean }
-const SIT: Record<string, { rotulo: string; tom: string }> = { em_dia: { rotulo: 'Em dia', tom: 'ok' }, atrasado: { rotulo: 'Atrasado', tom: 'erro' }, quitado: { rotulo: 'Quitado', tom: 'neutro' } }
+const SIT: Record<string, { rotulo: string; tom: string }> = { em_dia: { rotulo: 'Em dia', tom: 'ok' }, atrasado: { rotulo: 'Atrasado', tom: 'erro' }, quitado: { rotulo: 'Quitado', tom: 'neutro' }, estornado: { rotulo: 'Reembolsado', tom: 'alerta' }, desistiu: { rotulo: 'Parou de pagar', tom: 'neutro' } }
 
 // Visão do online para a vendedora: quem comprou, de quem é, e se está em dia. Sem valores.
 export default function OnlineEquipe() {

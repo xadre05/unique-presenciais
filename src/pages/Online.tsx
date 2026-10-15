@@ -11,14 +11,14 @@ export type CompraOnline = {
   em: string; produto_id: number | null; oferta_codigo: string | null; np: number; comprador_nome: string | null; produto_nome: string | null; integracao_id: string
   pagas: number; estornos: number; ultima_cobranca: number | null; primeira_data: string | null; ultima_data: string | null; total_pago: number | null; total_liquido: number | null
   valor_parcela: number | null; liquido_parcela: number | null; rastreio: string | null; forma: string | null; restantes: number; proxima_data: string | null
-  situacao: 'em_dia' | 'atrasado' | 'quitado' | 'estornado'; a_receber_liquido: number; a_receber_bruto: number; vendedora_nome: string | null
+  situacao: 'em_dia' | 'atrasado' | 'quitado' | 'estornado' | 'desistiu'; a_receber_liquido: number; a_receber_bruto: number; vendedora_nome: string | null
 }
 type PagOnline = { id: string; comprador_nome: string | null; comprador_email: string; produto_nome: string | null; valor: number | null; valor_liquido: number | null; forma: string | null; parcelas_cartao: number | null; recorrencia: number | null; dia: string; rastreio: string | null; comissao: number | null; vendedora_nome: string | null }
 type Previsao = { mes: string; parcelas: number; bruto: number; liquido: number; de_atrasados: number; liquido_em_dia: number; parcelas_em_dia: number }
 type Atraso = CompraOnline & { cobrancas_vencidas: number; valor_vencido: number; parou_em: string }
 
 export const SITUACAO_ONLINE: Record<string, { rotulo: string; tom: string }> = {
-  em_dia: { rotulo: 'Em dia', tom: 'ok' }, atrasado: { rotulo: 'Atrasado', tom: 'erro' }, quitado: { rotulo: 'Quitado', tom: 'neutro' }, estornado: { rotulo: 'Estornado', tom: 'alerta' },
+  em_dia: { rotulo: 'Em dia', tom: 'ok' }, atrasado: { rotulo: 'Atrasado', tom: 'erro' }, quitado: { rotulo: 'Quitado', tom: 'neutro' }, estornado: { rotulo: 'Estornado', tom: 'alerta' }, desistiu: { rotulo: 'Parou de pagar (+6 meses)', tom: 'neutro' },
 }
 const FORMA: Record<string, string> = { CREDIT_CARD: 'Cartão', BILLET: 'Boleto', PIX: 'Pix', PAYPAL: 'PayPal', GOOGLE_PAY: 'Google Pay', APPLE_PAY: 'Apple Pay' }
 const mesAtual = () => hojeISO().slice(0, 7)
@@ -160,7 +160,7 @@ export function AlunosOnline() {
   const alunos = useMemo(() => {
     const g = new Map<string, CompraOnline[]>()
     for (const c of compras.dados ?? []) g.set(c.em, [...(g.get(c.em) ?? []), c])
-    const ordem = ['atrasado', 'em_dia', 'estornado', 'quitado']
+    const ordem = ['atrasado', 'em_dia', 'estornado', 'desistiu', 'quitado']
     return [...g.entries()].map(([em, cs]) => ({
       em, nome: cs[0].comprador_nome ?? em, compras: cs,
       situacao: ordem.find((o) => cs.some((c) => c.situacao === o)) ?? 'quitado',

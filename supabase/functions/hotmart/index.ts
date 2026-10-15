@@ -83,10 +83,17 @@ async function ofertas(db: SupabaseClient, integ: Integ, tk: string) {
   return { produtos: produtos.length, novos, atualizados, desativados }
 }
 
-async function pagamentos(db: SupabaseClient, integ: Integ, tk: string, dias: number, jaLeuProdutos: boolean) {
+// Status que a busca traz. Sem filtro a Hotmart só devolve aprovados; para ver reembolso e cancelamento é preciso pedir cada um.
+const APROVADOS = ['APPROVED', 'COMPLETE']
+const DESFEITOS = ['REFUNDED', 'CHARGEBACK', 'CANCELLED', 'PROTESTED', 'PARTIALLY_REFUNDED', 'DISPUTE']
+
+async function pagamentos(db: SupabaseClient, integ: Integ, tk: string, janela: { inicio: number; fim: number }, statuses: string[], jaLeuProdutos: boolean) {
   if (!jaLeuProdutos) await lerProdutos(db, integ, tk)
-  const fim = Date.now(), inicio = fim - dias * 86400000
-  const vendas = await paginas(`${API}/payments/api/v1/sales/history`, tk, { start_date: String(inicio), end_date: String(fim) })
+  const vendas: Record<string, any>[] = []
+  for (const st of statuses) {
+    try { vendas.push(...await paginas(`${API}/payments/api/v1/sales/history`, tk, { start_date: String(janela.inicio), end_date: String(janela.fim), transaction_status: st })) }
+    catch (e) { if (APROVADOS.includes(st)) throw e } // status raro que a Hotmart não aceite não derruba a busca
+  }
   const cont: Record<string, number> = { baixado: 0, a_conferir: 0, sem_acao: 0, ignorado: 0 }
   for (const v of vendas) {
     const pu = v.purchase ?? {}
@@ -149,7 +156,13 @@ Deno.serve(async (req) => {
       const tk = await token(cred as Cred)
       const r: Record<string, unknown> = {}
       if (acao === 'ofertas' || (acao === 'tudo' && integ.traz_ofertas)) r.ofertas = await ofertas(db, integ, tk)
-      if (acao === 'pagamentos' || (acao === 'tudo' && integ.traz_pagamentos)) r.pagamentos = await pagamentos(db, integ, tk, Math.min(365, Math.max(1, Number(corpo.dias ?? 3))), !!r.ofertas)
+      if (acao === 'pagamentos' || (acao === 'tudo' && integ.traz_pagamentos)) {
+        // janela: datas exatas (histórico, mês a mês) ou os últimos N dias
+        const fim = Number(corpo.fim) || Date.now()
+        const inicio = Number(corpo.inicio) || fim - Math.min(800, Math.max(1, Number(corpo.dias ?? 3))) * 86400000
+        const statuses = corpo.so_desfeitos ? DESFEITOS : [...APROVADOS, ...DESFEITOS]
+        r.pagamentos = await pagamentos(db, integ, tk, { inicio, fim }, statuses, !!r.ofertas || !!corpo.sem_produtos)
+      }
       await db.from('integracoes').update({ ultimo_teste_em: agora, ultimo_teste_ok: true, ultimo_erro: null, ...(acao === 'testar' ? {} : { ultima_sinc_em: agora }) }).eq('id', integ.id)
       resultado[integ.id] = { ok: true, ...r }
     } catch (e) {

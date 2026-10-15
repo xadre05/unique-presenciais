@@ -88,6 +88,25 @@ function CartaoHotmart({ i, onMudou }: { i: Integ; onMudou: () => void }) {
     } catch (e) { setErro((e as Error).message) }
     setRodando(null); onMudou()
   }
+  // histórico completo: mês a mês desde abril/2021 (cada mês é uma chamada curta, para não estourar o tempo)
+  const historico = async () => {
+    setRodando('historico'); setMsg(null); setErro(null)
+    const meses: [number, number][] = []
+    for (let d = new Date(2021, 3, 1); d < new Date(); d = new Date(d.getFullYear(), d.getMonth() + 1, 1)) {
+      const fim = new Date(d.getFullYear(), d.getMonth() + 1, 1)
+      meses.push([d.getTime(), Math.min(fim.getTime(), Date.now())])
+    }
+    let lidos = 0, falhas = 0
+    for (let k = meses.length - 1; k >= 0; k--) {
+      setMsg(`Trazendo ${new Date(meses[k][0]).toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' })}… (${meses.length - k} de ${meses.length}) · ${lidos} pagamento(s) lidos até agora`)
+      try {
+        const d = await chamar({ acao: 'pagamentos', integracao: i.id, inicio: meses[k][0], fim: meses[k][1], sem_produtos: k !== meses.length - 1 })
+        lidos += Number(d?.resultado?.[i.id]?.pagamentos?.vendas ?? 0)
+      } catch { falhas++ }
+    }
+    setMsg(`Histórico pronto: ${lidos} pagamento(s) lidos desde abril/2021, incluindo reembolsos e cancelamentos.${falhas ? ` ${falhas} mês(es) falharam — clique de novo para tentar.` : ''} Nada foi baixado sem a sua confirmação.`)
+    setRodando(null); onMudou()
+  }
   const copiar = async () => { try { await navigator.clipboard.writeText(URL_AVISO + i.id); setCopiado(true); setTimeout(() => setCopiado(false), 1800) } catch { /* sem área de transferência */ } }
 
   return (
@@ -129,7 +148,7 @@ function CartaoHotmart({ i, onMudou }: { i: Integ; onMudou: () => void }) {
         <button className="btn btn-ouro" onClick={() => setCred(true)}><Icone nome="documento" tam={16} /> {temApi ? 'Trocar credenciais' : 'Cadastrar credenciais'}</button>
         <button className="btn btn-contorno" disabled={!temApi || !!rodando} onClick={() => executar('testar', 'testar')}>{rodando === 'testar' ? 'Testando…' : 'Testar conexão'}</button>
         <button className="btn btn-contorno" disabled={!temApi || !!rodando} onClick={() => executar('tudo', 'agora', 3)}><Icone nome="historico" tam={16} /> {rodando === 'agora' ? 'Buscando…' : 'Atualizar agora'}</button>
-        <button className="btn" disabled={!temApi || !!rodando} onClick={() => executar('pagamentos', 'antigos', 120)} title="Lê os pagamentos dos últimos 4 meses e baixa as parcelas que baterem">{rodando === 'antigos' ? 'Buscando 4 meses…' : 'Buscar últimos 4 meses'}</button>
+        <button className="btn" disabled={!temApi || !!rodando} onClick={historico} title="Lê todos os pagamentos desde abril/2021, inclusive reembolsos e cancelamentos. Pode levar alguns minutos.">{rodando === 'historico' ? 'Trazendo histórico…' : 'Trazer histórico completo'}</button>
         <button className="link pequeno" onClick={() => setPassos((v) => !v)}>{passos ? 'Esconder passo a passo' : 'Como conectar'}</button>
       </div>
 
@@ -139,7 +158,7 @@ function CartaoHotmart({ i, onMudou }: { i: Integ; onMudou: () => void }) {
           <li><b>Aviso automático (para a baixa cair na hora).</b> Na mesma Hotmart → Ferramentas → <b>Webhook</b> → Cadastrar webhook. Cole este endereço, escolha a versão <b>2.0</b> e marque todos os eventos de compra:
             <div className="integ-url"><code>{URL_AVISO + i.id}</code><button className="btn btn-mini" onClick={copiar}>{copiado ? 'Copiado ✓' : 'Copiar'}</button></div>
             Depois, na aba <b>Autenticação</b> do Webhook, copie o <b>Hottok</b> e cole no campo Hottok das credenciais aqui.</li>
-          <li><b>Teste.</b> Clique em <b>Testar conexão</b>. Para pegar o que já foi pago antes de ligar, use <b>Buscar últimos 4 meses</b>.</li>
+          <li><b>Teste.</b> Clique em <b>Testar conexão</b>. Para trazer todo o passado (desde 2021, com reembolsos e cancelamentos), use <b>Trazer histórico completo</b>.</li>
         </ol>
       )}
       {cred && <Credenciais i={i} campos={campos} onFechar={() => setCred(false)} onSalvo={() => { setCred(false); carregarCampos(); onMudou() }} />}
