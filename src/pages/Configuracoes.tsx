@@ -80,7 +80,7 @@ function AbaEquipe() {
     {pendentes.length > 0 && (
       <div className="faixa-alerta">
         <Icone nome="alerta" tam={20} />
-        <span><b>{pendentes.length} pessoa(s) aguardando liberação:</b> {pendentes.map((p) => p.nome || p.email).join(', ')}. Confira se é mesmo da equipe antes de liberar.</span>
+        <span><b>{pendentes.length} pessoa(s) aguardando liberação:</b> {pendentes.map((p) => { const v = cad.vendedoras.find((x) => x.email && x.email.toLowerCase() === p.email?.toLowerCase() && !x.perfil_id); return (p.nome || p.email) + (v ? ` (e-mail confere com a vendedora ${v.nome})` : '') }).join(', ')}. Confira se é mesmo da equipe antes de liberar.</span>
         <button className="btn btn-contorno btn-mini" onClick={() => setEditar(pendentes[0])}>Liberar</button>
       </div>
     )}
@@ -122,16 +122,19 @@ function AbaEquipe() {
           <div key={k} className="perfil-item"><Badge tom={PAPEIS[k].tom}>{PAPEIS[k].rotulo}</Badge><p className="muted pequeno">{PAPEIS[k].descricao}</p></div>
         ))}
         <p className="muted pequeno"><b>Login ≠ vendedora.</b> O login é quem entra no sistema; a vendedora é o nome que recebe matrícula e comissão. Ligue os dois para a vendedora ver as próprias vendas.</p>
+        <Link to="/configuracoes/vendedoras" className="btn btn-contorno btn-bloco"><Icone nome="mais" tam={16} /> Cadastrar vendedora (antes de ela criar a conta)</Link>
       </aside>
     </div>
     {editar && <AlterarAcesso p={editar} vendedoras={cad.vendedoras} onFechar={() => setEditar(null)} onSalvo={() => { setEditar(null); perfis.recarregar(); cad.recarregar() }} />}
   </>)
 }
 
-function AlterarAcesso({ p, vendedoras, onFechar, onSalvo }: { p: PerfilC; vendedoras: { id: string; nome: string; perfil_id: string | null; ativa: boolean }[]; onFechar: () => void; onSalvo: () => void }) {
+function AlterarAcesso({ p, vendedoras, onFechar, onSalvo }: { p: PerfilC; vendedoras: { id: string; nome: string; perfil_id: string | null; ativa: boolean; email?: string | null }[]; onFechar: () => void; onSalvo: () => void }) {
   const vincAtual = vendedoras.find((v) => v.perfil_id === p.id)?.id ?? ''
+  // vendedora cadastrada antes com o mesmo e-mail da conta: já vem escolhida
+  const pelaEmail = vendedoras.find((v) => !v.perfil_id && v.ativa && v.email && v.email.toLowerCase() === p.email?.toLowerCase())
   const [papel, setPapel] = useState<Papel>(p.papel === 'pendente' ? 'vendedora' : p.papel)
-  const [vend, setVend] = useState(vincAtual)
+  const [vend, setVend] = useState(vincAtual || pelaEmail?.id || '')
   const [confirmar, setConfirmar] = useState(false)
   const [erro, setErro] = useState<string | null>(null)
   const [salvando, setSalvando] = useState(false)
@@ -167,6 +170,7 @@ function AlterarAcesso({ p, vendedoras, onFechar, onSalvo }: { p: PerfilC; vende
         </div>
         {papel !== 'inativo' && papel !== 'pendente' && (
           <Campo rotulo="Vendedora vinculada" dica={papel === 'vendedora' ? 'Obrigatório para ela fazer matrícula e ver as próprias comissões.' : 'Opcional. Só se o administrador também vende.'}>
+            {pelaEmail && vend === pelaEmail.id && !vincAtual && <p className="ok-txt pequeno" style={{ margin: '0 0 6px' }}>✓ E-mail confere com o cadastro da vendedora {pelaEmail.nome}.</p>}
             <select value={vend} onChange={(e) => setVend(e.target.value)}>
               <option value="">Nenhuma</option>
               {vendedoras.filter((v) => v.ativa || v.id === vincAtual).map((v) => <option key={v.id} value={v.id} disabled={!!v.perfil_id && v.perfil_id !== p.id}>{v.nome}{v.perfil_id && v.perfil_id !== p.id ? ' (já tem login)' : ''}</option>)}
@@ -204,7 +208,7 @@ function AbaVendedoras() {
   const cad = useCadastros()
   const perfis = useConsulta<PerfilC[]>(() => supabase.from('perfis').select('*'))
   const mats = useConsulta<{ vendedora_id: string | null; status: string }[]>(() => supabase.from('matriculas').select('vendedora_id,status'))
-  const [ed, setEd] = useState<{ id?: string; nome: string } | null>(null)
+  const [ed, setEd] = useState<{ id?: string; nome: string; email: string; funcao: string } | null>(null)
   const [erro, setErro] = useState<string | null>(null)
   const contagem = useMemo(() => {
     const m = new Map<string, number>()
@@ -214,32 +218,39 @@ function AbaVendedoras() {
   const exec = async (pr: PromiseLike<{ error: { message: string } | null }>) => { setErro(null); const { error } = await pr; if (error) setErro(msgErro(error)); cad.recarregar() }
   const salvar = async () => {
     if (!ed?.nome.trim()) return
-    await exec(ed.id ? supabase.from('vendedoras').update({ nome: ed.nome.trim() }).eq('id', ed.id) : supabase.from('vendedoras').insert({ nome: ed.nome.trim() }))
-    setEd(null)
+    const email = ed.email.trim().toLowerCase()
+    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return setErro('E-mail inválido.')
+    const reg = { nome: ed.nome.trim(), email: email || null, funcao: ed.funcao.trim() || null }
+    setErro(null)
+    const { error } = ed.id ? await supabase.from('vendedoras').update(reg).eq('id', ed.id) : await supabase.from('vendedoras').insert(reg)
+    if (error) return setErro(error.message.includes('vendedoras_email_unico') ? 'Esse e-mail já está em outra vendedora.' : msgErro(error))
+    cad.recarregar(); setEd(null)
   }
   const vs = [...cad.vendedoras].sort((a, b) => Number(b.ativa) - Number(a.ativa) || a.nome.localeCompare(b.nome))
 
   return (<>
     <div className="bloco-topo">
-      <p className="muted pequeno" style={{ margin: 0 }}>Vendedora é o nome que fica na matrícula e recebe comissão. <b>Cadastrar vendedora não dá acesso ao sistema</b>: o acesso é liberado em <Link to="/configuracoes/equipe" className="link">Equipe e acessos</Link>.</p>
-      <button className="btn btn-ouro" onClick={() => setEd({ nome: '' })}><Icone nome="mais" /> Nova vendedora</button>
+      <p className="muted pequeno" style={{ margin: 0 }}>Quem vende e ganha comissão (vendedora, CS, suporte…). Cadastre aqui com o <b>e-mail</b> da pessoa: quando ela criar a conta no sistema com esse e-mail, a ligação já vem pronta e você só confirma em <Link to="/configuracoes/equipe" className="link">Equipe e acessos</Link>. Cadastrar aqui não dá acesso sozinho.</p>
+      <button className="btn btn-ouro" onClick={() => setEd({ nome: '', email: '', funcao: '' })}><Icone nome="mais" /> Nova vendedora</button>
     </div>
     <Erro msg={erro} />
     <section className="bloco sem-padding">
       <div className="tabela-wrap">
         <table className="tabela">
-          <thead><tr><th>Vendedora</th><th>Login vinculado</th><th className="num">Matrículas</th><th>Situação</th><th></th></tr></thead>
+          <thead><tr><th>Vendedora</th><th>E-mail e login</th><th className="num">Matrículas</th><th>Situação</th><th></th></tr></thead>
           <tbody>
             {vs.map((v) => {
               const login = (perfis.dados ?? []).find((p) => p.id === v.perfil_id)
               return (
                 <tr key={v.id} className={v.ativa ? '' : 'linha-apagada'}>
-                  <td className="forte">{v.nome}</td>
-                  <td className="pequeno">{login ? <>{login.email} {login.papel === 'inativo' && <Badge>login desativado</Badge>}</> : <span className="muted">sem login</span>}</td>
+                  <td><div className="forte">{v.nome}</div>{v.funcao && <div className="muted pequeno">{v.funcao}</div>}</td>
+                  <td className="pequeno">{login ? <>{login.email} <Badge tom={login.papel === 'inativo' ? 'neutro' : 'ok'}>{login.papel === 'inativo' ? 'login desativado' : 'com acesso'}</Badge></>
+                    : (() => { const espera = v.email ? (perfis.dados ?? []).find((p) => p.email?.toLowerCase() === v.email!.toLowerCase()) : undefined
+                      return v.email ? <>{v.email} {espera ? <Badge tom="alerta">criou a conta — liberar</Badge> : <span className="muted">· ainda não criou a conta</span>}</> : <span className="muted">sem e-mail</span> })()}</td>
                   <td className="num">{contagem.get(v.id) ?? 0}</td>
                   <td><Badge tom={v.ativa ? 'ok' : 'neutro'}>{v.ativa ? 'Ativa' : 'Inativa'}</Badge></td>
                   <td className="celula-acao acao-curta">
-                    <button className="btn btn-contorno btn-mini" onClick={() => setEd({ id: v.id, nome: v.nome })}>Renomear</button>{' '}
+                    <button className="btn btn-contorno btn-mini" onClick={() => setEd({ id: v.id, nome: v.nome, email: v.email ?? '', funcao: v.funcao ?? '' })}>Editar</button>{' '}
                     <button className="btn btn-mini" onClick={() => exec(supabase.from('vendedoras').update({ ativa: !v.ativa }).eq('id', v.id))}>{v.ativa ? 'Desativar' : 'Reativar'}</button>
                   </td>
                 </tr>
@@ -251,8 +262,12 @@ function AbaVendedoras() {
     </section>
     <p className="muted pequeno">Desativar tira a vendedora das listas de novas matrículas. Vendas e comissões antigas continuam no nome dela.</p>
     {ed && (
-      <Modal titulo={ed.id ? 'Renomear vendedora' : 'Nova vendedora'} aberto onFechar={() => setEd(null)}>
-        <Campo rotulo="Nome" dica="Como aparece nas matrículas e comissões."><input value={ed.nome} autoFocus onChange={(e) => setEd({ ...ed, nome: e.target.value })} onKeyDown={(e) => e.key === 'Enter' && salvar()} /></Campo>
+      <Modal titulo={ed.id ? 'Editar vendedora' : 'Nova vendedora'} aberto onFechar={() => setEd(null)}>
+        <Campo rotulo="Nome" dica="Como aparece nas matrículas e comissões."><input value={ed.nome} autoFocus onChange={(e) => setEd({ ...ed, nome: e.target.value })} /></Campo>
+        <Campo rotulo="E-mail" dica="O mesmo que ela vai usar para criar a conta no sistema. É assim que o sistema reconhece quem é."><input type="email" value={ed.email} onChange={(e) => setEd({ ...ed, email: e.target.value })} placeholder="nome@email.com" /></Campo>
+        <Campo rotulo="Função (opcional)" dica="Ex.: Vendedora, CS / suporte. Só para identificar."><input value={ed.funcao} onChange={(e) => setEd({ ...ed, funcao: e.target.value })} /></Campo>
+        <p className="muted pequeno">A comissão segue as mesmas regras (presencial por matrícula; online 10% lead dela / 5% campanha). Para o online, cadastre o nome que ela vai usar no link da Hotmart em Comissões → links das vendedoras.</p>
+        <Erro msg={erro} />
         <div className="modal-acoes"><button className="btn" onClick={() => setEd(null)}>Cancelar</button><button className="btn btn-ouro" disabled={!ed.nome.trim()} onClick={salvar}>Salvar</button></div>
       </Modal>
     )}
