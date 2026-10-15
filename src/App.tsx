@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { BrowserRouter, NavLink, Navigate, Route, Routes } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { BrowserRouter, Link, NavLink, Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { AuthProvider, useAuth } from './auth'
 import { supabase } from './lib/supabase'
 import Login from './pages/Login'
@@ -44,9 +44,21 @@ function Aguardando() {
 
 function Layout() {
   const { perfil, isAdmin } = useAuth()
+  const [menu, setMenu] = useState(false)
+  const local = useLocation()
+  useEffect(() => { setMenu(false); window.scrollTo(0, 0) }, [local.pathname, local.search])
+  useEffect(() => { document.body.classList.toggle('menu-aberto', menu) }, [menu])
   return (
     <div className="app">
-      <aside className="lateral">
+      {/* celular: barra de cima com logo, nova matrícula e menu */}
+      <header className="topo-movel">
+        <Link to="/" className="topo-marca"><img src="/logo-unique.png" alt="Unique" /><span>Comercial</span></Link>
+        <Link to="/matricula/nova" className="btn btn-ouro btn-quadrado" aria-label="Nova matrícula"><Icone nome="mais" /></Link>
+        <button className="btn btn-quadrado topo-menu" aria-label="Abrir menu" onClick={() => setMenu(true)}><Icone nome="menu" /></button>
+      </header>
+      {menu && <div className="fundo-menu" onClick={() => setMenu(false)} />}
+      <aside className={`lateral${menu ? ' aberta' : ''}`}>
+        <button className="btn btn-quadrado fechar-menu" aria-label="Fechar menu" onClick={() => setMenu(false)}><Icone nome="fechar" /></button>
         <Marca />
         <nav>
           <NavLink to="/" end><Icone nome="painel" /> Painel</NavLink>
@@ -70,6 +82,14 @@ function Layout() {
           </div>
         </div>
       </aside>
+      {/* celular: atalhos embaixo */}
+      <nav className="barra-inferior">
+        <NavLink to="/" end><Icone nome="painel" /><span>Painel</span></NavLink>
+        <NavLink to="/pagamentos"><Icone nome="pagamentos" /><span>Pagamentos</span></NavLink>
+        <NavLink to="/alunos"><Icone nome="alunos" /><span>Alunos</span></NavLink>
+        <NavLink to="/comissoes"><Icone nome="comissoes" /><span>Comissões</span></NavLink>
+        <button onClick={() => setMenu(true)}><Icone nome="menu" /><span>Mais</span></button>
+      </nav>
       <main className="conteudo">
         <Routes>
           <Route path="/" element={<Painel />} />
