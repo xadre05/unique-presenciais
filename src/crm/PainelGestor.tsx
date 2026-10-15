@@ -16,10 +16,13 @@ const minutos = (m: number | null) => m == null ? '—' : m < 60 ? `${Math.round
 export default function PainelGestor({ empresaId, base }: { empresaId: string; base: BaseCRM }) {
   const [dias, setDias] = useState(30)
   const [p, setP] = useState<Painel | null>(null)
+  const [t, setT] = useState<{ devolvidos: number; arquivados: number; reativados: number; no_arquivo: number } | null>(null)
   const [erro, setErro] = useState<string | null>(null)
   const carregar = useCallback(async () => {
     const { data, error } = await supabase.rpc('crm_painel', { p_empresa: empresaId, p_dias: dias })
     if (error) setErro(error.message); else { setErro(null); setP(data as Painel) }
+    const r = await supabase.rpc('crm_painel_tentativas', { p_empresa: empresaId, p_dias: dias })
+    if (!r.error) setT(r.data)
   }, [empresaId, dias])
   useEffect(() => { carregar(); const t = setInterval(carregar, 60000); return () => clearInterval(t) }, [carregar])
 
@@ -47,6 +50,12 @@ export default function PainelGestor({ empresaId, base }: { empresaId: string; b
         <div className="kpi"><div className="kpi-rotulo">Conversas sem dona</div><div className="kpi-valor">{p.agora.sem_dona}</div></div>
         <div className="kpi"><div className="kpi-rotulo">Tarefas atrasadas</div><div className={`kpi-valor${p.agora.tarefas_atrasadas ? ' erro-txt' : ''}`}>{p.agora.tarefas_atrasadas}</div></div>
       </section>
+      {t && <section className="kpis">
+        <div className="kpi"><div className="kpi-rotulo">Voltaram para a fila</div><div className={`kpi-valor${t.devolvidos ? ' aviso-txt' : ''}`}>{t.devolvidos}</div><div className="kpi-sub">sem primeiro contato no prazo · {dias} dias</div></div>
+        <div className="kpi"><div className="kpi-rotulo">Arquivados</div><div className="kpi-valor">{t.arquivados}</div><div className="kpi-sub">não responderam · {dias} dias</div></div>
+        <div className="kpi"><div className="kpi-rotulo">Voltaram do arquivo</div><div className="kpi-valor">{t.reativados}</div><div className="kpi-sub">responderam ou compraram depois</div></div>
+        <div className="kpi"><div className="kpi-rotulo">No arquivo hoje</div><div className="kpi-valor">{t.no_arquivo.toLocaleString('pt-BR')}</div></div>
+      </section>}
 
       <section className="bloco">
         <div className="bloco-topo"><h2>Equipe e rodízio</h2>

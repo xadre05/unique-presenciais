@@ -919,3 +919,11 @@ select option:checked { background-color: #6d5427; color: #fff3d9; }
 .funil-barra { display: grid; grid-template-columns: 140px 1fr 70px; gap: 10px; align-items: center; padding: 5px 0; }
 .fb-trilho { height: 10px; background: var(--painel-2); border-radius: 99px; overflow: hidden; }
 .fb-trilho > div { height: 100%; border-radius: 99px; min-width: 2px; }
+
+/* tentativas sem resposta / arquivo */
+.aviso-tentativas { padding: 8px 10px; border-radius: 8px; background: var(--painel-2); border-left: 3px solid var(--alerta); font-size: 13px; }
+.aviso-tentativas.ultima { border-left-color: var(--erro); }
+.aviso-arquivo { display: grid; gap: 6px; padding: 8px 10px; border-radius: 8px; background: var(--painel-2); justify-items: start; }
+.linha-arquivada td { opacity: .6; }
+.zona-lgpd { display: grid; gap: 8px; justify-items: start; padding-top: 12px; border-top: 1px solid var(--borda, rgba(255,255,255,.08)); }
+.btn-perigo { background: var(--erro); color: #111; border-color: var(--erro); }

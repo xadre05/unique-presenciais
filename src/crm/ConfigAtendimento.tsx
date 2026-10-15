@@ -7,7 +7,7 @@ import { STATUS_CANAL, TIPO_CANAL, type BaseCRM, type Cadencia, type Canal, type
 const URL_FUNCAO = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/crm-whatsapp`
 
 export default function ConfigAtendimento({ empresaId, base }: { empresaId: string; base: BaseCRM }) {
-  const [aba, setAba] = useState<'numeros' | 'etapas' | 'respostas' | 'followups' | 'motivos'>('numeros')
+  const [aba, setAba] = useState<'numeros' | 'etapas' | 'respostas' | 'followups' | 'regras' | 'motivos'>('numeros')
   return (
     <div>
       <nav className="abas">
@@ -15,12 +15,14 @@ export default function ConfigAtendimento({ empresaId, base }: { empresaId: stri
         <button className={aba === 'etapas' ? 'ativa' : ''} onClick={() => setAba('etapas')}>Etapas do funil</button>
         <button className={aba === 'respostas' ? 'ativa' : ''} onClick={() => setAba('respostas')}>Respostas prontas</button>
         <button className={aba === 'followups' ? 'ativa' : ''} onClick={() => setAba('followups')}>Follow-ups automáticos</button>
+        <button className={aba === 'regras' ? 'ativa' : ''} onClick={() => setAba('regras')}>Tentativas e prazos</button>
         <button className={aba === 'motivos' ? 'ativa' : ''} onClick={() => setAba('motivos')}>Motivos de perda</button>
       </nav>
       {aba === 'numeros' && <Numeros empresaId={empresaId} base={base} />}
       {aba === 'etapas' && <Etapas empresaId={empresaId} base={base} />}
       {aba === 'respostas' && <Respostas empresaId={empresaId} base={base} />}
       {aba === 'followups' && <Followups empresaId={empresaId} base={base} />}
+      {aba === 'regras' && <RegrasContato empresaId={empresaId} base={base} />}
       {aba === 'motivos' && <Motivos empresaId={empresaId} base={base} />}
     </div>
   )
@@ -258,6 +260,51 @@ function Motivos({ empresaId, base }: { empresaId: string; base: BaseCRM }) {
       <p className="muted">Para marcar um contato como perdido, a pessoa escolhe um destes. O painel mostra quais aparecem mais.</p>
       <ul className="lista-compras">{base.motivos.map((m) => <li key={m}><span>{m} <button className="link pequeno" onClick={() => tirar(m)}>remover</button></span></li>)}</ul>
       <div className="nova-tarefa-linha mt"><input value={novo} onChange={(e) => setNovo(e.target.value)} placeholder="Novo motivo" /><button className="btn btn-mini" onClick={add}>Adicionar</button></div>
+    </section>
+  )
+}
+
+// quantas tentativas sem resposta até ir para o arquivo, e quanto tempo um lead pode ficar sem primeiro contato
+function RegrasContato({ empresaId, base }: { empresaId: string; base: BaseCRM }) {
+  const cfg = base.config
+  const [max, setMax] = useState(String(cfg.tentativas_max ?? 3))
+  const [dias, setDias] = useState(String(cfg.dias_entre_tentativas ?? 2))
+  const [prazo, setPrazo] = useState(String(cfg.prazo_primeiro_contato_min ?? 5))
+  const [devolver, setDevolver] = useState(cfg.devolver_fila_min == null ? '' : String(cfg.devolver_fila_min))
+  const [msg, setMsg] = useState<string | null>(null)
+  const [erro, setErro] = useState<string | null>(null)
+  useEffect(() => {
+    setMax(String(cfg.tentativas_max ?? 3)); setDias(String(cfg.dias_entre_tentativas ?? 2))
+    setPrazo(String(cfg.prazo_primeiro_contato_min ?? 5)); setDevolver(cfg.devolver_fila_min == null ? '' : String(cfg.devolver_fila_min))
+  }, [cfg.tentativas_max, cfg.dias_entre_tentativas, cfg.prazo_primeiro_contato_min, cfg.devolver_fila_min])
+  const salvar = async () => {
+    setMsg(null); setErro(null)
+    const n = (v: string, min: number, maxv: number) => Math.min(maxv, Math.max(min, Math.round(Number(v) || 0)))
+    const { error } = await supabase.rpc('crm_salvar_config', { p_empresa: empresaId, p_config: {
+      tentativas_max: n(max, 0, 10), dias_entre_tentativas: n(dias, 1, 30), prazo_primeiro_contato_min: n(prazo, 1, 240),
+      devolver_fila_min: devolver.trim() === '' ? null : n(devolver, 5, 480) } })
+    if (error) setErro(error.message); else { setMsg('Salvo.'); base.recarregar() }
+  }
+  return (
+    <section className="bloco">
+      <h2>Tentativas sem resposta</h2>
+      <p className="muted pequeno">Conta como tentativa cada dia em que alguém mandou mensagem, abriu o WhatsApp pela lista ou concluiu uma tarefa de contato, desde a última vez que a pessoa respondeu. Enquanto um follow-up automático está rodando, ninguém vai para o arquivo.</p>
+      <div className="form-grade">
+        <Campo rotulo="Tentativas até arquivar"><input type="number" min={0} max={10} value={max} onChange={(e) => setMax(e.target.value)} /></Campo>
+        <Campo rotulo="Esperar depois da última (dias)"><input type="number" min={1} max={30} value={dias} onChange={(e) => setDias(e.target.value)} /></Campo>
+      </div>
+      <p className="muted pequeno">{Number(max) > 0
+        ? `Depois de ${max} tentativas sem resposta e ${dias} dia(s) sem nova tentativa, o contato vira Perdido (“Não respondeu ao follow-up”) e vai para o arquivo: sai das listas, disparos e follow-ups. Não é apagado. Se responder ou comprar, volta sozinho.`
+        : 'Com 0, ninguém é arquivado automaticamente.'}</p>
+
+      <h2 className="mt">Primeiro contato</h2>
+      <div className="form-grade">
+        <Campo rotulo="Prazo para o primeiro contato (min)"><input type="number" min={1} max={240} value={prazo} onChange={(e) => setPrazo(e.target.value)} /></Campo>
+        <Campo rotulo="Passar para a próxima depois de (min)"><input type="number" min={5} max={480} value={devolver} placeholder="desligado" onChange={(e) => setDevolver(e.target.value)} /></Campo>
+      </div>
+      <p className="muted pequeno">O prazo deixa o lead vermelho na Minha fila. Se ninguém responder até o segundo tempo (em horário comercial, de seg a sáb, 8h às 20h), a conversa passa para a próxima vendedora disponível no rodízio e fica um aviso na conversa. Deixe em branco para desligar.</p>
+      <div className="acoes"><button className="btn btn-ouro" onClick={salvar}>Salvar</button>{msg && <span className="ok-txt pequeno">{msg}</span>}</div>
+      <Erro msg={erro} />
     </section>
   )
 }

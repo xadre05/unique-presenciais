@@ -25,7 +25,7 @@ export const STATUS_LISTA: Record<string, { rotulo: string; tom: string; grupo: 
 
 export type Filtro = {
   busca?: string; segmento?: string; compra?: string; produto?: string; sem_produto?: string; ano_compra?: string; ano_entrada?: string
-  tag?: string; so_whats?: boolean; fora_de_lista?: boolean
+  tag?: string; so_whats?: boolean; fora_de_lista?: boolean; arquivados?: '' | 'true' | 'so'
 }
 export const limparFiltro = (f: Filtro) => Object.fromEntries(Object.entries(f).filter(([, v]) => v !== '' && v !== undefined && v !== false)) as Filtro
 
@@ -41,12 +41,14 @@ export function descreverFiltro(f: Filtro) {
   if (f.tag) p.push(`etiqueta ${f.tag}`)
   if (f.busca) p.push(`busca "${f.busca}"`)
   if (f.fora_de_lista) p.push('fora de outra lista ativa')
+  if (f.arquivados === 'so') p.push('só arquivados'); else if (f.arquivados === 'true') p.push('com arquivados')
   return p.length ? p.join(' · ') : 'Todos os contatos'
 }
 
 export type ContatoLinha = {
   id: string; nome: string | null; telefone: string | null; emails: string[]; tags: string[]; cidade: string | null; uf: string | null
   entrou_em: string | null; origem: string | null; nao_contatar: boolean; telefone_invalido: boolean
+  arquivado_em?: string | null; arquivado_motivo?: string | null
   segmento: string | null; produtos: string[] | null; total_liquido: number | null; ultima_compra: string | null
   aluno_presencial: boolean | null; reembolsou: boolean | null; lista_ativa: string | null
 }

@@ -38,6 +38,7 @@ export default function Contatos() {
   const chave = JSON.stringify(filtro)
   const res = useConsulta<{ total: number; linhas: ContatoLinha[] }>(() => supabase.rpc('buscar_contatos', { p: filtro, p_limite: POR_PAGINA, p_offset: (pagina - 1) * POR_PAGINA }), [chave, pagina, versao])
   const cont = useConsulta<Contagem>(() => supabase.rpc('contar_contatos', { p: filtro }), [chave, versao])
+  const arquivados = useConsulta<number>(() => supabase.rpc('contar_arquivados'), [versao])
   const produtos = useConsulta<{ nome: string }[]>(() => supabase.from('hotmart_produtos').select('nome').order('nome'))
   const nomesProdutos = useMemo(() => [...new Set((produtos.dados ?? []).map((p) => p.nome))], [produtos.dados])
 
@@ -105,6 +106,9 @@ export default function Contatos() {
       <div className="filtros-check">
         <label className="check"><input type="checkbox" checked={!!f.so_whats} onChange={(e) => mudar('so_whats', e.target.checked)} /> Só quem tem WhatsApp válido e aceita mensagem</label>
         <label className="check"><input type="checkbox" checked={!!f.fora_de_lista} onChange={(e) => mudar('fora_de_lista', e.target.checked)} /> Só quem não está em outra lista ativa</label>
+        <label className="check"><select value={f.arquivados ?? ''} onChange={(e) => mudar('arquivados', e.target.value)}>
+          <option value="">Sem os arquivados</option><option value="true">Com os arquivados</option><option value="so">Só os arquivados</option>
+        </select>{(arquivados.dados ?? 0) > 0 && <span className="muted pequeno">{(arquivados.dados ?? 0).toLocaleString('pt-BR')} no arquivo (não responderam ou pediram para sair)</span>}</label>
         {Object.keys(filtro).length > 1 && <button className="link pequeno" onClick={() => { setF({ so_whats: true }); setBuscaTxt(''); setPagina(1) }}>limpar filtros</button>}
       </div>
 
@@ -115,9 +119,9 @@ export default function Contatos() {
             <thead><tr><th>Contato</th><th>WhatsApp</th><th>Tipo</th><th>O que comprou</th><th className="num">Total pago</th><th>Última compra</th><th>Lista</th><th></th></tr></thead>
             <tbody>
               {(res.dados?.linhas ?? []).map((x) => (
-                <tr key={x.id} className="linha-clicavel" onClick={() => setAberto(x.id)}>
+                <tr key={x.id} className={`linha-clicavel${x.arquivado_em ? ' linha-arquivada' : ''}`} onClick={() => setAberto(x.id)}>
                   <td><span className="forte">{x.nome || 'Sem nome'}</span><div className="muted pequeno">{x.emails[0] ?? ''}{x.cidade ? ` · ${x.cidade}${x.uf ? '/' + x.uf : ''}` : ''}</div></td>
-                  <td className="pequeno">{x.nao_contatar ? <Badge tom="erro">Não quer receber</Badge> : x.telefone_invalido ? <Badge tom="erro">Número errado</Badge> : telefoneLegivel(x.telefone)}</td>
+                  <td className="pequeno">{x.arquivado_em && <div><Badge tom="apagado">Arquivado</Badge></div>}{x.nao_contatar ? <Badge tom="erro">Não quer receber</Badge> : x.telefone_invalido ? <Badge tom="erro">Número errado</Badge> : telefoneLegivel(x.telefone)}</td>
                   <td><Badge tom={SEGMENTOS[x.segmento ?? 'frio']?.tom}>{SEGMENTOS[x.segmento ?? 'frio']?.rotulo}</Badge>{x.aluno_presencial && <div className="muted pequeno">aluno presencial</div>}</td>
                   <td className="pequeno">{(x.produtos ?? []).slice(0, 2).join(', ') || '—'}{(x.produtos ?? []).length > 2 && <span className="muted"> +{(x.produtos ?? []).length - 2}</span>}</td>
                   <td className="num">{Number(x.total_liquido) > 0 ? brl(x.total_liquido) : '—'}</td>
@@ -151,10 +155,15 @@ export default function Contatos() {
 
 type Ficha = {
   contato: ContatoLinha & { observacoes: string | null; instagram: string | null; nao_contatar_motivo: string | null; criado_em: string }
+  tentativas: number
   resumo: { segmento: string; produtos: string[]; total_liquido: number; primeira_compra: string | null; ultima_compra: string | null; reembolsou: boolean; aluno_presencial: boolean } | null
   compras: { data_aprovacao: string | null; produto_nome: string | null; valor_liquido: number | null; status: string; recorrencia: number | null; parcelas_cartao: number | null }[]
   listas: { campanha: string; status: string; vendedora: string | null; nota: string | null; atualizado_em: string }[]
   eventos: { tipo: string; texto: string | null; dados: { status?: string } | null; criado_em: string; autor: string | null }[]
+}
+const TIPO_EVENTO: Record<string, string> = {
+  whatsapp: 'Abriu o WhatsApp', arquivado: 'Foi para o arquivo', reativado: 'Saiu do arquivo', respondeu: 'Respondeu',
+  sem_primeiro_contato: 'Voltou para a fila', lgpd_apagado: 'Dados apagados (LGPD)',
 }
 const STATUS_HOTMART: Record<string, string> = { APPROVED: 'Aprovado', COMPLETE: 'Completo', REFUNDED: 'Reembolsado', CHARGEBACK: 'Chargeback', CANCELLED: 'Cancelado' }
 
@@ -166,6 +175,12 @@ function FichaContato({ id, onFechar, onMudou }: { id: string; onFechar: () => v
     const { error } = await supabase.from('crm_contatos').update(campos).eq('id', id)
     if (error) return setErro(error.message)
     q.recarregar(); onMudou()
+  }
+  const [apagar, setApagar] = useState(false)
+  const rpc = async (nome: string, args: Record<string, unknown>) => {
+    const { error } = await supabase.rpc(nome, args)
+    if (error) return setErro(error.message)
+    setApagar(false); q.recarregar(); onMudou()
   }
   const k = d?.contato
   return (
@@ -189,6 +204,7 @@ function FichaContato({ id, onFechar, onMudou }: { id: string; onFechar: () => v
             <dt>Entrou em</dt><dd>{dataBR(k.entrou_em)} <span className="muted pequeno">· {k.origem ?? ''}</span></dd>
             {d.resumo && Number(d.resumo.total_liquido) > 0 && <><dt>Total pago (líquido)</dt><dd>{brl(d.resumo.total_liquido)}</dd></>}
             <dt>Etiquetas</dt><dd className="pequeno">{k.tags.join(', ') || '—'}</dd>
+            {d.tentativas > 0 && <><dt>Tentativas sem resposta</dt><dd>{d.tentativas}</dd></>}
           </dl>
           <div className="gaveta-acoes">
             {k.telefone && !k.nao_contatar && <a className="btn btn-ouro" href={linkWhats(k.telefone)!} target="_blank" rel="noreferrer"><Icone nome="whats" tam={16} /> Abrir WhatsApp</a>}
@@ -197,6 +213,11 @@ function FichaContato({ id, onFechar, onMudou }: { id: string; onFechar: () => v
               : <button className="btn btn-contorno" onClick={() => alterar({ nao_contatar: true, nao_contatar_em: new Date().toISOString(), nao_contatar_motivo: 'Marcado pelo administrador' })}>Não quer receber mensagens</button>}
             {k.telefone && <button className="btn" onClick={() => alterar({ telefone_invalido: !k.telefone_invalido })}>{k.telefone_invalido ? 'Número está certo' : 'Número errado'}</button>}
           </div>
+          {k.arquivado_em && <div className="aviso-arquivo">
+            <div><Badge tom="apagado">No arquivo</Badge> <span className="muted pequeno">{k.arquivado_motivo} · {dataBR(k.arquivado_em)}</span></div>
+            <div className="muted pequeno">Fora das listas, disparos e follow-ups. Volta sozinho se responder ou comprar.</div>
+            {!k.nao_contatar && <button className="btn btn-mini" onClick={() => rpc('crm_arquivo', { p_contato: id, p_arquivar: false })}>Reativar</button>}
+          </div>}
           {k.nao_contatar && <p className="erro-txt pequeno">Não recebe mensagens{k.nao_contatar_motivo ? ` (${k.nao_contatar_motivo})` : ''}. Fica fora de todas as listas novas.</p>}
 
           <section>
@@ -216,8 +237,15 @@ function FichaContato({ id, onFechar, onMudou }: { id: string; onFechar: () => v
           </section>}
           {d.eventos.length > 0 && <section>
             <h3>O que aconteceu</h3>
-            <ul className="lista-compras">{d.eventos.slice(0, 30).map((e, i) => <li key={i}><span className="pequeno">{e.tipo === 'whatsapp' ? 'Abriu o WhatsApp' : e.dados?.status ? `Marcou: ${STATUS_LISTA[e.dados.status]?.rotulo ?? e.dados.status}` : 'Anotação'}{e.texto ? ` — “${e.texto}”` : ''}</span><span className="muted pequeno">{dataHoraBR(e.criado_em)} · {e.autor ?? ''}</span></li>)}</ul>
+            <ul className="lista-compras">{d.eventos.slice(0, 30).map((e, i) => <li key={i}><span className="pequeno">{TIPO_EVENTO[e.tipo] ?? (e.dados?.status ? `Marcou: ${STATUS_LISTA[e.dados.status]?.rotulo ?? e.dados.status}` : 'Anotação')}{e.texto ? ` — “${e.texto}”` : ''}</span><span className="muted pequeno">{dataHoraBR(e.criado_em)} · {e.autor ?? ''}</span></li>)}</ul>
           </section>}
+          <section className="zona-lgpd">
+            {!k.arquivado_em && !k.nao_contatar && <button className="link pequeno" onClick={() => rpc('crm_arquivo', { p_contato: id, p_arquivar: true, p_motivo: 'Arquivado pelo administrador' })}>Arquivar (sai das listas e disparos, sem apagar)</button>}
+            {!k.tags.includes('lgpd-apagado') && (apagar
+              ? <div className="nota">A pessoa pediu para apagar os dados dela? Isso apaga nome, e-mails e o conteúdo das conversas e anotações. Fica só o número, marcado para nunca mais receber mensagem. Não dá para desfazer.
+                  <div className="acoes"><button className="btn btn-mini btn-perigo" onClick={() => rpc('crm_apagar_dados', { p_contato: id })}>Apagar os dados</button><button className="link pequeno" onClick={() => setApagar(false)}>cancelar</button></div></div>
+              : <button className="link pequeno erro-txt" onClick={() => setApagar(true)}>Apagar dados a pedido da pessoa (LGPD)</button>)}
+          </section>
         </>)}
       </aside>
     </div>

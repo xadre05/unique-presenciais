@@ -8,6 +8,7 @@ import { horaCurta, type BaseCRM } from './tipos'
 type Tarefa = { id: string; titulo: string; tipo: string; vence_em: string; responsavel_id: string | null; origem: string }
 type Inscricao = { id: string; cadencia_id: string; passo: number; proximo_em: string; status: string }
 type Estado = { ganho_em: string | null; perdido_em: string | null; motivo_perda: string | null; empresa_id: string }
+type Situacao = { tentativas: number; max: number; dias: number; arquivado_em: string | null; arquivado_motivo: string | null; nao_contatar: boolean }
 
 const paraInput = (d: Date) => new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16)
 
@@ -15,6 +16,7 @@ export default function ProximasAcoes({ contatoId, base }: { contatoId: string; 
   const [tarefas, setTarefas] = useState<Tarefa[]>([])
   const [insc, setInsc] = useState<Inscricao[]>([])
   const [est, setEst] = useState<Estado | null>(null)
+  const [sit, setSit] = useState<Situacao | null>(null)
   const [titulo, setTitulo] = useState('')
   const [quando, setQuando] = useState(() => { const d = new Date(); d.setDate(d.getDate() + 1); d.setHours(9, 0, 0, 0); return paraInput(d) })
   const [cad, setCad] = useState('')
@@ -23,12 +25,13 @@ export default function ProximasAcoes({ contatoId, base }: { contatoId: string; 
   const [erro, setErro] = useState<string | null>(null)
 
   const carregar = useCallback(async () => {
-    const [t, i, c] = await Promise.all([
+    const [t, i, c, s] = await Promise.all([
       supabase.from('crm_tarefas').select('id,titulo,tipo,vence_em,responsavel_id,origem').eq('contato_id', contatoId).is('feita_em', null).is('cancelada_em', null).order('vence_em'),
       supabase.from('crm_cadencia_inscricoes').select('id,cadencia_id,passo,proximo_em,status').eq('contato_id', contatoId).eq('status', 'ativa'),
       supabase.from('crm_contatos').select('ganho_em,perdido_em,motivo_perda,empresa_id').eq('id', contatoId).single(),
+      supabase.rpc('crm_situacao_contato', { p_contato: contatoId }),
     ])
-    setTarefas((t.data as Tarefa[]) ?? []); setInsc((i.data as Inscricao[]) ?? []); setEst(c.data as Estado)
+    setTarefas((t.data as Tarefa[]) ?? []); setInsc((i.data as Inscricao[]) ?? []); setEst(c.data as Estado); setSit(s.data as Situacao | null)
   }, [contatoId])
   useEffect(() => { carregar() }, [carregar])
 
@@ -54,11 +57,30 @@ export default function ProximasAcoes({ contatoId, base }: { contatoId: string; 
     if (error) return setErro(error.message)
     setPerder(false); setMotivo(''); carregar()
   }
+  const arquivo = async (arquivar: boolean) => {
+    const { error } = await supabase.rpc('crm_arquivo', { p_contato: contatoId, p_arquivar: arquivar, p_motivo: arquivar ? 'Arquivado à mão' : null })
+    if (error) return setErro(error.message)
+    carregar()
+  }
   const nomeCad = (id: string) => base.cadencias.find((c) => c.id === id)?.nome ?? 'Follow-up'
 
   return (
     <div className="acoes-contato">
       <h3>Próxima ação</h3>
+      {sit?.arquivado_em ? (
+        <div className="aviso-arquivo">
+          <div><Badge tom="apagado">No arquivo</Badge> <span className="muted pequeno">{sit.arquivado_motivo} · {horaCurta(sit.arquivado_em)}</span></div>
+          <div className="muted pequeno">Fora das listas, disparos e follow-ups. Volta sozinho se responder ou comprar.</div>
+          {!sit.nao_contatar && <button className="btn btn-mini" onClick={() => arquivo(false)}>Reativar</button>}
+        </div>
+      ) : sit && sit.tentativas > 0 && sit.max > 0 && !est?.ganho_em && (
+        <div className={`aviso-tentativas${sit.tentativas >= sit.max - 1 ? ' ultima' : ''}`}>
+          <b>{sit.tentativas}ª tentativa sem resposta</b> <span className="muted">de {sit.max}</span>
+          <div className="pequeno">{sit.tentativas >= sit.max
+            ? `Se ninguém tentar de novo, vai para o arquivo em ${sit.dias} dia(s).`
+            : sit.tentativas === sit.max - 1 ? 'A próxima é a última: se não responder, vai para o arquivo.' : `Na ${sit.max}ª sem resposta, vai para o arquivo.`}</div>
+        </div>
+      )}
       {est?.ganho_em && <div><Badge tom="ok">Comprou</Badge> <span className="muted pequeno">{horaCurta(est.ganho_em)}</span></div>}
       {est?.perdido_em && <div><Badge tom="apagado">Perdido</Badge> <span className="muted pequeno">{est.motivo_perda}</span></div>}
       {tarefas.length === 0 && insc.length === 0 && !est?.ganho_em && !est?.perdido_em && <div className="aviso-txt pequeno">Sem próxima ação. Marque o que fazer depois.</div>}
@@ -93,6 +115,7 @@ export default function ProximasAcoes({ contatoId, base }: { contatoId: string; 
         <div className="nova-tarefa-linha">
           <button className="btn btn-mini" onClick={() => resultado('ganho')}>✓ Comprou</button>
           <button className="btn btn-mini" onClick={() => setPerder(true)}>Perdido</button>
+          {!sit?.arquivado_em && <button className="link pequeno" onClick={() => arquivo(true)} title="Tira das listas, disparos e follow-ups sem apagar">arquivar</button>}
         </div>
       ))}
       <Erro msg={erro} />

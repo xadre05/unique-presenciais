@@ -20,7 +20,7 @@ export type Mensagem = {
 }
 export type Membro = { usuario_id: string; nome: string | null; papel: 'admin' | 'atendente'; ativo: boolean; disponivel: boolean; recebe_leads: boolean }
 export type Resposta = { id: string; atalho: string; texto: string }
-export type ConfigEmpresa = { rodizio?: boolean; prazo_primeiro_contato_min?: number; devolver_fila_min?: number | null; canal_padrao?: string }
+export type ConfigEmpresa = { rodizio?: boolean; prazo_primeiro_contato_min?: number; devolver_fila_min?: number | null; canal_padrao?: string; tentativas_max?: number; dias_entre_tentativas?: number }
 export type Passo = { apos_horas: number; tipo: 'tarefa' | 'mensagem'; titulo?: string; texto?: string }
 export type Cadencia = { id: string; nome: string; passos: Passo[]; ativa: boolean; tipo_tarefa: string }
 
