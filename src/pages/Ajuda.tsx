@@ -1,7 +1,8 @@
 import { useAuth } from '../auth'
 
 const PERMISSOES: [string, string, string][] = [
-  ['Ver painel, turmas, alunos e pagamentos', 'Sim', 'Sim'],
+  ['Ver turmas, datas e vagas', 'Sim', 'Sim'],
+  ['Ver alunos, pagamentos e números do painel', 'Só das próprias vendas', 'Tudo'],
   ['Fazer nova matrícula', 'Sim (fica no nome dela)', 'Sim (escolhe quem vendeu)'],
   ['Trocar "quem vendeu"', 'Não', 'Sim'],
   ['Informar pagamento (Pix, dinheiro, Hotmart) e anexar comprovante', 'Sim', 'Sim'],

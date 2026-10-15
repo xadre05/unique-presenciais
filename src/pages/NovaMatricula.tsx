@@ -153,13 +153,11 @@ export default function NovaMatricula() {
   useEffect(() => {
     if (modoAluno !== 'novo') return setDuplicado(null)
     const t = setTimeout(async () => {
-      const f: string[] = []
-      if (so(novo.cpf).length >= 11) f.push(`cpf.ilike.%${so(novo.cpf)}%`)
-      if ((novo.email ?? '').includes('@')) f.push(`email.ilike.${limpa(novo.email!)}`)
-      if (so(novo.whatsapp).length >= 8) f.push(`whatsapp.ilike.%${so(novo.whatsapp).slice(-8)}%`)
-      if (!f.length) return setDuplicado(null)
-      const { data } = await supabase.from('alunos').select('*').or(f.join(',')).limit(1)
-      setDuplicado(((data as Aluno[]) ?? [])[0] ?? null)
+      // busca em todos os alunos (inclusive de outra vendedora), mas só devolve id e nome
+      const cpf = so(novo.cpf), email = limpa(novo.email ?? ''), whats = so(novo.whatsapp)
+      if (cpf.length < 11 && !email.includes('@') && whats.length < 8) return setDuplicado(null)
+      const { data } = await supabase.rpc('aluno_ja_cadastrado', { p_cpf: cpf, p_email: email, p_whats: whats })
+      setDuplicado((((data as Aluno[]) ?? [])[0] as Aluno) ?? null)
     }, 400)
     return () => clearTimeout(t)
   }, [modoAluno, novo.cpf, novo.email, novo.whatsapp])

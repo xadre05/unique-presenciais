@@ -71,7 +71,7 @@ export default function Painel() {
         <div className="nota">{pendentesAcesso.dados!.length} pessoa(s) criaram conta e estão esperando você liberar o acesso. <Link to="/configuracoes/equipe" className="link">Liberar agora</Link></div>
       )}
 
-      <h2 className="titulo-secao">Presencial <span className="muted pequeno">· turmas do filtro acima, valores da turma inteira (desde a venda, sem recorte de mês) · <Link to="/pagamentos" className="link">ver pagamentos</Link></span></h2>
+      <h2 className="titulo-secao">Presencial <span className="muted pequeno">· {isAdmin ? 'turmas do filtro acima, valores da turma inteira' : 'só as suas vendas, nas turmas do filtro acima'} (desde a venda, sem recorte de mês) · <Link to="/pagamentos" className="link">ver pagamentos</Link></span></h2>
       <section className="kpis kpis-5">
         <KpiIcone icone="sacola" rotulo="Valor fechado" valor={brl(soma('valor_fechado'))} sub={`${soma('inscritos')} alunos em ${ts.length} turmas`} destaque />
         <KpiIcone icone="moedas" rotulo="Recebido (conferido)" valor={brl(soma('recebido'))} tom="ok" sub="líquido recebido nas contas" />
