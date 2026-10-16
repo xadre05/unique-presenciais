@@ -37,6 +37,10 @@ function ResumoUnique({ contatoId }: { contatoId: string }) {
         ? <div className="pequeno">Comprou: <span className="muted">{(r.produtos ?? []).join(', ')}</span>{r.ultima_compra && <div className="muted">última compra em {dataBR(r.ultima_compra)}{r.total_liquido != null ? ` · ${brl(r.total_liquido)} no total` : ''}</div>}</div>
         : <div className="muted pequeno">Nenhuma compra na Hotmart com os e-mails dele.</div>}
       {r.listas.length > 0 && <div className="pequeno">{r.listas.map((l, i) => <div key={i}>{l.campanha}: <b>{STATUS_LISTA[l.status]?.rotulo}</b>{l.vendedora ? ` · ${l.vendedora}` : ''}{l.nota ? ` · “${l.nota}”` : ''}</div>)}</div>}
+      <div className="cc-botoes">
+        <Link className="btn btn-contorno-ouro btn-bloco" to={`/atendimento/contatos?abrir=${contatoId}`}><Icone nome="historico" tam={16} /> Ver histórico</Link>
+        <Link className="btn btn-ouro btn-bloco" to="/matricula/nova"><Icone nome="mais" tam={16} /> Nova matrícula</Link>
+      </div>
     </div>
   )
 }
@@ -107,9 +111,9 @@ export default function AreaAtendimento() {
         <AvisoNumeros empresaId={EMPRESA_UNIQUE} onAbrirConfig={isAdmin ? () => nav('/atendimento/config') : undefined} />
         <Routes>
           <Route index element={perfil ? <Conversas key={local.search} empresaId={EMPRESA_UNIQUE} usuarioId={perfil.id} base={base} painelExtra={extra} inicial={qs.get('c')} abaInicial={(qs.get('aba') as Aba) ?? null} /> : null} />
-          <Route path="fila" element={perfil ? <MinhaFila empresaId={EMPRESA_UNIQUE} usuarioId={perfil.id} base={base} abrirConversa={abrirConversa} prazoMin={base.config.prazo_primeiro_contato_min ?? 5} /> : null} />
-          {isAdmin && <Route path="painel" element={<PainelGestor empresaId={EMPRESA_UNIQUE} base={base} />} />}
-          <Route path="funil" element={<div className="pagina larga"><h1>Funil</h1><Funil empresaId={EMPRESA_UNIQUE} base={base} painelExtra={extra} /></div>} />
+          <Route path="fila" element={perfil ? <MinhaFila key={qs.get('quem') ?? 'eu'} empresaId={EMPRESA_UNIQUE} usuarioId={perfil.id} base={base} abrirConversa={abrirConversa} abrirAba={(a) => nav(`/atendimento?aba=${a}`)} quemInicial={qs.get('quem')} prazoMin={base.config.prazo_primeiro_contato_min ?? 5} /> : null} />
+          {isAdmin && <Route path="painel" element={<PainelGestor empresaId={EMPRESA_UNIQUE} base={base} ir={(d) => nav(d.fila ? `/atendimento/fila?quem=${d.fila}` : `/atendimento?aba=${d.aba ?? 'todas'}`)} />} />}
+          <Route path="funil" element={<div className="pagina larga at-pagina"><header className="pagina-topo at-titulo-pagina"><div><h1>Funil de vendas</h1><p className="muted">Acompanhe as oportunidades e as próximas ações.</p></div></header><Funil empresaId={EMPRESA_UNIQUE} base={base} painelExtra={extra} /></div>} />
           <Route path="listas" element={<Listas />} />
           <Route path="listas/:id" element={<ListaTrabalho />} />
           {isAdmin && <Route path="contatos" element={<Contatos />} />}

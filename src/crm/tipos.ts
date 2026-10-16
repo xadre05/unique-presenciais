@@ -12,7 +12,7 @@ export type Conversa = {
   id: string; empresa_id: string; contato_id: string; canal_id: string; status: 'aberta' | 'resolvida'; atendente_id: string | null
   com_ia: boolean; nao_lidas: number; ultima_mensagem: string | null; ultima_em: string | null; ultima_direcao: string | null
   aguardando_resposta: boolean; criado_em: string
-  contato?: { id: string; nome: string | null; telefone: string | null; etapa_id: string | null }
+  contato?: { id: string; nome: string | null; telefone: string | null; etapa_id: string | null; tags?: string[]; origem?: string | null }
 }
 export type Mensagem = {
   id: string; conversa_id: string; direcao: 'entrada' | 'saida'; autor: 'contato' | 'atendente' | 'ia' | 'sistema' | 'disparo'

@@ -64,3 +64,13 @@ end $$;
 revoke execute on function academy_lista_ao_arquivar() from public, anon, authenticated;
 create trigger academy_lista_ao_arquivar after update of arquivado_em on crm_contatos
   for each row execute function academy_lista_ao_arquivar();
+
+-- (060) lista de contatos traz a responsável (para a coluna "Responsável" na tela)
+do $f$
+declare d text;
+begin
+  d := pg_get_functiondef('buscar_contatos(jsonb,integer,integer)'::regprocedure);
+  d := replace(d, $r$c.arquivado_em, c.arquivado_motivo,$r$, $r$c.arquivado_em, c.arquivado_motivo, c.responsavel_id,$r$);
+  if d not like '%c.responsavel_id%' then raise exception 'trecho não encontrado'; end if;
+  execute d;
+end $f$;

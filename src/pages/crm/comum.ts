@@ -48,7 +48,7 @@ export function descreverFiltro(f: Filtro) {
 export type ContatoLinha = {
   id: string; nome: string | null; telefone: string | null; emails: string[]; tags: string[]; cidade: string | null; uf: string | null
   entrou_em: string | null; origem: string | null; nao_contatar: boolean; telefone_invalido: boolean
-  arquivado_em?: string | null; arquivado_motivo?: string | null
+  arquivado_em?: string | null; arquivado_motivo?: string | null; responsavel_id?: string | null
   segmento: string | null; produtos: string[] | null; total_liquido: number | null; ultima_compra: string | null
   aluno_presencial: boolean | null; reembolsou: boolean | null; lista_ativa: string | null
 }

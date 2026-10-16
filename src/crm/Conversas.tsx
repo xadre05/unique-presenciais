@@ -7,6 +7,7 @@ import { Icone } from '../components/Icone'
 import { telefoneLegivel } from './nucleo'
 import { horaCurta, servidorWhats, type BaseCRM, type Conversa, type Mensagem, type Nota } from './tipos'
 import ProximasAcoes from './Acoes'
+import { Avatar, interesseDe } from './Pecas'
 
 export type Aba = 'minhas' | 'fila' | 'todas' | 'resolvidas'
 const STATUS_MSG: Record<string, string> = { pendente: ' · enviando…', enviada: ' · ✓', entregue: ' · ✓✓', lida: ' · ✓✓ lida', erro: ' · não enviada' }
@@ -26,7 +27,7 @@ export default function Conversas({ empresaId, usuarioId, base, painelExtra, ini
 
   const carregar = useCallback(async () => {
     const { data, error } = await supabase.from('crm_conversas')
-      .select('*, contato:crm_contatos(id,nome,telefone,etapa_id)')
+      .select('*, contato:crm_contatos(id,nome,telefone,etapa_id,tags,origem)')
       .eq('empresa_id', empresaId).order('ultima_em', { ascending: false, nullsFirst: false }).limit(300)
     if (error) setErro(error.message); else setConvs((data as Conversa[]) ?? [])
   }, [empresaId])
@@ -80,12 +81,15 @@ export default function Conversas({ empresaId, usuarioId, base, painelExtra, ini
           {lista.length === 0 ? <Vazio>{aba === 'fila' ? 'Ninguém esperando na fila.' : aba === 'minhas' ? 'Nenhuma conversa com você. Pegue uma da fila.' : 'Nada aqui.'}</Vazio> :
             lista.map((c) => (
               <button key={c.id} className={`caixa-item${c.id === sel ? ' sel' : ''}${c.nao_lidas ? ' nova' : ''}`} onClick={() => setSel(c.id)}>
-                <div className="ci-linha"><b>{c.contato?.nome || telefoneLegivel(c.contato?.telefone)}</b><span className="muted pequeno">{horaCurta(c.ultima_em)}</span></div>
-                <div className="ci-linha"><span className="ci-msg">{achados?.get(c.id) ? <mark className="ci-achado">{achados.get(c.id)}</mark> : <>{c.ultima_direcao === 'saida' ? '✓ ' : ''}{c.ultima_mensagem ?? ''}</>}</span>{c.nao_lidas > 0 && <span className="ci-nao-lidas">{c.nao_lidas}</span>}</div>
-                <div className="ci-linha pequeno muted">
-                  <span>{c.com_ia ? '🤖 IA atendendo' : c.atendente_id ? base.nomeDe(c.atendente_id) : 'Na fila'}</span>
-                  {base.canais.length > 1 && <span>{base.canais.find((k) => k.id === c.canal_id)?.nome}</span>}
-                </div>
+                <Avatar nome={c.contato?.nome || c.contato?.telefone} />
+                <span className="ci-corpo">
+                  <span className="ci-linha"><b>{c.contato?.nome || telefoneLegivel(c.contato?.telefone)}</b><span className="muted pequeno">{horaCurta(c.ultima_em)}</span></span>
+                  <span className="ci-linha"><span className="ci-msg">{achados?.get(c.id) ? <mark className="ci-achado">{achados.get(c.id)}</mark> : <>{c.ultima_direcao === 'saida' ? '✓ ' : ''}{c.ultima_mensagem ?? ''}</>}</span>{c.nao_lidas > 0 && <span className="ci-nao-lidas">{c.nao_lidas}</span>}</span>
+                  <span className="ci-linha pequeno muted">
+                    <span>{c.com_ia ? '🤖 IA atendendo' : c.atendente_id ? base.nomeDe(c.atendente_id) : 'Na fila'}</span>
+                    {base.canais.length > 1 && <span>{base.canais.find((k) => k.id === c.canal_id)?.nome}</span>}
+                  </span>
+                </span>
               </button>
             ))}
         </div>
@@ -182,19 +186,24 @@ function Chat({ conv, usuarioId, base, onVoltar, onMudou, painelExtra }: {
       <header className="chat-topo">
         <button className="btn-icone so-celular" onClick={onVoltar} aria-label="Voltar"><Icone nome="esquerda" /></button>
         <button className="chat-quem" onClick={() => setPainel(!painel)}>
-          <b>{conv.contato?.nome || 'Sem nome'}</b>
-          <span className="muted pequeno">{telefoneLegivel(conv.contato?.telefone)} · {canal?.nome}{conv.atendente_id ? ` · com ${minha ? 'você' : base.nomeDe(conv.atendente_id)}` : ' · na fila'}</span>
+          <Avatar nome={conv.contato?.nome || conv.contato?.telefone} />
+          <span className="chat-quem-txt">
+            <b>{conv.contato?.nome || 'Sem nome'}</b>
+            <span className="muted pequeno">{interesseDe(conv.contato?.tags, conv.contato?.origem) ? `Interesse: ${interesseDe(conv.contato?.tags, conv.contato?.origem)} · ` : ''}{telefoneLegivel(conv.contato?.telefone)} · {canal?.nome}</span>
+          </span>
         </button>
         <div className="chat-acoes">
           {!conv.atendente_id && <button className="btn btn-ouro btn-mini" onClick={() => assumir()}>Assumir</button>}
-          {base.souAdmin && (
-            <select value={conv.atendente_id ?? ''} onChange={(e) => e.target.value && assumir(e.target.value)} aria-label="Passar para">
-              <option value="">{conv.atendente_id ? 'Passar para…' : 'Dar para…'}</option>
-              {base.equipe.filter((m) => m.ativo && m.usuario_id !== conv.atendente_id).map((m) => <option key={m.usuario_id} value={m.usuario_id}>{m.nome}</option>)}
-            </select>
-          )}
+          {base.souAdmin ? (
+            <label className="chat-resp"><span className="muted pequeno">Responsável:</span>
+              <select value={conv.atendente_id ?? ''} onChange={(e) => e.target.value && assumir(e.target.value)} aria-label="Passar para">
+                {!conv.atendente_id && <option value="">Ninguém (fila)</option>}
+                {base.equipe.filter((m) => m.ativo).map((m) => <option key={m.usuario_id} value={m.usuario_id}>{m.nome}</option>)}
+              </select>
+            </label>
+          ) : conv.atendente_id && <span className="muted pequeno">Responsável: {minha ? 'você' : base.nomeDe(conv.atendente_id)}</span>}
           {conv.status === 'aberta'
-            ? <button className="btn btn-mini" onClick={() => alterar({ status: 'resolvida' })} title="Tira da caixa; volta sozinha se a pessoa escrever de novo">Resolver</button>
+            ? <button className="btn btn-ouro btn-mini" onClick={() => alterar({ status: 'resolvida' })} title="Tira da caixa; volta sozinha se a pessoa escrever de novo"><Icone nome="check" tam={15} /> Resolver</button>
             : <button className="btn btn-mini" onClick={() => alterar({ status: 'aberta' })}>Reabrir</button>}
           <button className="btn btn-mini so-celular" onClick={() => setPainel(true)}>Contato</button>
         </div>
@@ -224,10 +233,16 @@ function Chat({ conv, usuarioId, base, onVoltar, onMudou, painelExtra }: {
             <button className={modoNota ? 'ativo' : ''} onClick={() => setModoNota(true)} title="Só a equipe vê; não vai para o WhatsApp">Nota interna</button>
           </div>
           {!modoNota && sugestoes.length > 0 && <div className="sugestoes">{sugestoes.map((r) => <button key={r.id} onClick={() => setTexto(r.texto)}><b>/{r.atalho}</b> {r.texto.slice(0, 80)}</button>)}</div>}
-          <textarea rows={2} value={texto} placeholder={modoNota ? 'Nota para a equipe (a pessoa não vê)…' : `Escreva… (Enter envia, Shift+Enter pula linha${base.respostas.length ? ', / para respostas prontas' : ''})`}
-            onChange={(e) => setTexto(e.target.value)}
-            onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); enviar() } }} />
-          <button className="btn btn-ouro" onClick={enviar} disabled={enviando || !texto.trim()}>{enviando ? '…' : modoNota ? 'Anotar' : 'Enviar'}</button>
+          <div className="chat-caixa-texto">
+            <textarea rows={2} value={texto} placeholder={modoNota ? 'Nota para a equipe (a pessoa não vê)…' : 'Escreva uma mensagem… (Enter envia, Shift+Enter pula linha)'}
+              onChange={(e) => setTexto(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); enviar() } }} />
+            <div className="chat-barra">
+              {!modoNota && base.respostas.length > 0 && <button className="btn-icone" title="Respostas prontas (ou digite /)" onClick={() => setTexto('/')}><Icone nome="documento" tam={18} /></button>}
+              <span className="muted pequeno chat-dica">{modoNota ? 'Só a equipe vê' : base.respostas.length ? 'Digite / para respostas prontas' : ''}</span>
+              <button className="btn btn-ouro" onClick={enviar} disabled={enviando || !texto.trim()}>{enviando ? '…' : modoNota ? 'Anotar' : <><Icone nome="enviar" tam={15} /> Enviar</>}</button>
+            </div>
+          </div>
         </div>
       ) : <div className="nota pequeno">Esta conversa é de {base.nomeDe(conv.atendente_id)}.</div>}
       {canal?.tipo === 'teste' && base.souAdmin && <RespostaSimulada canalId={canal.id} telefone={conv.contato?.telefone ?? ''} />}
@@ -279,7 +294,7 @@ function SimularEntrada({ empresaId, base, onFechar, onFeito }: { empresaId: str
   )
 }
 
-type ContatoFicha = { id: string; nome: string | null; telefone: string | null; emails: string[]; tags: string[]; cidade: string | null; uf: string | null; etapa_id: string | null; observacoes: string | null; nao_contatar: boolean; origem: string | null; primeira_origem: Record<string, string> | null }
+type ContatoFicha = { id: string; nome: string | null; telefone: string | null; emails: string[]; tags: string[]; cidade: string | null; uf: string | null; etapa_id: string | null; observacoes: string | null; nao_contatar: boolean; origem: string | null; primeira_origem: Record<string, string> | null; responsavel_id: string | null }
 
 export function PainelContato({ contatoId, base, aberto, onFechar, extra }: { contatoId: string; base: BaseCRM; aberto: boolean; onFechar: () => void; extra?: (contatoId: string) => ReactNode }) {
   const [c, setC] = useState<ContatoFicha | null>(null)
@@ -287,7 +302,7 @@ export function PainelContato({ contatoId, base, aberto, onFechar, extra }: { co
   const [nome, setNome] = useState('')
   const [erro, setErro] = useState<string | null>(null)
   useEffect(() => {
-    supabase.from('crm_contatos').select('id,nome,telefone,emails,tags,cidade,uf,etapa_id,observacoes,nao_contatar,origem,primeira_origem').eq('id', contatoId).single()
+    supabase.from('crm_contatos').select('id,nome,telefone,emails,tags,cidade,uf,etapa_id,observacoes,nao_contatar,origem,primeira_origem,responsavel_id').eq('id', contatoId).single()
       .then(({ data }) => { setC(data as ContatoFicha); setObs((data as ContatoFicha)?.observacoes ?? ''); setNome((data as ContatoFicha)?.nome ?? '') })
   }, [contatoId])
   const alterar = async (campos: Partial<ContatoFicha> & { etapa_em?: string }) => {
@@ -297,22 +312,30 @@ export function PainelContato({ contatoId, base, aberto, onFechar, extra }: { co
   }
   const etapasOrdem = useMemo(() => [...base.etapas].sort((a, b) => a.ordem - b.ordem), [base.etapas])
   if (!c) return <aside className={`caixa-contato${aberto ? ' aberto' : ''}`} />
+  const etapa = base.etapas.find((e) => e.id === c.etapa_id)
+  const interesse = interesseDe(c.tags, c.origem)
   return (
     <aside className={`caixa-contato${aberto ? ' aberto' : ''}`}>
-      <div className="gaveta-topo"><h3>Contato</h3><button className="btn-icone so-celular" onClick={onFechar} aria-label="Fechar">×</button></div>
-      <input className="cc-nome" value={nome} onChange={(e) => setNome(e.target.value)} onBlur={() => nome !== (c.nome ?? '') && alterar({ nome })} placeholder="Nome" />
-      <div className="pequeno">{telefoneLegivel(c.telefone)}</div>
-      {c.emails.length > 0 && <div className="pequeno muted">{c.emails.join(', ')}</div>}
-      {c.cidade && <div className="pequeno muted">{c.cidade}{c.uf ? '/' + c.uf : ''}</div>}
-      {(c.primeira_origem || c.origem) && <div className="pequeno origem-contato">Veio de: <b>{c.primeira_origem?.formulario_nome ?? c.origem}</b>
-        {c.primeira_origem && [c.primeira_origem.utm_source, c.primeira_origem.utm_campaign, c.primeira_origem.utm_content].filter(Boolean).length > 0 &&
-          <span className="muted"> · {[c.primeira_origem.utm_source, c.primeira_origem.utm_campaign, c.primeira_origem.utm_content].filter(Boolean).join(' / ')}</span>}</div>}
-      <label className="campo"><span className="campo-rotulo">Etapa no funil</span>
-        <select value={c.etapa_id ?? ''} onChange={(e) => alterar({ etapa_id: e.target.value || null, etapa_em: new Date().toISOString() })}>
-          <option value="">Fora do funil</option>{etapasOrdem.map((e) => <option key={e.id} value={e.id}>{e.nome}</option>)}
-        </select>
-      </label>
-      {c.tags.length > 0 && <div className="tags">{c.tags.slice(0, 12).map((t) => <Badge key={t}>{t}</Badge>)}</div>}
+      <div className="cc-cabeca">
+        <Avatar nome={c.nome || c.telefone} grande />
+        <div className="cc-cabeca-txt">
+          <input className="cc-nome" value={nome} onChange={(e) => setNome(e.target.value)} onBlur={() => nome !== (c.nome ?? '') && alterar({ nome })} placeholder="Nome" />
+          <span className="muted pequeno">{telefoneLegivel(c.telefone)}{c.cidade ? ` · ${c.cidade}${c.uf ? '/' + c.uf : ''}` : ''}</span>
+        </div>
+        <button className="btn-icone so-celular" onClick={onFechar} aria-label="Fechar">×</button>
+      </div>
+      {c.emails.length > 0 && <div className="pequeno muted cc-email">{c.emails.join(', ')}</div>}
+      <div className="cc-linhas">
+        {interesse && <div className="cc-linha"><Icone nome="formatura" tam={20} /><div><span className="muted pequeno">Interesse</span><b>{interesse}</b></div></div>}
+        <div className="cc-linha"><Icone nome="comissoes" tam={20} /><div><span className="muted pequeno">Etapa no funil</span>
+          <select className="cc-etapa" style={{ borderColor: etapa?.cor ?? undefined }} value={c.etapa_id ?? ''} onChange={(e) => alterar({ etapa_id: e.target.value || null, etapa_em: new Date().toISOString() })}>
+            <option value="">Fora do funil</option>{etapasOrdem.map((e) => <option key={e.id} value={e.id}>{e.nome}</option>)}
+          </select></div></div>
+        <div className="cc-linha"><Icone nome="usuario" tam={20} /><div><span className="muted pequeno">Responsável</span><b>{c.responsavel_id ? base.nomeDe(c.responsavel_id) : 'Sem responsável'}</b></div></div>
+        {(c.primeira_origem || c.origem) && <div className="cc-linha"><Icone nome="importar" tam={20} /><div><span className="muted pequeno">Veio de</span><b>{c.primeira_origem?.formulario_nome ?? c.origem}</b>
+          {c.primeira_origem && [c.primeira_origem.utm_source, c.primeira_origem.utm_campaign].filter(Boolean).length > 0 && <span className="muted pequeno">{[c.primeira_origem.utm_source, c.primeira_origem.utm_campaign, c.primeira_origem.utm_content].filter(Boolean).join(' / ')}</span>}</div></div>}
+      </div>
+      {c.tags.filter((t) => !t.startsWith('interesse:')).length > 0 && <div className="tags">{c.tags.filter((t) => !t.startsWith('interesse:')).slice(0, 12).map((t) => <Badge key={t}>{t}</Badge>)}</div>}
       <label className="campo"><span className="campo-rotulo">Anotações</span>
         <textarea rows={3} value={obs} onChange={(e) => setObs(e.target.value)} onBlur={() => obs !== (c.observacoes ?? '') && alterar({ observacoes: obs || null })} placeholder="O que é importante saber dessa pessoa" />
       </label>

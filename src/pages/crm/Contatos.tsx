@@ -6,13 +6,14 @@ import { brl, dataBR, dataHoraBR } from '../../lib/format'
 import { Badge, Erro, Vazio } from '../../components/ui'
 import { Icone } from '../../components/Icone'
 import { linkWhats, telefoneLegivel } from '../../crm/nucleo'
+import { Avatar } from '../../crm/Pecas'
 import { descreverFiltro, limparFiltro, SEGMENTOS, STATUS_LISTA, type ContatoLinha, type Filtro } from './comum'
 import ImportarContatos from './ImportarContatos'
 import CriarLista from './CriarLista'
 import { NovoDisparo } from '../../crm/Disparos'
 import { useBaseCRM } from '../../crm/tipos'
 import { EMPRESA_UNIQUE } from './comum'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 
 const POR_PAGINA = 50
 type Contagem = Record<string, { total: number; com_whats: number; livres: number }>
@@ -22,11 +23,13 @@ export default function Contatos() {
   const [f, setF] = useState<Filtro>({ so_whats: true })
   const [buscaTxt, setBuscaTxt] = useState('')
   const [pagina, setPagina] = useState(1)
-  const [aberto, setAberto] = useState<string | null>(null)
+  const [params] = useSearchParams()
+  const [aberto, setAberto] = useState<string | null>(params.get('abrir'))
   const [importar, setImportar] = useState(false)
   const [criar, setCriar] = useState(false)
   const [versao, setVersao] = useState(0)
   const [disparo, setDisparo] = useState<string[] | null>(null)
+  const [maisFiltros, setMaisFiltros] = useState(false)
   const [erroDisparo, setErroDisparo] = useState<string | null>(null)
   const base = useBaseCRM(EMPRESA_UNIQUE)
   const nav = useNavigate()
@@ -51,95 +54,101 @@ export default function Contatos() {
     ? (['comprador', 'quase'] as const).reduce((s, k) => s + (c[k]?.[f.fora_de_lista ? 'livres' : 'com_whats'] ?? 0), 0)
     : f.segmento ? (c[f.segmento]?.[f.fora_de_lista ? 'livres' : 'com_whats'] ?? 0) : soma(f.fora_de_lista ? 'livres' : 'com_whats')
 
+  const ICONE_SEG: Record<string, string> = { comprador: 'carrinho', quase: 'relogio', marcado: 'check', frio: 'floco' }
+  const totalTodos = soma('total')
+  const temFiltroExtra = !!(f.compra || f.ano_compra || f.ano_entrada || f.fora_de_lista || f.arquivados)
+  const paginas = Array.from({ length: Math.min(totalPag, 7) }, (_, i) => Math.max(1, Math.min(pagina - 3, totalPag - 6)) + i).filter((n) => n >= 1 && n <= totalPag)
   return (
-    <div className="pagina">
-      <header className="pagina-topo">
-        <div><h1>Contatos</h1><p className="muted">Toda a base: leads do SellFlux, compradores da Hotmart e alunos presenciais, juntos por WhatsApp e e-mail.</p></div>
+    <div className="pagina at-pagina">
+      <header className="pagina-topo at-titulo-pagina">
+        <div><h1>Contatos</h1><p className="muted">Pessoas, histórico de compras e segmentos: leads do SellFlux, compradores da Hotmart e alunos, juntos por WhatsApp e e-mail.</p></div>
         <div className="acoes">
           <button className="btn btn-contorno" onClick={() => setImportar(true)}><Icone nome="importar" /> Importar contatos</button>
-          <button className="btn btn-contorno" onClick={() => setCriar(true)} disabled={!disponiveis} title="Cada vendedora chama do próprio celular"><Icone nome="lista" /> Dividir para as vendedoras</button>
-          <button className="btn btn-ouro btn-grande" disabled={!disponiveis} onClick={async () => {
+          <button className="btn btn-contorno" onClick={() => setCriar(true)} disabled={!disponiveis} title="Cria uma lista e divide entre as vendedoras; cada uma chama do próprio celular"><Icone nome="turmas" /> Distribuir para vendedoras</button>
+          <button className="btn btn-ouro" disabled={!disponiveis} onClick={async () => {
             setErroDisparo(null)
             const { data, error } = await supabase.rpc('ids_contatos_filtrados', { p: filtro })
             if (error) setErroDisparo(error.message); else setDisparo(data as string[])
-          }}><Icone nome="whats" /> Disparar pelo WhatsApp da empresa</button>
+          }}><Icone nome="whats" /> Disparar pelo WhatsApp</button>
         </div>
       </header>
 
-      <section className="segmentos-crm">
-        {Object.entries(SEGMENTOS).map(([k, s]) => (
-          <button key={k} className={`seg-card${f.segmento === k ? ' ativo' : ''}`} onClick={() => mudar('segmento', f.segmento === k ? '' : k)} title={s.explica}>
-            <span className="seg-rotulo"><Badge tom={s.tom}>{s.rotulo}</Badge></span>
-            <span className="seg-num">{cont.carregando && !cont.dados ? '…' : (c[k]?.total ?? 0).toLocaleString('pt-BR')}</span>
-            <span className="muted pequeno">{(c[k]?.com_whats ?? 0).toLocaleString('pt-BR')} com WhatsApp · {(c[k]?.livres ?? 0).toLocaleString('pt-BR')} fora de lista</span>
+      <section className="at-segmentos">
+        <button className={`at-seg${!f.segmento ? ' ativo' : ''}`} onClick={() => mudar('segmento', '')}>
+          <span className="at-kpi-icone"><Icone nome="turmas" tam={20} /></span>
+          <span className="at-seg-txt"><span>Todos</span><b>{cont.carregando && !cont.dados ? '…' : totalTodos.toLocaleString('pt-BR')}</b></span><Icone nome="seta" tam={16} />
+        </button>
+        {Object.entries(SEGMENTOS).map(([k, sg]) => (
+          <button key={k} className={`at-seg${f.segmento === k ? ' ativo' : ''}`} onClick={() => mudar('segmento', f.segmento === k ? '' : k)} title={`${sg.explica} · ${(c[k]?.com_whats ?? 0).toLocaleString('pt-BR')} com WhatsApp · ${(c[k]?.livres ?? 0).toLocaleString('pt-BR')} fora de lista`}>
+            <span className="at-kpi-icone"><Icone nome={ICONE_SEG[k] ?? 'usuario'} tam={20} /></span>
+            <span className="at-seg-txt"><span>{sg.rotulo}</span><b>{cont.carregando && !cont.dados ? '…' : (c[k]?.total ?? 0).toLocaleString('pt-BR')}</b></span><Icone nome="seta" tam={16} />
           </button>
         ))}
       </section>
 
-      <div className="filtros-contatos">
-        <label className="select-icone busca-larga"><Icone nome="busca" /><input placeholder="Nome, WhatsApp ou e-mail" value={buscaTxt} onChange={(e) => setBuscaTxt(e.target.value)} /></label>
-        <label className="select-icone"><Icone nome="alunos" tam={16} /><select value={f.segmento ?? ''} onChange={(e) => mudar('segmento', e.target.value)}>
-          <option value="">Todos os tipos</option>
-          <option value="comprador_ou_quase">Compradores + quase compraram</option>
-          {Object.entries(SEGMENTOS).map(([k, s]) => <option key={k} value={k}>{s.rotulo}</option>)}
+      <label className="select-icone at-busca"><Icone nome="busca" /><input placeholder="Nome, WhatsApp ou e-mail" value={buscaTxt} onChange={(e) => setBuscaTxt(e.target.value)} /></label>
+      <div className="at-filtros">
+        <label className="select-icone"><Icone nome="usuario" tam={16} /><select value={f.compra ?? ''} onChange={(e) => mudar('compra', e.target.value)}>
+          <option value="">Tipo: comprou ou não</option><option value="sim">Já comprou (aluno)</option><option value="nao">Nunca comprou</option><option value="online">Aluno do online</option><option value="presencial">Aluno do presencial</option>
         </select></label>
-        <label className="select-icone"><Icone nome="check" tam={16} /><select value={f.compra ?? ''} onChange={(e) => mudar('compra', e.target.value)}>
-          <option value="">Comprou ou não</option>
-          <option value="sim">Já comprou (aluno)</option>
-          <option value="nao">Nunca comprou</option>
-          <option value="online">Aluno do online</option>
-          <option value="presencial">Aluno do presencial</option>
-        </select></label>
-        <label className="select-icone"><Icone nome="sacola" tam={16} /><select value={f.produto ?? ''} onChange={(e) => mudar('produto', e.target.value)}>
-          <option value="">Comprou qualquer produto</option>{nomesProdutos.map((p) => <option key={p} value={p}>Comprou {p}</option>)}
+        <label className="select-icone"><Icone nome="carrinho" tam={16} /><select value={f.produto ?? ''} onChange={(e) => mudar('produto', e.target.value)}>
+          <option value="">Produto comprado</option>{nomesProdutos.map((p) => <option key={p} value={p}>Comprou {p}</option>)}
         </select></label>
         <label className="select-icone"><Icone nome="fechar" tam={16} /><select value={f.sem_produto ?? ''} onChange={(e) => mudar('sem_produto', e.target.value)}>
-          <option value="">Sem excluir por produto</option>{nomesProdutos.map((p) => <option key={p} value={p}>Não comprou {p}</option>)}
+          <option value="">Excluir produto</option>{nomesProdutos.map((p) => <option key={p} value={p}>Não comprou {p}</option>)}
         </select></label>
+        <button className={`btn${maisFiltros || temFiltroExtra ? ' btn-contorno-ouro' : ''}`} onClick={() => setMaisFiltros(!maisFiltros)}><Icone nome="filtro" tam={16} /> Mais filtros {maisFiltros ? '▴' : '▾'}</button>
+      </div>
+      {maisFiltros && <div className="at-filtros">
         <label className="select-icone"><Icone nome="agenda" tam={16} /><select value={f.ano_compra ?? ''} onChange={(e) => mudar('ano_compra', e.target.value)}>
           <option value="">Comprou em qualquer ano</option>{ANOS.map((a) => <option key={a} value={a}>Comprou em {a}</option>)}
         </select></label>
         <label className="select-icone"><Icone nome="relogio" tam={16} /><select value={f.ano_entrada ?? ''} onChange={(e) => mudar('ano_entrada', e.target.value)}>
           <option value="">Entrou em qualquer ano</option>{ANOS.map((a) => <option key={a} value={a}>Entrou em {a}</option>)}
         </select></label>
-      </div>
-      <div className="filtros-check">
-        <label className="check"><input type="checkbox" checked={!!f.so_whats} onChange={(e) => mudar('so_whats', e.target.checked)} /> Só quem tem WhatsApp válido e aceita mensagem</label>
-        <label className="check"><input type="checkbox" checked={!!f.fora_de_lista} onChange={(e) => mudar('fora_de_lista', e.target.checked)} /> Só quem não está em outra lista ativa</label>
-        <label className="check"><select value={f.arquivados ?? ''} onChange={(e) => mudar('arquivados', e.target.value)}>
+        <label className="select-icone"><Icone nome="arquivo" tam={16} /><select value={f.arquivados ?? ''} onChange={(e) => mudar('arquivados', e.target.value)}>
           <option value="">Sem os arquivados</option><option value="true">Com os arquivados</option><option value="so">Só os arquivados</option>
-        </select>{(arquivados.dados ?? 0) > 0 && <span className="muted pequeno">{(arquivados.dados ?? 0).toLocaleString('pt-BR')} no arquivo (não responderam ou pediram para sair)</span>}</label>
-        {Object.keys(filtro).length > 1 && <button className="link pequeno" onClick={() => { setF({ so_whats: true }); setBuscaTxt(''); setPagina(1) }}>limpar filtros</button>}
+        </select></label>
+        <label className="check"><input type="checkbox" checked={!!f.fora_de_lista} onChange={(e) => mudar('fora_de_lista', e.target.checked)} /> Só quem não está em outra lista ativa</label>
+      </div>}
+      <div className="at-chips">
+        <button className={`at-chip${f.so_whats ? ' ativo' : ''}`} onClick={() => mudar('so_whats', !f.so_whats)}>{f.so_whats ? '☑' : '☐'} WhatsApp válido e aceita mensagem</button>
+        {f.fora_de_lista && <button className="at-chip ativo" onClick={() => mudar('fora_de_lista', false)}>Fora de outra lista ×</button>}
+        {(arquivados.dados ?? 0) > 0 && !f.arquivados && <span className="muted pequeno">{(arquivados.dados ?? 0).toLocaleString('pt-BR')} no arquivo (não aparecem)</span>}
+        {Object.keys(filtro).length > 1 && <button className="link pequeno" onClick={() => { setF({ so_whats: true }); setBuscaTxt(''); setPagina(1) }}>× Limpar filtros</button>}
       </div>
 
       <Erro msg={res.erro || cont.erro || erroDisparo} />
-      {res.carregando && !res.dados ? <Vazio>Carregando contatos…</Vazio> : total === 0 ? <Vazio>Nenhum contato com esses filtros.{soma('total') === 0 && ' A base ainda está vazia: use “Importar contatos”.'}</Vazio> : (
-        <div className="tabela-wrap bloco sem-padding">
+      {res.carregando && !res.dados ? <Vazio>Carregando contatos…</Vazio> : total === 0 ? <Vazio>Nenhum contato com esses filtros.{totalTodos === 0 && ' A base ainda está vazia: use “Importar contatos”.'}</Vazio> : (
+        <div className="tabela-wrap bloco sem-padding at-tabela">
           <table className="tabela tabela-pag">
-            <thead><tr><th>Contato</th><th>WhatsApp</th><th>Tipo</th><th>O que comprou</th><th className="num">Total pago</th><th>Última compra</th><th>Lista</th><th></th></tr></thead>
+            <thead><tr><th>Contato</th><th>Perfil</th><th>Produtos</th><th className="num">Total pago</th><th>Última compra</th><th>Responsável</th><th>Ações</th></tr></thead>
             <tbody>
               {(res.dados?.linhas ?? []).map((x) => (
                 <tr key={x.id} className={`linha-clicavel${x.arquivado_em ? ' linha-arquivada' : ''}`} onClick={() => setAberto(x.id)}>
-                  <td><span className="forte">{x.nome || 'Sem nome'}</span><div className="muted pequeno">{x.emails[0] ?? ''}{x.cidade ? ` · ${x.cidade}${x.uf ? '/' + x.uf : ''}` : ''}</div></td>
-                  <td className="pequeno">{x.arquivado_em && <div><Badge tom="apagado">Arquivado</Badge></div>}{x.nao_contatar ? <Badge tom="erro">Não quer receber</Badge> : x.telefone_invalido ? <Badge tom="erro">Número errado</Badge> : telefoneLegivel(x.telefone)}</td>
-                  <td><Badge tom={SEGMENTOS[x.segmento ?? 'frio']?.tom}>{SEGMENTOS[x.segmento ?? 'frio']?.rotulo}</Badge>{x.aluno_presencial && <div className="muted pequeno">aluno presencial</div>}</td>
-                  <td className="pequeno">{(x.produtos ?? []).slice(0, 2).join(', ') || '—'}{(x.produtos ?? []).length > 2 && <span className="muted"> +{(x.produtos ?? []).length - 2}</span>}</td>
+                  <td><div className="at-contato-cel"><Avatar nome={x.nome || x.telefone} /><div><span className="forte">{x.nome || 'Sem nome'}</span>
+                    <div className="muted pequeno">{x.nao_contatar ? <span className="erro-txt">Não quer receber</span> : x.telefone_invalido ? <span className="erro-txt">Número errado</span> : telefoneLegivel(x.telefone)}{x.emails[0] ? ` · ${x.emails[0]}` : ''}</div></div></div></td>
+                  <td><Badge tom={SEGMENTOS[x.segmento ?? 'frio']?.tom}>{SEGMENTOS[x.segmento ?? 'frio']?.rotulo}</Badge>{x.aluno_presencial && <span className="muted pequeno"> aluno presencial</span>}{x.arquivado_em && <div><Badge tom="apagado">Arquivado</Badge></div>}</td>
+                  <td className="pequeno">{(x.produtos ?? []).slice(0, 1).join(', ') || '—'}{(x.produtos ?? []).length > 1 && <div className="muted">+ {(x.produtos ?? []).length - 1} produto(s)</div>}</td>
                   <td className="num">{Number(x.total_liquido) > 0 ? brl(x.total_liquido) : '—'}</td>
                   <td className="pequeno">{x.ultima_compra ? dataBR(x.ultima_compra) : '—'}</td>
-                  <td className="pequeno">{x.lista_ativa ?? '—'}</td>
+                  <td className="pequeno">{x.responsavel_id ? base.nomeDe(x.responsavel_id) : <span className="muted">Sem responsável</span>}{x.lista_ativa && <div className="muted">Lista: {x.lista_ativa}</div>}</td>
                   <td className="celula-acao" onClick={(e) => e.stopPropagation()}>
-                    {x.telefone && !x.nao_contatar && <a className="btn btn-contorno btn-mini btn-quadrado" href={linkWhats(x.telefone)!} target="_blank" rel="noreferrer" title="Abrir WhatsApp"><Icone nome="whats" tam={16} /></a>}
+                    <div className="at-acoes-linha">
+                      <button className="btn btn-contorno-ouro btn-mini" onClick={() => setAberto(x.id)}>Abrir <Icone nome="seta_dir" tam={14} /></button>
+                      {x.telefone && !x.nao_contatar && <a className="btn btn-contorno-ouro btn-mini btn-quadrado" href={linkWhats(x.telefone)!} target="_blank" rel="noreferrer" title="Abrir WhatsApp"><Icone nome="whats" tam={16} /></a>}
+                    </div>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
-          <div className="paginacao" style={{ padding: '0 16px 14px' }}>
-            <span className="muted pequeno">{total.toLocaleString('pt-BR')} contato(s) · {descreverFiltro(filtro)}</span>
-            {totalPag > 1 && <div className="acoes">
-              <button className="btn btn-mini" disabled={pagina === 1} onClick={() => setPagina(pagina - 1)}><Icone nome="esquerda" tam={14} /> Anterior</button>
-              <span className="muted pequeno">{pagina} de {totalPag}</span>
-              <button className="btn btn-mini" disabled={pagina === totalPag} onClick={() => setPagina(pagina + 1)}>Próximo <Icone nome="seta" tam={14} /></button>
+          <div className="paginacao at-paginacao">
+            <span className="muted pequeno"><b>{total.toLocaleString('pt-BR')}</b> contato(s) encontrados · {descreverFiltro(filtro)}</span>
+            {totalPag > 1 && <div className="at-paginas">
+              <button className="btn-icone" disabled={pagina === 1} onClick={() => setPagina(pagina - 1)} aria-label="Anterior"><Icone nome="esquerda" tam={16} /></button>
+              {paginas.map((n) => <button key={n} className={n === pagina ? 'ativa' : ''} onClick={() => setPagina(n)}>{n}</button>)}
+              <button className="btn-icone" disabled={pagina === totalPag} onClick={() => setPagina(pagina + 1)} aria-label="Próxima"><Icone nome="seta" tam={16} /></button>
             </div>}
           </div>
         </div>

@@ -34,6 +34,17 @@ const P: Record<string, string> = {
   contatos: 'M15 13a3 3 0 1 0-6 0M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H19a1 1 0 0 1 1 1v18a1 1 0 0 1-1 1H6.5a1 1 0 0 1 0-5H20M12 10a2 2 0 1 0 0-4 2 2 0 0 0 0 4',
   importar: 'M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3',
   local: 'M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0M12 13a3 3 0 1 0 0-6 3 3 0 0 0 0 6',
+  arquivo: 'M21 8v13H3V8M1 3h22v5H1zM10 12h4',
+  filtro: 'M22 3H2l8 9.46V19l4 2v-8.54z',
+  atualizar: 'M21 2v6h-6M3 22v-6h6M3.51 9a9 9 0 0 1 14.85-3.36L21 8M3 16l2.64 2.36A9 9 0 0 0 20.49 15',
+  transferir: 'M17 1l4 4-4 4M3 11V9a4 4 0 0 1 4-4h14M7 23l-4-4 4-4M21 13v2a4 4 0 0 1-4 4H3',
+  enviar: 'M22 2 11 13M22 2l-7 20-4-9-9-4z',
+  formatura: 'M22 10 12 5 2 10l10 5zM6 12v5c3 3 9 3 12 0v-5',
+  floco: 'M12 2v20M17 5l-5 5-5-5M17 19l-5-5-5 5M2 12h20M5 7l5 5-5 5M19 7l-5 5 5 5',
+  carrinho: 'M9 21a1 1 0 1 0 0-2 1 1 0 0 0 0 2M20 21a1 1 0 1 0 0-2 1 1 0 0 0 0 2M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6',
+  seta_dir: 'M5 12h14M12 5l7 7-7 7',
+  pontos: 'M12 13a1 1 0 1 0 0-2 1 1 0 0 0 0 2M12 6a1 1 0 1 0 0-2 1 1 0 0 0 0 2M12 20a1 1 0 1 0 0-2 1 1 0 0 0 0 2',
+  pessoa_check: 'M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8M16 11l2 2 4-4',
 }
 
 export function Icone({ nome, tam = 18, className }: { nome: keyof typeof P | string; tam?: number; className?: string }) {
