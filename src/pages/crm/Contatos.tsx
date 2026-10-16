@@ -129,7 +129,7 @@ export default function Contatos() {
                   <td><div className="at-contato-cel"><Avatar nome={x.nome || x.telefone} /><div><span className="forte">{x.nome || 'Sem nome'}</span>
                     <div className="muted pequeno">{x.nao_contatar ? <span className="erro-txt">Não quer receber</span> : x.telefone_invalido ? <span className="erro-txt">Número errado</span> : telefoneLegivel(x.telefone)}{x.emails[0] ? ` · ${x.emails[0]}` : ''}</div></div></div></td>
                   <td><Badge tom={SEGMENTOS[x.segmento ?? 'frio']?.tom}>{SEGMENTOS[x.segmento ?? 'frio']?.rotulo}</Badge>{x.aluno_presencial && <span className="muted pequeno"> aluno presencial</span>}{x.arquivado_em && <div><Badge tom="apagado">Arquivado</Badge></div>}</td>
-                  <td className="pequeno at-produtos">{(x.produtos ?? []).slice(0, 1).join(', ') || '—'}{(x.produtos ?? []).length > 1 && <div className="muted">+ {(x.produtos ?? []).length - 1} produto(s)</div>}</td>
+                  <td className="pequeno"><div className="at-produtos">{(x.produtos ?? []).slice(0, 1).join(', ') || '—'}{(x.produtos ?? []).length > 1 && <div className="muted">+ {(x.produtos ?? []).length - 1} produto(s)</div>}</div></td>
                   <td className="num">{Number(x.total_liquido) > 0 ? brl(x.total_liquido) : '—'}</td>
                   <td className="pequeno">{x.ultima_compra ? dataBR(x.ultima_compra) : '—'}</td>
                   <td className="pequeno">{x.responsavel_id ? base.nomeDe(x.responsavel_id) : <span className="muted">Sem responsável</span>}{x.lista_ativa && <div className="muted">Lista: {x.lista_ativa}</div>}</td>
