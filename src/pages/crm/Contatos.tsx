@@ -133,29 +133,34 @@ export default function Contatos() {
       <Erro msg={res.erro || cont.erro || erroDisparo} />
       {res.carregando && !res.dados ? <Vazio>Carregando contatos…</Vazio> : total === 0 ? <Vazio>Nenhum contato com esses filtros.{totalTodos === 0 && ' A base ainda está vazia: use “Importar contatos”.'}</Vazio> : (
         <div className="tabela-wrap bloco sem-padding at-tabela">
-          <table className="tabela tabela-pag">
-            <thead><tr><th>Contato</th><th>Perfil</th><th>Aluno</th><th>Produtos</th><th className="num">Total pago</th><th>Última compra</th><th>Responsável</th><th>Ações</th></tr></thead>
+          <table className="tabela tabela-pag at-tabela-contatos">
+            <colgroup><col className="c-contato" /><col className="c-perfil" /><col className="c-aluno" /><col className="c-compras" /><col className="c-resp" /><col className="c-acao" /></colgroup>
+            <thead><tr><th>Contato</th><th>Perfil</th><th>Aluno</th><th>Compras</th><th>Responsável</th><th></th></tr></thead>
             <tbody>
-              {(res.dados?.linhas ?? []).map((x) => (
-                <tr key={x.id} className={`linha-clicavel${x.arquivado_em ? ' linha-arquivada' : ''}`} onClick={() => setAberto(x.id)}>
-                  <td><div className="at-contato-cel"><Avatar nome={x.nome || x.telefone} /><div><span className="forte">{x.nome || 'Sem nome'}</span>
-                    <div className="muted pequeno">{x.nao_contatar ? <span className="erro-txt">Não quer receber</span> : x.telefone_invalido ? <span className="erro-txt">Número errado</span> : telefoneLegivel(x.telefone)}{x.emails[0] ? ` · ${x.emails[0]}` : ''}</div></div></div></td>
+              {(res.dados?.linhas ?? []).map((x) => {
+                const prods = x.produtos ?? []
+                return (
+                <tr key={x.id} className={`linha-clicavel${x.arquivado_em ? ' linha-arquivada' : ''}`} onClick={() => setAberto(x.id)} title="Abrir a ficha">
+                  <td><div className="at-contato-cel"><Avatar nome={x.nome || x.telefone} /><div className="at-corta">
+                    <div className="forte at-corta">{x.nome || 'Sem nome'}</div>
+                    <div className="muted pequeno at-corta">{x.nao_contatar ? <span className="erro-txt">Não quer receber</span> : x.telefone_invalido ? <span className="erro-txt">Número errado</span> : telefoneLegivel(x.telefone)}</div>
+                    {x.emails[0] && <div className="muted pequeno at-corta">{x.emails[0]}</div>}
+                  </div></div></td>
                   <td><Badge tom={SEGMENTOS[x.segmento ?? 'frio']?.tom}>{SEGMENTOS[x.segmento ?? 'frio']?.rotulo}</Badge>{x.arquivado_em && <div><Badge tom="apagado">Arquivado</Badge></div>}</td>
                   <td>{tipoAluno(x.aluno_online, x.aluno_presencial)
                     ? <span className={`at-tipo-aluno${x.aluno_presencial ? ' presencial' : ''}`} title={x.cursos_presenciais?.length ? `Presencial: ${x.cursos_presenciais.join(', ')}` : undefined}>{tipoAluno(x.aluno_online, x.aluno_presencial)}</span>
                     : <span className="muted">—</span>}</td>
-                  <td className="pequeno"><div className="at-produtos">{(x.produtos ?? []).slice(0, 1).join(', ') || '—'}{(x.produtos ?? []).length > 1 && <div className="muted">+ {(x.produtos ?? []).length - 1} produto(s)</div>}</div></td>
-                  <td className="num">{Number(x.total_liquido) > 0 ? brl(x.total_liquido) : '—'}</td>
-                  <td className="pequeno">{x.ultima_compra ? dataBR(x.ultima_compra) : '—'}</td>
-                  <td className="pequeno">{x.responsavel_id ? base.nomeDe(x.responsavel_id) : x.vendido_por ? <span title="Quem vendeu o curso presencial (não tem acesso ao Atendimento)">Vendeu: {x.vendido_por}</span> : <span className="muted">Sem responsável</span>}{x.lista_ativa && <div className="muted">Lista: {x.lista_ativa}</div>}</td>
+                  <td className="pequeno">{prods.length || Number(x.total_liquido) > 0 ? (<>
+                    <div className="at-corta" title={prods.join('\n')}>{prods[0] ?? '—'}{prods.length > 1 && <span className="muted"> +{prods.length - 1}</span>}</div>
+                    <div className="muted at-corta">{Number(x.total_liquido) > 0 ? <span className="num-mono">{brl(x.total_liquido)}</span> : null}{x.ultima_compra ? ` · ${dataBR(x.ultima_compra)}` : ''}</div>
+                  </>) : <span className="muted">—</span>}</td>
+                  <td className="pequeno"><div className="at-corta">{x.responsavel_id ? base.nomeDe(x.responsavel_id) : x.vendido_por ? <span title="Quem vendeu o curso presencial (não tem acesso ao Atendimento)">Vendeu: {x.vendido_por}</span> : <span className="muted">Sem responsável</span>}</div>
+                    {x.lista_ativa && <div className="muted at-corta" title={x.lista_ativa}>Lista: {x.lista_ativa}</div>}</td>
                   <td className="celula-acao" onClick={(e) => e.stopPropagation()}>
-                    <div className="at-acoes-linha">
-                      <button className="btn btn-contorno-ouro btn-mini" onClick={() => setAberto(x.id)}>Abrir <Icone nome="seta_dir" tam={14} /></button>
-                      {x.telefone && !x.nao_contatar && <a className="btn btn-contorno-ouro btn-mini btn-quadrado" href={linkWhats(x.telefone)!} target="_blank" rel="noreferrer" title="Abrir WhatsApp"><Icone nome="whats" tam={16} /></a>}
-                    </div>
+                    {x.telefone && !x.nao_contatar && <a className="btn btn-contorno-ouro btn-mini btn-quadrado" href={linkWhats(x.telefone)!} target="_blank" rel="noreferrer" title="Abrir WhatsApp"><Icone nome="whats" tam={16} /></a>}
                   </td>
                 </tr>
-              ))}
+              )})}
             </tbody>
           </table>
           <div className="paginacao at-paginacao">
