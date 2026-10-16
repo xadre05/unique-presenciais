@@ -1141,3 +1141,7 @@ pre.link-endereco { white-space: pre-wrap; margin: 6px 0; }
 .at-movimento { margin-bottom: 18px; }
 .at-movimento .at-kpis { margin-bottom: 0; }
 .at-movimento .at-kpi { background: #141416; }
+.at-espera .btn, .at-tarefa .btn, .at-atencao .btn { white-space: nowrap; }
+.at-painel-topo h2 { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.at-painel-topo > .muted.pequeno { white-space: nowrap; }
+@media (max-width: 1350px) { .at-duas { grid-template-columns: 1fr; } }

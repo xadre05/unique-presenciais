@@ -13,11 +13,12 @@ export function Avatar({ nome, grande }: { nome: string | null | undefined; gran
   return <span className={`at-avatar${grande ? ' grande' : ''}`} aria-hidden="true">{iniciais(nome)}</span>
 }
 
-// produto/assunto de interesse: etiqueta "interesse:…" (captura) ou a origem
-export function interesseDe(tags: string[] | null | undefined, origem?: string | null) {
+// produto/assunto de interesse: etiqueta "interesse:…" (vem da captura de leads). A origem fica em "Veio de".
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export function interesseDe(tags: string[] | null | undefined, _origem?: string | null) {
   const t = (tags ?? []).find((x) => x.startsWith('interesse:'))
-  if (t) { const v = t.slice(10); return v.replace(/(^|\s)\S/g, (m) => m.toUpperCase()) }
-  return origem ?? null
+  if (!t) return null
+  return t.slice(10).replace(/(^|\s)\S/g, (m) => m.toUpperCase())
 }
 
 export function KpiAt({ icone, rotulo, valor, sub, tom, onClick, extra }: {
