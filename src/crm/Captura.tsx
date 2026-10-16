@@ -1,7 +1,7 @@
 // CRM — NÚCLEO: captura de leads. Formulários próprios (página pública /f/<endereço>), links com campanha,
 // código para colocar no site e endereço para ManyChat ou outros sistemas mandarem leads.
 import { useCallback, useEffect, useState } from 'react'
-import { supabase } from '../lib/supabase'
+import { supabase, SUPABASE_URL } from '../lib/supabase'
 import { Badge, Campo, Erro, Modal, Vazio } from '../components/ui'
 import type { BaseCRM } from './tipos'
 
@@ -12,7 +12,7 @@ type Formulario = {
 }
 type Resumo = { por_formulario: { formulario: string; leads: number; novos: number; vendas: number }[]; por_campanha: { campanha: string; fonte: string; leads: number; vendas: number }[] }
 
-const URL_ENTRADA = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/crm-captura`
+const URL_ENTRADA = `${SUPABASE_URL}/functions/v1/crm-captura`
 const linkDe = (slug: string) => `${window.location.origin}/f/${slug}`
 const paraSlug = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 60)
 async function copiar(t: string) { try { await navigator.clipboard.writeText(t); return true } catch { return false } }

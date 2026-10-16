@@ -1,10 +1,10 @@
 // CRM — NÚCLEO: configurações do atendimento (números, etapas do funil, respostas prontas).
 import { useEffect, useState } from 'react'
-import { supabase } from '../lib/supabase'
+import { supabase, SUPABASE_URL } from '../lib/supabase'
 import { Badge, Campo, Erro, InputNumero, Modal } from '../components/ui'
 import { STATUS_CANAL, TIPO_CANAL, type BaseCRM, type Cadencia, type Canal, type Etapa, type Passo } from './tipos'
 
-const URL_FUNCAO = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/crm-whatsapp`
+const URL_FUNCAO = `${SUPABASE_URL}/functions/v1/crm-whatsapp`
 
 export default function ConfigAtendimento({ empresaId, base }: { empresaId: string; base: BaseCRM }) {
   const [aba, setAba] = useState<'numeros' | 'etapas' | 'respostas' | 'followups' | 'regras' | 'motivos'>('numeros')
