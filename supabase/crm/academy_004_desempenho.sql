@@ -12,3 +12,10 @@ alter function contatos_filtrados(jsonb) set enable_nestloop = off;
 --     join crm_contatos c on c.empresa_id = empresa_unique() and c.emails @> array[lower(a.email)]
 -- 063: segmento "marcado" também reconhece as etiquetas da limpeza do SellFlux:
 --   'sf-comprou', 'sf-abandonou-carrinho', 'sf-gerou-pix-boleto'
+
+-- 064: crm_juntar_contatos(destino, origem) e crm_juntar_duplicados_email(empresa) — junta quem ficou só com e-mail
+--      com o contato de telefone que usa o mesmo e-mail (a origem fica arquivada como "juntado"; nada é apagado).
+--      Rodado em 16/10/2026: 122 juntados (2 ficaram de fora: e-mail usado por dois telefones).
+-- 065: contato_resumo ganhou aluno_online, vendido_por (vendedora da matrícula mais recente) e cursos_presenciais;
+--      filtro "compra" aceita so_online, so_presencial e ambos; buscar_contatos devolve os três campos.
+--      (definição completa: pg_get_functiondef('atualizar_resumo_contatos()'))

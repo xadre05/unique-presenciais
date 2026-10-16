@@ -4,11 +4,19 @@ import { dataBRparaISO, emailValido, lerCSV, nomeValido, telefoneBR, type LinhaC
 
 export const EMPRESA_UNIQUE = 'a0000000-0000-4000-8000-000000000001'
 
+// online = comprou curso na Hotmart; presencial = tem matrícula numa turma. Quem faz o presencial normalmente ganha o online.
+export function tipoAluno(online?: boolean | null, presencial?: boolean | null) {
+  if (online && presencial) return 'Online + Presencial'
+  if (presencial) return 'Presencial'
+  if (online) return 'Online'
+  return null
+}
+
 export const SEGMENTOS: Record<string, { rotulo: string; tom: string; explica: string }> = {
   comprador: { rotulo: 'Comprador', tom: 'ok', explica: 'Comprou na Hotmart (confirmado) ou é aluno presencial' },
   quase: { rotulo: 'Quase comprou', tom: 'alerta', explica: 'Boleto ou Pix vencido, compra cancelada (confirmado na Hotmart)' },
-  marcado: { rotulo: 'Marcado no SellFlux', tom: 'info', explica: 'O SellFlux marcou como aluno ou carrinho, mas a Hotmart não confirma' },
-  frio: { rotulo: 'Frio', tom: 'neutro', explica: 'Entrou como lead e nunca comprou' },
+  marcado: { rotulo: 'Sinal de compra', tom: 'info', explica: 'O SellFlux registrou carrinho abandonado, Pix/boleto gerado ou compra, mas a Hotmart não confirma a venda' },
+  frio: { rotulo: 'Frio', tom: 'neutro', explica: 'Entrou como lead e nunca comprou nem tentou comprar' },
 }
 
 export const STATUS_LISTA: Record<string, { rotulo: string; tom: string; grupo: 'a_contatar' | 'andamento' | 'fim' | 'comprou' }> = {
@@ -33,7 +41,7 @@ export function descreverFiltro(f: Filtro) {
   const p: string[] = []
   if (f.segmento === 'comprador_ou_quase') p.push('Compradores e quase compraram')
   else if (f.segmento) p.push(SEGMENTOS[f.segmento]?.rotulo ?? f.segmento)
-  if (f.compra) p.push(({ sim: 'já comprou', nao: 'nunca comprou', online: 'comprou no online', presencial: 'aluno do presencial' } as Record<string, string>)[f.compra] ?? f.compra)
+  if (f.compra) p.push(({ sim: 'já comprou', nao: 'nunca comprou', online: 'aluno do online', presencial: 'aluno do presencial', so_online: 'só online', so_presencial: 'só presencial', ambos: 'online + presencial' } as Record<string, string>)[f.compra] ?? f.compra)
   if (f.produto) p.push(`comprou ${f.produto}`)
   if (f.sem_produto) p.push(`não comprou ${f.sem_produto}`)
   if (f.ano_compra) p.push(`comprou em ${f.ano_compra}`)
@@ -51,6 +59,7 @@ export type ContatoLinha = {
   arquivado_em?: string | null; arquivado_motivo?: string | null; responsavel_id?: string | null
   segmento: string | null; produtos: string[] | null; total_liquido: number | null; ultima_compra: string | null
   aluno_presencial: boolean | null; reembolsou: boolean | null; lista_ativa: string | null
+  aluno_online?: boolean | null; vendido_por?: string | null; cursos_presenciais?: string[] | null
 }
 
 export type ItemLista = {

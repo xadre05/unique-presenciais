@@ -7,7 +7,7 @@ import { Badge, Erro, Vazio } from '../../components/ui'
 import { Icone } from '../../components/Icone'
 import { linkWhats, telefoneLegivel } from '../../crm/nucleo'
 import { Avatar } from '../../crm/Pecas'
-import { descreverFiltro, limparFiltro, SEGMENTOS, STATUS_LISTA, type ContatoLinha, type Filtro } from './comum'
+import { descreverFiltro, limparFiltro, SEGMENTOS, STATUS_LISTA, tipoAluno, type ContatoLinha, type Filtro } from './comum'
 import ImportarContatos from './ImportarContatos'
 import CriarLista from './CriarLista'
 import { NovoDisparo } from '../../crm/Disparos'
@@ -99,7 +99,9 @@ export default function Contatos() {
       <label className="select-icone at-busca"><Icone nome="busca" /><input placeholder="Nome, WhatsApp ou e-mail" value={buscaTxt} onChange={(e) => setBuscaTxt(e.target.value)} /></label>
       <div className="at-filtros">
         <label className="select-icone"><Icone nome="usuario" tam={16} /><select value={f.compra ?? ''} onChange={(e) => mudar('compra', e.target.value)}>
-          <option value="">Tipo: comprou ou não</option><option value="sim">Já comprou (aluno)</option><option value="nao">Nunca comprou</option><option value="online">Aluno do online</option><option value="presencial">Aluno do presencial</option>
+          <option value="">Aluno: todos</option><option value="sim">Já comprou (qualquer curso)</option><option value="nao">Nunca comprou</option>
+          <option value="online">Aluno do online</option><option value="presencial">Aluno do presencial</option>
+          <option value="so_online">Só online</option><option value="so_presencial">Só presencial</option><option value="ambos">Online + presencial</option>
         </select></label>
         <label className="select-icone"><Icone nome="carrinho" tam={16} /><select value={f.produto ?? ''} onChange={(e) => mudar('produto', e.target.value)}>
           <option value="">Produto comprado</option>{nomesProdutos.map((p) => <option key={p} value={p}>Comprou {p}</option>)}
@@ -132,17 +134,20 @@ export default function Contatos() {
       {res.carregando && !res.dados ? <Vazio>Carregando contatos…</Vazio> : total === 0 ? <Vazio>Nenhum contato com esses filtros.{totalTodos === 0 && ' A base ainda está vazia: use “Importar contatos”.'}</Vazio> : (
         <div className="tabela-wrap bloco sem-padding at-tabela">
           <table className="tabela tabela-pag">
-            <thead><tr><th>Contato</th><th>Perfil</th><th>Produtos</th><th className="num">Total pago</th><th>Última compra</th><th>Responsável</th><th>Ações</th></tr></thead>
+            <thead><tr><th>Contato</th><th>Perfil</th><th>Aluno</th><th>Produtos</th><th className="num">Total pago</th><th>Última compra</th><th>Responsável</th><th>Ações</th></tr></thead>
             <tbody>
               {(res.dados?.linhas ?? []).map((x) => (
                 <tr key={x.id} className={`linha-clicavel${x.arquivado_em ? ' linha-arquivada' : ''}`} onClick={() => setAberto(x.id)}>
                   <td><div className="at-contato-cel"><Avatar nome={x.nome || x.telefone} /><div><span className="forte">{x.nome || 'Sem nome'}</span>
                     <div className="muted pequeno">{x.nao_contatar ? <span className="erro-txt">Não quer receber</span> : x.telefone_invalido ? <span className="erro-txt">Número errado</span> : telefoneLegivel(x.telefone)}{x.emails[0] ? ` · ${x.emails[0]}` : ''}</div></div></div></td>
-                  <td><Badge tom={SEGMENTOS[x.segmento ?? 'frio']?.tom}>{SEGMENTOS[x.segmento ?? 'frio']?.rotulo}</Badge>{x.aluno_presencial && <span className="muted pequeno"> aluno presencial</span>}{x.arquivado_em && <div><Badge tom="apagado">Arquivado</Badge></div>}</td>
+                  <td><Badge tom={SEGMENTOS[x.segmento ?? 'frio']?.tom}>{SEGMENTOS[x.segmento ?? 'frio']?.rotulo}</Badge>{x.arquivado_em && <div><Badge tom="apagado">Arquivado</Badge></div>}</td>
+                  <td>{tipoAluno(x.aluno_online, x.aluno_presencial)
+                    ? <span className={`at-tipo-aluno${x.aluno_presencial ? ' presencial' : ''}`} title={x.cursos_presenciais?.length ? `Presencial: ${x.cursos_presenciais.join(', ')}` : undefined}>{tipoAluno(x.aluno_online, x.aluno_presencial)}</span>
+                    : <span className="muted">—</span>}</td>
                   <td className="pequeno"><div className="at-produtos">{(x.produtos ?? []).slice(0, 1).join(', ') || '—'}{(x.produtos ?? []).length > 1 && <div className="muted">+ {(x.produtos ?? []).length - 1} produto(s)</div>}</div></td>
                   <td className="num">{Number(x.total_liquido) > 0 ? brl(x.total_liquido) : '—'}</td>
                   <td className="pequeno">{x.ultima_compra ? dataBR(x.ultima_compra) : '—'}</td>
-                  <td className="pequeno">{x.responsavel_id ? base.nomeDe(x.responsavel_id) : <span className="muted">Sem responsável</span>}{x.lista_ativa && <div className="muted">Lista: {x.lista_ativa}</div>}</td>
+                  <td className="pequeno">{x.responsavel_id ? base.nomeDe(x.responsavel_id) : x.vendido_por ? <span title="Quem vendeu o curso presencial (não tem acesso ao Atendimento)">Vendeu: {x.vendido_por}</span> : <span className="muted">Sem responsável</span>}{x.lista_ativa && <div className="muted">Lista: {x.lista_ativa}</div>}</td>
                   <td className="celula-acao" onClick={(e) => e.stopPropagation()}>
                     <div className="at-acoes-linha">
                       <button className="btn btn-contorno-ouro btn-mini" onClick={() => setAberto(x.id)}>Abrir <Icone nome="seta_dir" tam={14} /></button>
@@ -175,7 +180,7 @@ export default function Contatos() {
 type Ficha = {
   contato: ContatoLinha & { observacoes: string | null; instagram: string | null; nao_contatar_motivo: string | null; criado_em: string }
   tentativas: number
-  resumo: { segmento: string; produtos: string[]; total_liquido: number; primeira_compra: string | null; ultima_compra: string | null; reembolsou: boolean; aluno_presencial: boolean } | null
+  resumo: { segmento: string; produtos: string[]; total_liquido: number; primeira_compra: string | null; ultima_compra: string | null; reembolsou: boolean; aluno_presencial: boolean; aluno_online?: boolean; vendido_por?: string | null; cursos_presenciais?: string[] } | null
   compras: { data_aprovacao: string | null; produto_nome: string | null; valor_liquido: number | null; status: string; recorrencia: number | null; parcelas_cartao: number | null }[]
   listas: { campanha: string; status: string; vendedora: string | null; nota: string | null; atualizado_em: string }[]
   eventos: { tipo: string; texto: string | null; dados: { status?: string } | null; criado_em: string; autor: string | null }[]
@@ -221,6 +226,8 @@ function FichaContato({ id, onFechar, onMudou }: { id: string; onFechar: () => v
             <dt>Cidade</dt><dd>{k.cidade ? `${k.cidade}${k.uf ? '/' + k.uf : ''}` : '—'}</dd>
             {k.instagram && <><dt>Instagram</dt><dd>{k.instagram}</dd></>}
             <dt>Entrou em</dt><dd>{dataBR(k.entrou_em)} <span className="muted pequeno">· {k.origem ?? ''}</span></dd>
+            {d.resumo && tipoAluno(d.resumo.aluno_online, d.resumo.aluno_presencial) && <><dt>Aluno</dt><dd>{tipoAluno(d.resumo.aluno_online, d.resumo.aluno_presencial)}{d.resumo.cursos_presenciais?.length ? <span className="muted pequeno"> · {d.resumo.cursos_presenciais.join(', ')}</span> : null}</dd></>}
+            {d.resumo?.vendido_por && <><dt>Vendeu o presencial</dt><dd>{d.resumo.vendido_por}</dd></>}
             {d.resumo && Number(d.resumo.total_liquido) > 0 && <><dt>Total pago (líquido)</dt><dd>{brl(d.resumo.total_liquido)}</dd></>}
             <dt>Etiquetas</dt><dd className="pequeno">{k.tags.join(', ') || '—'}</dd>
             {d.tentativas > 0 && <><dt>Tentativas sem resposta</dt><dd>{d.tentativas}</dd></>}
