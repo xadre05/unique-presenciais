@@ -13,6 +13,7 @@ import PainelGestor from '../../crm/PainelGestor'
 import Funil from '../../crm/Funil'
 import Disparos from '../../crm/Disparos'
 import ConfigAtendimento from '../../crm/ConfigAtendimento'
+import Captura from '../../crm/Captura'
 import { AvisoNumeros, AvisosConversas } from '../../crm/Avisos'
 import Contatos from '../crm/Contatos'
 import Listas from '../crm/Listas'
@@ -68,6 +69,7 @@ export default function AreaAtendimento() {
     <NavLink to="/atendimento/listas"><Icone nome="lista" /> {isAdmin ? 'Listas manuais' : 'Minhas listas'}</NavLink>
     {isAdmin && <NavLink to="/atendimento/painel"><Icone nome="grafico" /> Painel</NavLink>}
     {isAdmin && <NavLink to="/atendimento/contatos"><Icone nome="contatos" /> Contatos</NavLink>}
+    {isAdmin && <NavLink to="/atendimento/captura"><Icone nome="importar" /> Captura de leads</NavLink>}
     {isAdmin && <NavLink to="/atendimento/disparos"><Icone nome="sacola" /> Disparos</NavLink>}
     {isAdmin && <NavLink to="/atendimento/ia"><Icone nome="info" /> Agente IA</NavLink>}
     {isAdmin && <NavLink to="/atendimento/config"><Icone nome="equipe" /> Configurações</NavLink>}
@@ -112,12 +114,13 @@ export default function AreaAtendimento() {
           <Route path="listas/:id" element={<ListaTrabalho />} />
           {isAdmin && <Route path="contatos" element={<Contatos />} />}
           {isAdmin && <Route path="disparos" element={<div className="pagina"><header className="pagina-topo"><div><h1>Disparos</h1><p className="muted">Mensagem para muitos contatos pelo número da empresa, no ritmo seguro de cada número. Para criar um, filtre em <Link to="/atendimento/contatos" className="link">Contatos</Link> e clique em “Disparar”.</p></div></header><Disparos empresaId={EMPRESA_UNIQUE} base={base} /></div>} />}
+          {isAdmin && <Route path="captura" element={<Captura empresaId={EMPRESA_UNIQUE} base={base} />} />}
           {isAdmin && <Route path="ia" element={<AgenteIA />} />}
           {isAdmin && <Route path="config" element={<div className="pagina"><h1>Configurações do atendimento</h1><ConfigAtendimento empresaId={EMPRESA_UNIQUE} base={base} /></div>} />}
           <Route path="*" element={<Navigate to="/atendimento" replace />} />
         </Routes>
       </main>
-      {perfil && <AvisosConversas empresaId={EMPRESA_UNIQUE} usuarioId={perfil.id} abrir={(id) => nav(`/atendimento?c=${id}`)} slotControles="avisos-slot" />}
+      {perfil && <AvisosConversas empresaId={EMPRESA_UNIQUE} usuarioId={perfil.id} abrir={(id) => nav(`/atendimento?c=${id}`)} abrirFila={() => nav('/atendimento/fila')} slotControles="avisos-slot" />}
     </div>
   )
 }

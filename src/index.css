@@ -951,3 +951,24 @@ select option:checked { background-color: #6d5427; color: #fff3d9; }
 .area-atendimento.tela-cheia .at-conteudo { flex-direction: column; }
 .area-atendimento.tela-cheia .faixa-numero-caido { margin: 0; border-radius: 0; flex: 0 0 auto; }
 .area-atendimento.tela-cheia .caixa { height: auto; min-height: 0; }
+
+/* captura de leads: página pública e tela do administrador */
+.captura-pagina { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px 16px; background: radial-gradient(ellipse at top, rgba(201,164,92,.12), transparent 60%), var(--fundo); }
+.captura-pagina.embutido { min-height: 0; padding: 0; background: transparent; }
+.captura-cartao { width: 100%; max-width: 460px; background: var(--painel); border: 1px solid var(--borda); border-radius: 18px; padding: 28px 24px; display: flex; flex-direction: column; gap: 12px; }
+.captura-cartao form { display: flex; flex-direction: column; gap: 10px; }
+.captura-cartao h1 { font-size: 1.5rem; line-height: 1.2; }
+.captura-marca { display: flex; justify-content: center; margin-bottom: 6px; }
+.captura-marca img { height: 54px; }
+.captura-texto { color: var(--muted); }
+.captura-isca { position: absolute; left: -5000px; width: 1px; height: 1px; opacity: 0; }
+.captura-lgpd { text-align: center; margin-top: 4px; }
+.captura-feito { text-align: center; padding: 18px 0; display: grid; gap: 12px; justify-items: center; }
+.captura-check { width: 56px; height: 56px; border-radius: 50%; display: grid; place-items: center; font-size: 28px; background: var(--ok-fundo); color: var(--ok); }
+.pergunta-linha { display: grid; grid-template-columns: 1.2fr 2fr auto auto; gap: 8px; align-items: center; margin-bottom: 8px; }
+@media (max-width: 860px) { .pergunta-linha { grid-template-columns: 1fr; } }
+.copiavel { display: grid; gap: 4px; margin: 6px 0; }
+.copiavel-linha { display: flex; gap: 8px; align-items: flex-start; }
+.copiavel-linha .link-endereco { flex: 1; }
+pre.link-endereco { white-space: pre-wrap; margin: 6px 0; }
+.origem-contato { margin-top: 4px; }

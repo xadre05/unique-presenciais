@@ -262,7 +262,7 @@ function SimularEntrada({ empresaId, base, onFechar, onFeito }: { empresaId: str
   )
 }
 
-type ContatoFicha = { id: string; nome: string | null; telefone: string | null; emails: string[]; tags: string[]; cidade: string | null; uf: string | null; etapa_id: string | null; observacoes: string | null; nao_contatar: boolean }
+type ContatoFicha = { id: string; nome: string | null; telefone: string | null; emails: string[]; tags: string[]; cidade: string | null; uf: string | null; etapa_id: string | null; observacoes: string | null; nao_contatar: boolean; origem: string | null; primeira_origem: Record<string, string> | null }
 
 export function PainelContato({ contatoId, base, aberto, onFechar, extra }: { contatoId: string; base: BaseCRM; aberto: boolean; onFechar: () => void; extra?: (contatoId: string) => ReactNode }) {
   const [c, setC] = useState<ContatoFicha | null>(null)
@@ -270,7 +270,7 @@ export function PainelContato({ contatoId, base, aberto, onFechar, extra }: { co
   const [nome, setNome] = useState('')
   const [erro, setErro] = useState<string | null>(null)
   useEffect(() => {
-    supabase.from('crm_contatos').select('id,nome,telefone,emails,tags,cidade,uf,etapa_id,observacoes,nao_contatar').eq('id', contatoId).single()
+    supabase.from('crm_contatos').select('id,nome,telefone,emails,tags,cidade,uf,etapa_id,observacoes,nao_contatar,origem,primeira_origem').eq('id', contatoId).single()
       .then(({ data }) => { setC(data as ContatoFicha); setObs((data as ContatoFicha)?.observacoes ?? ''); setNome((data as ContatoFicha)?.nome ?? '') })
   }, [contatoId])
   const alterar = async (campos: Partial<ContatoFicha> & { etapa_em?: string }) => {
@@ -287,6 +287,9 @@ export function PainelContato({ contatoId, base, aberto, onFechar, extra }: { co
       <div className="pequeno">{telefoneLegivel(c.telefone)}</div>
       {c.emails.length > 0 && <div className="pequeno muted">{c.emails.join(', ')}</div>}
       {c.cidade && <div className="pequeno muted">{c.cidade}{c.uf ? '/' + c.uf : ''}</div>}
+      {(c.primeira_origem || c.origem) && <div className="pequeno origem-contato">Veio de: <b>{c.primeira_origem?.formulario_nome ?? c.origem}</b>
+        {c.primeira_origem && [c.primeira_origem.utm_source, c.primeira_origem.utm_campaign, c.primeira_origem.utm_content].filter(Boolean).length > 0 &&
+          <span className="muted"> · {[c.primeira_origem.utm_source, c.primeira_origem.utm_campaign, c.primeira_origem.utm_content].filter(Boolean).join(' / ')}</span>}</div>}
       <label className="campo"><span className="campo-rotulo">Etapa no funil</span>
         <select value={c.etapa_id ?? ''} onChange={(e) => alterar({ etapa_id: e.target.value || null, etapa_em: new Date().toISOString() })}>
           <option value="">Fora do funil</option>{etapasOrdem.map((e) => <option key={e.id} value={e.id}>{e.nome}</option>)}

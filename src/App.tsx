@@ -17,6 +17,7 @@ import Configuracoes from './pages/Configuracoes'
 import Links from './pages/Links'
 import Ajuda from './pages/Ajuda'
 import Agenda from './pages/Agenda'
+import PaginaCaptura from './pages/publico/PaginaCaptura'
 import AreaAtendimento from './pages/atendimento/AreaAtendimento'
 import { Icone } from './components/Icone'
 import { Marca } from './components/ui'
@@ -162,7 +163,10 @@ export default function App() {
   return (
     <AuthProvider>
       <BrowserRouter>
-        <Portao />
+        <Routes>
+          <Route path="/f/:slug" element={<PaginaCaptura />} />
+          <Route path="*" element={<Portao />} />
+        </Routes>
       </BrowserRouter>
     </AuthProvider>
   )

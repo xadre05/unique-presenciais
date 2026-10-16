@@ -25,7 +25,7 @@ export function AvisoNumeros({ empresaId, onAbrirConfig }: { empresaId: string; 
   )
 }
 
-type Toast = { id: string; titulo: string; texto: string; conversa: string }
+type Toast = { id: string; titulo: string; texto: string; chave: string; clicar: () => void }
 type Estado = Pick<Conversa, 'id' | 'atendente_id' | 'ultima_em' | 'status'>
 
 // bip curto feito na hora (sem arquivo de som)
@@ -40,7 +40,7 @@ function bip() {
 }
 
 // slotControles: id de um elemento da tela onde ficam os botões de som/aviso (ex.: rodapé do menu lateral)
-export function AvisosConversas({ empresaId, usuarioId, abrir, slotControles }: { empresaId: string; usuarioId: string; abrir: (conversaId: string) => void; slotControles?: string }) {
+export function AvisosConversas({ empresaId, usuarioId, abrir, abrirFila, slotControles }: { empresaId: string; usuarioId: string; abrir: (conversaId: string) => void; abrirFila?: () => void; slotControles?: string }) {
   const [toasts, setToasts] = useState<Toast[]>([])
   const [permissao, setPermissao] = useState<NotificationPermission | 'sem'>(() => (typeof Notification === 'undefined' ? 'sem' : Notification.permission))
   const [somLigado, setSomLigado] = useState(() => { try { return localStorage.getItem('crm-som') !== 'nao' } catch { return true } })
@@ -49,18 +49,29 @@ export function AvisosConversas({ empresaId, usuarioId, abrir, slotControles }: 
   const somRef = useRef(somLigado)
   somRef.current = somLigado
 
-  const avisar = useCallback(async (c: Conversa, titulo: string) => {
-    const { data } = await supabase.from('crm_contatos').select('nome,telefone').eq('id', c.contato_id).maybeSingle()
-    const quem = data?.nome || data?.telefone || 'Contato'
-    const texto = `${quem}${c.ultima_mensagem && c.ultima_direcao === 'entrada' ? `: ${c.ultima_mensagem.slice(0, 120)}` : ''}`
-    const t: Toast = { id: `${c.id}-${Date.now()}`, titulo, texto, conversa: c.id }
-    setToasts((xs) => [...xs.filter((x) => x.conversa !== c.id), t].slice(-4))
+  const mostrar = useCallback((titulo: string, texto: string, chave: string, clicar: () => void) => {
+    const t: Toast = { id: `${chave}-${Date.now()}`, titulo, texto, chave, clicar }
+    setToasts((xs) => [...xs.filter((x) => x.chave !== chave), t].slice(-4))
     setTimeout(() => setToasts((xs) => xs.filter((x) => x.id !== t.id)), 9000)
     if (somRef.current) bip()
     if (typeof Notification !== 'undefined' && Notification.permission === 'granted' && document.hidden) {
-      try { const n = new Notification(titulo, { body: texto, tag: c.id }); n.onclick = () => { window.focus(); abrir(c.id); n.close() } } catch { /* sem suporte */ }
+      try { const n = new Notification(titulo, { body: texto, tag: chave }); n.onclick = () => { window.focus(); clicar(); n.close() } } catch { /* sem suporte */ }
     }
-  }, [abrir])
+  }, [])
+  const nomeContato = async (id: string) => {
+    const { data } = await supabase.from('crm_contatos').select('nome,telefone').eq('id', id).maybeSingle()
+    return data?.nome || data?.telefone || 'Contato'
+  }
+  const avisar = useCallback(async (c: Conversa, titulo: string) => {
+    const quem = await nomeContato(c.contato_id)
+    mostrar(titulo, `${quem}${c.ultima_mensagem && c.ultima_direcao === 'entrada' ? `: ${c.ultima_mensagem.slice(0, 120)}` : ''}`, c.id, () => abrir(c.id))
+  }, [abrir, mostrar])
+  // lead novo (formulário) ou recuperação (Hotmart) que caiu na minha fila
+  const avisarTarefa = useCallback(async (t: { contato_id: string; titulo: string; origem: string; tipo: string }) => {
+    if (t.origem !== 'captura' && t.tipo !== 'recuperacao') return
+    const quem = await nomeContato(t.contato_id)
+    mostrar(t.origem === 'captura' ? 'Lead novo para você' : 'Recuperação de venda', `${quem} · ${t.titulo}`, `t-${t.contato_id}`, () => abrirFila?.())
+  }, [abrirFila, mostrar])
 
   useEffect(() => {
     let vivo = true
@@ -81,9 +92,12 @@ export function AvisosConversas({ empresaId, usuarioId, abrir, slotControles }: 
         const novaEntrada = c.ultima_direcao === 'entrada' && c.status === 'aberta' && (!antes || (c.ultima_em ?? '') > (antes.ultima_em ?? ''))
         if (novaEntrada && c.atendente_id === usuarioId) avisar(c, 'Nova mensagem')
         else if (novaEntrada && !c.atendente_id) avisar(c, 'Mensagem na fila, sem dona')
+      })
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'crm_tarefas', filter: `responsavel_id=eq.${usuarioId}` }, (p) => {
+        avisarTarefa(p.new as { contato_id: string; titulo: string; origem: string; tipo: string })
       }).subscribe()
     return () => { vivo = false; supabase.removeChannel(ch); document.title = document.title.replace(/^\(\d+\) /, '') }
-  }, [empresaId, usuarioId, avisar])
+  }, [empresaId, usuarioId, avisar, avisarTarefa])
 
   function atualizarTitulo() {
     const n = [...naoLidas.current.values()].reduce((s, x) => s + (x > 0 ? 1 : 0), 0)
@@ -106,7 +120,7 @@ export function AvisosConversas({ empresaId, usuarioId, abrir, slotControles }: 
     {slot ? createPortal(controles, slot) : null}
     <div className="toasts" aria-live="polite">
       {toasts.map((t) => (
-        <button key={t.id} className="toast" onClick={() => { abrir(t.conversa); setToasts((xs) => xs.filter((x) => x.id !== t.id)) }}>
+        <button key={t.id} className="toast" onClick={() => { t.clicar(); setToasts((xs) => xs.filter((x) => x.id !== t.id)) }}>
           <b>{t.titulo}</b><span>{t.texto}</span>
         </button>
       ))}
