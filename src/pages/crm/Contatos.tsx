@@ -154,7 +154,7 @@ export default function Contatos() {
                   <td>{tipoAluno(x.aluno_online, x.aluno_presencial)
                     ? <span className={`at-tipo-aluno${x.aluno_presencial ? ' presencial' : ''}`} title={x.cursos_presenciais?.length ? `Presencial: ${x.cursos_presenciais.join(', ')}` : undefined}>{tipoAluno(x.aluno_online, x.aluno_presencial)}</span>
                     : <span className="muted">—</span>}
-                    {x.acesso && <div className={`pequeno at-corta at-acesso ${ACESSO[x.acesso]?.tom ?? ''}`} title={x.acesso_ate ? `Acesso até ${dataBR(x.acesso_ate)}` : undefined}>{x.acesso === 'vitalicio' ? 'Vitalício' : x.acesso === 'em_dia' || x.acesso === 'vence_60' ? `Acesso até ${dataBR(x.acesso_ate)}` : `Venceu ${dataBR(x.acesso_ate)}`}</div>}</td>
+                    {x.acesso && <div className={`pequeno at-corta at-acesso at-acesso-${ACESSO[x.acesso]?.tom ?? 'neutro'}`} title={x.acesso_ate ? `Acesso até ${dataBR(x.acesso_ate)}` : undefined}>{x.acesso === 'vitalicio' ? 'Vitalício' : x.acesso === 'em_dia' || x.acesso === 'vence_60' ? `Acesso até ${dataBR(x.acesso_ate)}` : `Venceu ${dataBR(x.acesso_ate)}`}</div>}</td>
                   <td className="pequeno">{prods.length || Number(x.total_liquido) > 0 ? (<>
                     <div className="at-corta" title={prods.join('\n')}>{prods[0] ?? '—'}{prods.length > 1 && <span className="muted"> +{prods.length - 1}</span>}</div>
                     <div className="muted at-corta">{Number(x.total_liquido) > 0 ? <span className="num-mono">{brl(x.total_liquido)}</span> : null}{x.ultima_compra ? ` · ${dataBR(x.ultima_compra)}` : ''}</div>
