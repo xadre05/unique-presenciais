@@ -7,7 +7,7 @@ import { Badge, Erro, Vazio } from '../../components/ui'
 import { Icone } from '../../components/Icone'
 import { linkWhats, telefoneLegivel } from '../../crm/nucleo'
 import { Avatar } from '../../crm/Pecas'
-import { descreverFiltro, limparFiltro, SEGMENTOS, STATUS_LISTA, tipoAluno, type ContatoLinha, type Filtro } from './comum'
+import { descreverFiltro, limparFiltro, SEGMENTOS, STATUS_LISTA, tipoAluno, ACESSO, type ContatoLinha, type Filtro } from './comum'
 import ImportarContatos from './ImportarContatos'
 import CriarLista from './CriarLista'
 import { NovoDisparo } from '../../crm/Disparos'
@@ -60,7 +60,7 @@ export default function Contatos() {
   const totalTodos = soma('total')
   const whatsTodos = soma('com_whats')
   const poucoWhats = !!cont.dados && totalTodos > 0 && whatsTodos < totalTodos * 0.5
-  const temFiltroExtra = !!(f.compra || f.ano_compra || f.ano_entrada || f.fora_de_lista || f.arquivados)
+  const temFiltroExtra = !!(f.sem_produto || f.ano_compra || f.ano_entrada || f.fora_de_lista || f.arquivados)
   const paginas = Array.from({ length: Math.min(totalPag, 7) }, (_, i) => Math.max(1, Math.min(pagina - 3, totalPag - 6)) + i).filter((n) => n >= 1 && n <= totalPag)
   return (
     <div className="pagina at-pagina">
@@ -106,12 +106,16 @@ export default function Contatos() {
         <label className="select-icone"><Icone nome="carrinho" tam={16} /><select value={f.produto ?? ''} onChange={(e) => mudar('produto', e.target.value)}>
           <option value="">Produto comprado</option>{nomesProdutos.map((p) => <option key={p} value={p}>Comprou {p}</option>)}
         </select></label>
-        <label className="select-icone"><Icone nome="fechar" tam={16} /><select value={f.sem_produto ?? ''} onChange={(e) => mudar('sem_produto', e.target.value)}>
-          <option value="">Excluir produto</option>{nomesProdutos.map((p) => <option key={p} value={p}>Não comprou {p}</option>)}
+        <label className="select-icone"><Icone nome="relogio" tam={16} /><select value={f.acesso ?? ''} onChange={(e) => mudar('acesso', e.target.value)} title="Pela regra: Black é vitalício; o resto vale 1 ano a partir da compra">
+          <option value="">Acesso: todos</option><option value="tem">Com acesso (vitalício ou em dia)</option><option value="vencido">Acesso vencido (qualquer)</option>
+          {Object.entries(ACESSO).map(([k, a]) => <option key={k} value={k}>{a.rotulo}</option>)}
         </select></label>
         <button className={`btn${maisFiltros || temFiltroExtra ? ' btn-contorno-ouro' : ''}`} onClick={() => setMaisFiltros(!maisFiltros)}><Icone nome="filtro" tam={16} /> Mais filtros {maisFiltros ? '▴' : '▾'}</button>
       </div>
       {maisFiltros && <div className="at-filtros">
+        <label className="select-icone"><Icone nome="fechar" tam={16} /><select value={f.sem_produto ?? ''} onChange={(e) => mudar('sem_produto', e.target.value)}>
+          <option value="">Excluir produto</option>{nomesProdutos.map((p) => <option key={p} value={p}>Não comprou {p}</option>)}
+        </select></label>
         <label className="select-icone"><Icone nome="agenda" tam={16} /><select value={f.ano_compra ?? ''} onChange={(e) => mudar('ano_compra', e.target.value)}>
           <option value="">Comprou em qualquer ano</option>{ANOS.map((a) => <option key={a} value={a}>Comprou em {a}</option>)}
         </select></label>
@@ -149,7 +153,8 @@ export default function Contatos() {
                   <td><Badge tom={SEGMENTOS[x.segmento ?? 'frio']?.tom}>{SEGMENTOS[x.segmento ?? 'frio']?.rotulo}</Badge>{x.arquivado_em && <div><Badge tom="apagado">Arquivado</Badge></div>}</td>
                   <td>{tipoAluno(x.aluno_online, x.aluno_presencial)
                     ? <span className={`at-tipo-aluno${x.aluno_presencial ? ' presencial' : ''}`} title={x.cursos_presenciais?.length ? `Presencial: ${x.cursos_presenciais.join(', ')}` : undefined}>{tipoAluno(x.aluno_online, x.aluno_presencial)}</span>
-                    : <span className="muted">—</span>}</td>
+                    : <span className="muted">—</span>}
+                    {x.acesso && <div className={`pequeno at-corta at-acesso ${ACESSO[x.acesso]?.tom ?? ''}`} title={x.acesso_ate ? `Acesso até ${dataBR(x.acesso_ate)}` : undefined}>{x.acesso === 'vitalicio' ? 'Vitalício' : x.acesso === 'em_dia' || x.acesso === 'vence_60' ? `Acesso até ${dataBR(x.acesso_ate)}` : `Venceu ${dataBR(x.acesso_ate)}`}</div>}</td>
                   <td className="pequeno">{prods.length || Number(x.total_liquido) > 0 ? (<>
                     <div className="at-corta" title={prods.join('\n')}>{prods[0] ?? '—'}{prods.length > 1 && <span className="muted"> +{prods.length - 1}</span>}</div>
                     <div className="muted at-corta">{Number(x.total_liquido) > 0 ? <span className="num-mono">{brl(x.total_liquido)}</span> : null}{x.ultima_compra ? ` · ${dataBR(x.ultima_compra)}` : ''}</div>
@@ -185,7 +190,7 @@ export default function Contatos() {
 type Ficha = {
   contato: ContatoLinha & { observacoes: string | null; instagram: string | null; nao_contatar_motivo: string | null; criado_em: string }
   tentativas: number
-  resumo: { segmento: string; produtos: string[]; total_liquido: number; primeira_compra: string | null; ultima_compra: string | null; reembolsou: boolean; aluno_presencial: boolean; aluno_online?: boolean; vendido_por?: string | null; cursos_presenciais?: string[] } | null
+  resumo: { segmento: string; produtos: string[]; total_liquido: number; primeira_compra: string | null; ultima_compra: string | null; reembolsou: boolean; aluno_presencial: boolean; aluno_online?: boolean; vendido_por?: string | null; cursos_presenciais?: string[]; acesso?: string | null; acesso_ate?: string | null } | null
   compras: { data_aprovacao: string | null; produto_nome: string | null; valor_liquido: number | null; status: string; recorrencia: number | null; parcelas_cartao: number | null }[]
   listas: { campanha: string; status: string; vendedora: string | null; nota: string | null; atualizado_em: string }[]
   eventos: { tipo: string; texto: string | null; dados: { status?: string } | null; criado_em: string; autor: string | null }[]
@@ -232,6 +237,7 @@ function FichaContato({ id, onFechar, onMudou }: { id: string; onFechar: () => v
             {k.instagram && <><dt>Instagram</dt><dd>{k.instagram}</dd></>}
             <dt>Entrou em</dt><dd>{dataBR(k.entrou_em)} <span className="muted pequeno">· {k.origem ?? ''}</span></dd>
             {d.resumo && tipoAluno(d.resumo.aluno_online, d.resumo.aluno_presencial) && <><dt>Aluno</dt><dd>{tipoAluno(d.resumo.aluno_online, d.resumo.aluno_presencial)}{d.resumo.cursos_presenciais?.length ? <span className="muted pequeno"> · {d.resumo.cursos_presenciais.join(', ')}</span> : null}</dd></>}
+            {d.resumo?.acesso && <><dt>Acesso à plataforma</dt><dd><Badge tom={ACESSO[d.resumo.acesso]?.tom}>{ACESSO[d.resumo.acesso]?.rotulo}</Badge>{d.resumo.acesso_ate && <span className="muted pequeno"> · {['vencido_recente', 'vencido_antigo'].includes(d.resumo.acesso) ? 'venceu em' : 'até'} {dataBR(d.resumo.acesso_ate)}</span>}</dd></>}
             {d.resumo?.vendido_por && <><dt>Vendeu o presencial</dt><dd>{d.resumo.vendido_por}</dd></>}
             {d.resumo && Number(d.resumo.total_liquido) > 0 && <><dt>Total pago (líquido)</dt><dd>{brl(d.resumo.total_liquido)}</dd></>}
             <dt>Etiquetas</dt><dd className="pequeno">{k.tags.join(', ') || '—'}</dd>

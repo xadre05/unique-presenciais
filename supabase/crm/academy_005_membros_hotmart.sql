@@ -7,3 +7,9 @@ create table if not exists hotmart_membros (
 create index if not exists hotmart_membros_email on hotmart_membros (lower(email));
 alter table hotmart_membros enable row level security;
 create policy hotmart_membros_admin on hotmart_membros for select using ((select is_admin()));
+
+-- 067: contato_resumo.acesso / acesso_ate — acesso à plataforma pela regra (Black HOF Infinita e Unique Black Club
+-- Vitalício = vitalício; o resto 1 ano a partir da data da compra; apostila/planilha não contam). Faixas:
+-- vitalicio · em_dia · vence_60 · vencido_recente (até 1 ano) · vencido_antigo. Filtro "acesso" em contatos_filtrados
+-- (aceita também 'tem' e 'vencido'); buscar_contatos devolve acesso e acesso_ate. Recalcula no cron crm-resumo (de hora em hora).
+-- Definição completa: pg_get_functiondef('atualizar_resumo_contatos()').

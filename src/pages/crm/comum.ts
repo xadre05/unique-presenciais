@@ -12,6 +12,15 @@ export function tipoAluno(online?: boolean | null, presencial?: boolean | null) 
   return null
 }
 
+// Acesso à plataforma pela regra: Black 2024/2025 é vitalício; o resto vale 1 ano a partir da compra (calculado pelas vendas da Hotmart)
+export const ACESSO: Record<string, { rotulo: string; tom: string }> = {
+  vitalicio: { rotulo: 'Vitalício (Black)', tom: 'ok' },
+  em_dia: { rotulo: 'Em dia', tom: 'ok' },
+  vence_60: { rotulo: 'Vence em até 60 dias', tom: 'alerta' },
+  vencido_recente: { rotulo: 'Venceu há menos de 1 ano', tom: 'erro' },
+  vencido_antigo: { rotulo: 'Venceu há mais de 1 ano', tom: 'apagado' },
+}
+
 export const SEGMENTOS: Record<string, { rotulo: string; tom: string; explica: string }> = {
   comprador: { rotulo: 'Comprador', tom: 'ok', explica: 'Comprou na Hotmart (confirmado) ou é aluno presencial' },
   quase: { rotulo: 'Quase comprou', tom: 'alerta', explica: 'Boleto ou Pix vencido, compra cancelada (confirmado na Hotmart)' },
@@ -33,7 +42,7 @@ export const STATUS_LISTA: Record<string, { rotulo: string; tom: string; grupo: 
 
 export type Filtro = {
   busca?: string; segmento?: string; compra?: string; produto?: string; sem_produto?: string; ano_compra?: string; ano_entrada?: string
-  tag?: string; so_whats?: boolean; fora_de_lista?: boolean; arquivados?: '' | 'true' | 'so'
+  tag?: string; so_whats?: boolean; fora_de_lista?: boolean; arquivados?: '' | 'true' | 'so'; acesso?: string
 }
 export const limparFiltro = (f: Filtro) => Object.fromEntries(Object.entries(f).filter(([, v]) => v !== '' && v !== undefined && v !== false)) as Filtro
 
@@ -42,6 +51,7 @@ export function descreverFiltro(f: Filtro) {
   if (f.segmento === 'comprador_ou_quase') p.push('Compradores e quase compraram')
   else if (f.segmento) p.push(SEGMENTOS[f.segmento]?.rotulo ?? f.segmento)
   if (f.compra) p.push(({ sim: 'já comprou', nao: 'nunca comprou', online: 'aluno do online', presencial: 'aluno do presencial', so_online: 'só online', so_presencial: 'só presencial', ambos: 'online + presencial' } as Record<string, string>)[f.compra] ?? f.compra)
+  if (f.acesso) p.push(`acesso: ${ACESSO[f.acesso]?.rotulo.toLowerCase() ?? f.acesso}`)
   if (f.produto) p.push(`comprou ${f.produto}`)
   if (f.sem_produto) p.push(`não comprou ${f.sem_produto}`)
   if (f.ano_compra) p.push(`comprou em ${f.ano_compra}`)
@@ -59,7 +69,7 @@ export type ContatoLinha = {
   arquivado_em?: string | null; arquivado_motivo?: string | null; responsavel_id?: string | null
   segmento: string | null; produtos: string[] | null; total_liquido: number | null; ultima_compra: string | null
   aluno_presencial: boolean | null; reembolsou: boolean | null; lista_ativa: string | null
-  aluno_online?: boolean | null; vendido_por?: string | null; cursos_presenciais?: string[] | null
+  aluno_online?: boolean | null; vendido_por?: string | null; cursos_presenciais?: string[] | null; acesso?: string | null; acesso_ate?: string | null
 }
 
 export type ItemLista = {
