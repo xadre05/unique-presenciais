@@ -13,3 +13,7 @@ create policy hotmart_membros_admin on hotmart_membros for select using ((select
 -- vitalicio · em_dia · vence_60 · vencido_recente (até 1 ano) · vencido_antigo. Filtro "acesso" em contatos_filtrados
 -- (aceita também 'tem' e 'vencido'); buscar_contatos devolve acesso e acesso_ate. Recalcula no cron crm-resumo (de hora em hora).
 -- Definição completa: pg_get_functiondef('atualizar_resumo_contatos()').
+
+-- 068: crm_proximos_envios — com ritmo até 60/hora já sai uma mensagem por vez; agora o intervalo varia
+-- entre ~85% e ~130% do intervalo do ritmo:
+--   make_interval(secs => (3600.0 / k.ritmo_por_hora) * (0.85 + random() * 0.45) - 20)
