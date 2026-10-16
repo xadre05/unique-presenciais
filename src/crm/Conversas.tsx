@@ -17,6 +17,9 @@ export default function Conversas({ empresaId, usuarioId, base, painelExtra, ini
   const [convs, setConvs] = useState<Conversa[]>([])
   const [aba, setAba] = useState<Aba>(abaInicial ?? 'minhas')
   const [busca, setBusca] = useState('')
+  const [achados, setAchados] = useState<Map<string, string | null> | null>(null)   // busca dentro das mensagens
+  const [soNaoLidas, setSoNaoLidas] = useState(false)
+  const [canalFiltro, setCanalFiltro] = useState('')
   const [sel, setSel] = useState<string | null>(inicial ?? null)
   const [erro, setErro] = useState<string | null>(null)
   const [simular, setSimular] = useState(false)
@@ -41,7 +44,17 @@ export default function Conversas({ empresaId, usuarioId, base, painelExtra, ini
     a === 'resolvidas' ? c.status === 'resolvida'
       : c.status === 'aberta' && (a === 'todas' || (a === 'minhas' ? c.atendente_id === usuarioId : !c.atendente_id))
   const termo = busca.trim().toLowerCase()
-  const lista = convs.filter((c) => doAba(c, aba) && (!termo || `${c.contato?.nome ?? ''} ${c.contato?.telefone ?? ''}`.toLowerCase().includes(termo)))
+  // busca no servidor (dentro das mensagens e notas) só depois que a pessoa para de digitar
+  useEffect(() => {
+    if (termo.length < 2) { setAchados(null); return }
+    const t = setTimeout(async () => {
+      const { data } = await supabase.rpc('crm_buscar_conversas', { p_empresa: empresaId, p_termo: termo })
+      setAchados(new Map(((data ?? []) as { conversa_id: string; trecho: string | null }[]).map((x) => [x.conversa_id, x.trecho])))
+    }, 350)
+    return () => clearTimeout(t)
+  }, [termo, empresaId])
+  const lista = convs.filter((c) => doAba(c, aba) && (!soNaoLidas || c.nao_lidas > 0) && (!canalFiltro || c.canal_id === canalFiltro)
+    && (!termo || `${c.contato?.nome ?? ''} ${c.contato?.telefone ?? ''}`.toLowerCase().includes(termo) || !!achados?.has(c.id)))
   const conta = (a: Aba) => convs.filter((c) => doAba(c, a)).length
   const naoLidasAba = (a: Aba) => convs.filter((c) => doAba(c, a) && c.nao_lidas > 0).length
   const atual = convs.find((c) => c.id === sel) ?? null
@@ -55,7 +68,11 @@ export default function Conversas({ empresaId, usuarioId, base, painelExtra, ini
           <div className="abas-mini">
             {abas.map(([k, r]) => <button key={k} className={aba === k ? 'ativa' : ''} onClick={() => setAba(k)}>{r} <span className={naoLidasAba(k) ? 'bolinha' : 'muted'}>{conta(k)}</span></button>)}
           </div>
-          <label className="select-icone"><Icone nome="busca" tam={16} /><input placeholder="Buscar conversa" value={busca} onChange={(e) => setBusca(e.target.value)} /></label>
+          <label className="select-icone"><Icone nome="busca" tam={16} /><input placeholder="Buscar nome, número ou palavra da conversa" value={busca} onChange={(e) => setBusca(e.target.value)} /></label>
+          <div className="filtros-caixa">
+            <label className="check pequeno"><input type="checkbox" checked={soNaoLidas} onChange={(e) => setSoNaoLidas(e.target.checked)} /> Só não lidas</label>
+            {base.canais.filter((k) => k.ativo).length > 1 && <select value={canalFiltro} onChange={(e) => setCanalFiltro(e.target.value)} aria-label="Número"><option value="">Todos os números</option>{base.canais.filter((k) => k.ativo).map((k) => <option key={k.id} value={k.id}>{k.nome}</option>)}</select>}
+          </div>
           {base.souAdmin && temTeste && <button className="btn btn-mini" onClick={() => setSimular(true)}>Simular mensagem chegando</button>}
         </div>
         <Erro msg={erro} />
@@ -64,7 +81,7 @@ export default function Conversas({ empresaId, usuarioId, base, painelExtra, ini
             lista.map((c) => (
               <button key={c.id} className={`caixa-item${c.id === sel ? ' sel' : ''}${c.nao_lidas ? ' nova' : ''}`} onClick={() => setSel(c.id)}>
                 <div className="ci-linha"><b>{c.contato?.nome || telefoneLegivel(c.contato?.telefone)}</b><span className="muted pequeno">{horaCurta(c.ultima_em)}</span></div>
-                <div className="ci-linha"><span className="ci-msg">{c.ultima_direcao === 'saida' ? '✓ ' : ''}{c.ultima_mensagem ?? ''}</span>{c.nao_lidas > 0 && <span className="ci-nao-lidas">{c.nao_lidas}</span>}</div>
+                <div className="ci-linha"><span className="ci-msg">{achados?.get(c.id) ? <mark className="ci-achado">{achados.get(c.id)}</mark> : <>{c.ultima_direcao === 'saida' ? '✓ ' : ''}{c.ultima_mensagem ?? ''}</>}</span>{c.nao_lidas > 0 && <span className="ci-nao-lidas">{c.nao_lidas}</span>}</div>
                 <div className="ci-linha pequeno muted">
                   <span>{c.com_ia ? '🤖 IA atendendo' : c.atendente_id ? base.nomeDe(c.atendente_id) : 'Na fila'}</span>
                   {base.canais.length > 1 && <span>{base.canais.find((k) => k.id === c.canal_id)?.nome}</span>}
@@ -192,7 +209,7 @@ function Chat({ conv, usuarioId, base, onVoltar, onMudou, painelExtra }: {
             <div key={m.id} className={`msg msg-${m.direcao}${m.status === 'erro' ? ' msg-erro' : ''}`}>
               {m.direcao === 'saida' && <div className="msg-autor">{m.autor === 'disparo' ? 'Disparo' : m.autor === 'ia' ? 'IA' : m.autor_id ? base.nomeDe(m.autor_id) : 'Pelo celular'}</div>}
               <div className="msg-texto">{m.texto ?? `[${m.tipo}]`}</div>
-              <div className="msg-rodape">{horaCurta(m.criado_em)}{m.direcao === 'saida' && <span className={`msg-status st-${m.status}`}>{STATUS_MSG[m.status] ?? ''}</span>}</div>
+              <div className="msg-rodape" title={new Date(m.criado_em).toLocaleString('pt-BR')}>{horaCurta(m.criado_em)}{m.direcao === 'saida' && <span className={`msg-status st-${m.status}`}>{STATUS_MSG[m.status] ?? ''}</span>}</div>
               {m.status === 'erro' && <div className="msg-falhou"><span className="pequeno">{m.erro ?? 'Não foi enviada.'}</span>
                 <button className="btn btn-mini" onClick={() => reenviar(m.id)} disabled={reenviando === m.id}>{reenviando === m.id ? 'Tentando…' : 'Tentar de novo'}</button></div>}
             </div>) })())}

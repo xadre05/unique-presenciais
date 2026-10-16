@@ -93,3 +93,23 @@ begin
   if d not like '%coalesce(k.atendente_id, crm_escolher_atendente%' then raise exception 'trecho não encontrado (receber)'; end if;
   execute d;
 end $f$;
+
+-- (058) busca por palavra dentro das conversas (mensagens e notas) + nome/telefone; só o que a pessoa pode ver
+create function crm_buscar_conversas(p_empresa uuid, p_termo text) returns table (conversa_id uuid, trecho text)
+language sql stable security definer set search_path = public as $$
+  with t as (select '%' || trim(p_termo) || '%' q)
+  select distinct on (x.conversa_id) x.conversa_id, x.trecho from (
+    select m.conversa_id, left(m.texto, 160) trecho, m.criado_em from crm_mensagens m, t
+     where m.empresa_id = p_empresa and m.texto ilike t.q
+    union all
+    select n.conversa_id, left('Nota: ' || n.texto, 160), n.criado_em from crm_notas n, t
+     where n.empresa_id = p_empresa and n.texto ilike t.q
+    union all
+    select v.id, null, v.ultima_em from crm_conversas v join crm_contatos c on c.id = v.contato_id, t
+     where v.empresa_id = p_empresa and (c.nome ilike t.q or (length(regexp_replace(p_termo, '\D', '', 'g')) >= 4 and c.telefone like '%' || regexp_replace(p_termo, '\D', '', 'g') || '%'))
+  ) x
+  where length(trim(p_termo)) >= 2 and crm_pode_ver_conversa(x.conversa_id)
+  order by x.conversa_id, x.criado_em desc nulls last
+  limit 200
+$$;
+revoke execute on function crm_buscar_conversas(uuid, text) from public, anon;

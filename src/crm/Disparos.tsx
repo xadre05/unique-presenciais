@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { Badge, Campo, Erro, Modal, Vazio } from '../components/ui'
 import { preencherMensagem } from './nucleo'
-import { STATUS_CANAL, type BaseCRM } from './tipos'
+import { STATUS_CANAL, type BaseCRM, type Canal } from './tipos'
 
 type Resumo = {
   id: string; nome: string; status: 'rascunho' | 'enviando' | 'pausado' | 'concluido' | 'cancelado'; criado_em: string; iniciado_em: string | null
@@ -110,6 +110,7 @@ export function NovoDisparo({ empresaId, base, contatoIds, origem, nomeSugerido,
           </select>
         </Campo>
       </div>
+      {k && <CustoDisparo canal={k} n={contatoIds.length} preco={base.config.preco_msg_marketing ?? 0.32} />}
       {k && <p className="muted pequeno">No ritmo deste número ({k.ritmo_por_hora} por hora, das {k.janela_inicio.slice(0, 5)} às {k.janela_fim.slice(0, 5)}) leva cerca de <b>{tempoEstimado(contatoIds.length, k.ritmo_por_hora, k.janela_inicio, k.janela_fim)}</b>. O ritmo muda em Configurações → Números.</p>}
 
       <h3>Mensagens</h3>
@@ -139,4 +140,16 @@ export function NovoDisparo({ empresaId, base, contatoIds, origem, nomeSugerido,
       </div>
     </Modal>
   )
+}
+
+// quanto vai custar e qual o risco, antes de mandar (a reclamação nº 1 nos concorrentes é susto na fatura)
+function CustoDisparo({ canal, n, preco }: { canal: Canal; n: number; preco: number }) {
+  const brl = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+  if (canal.tipo === 'whatsapp_oficial') return (
+    <div className="nota pequeno"><b>Custo previsto: cerca de {brl(n * preco)}</b> ({n.toLocaleString('pt-BR')} mensagens × {brl(preco)}, preço de mensagem de marketing da Meta).
+      Quem escreveu para a empresa nas últimas 24 horas não é cobrado. Pela API oficial, o primeiro contato precisa ser um modelo aprovado pela Meta.</div>)
+  if (canal.tipo === 'whatsapp_qr') return (
+    <div className="nota pequeno"><b>Sem custo por mensagem</b>, mas este número é ligado por QR code (não oficial): disparo grande pode bloquear o número.
+      Mantenha o ritmo baixo, use várias versões da mensagem e mande só para quem já conhece a escola.</div>)
+  return <div className="nota pequeno">Número de teste: nada é enviado de verdade.</div>
 }

@@ -26,6 +26,11 @@ export default function MinhaFila({ empresaId, usuarioId, base, abrirConversa, p
   const [quem, setQuem] = useState(usuarioId)
   const [f, setF] = useState<Fila | null>(null)
   const [erro, setErro] = useState<string | null>(null)
+  const [meta, setMeta] = useState<{ meta: number | null } | null>(null)
+  useEffect(() => {
+    if (quem === usuarioId) supabase.rpc('crm_minha_meta', { p_empresa: empresaId }).then(({ data }) => setMeta(data as { meta: number | null }))
+    else supabase.rpc('crm_metas', { p_empresa: empresaId }).then(({ data }) => setMeta(((data ?? []) as { usuario_id: string; meta: number | null }[]).find((x) => x.usuario_id === quem) ?? null))
+  }, [empresaId, quem, usuarioId])
   const eu = base.equipe.find((m) => m.usuario_id === quem)
   const carregar = useCallback(async () => {
     const { data, error } = await supabase.rpc('crm_minha_fila', { p_empresa: empresaId, p_usuario: quem })
@@ -66,7 +71,8 @@ export default function MinhaFila({ empresaId, usuarioId, base, abrirConversa, p
         <div className="kpi"><div className="kpi-rotulo">Esperando você</div><div className={`kpi-valor${f.esperando.length ? ' erro-txt' : ''}`}>{f.esperando.length}</div></div>
         <div className="kpi"><div className="kpi-rotulo">Tarefas de hoje</div><div className="kpi-valor">{tarefas.length}</div><div className="kpi-sub">{tarefas.filter((t) => t.atrasada).length} atrasada(s)</div></div>
         <div className="kpi"><div className="kpi-rotulo">Conversas hoje</div><div className="kpi-valor">{f.numeros.conversas_hoje}</div><div className="kpi-sub">{f.numeros.tarefas_feitas_hoje} tarefa(s) feita(s)</div></div>
-        <div className="kpi"><div className="kpi-rotulo">Vendas no mês</div><div className="kpi-valor ok-txt">{f.numeros.ganhos_mes}</div></div>
+        <div className="kpi"><div className="kpi-rotulo">Vendas no mês</div><div className="kpi-valor ok-txt">{f.numeros.ganhos_mes}{meta?.meta ? <span className="muted"> / {meta.meta}</span> : null}</div>
+          {meta?.meta ? <><div className="barra-meta"><div style={{ width: `${Math.min(100, (100 * f.numeros.ganhos_mes) / meta.meta)}%` }} /></div><div className="kpi-sub">{f.numeros.ganhos_mes >= meta.meta ? 'Meta batida!' : `faltam ${meta.meta - f.numeros.ganhos_mes} para a meta`}</div></> : null}</div>
       </section>}
       {f && f.sem_proxima_acao > 0 && <div className="faixa-alerta"><Icone nome="alerta" tam={18} /><span><b>{f.sem_proxima_acao} conversa(s) sem próxima ação.</b> Abra e marque o que fazer depois (tarefa com data), ou marque como comprou/perdido.</span></div>}
       {f && f.fila > 0 && <div className="faixa-info"><Icone nome="info" tam={18} /><span>{f.fila} conversa(s) sem dona na Fila. <button className="link" onClick={() => abrirConversa('')}>Ver a fila</button></span></div>}

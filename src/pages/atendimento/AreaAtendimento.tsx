@@ -120,7 +120,7 @@ export default function AreaAtendimento() {
           <Route path="*" element={<Navigate to="/atendimento" replace />} />
         </Routes>
       </main>
-      {perfil && <AvisosConversas empresaId={EMPRESA_UNIQUE} usuarioId={perfil.id} abrir={(id) => nav(`/atendimento?c=${id}`)} abrirFila={() => nav('/atendimento/fila')} slotControles="avisos-slot" />}
+      {perfil && <AvisosConversas empresaId={EMPRESA_UNIQUE} usuarioId={perfil.id} abrir={(id) => nav(`/atendimento?c=${id}`)} abrirFila={() => nav('/atendimento/fila')} urlDe={(k) => (k.startsWith('t-') ? '/atendimento/fila' : `/atendimento?c=${k}`)} slotControles="avisos-slot" />}
     </div>
   )
 }

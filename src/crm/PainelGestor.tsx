@@ -16,6 +16,7 @@ const minutos = (m: number | null) => m == null ? '—' : m < 60 ? `${Math.round
 export default function PainelGestor({ empresaId, base }: { empresaId: string; base: BaseCRM }) {
   const [dias, setDias] = useState(30)
   const [p, setP] = useState<Painel | null>(null)
+  const [metas, setMetas] = useState<{ usuario_id: string; nome: string; meta: number | null; vendas: number }[]>([])
   const [t, setT] = useState<{ devolvidos: number; arquivados: number; reativados: number; no_arquivo: number } | null>(null)
   const [erro, setErro] = useState<string | null>(null)
   const carregar = useCallback(async () => {
@@ -23,6 +24,8 @@ export default function PainelGestor({ empresaId, base }: { empresaId: string; b
     if (error) setErro(error.message); else { setErro(null); setP(data as Painel) }
     const r = await supabase.rpc('crm_painel_tentativas', { p_empresa: empresaId, p_dias: dias })
     if (!r.error) setT(r.data)
+    const m = await supabase.rpc('crm_metas', { p_empresa: empresaId })
+    if (!m.error) setMetas(m.data ?? [])
   }, [empresaId, dias])
   useEffect(() => { carregar(); const t = setInterval(carregar, 60000); return () => clearInterval(t) }, [carregar])
 
@@ -72,6 +75,21 @@ export default function PainelGestor({ empresaId, base }: { empresaId: string; b
           ))}</tbody>
         </table>
         <p className="muted pequeno">Quem já falou com uma vendedora continua com ela. Lead novo vai para quem está disponível e entra no rodízio, um de cada vez.</p>
+      </section>
+
+      <section className="bloco">
+        <div className="bloco-topo"><h2>Metas do mês</h2><span className="muted pequeno">Cada vendedora vê só a própria meta, na Minha fila.</span></div>
+        <table className="tabela compacta">
+          <thead><tr><th>Pessoa</th><th className="num">Vendas no mês</th><th>Meta</th><th>Andamento</th></tr></thead>
+          <tbody>{[...metas].sort((a, b) => b.vendas - a.vendas).map((m) => (
+            <tr key={m.usuario_id}>
+              <td>{m.nome}</td><td className="num ok-txt">{m.vendas}</td>
+              <td><input className="input-meta" type="number" min={0} defaultValue={m.meta ?? ''} placeholder="—"
+                onBlur={async (e) => { const v = Number(e.target.value) || 0; if (v !== (m.meta ?? 0)) { const { error } = await supabase.rpc('crm_definir_meta', { p_empresa: empresaId, p_usuario: m.usuario_id, p_meta: v }); if (error) setErro(error.message); else carregar() } }} /></td>
+              <td>{m.meta ? <div className="barra-meta larga"><div style={{ width: `${Math.min(100, (100 * m.vendas) / m.meta)}%` }} /></div> : <span className="muted pequeno">sem meta</span>}</td>
+            </tr>
+          ))}</tbody>
+        </table>
       </section>
 
       <h2 className="titulo-secao">Por pessoa · últimos {dias} dias</h2>

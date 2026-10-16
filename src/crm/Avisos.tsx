@@ -40,7 +40,8 @@ function bip() {
 }
 
 // slotControles: id de um elemento da tela onde ficam os botões de som/aviso (ex.: rodapé do menu lateral)
-export function AvisosConversas({ empresaId, usuarioId, abrir, abrirFila, slotControles }: { empresaId: string; usuarioId: string; abrir: (conversaId: string) => void; abrirFila?: () => void; slotControles?: string }) {
+// urlDe: endereço que o aviso do sistema abre (chave = id da conversa, ou "t-…" para lead/recuperação)
+export function AvisosConversas({ empresaId, usuarioId, abrir, abrirFila, urlDe, slotControles }: { empresaId: string; usuarioId: string; abrir: (conversaId: string) => void; abrirFila?: () => void; urlDe?: (chave: string) => string; slotControles?: string }) {
   const [toasts, setToasts] = useState<Toast[]>([])
   const [permissao, setPermissao] = useState<NotificationPermission | 'sem'>(() => (typeof Notification === 'undefined' ? 'sem' : Notification.permission))
   const [somLigado, setSomLigado] = useState(() => { try { return localStorage.getItem('crm-som') !== 'nao' } catch { return true } })
@@ -55,9 +56,13 @@ export function AvisosConversas({ empresaId, usuarioId, abrir, abrirFila, slotCo
     setTimeout(() => setToasts((xs) => xs.filter((x) => x.id !== t.id)), 9000)
     if (somRef.current) bip()
     if (typeof Notification !== 'undefined' && Notification.permission === 'granted' && document.hidden) {
-      try { const n = new Notification(titulo, { body: texto, tag: chave }); n.onclick = () => { window.focus(); clicar(); n.close() } } catch { /* sem suporte */ }
+      // pelo service worker funciona também no celular (Android) e com o app instalado
+      navigator.serviceWorker?.getRegistration().then((reg) => {
+        if (reg) return reg.showNotification(titulo, { body: texto, tag: chave, icon: '/icone-192.png', data: { url: urlDe?.(chave) ?? '/atendimento' } })
+        const n = new Notification(titulo, { body: texto, tag: chave }); n.onclick = () => { window.focus(); clicar(); n.close() }
+      }).catch(() => { /* sem suporte */ })
     }
-  }, [])
+  }, [urlDe])
   const nomeContato = async (id: string) => {
     const { data } = await supabase.from('crm_contatos').select('nome,telefone').eq('id', id).maybeSingle()
     return data?.nome || data?.telefone || 'Contato'
@@ -108,12 +113,20 @@ export function AvisosConversas({ empresaId, usuarioId, abrir, abrirFila, slotCo
   const pedir = async () => { if (typeof Notification === 'undefined') return; setPermissao(await Notification.requestPermission()) }
   const alternarSom = () => { const v = !somLigado; setSomLigado(v); try { localStorage.setItem('crm-som', v ? 'sim' : 'nao') } catch { /* sem armazenamento */ } if (v) bip() }
 
+  // "Instalar o app": o navegador avisa quando dá para instalar
+  const [instalar, setInstalar] = useState<(Event & { prompt: () => Promise<void> }) | null>(null)
+  useEffect(() => {
+    const f = (e: Event) => { e.preventDefault(); setInstalar(e as Event & { prompt: () => Promise<void> }) }
+    window.addEventListener('beforeinstallprompt', f)
+    return () => window.removeEventListener('beforeinstallprompt', f)
+  }, [])
   const [slot, setSlot] = useState<HTMLElement | null>(null)
   useEffect(() => { if (slotControles) setSlot(document.getElementById(slotControles)) }, [slotControles])
   const controles = (
     <div className="avisos-config">
       <button className="link pequeno" onClick={alternarSom} title="Som quando chega mensagem">{somLigado ? '🔔 Som ligado' : '🔕 Som desligado'}</button>
       {permissao === 'default' && <button className="link pequeno" onClick={pedir}>Avisar fora da tela</button>}
+      {instalar && <button className="link pequeno" onClick={async () => { await instalar.prompt(); setInstalar(null) }}>📲 Instalar o app</button>}
     </div>
   )
   return (<>
