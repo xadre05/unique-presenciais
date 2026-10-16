@@ -96,7 +96,7 @@ async function membros(db: SupabaseClient, tk: string, subdominio: string) {
     const r = await fetch(u, { headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${tk}` } })
     if (!r.ok) throw new Error(`Hotmart respondeu ${r.status} na área de membros: ${(await r.text()).slice(0, 200)}`)
     const d = await r.json()
-    if (i === 0) formato = Array.isArray(d) ? 'lista' : Object.keys(d ?? {}).join(',')
+    if (i === 0) formato = JSON.stringify(d, (_k, v) => (typeof v === 'string' && v.includes('@') ? '***' : v)).slice(0, 500)
     const it = Array.isArray(d) ? d : Array.isArray(d?.items) ? d.items : Array.isArray(d?.items?.users) ? d.items.users : []
     users.push(...it)
     pg = Array.isArray(d) ? null : (d?.page_info?.next_page_token ?? null)
