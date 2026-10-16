@@ -40,7 +40,9 @@ export default function Contatos() {
   const filtro = useMemo(() => limparFiltro(f), [f])
   const chave = JSON.stringify(filtro)
   const res = useConsulta<{ total: number; linhas: ContatoLinha[] }>(() => supabase.rpc('buscar_contatos', { p: filtro, p_limite: POR_PAGINA, p_offset: (pagina - 1) * POR_PAGINA }), [chave, pagina, versao])
-  const cont = useConsulta<Contagem>(() => supabase.rpc('contar_contatos', { p: filtro }), [chave, versao])
+  // os cartões de cima mostram a base inteira (sem o filtro de WhatsApp) e, embaixo, quantos têm WhatsApp
+  const filtroCont = useMemo(() => { const { so_whats: _s, ...resto } = filtro; return resto as Filtro }, [filtro])
+  const cont = useConsulta<Contagem>(() => supabase.rpc('contar_contatos', { p: filtroCont }), [JSON.stringify(filtroCont), versao])
   const arquivados = useConsulta<number>(() => supabase.rpc('contar_arquivados'), [versao])
   const produtos = useConsulta<{ nome: string }[]>(() => supabase.from('hotmart_produtos').select('nome').order('nome'))
   const nomesProdutos = useMemo(() => [...new Set((produtos.dados ?? []).map((p) => p.nome))], [produtos.dados])
@@ -56,6 +58,8 @@ export default function Contatos() {
 
   const ICONE_SEG: Record<string, string> = { comprador: 'carrinho', quase: 'relogio', marcado: 'check', frio: 'floco' }
   const totalTodos = soma('total')
+  const whatsTodos = soma('com_whats')
+  const poucoWhats = !!cont.dados && totalTodos > 0 && whatsTodos < totalTodos * 0.5
   const temFiltroExtra = !!(f.compra || f.ano_compra || f.ano_entrada || f.fora_de_lista || f.arquivados)
   const paginas = Array.from({ length: Math.min(totalPag, 7) }, (_, i) => Math.max(1, Math.min(pagina - 3, totalPag - 6)) + i).filter((n) => n >= 1 && n <= totalPag)
   return (
@@ -76,16 +80,22 @@ export default function Contatos() {
       <section className="at-segmentos">
         <button className={`at-seg${!f.segmento ? ' ativo' : ''}`} onClick={() => mudar('segmento', '')}>
           <span className="at-kpi-icone"><Icone nome="turmas" tam={20} /></span>
-          <span className="at-seg-txt"><span>Todos</span><b>{cont.carregando && !cont.dados ? '…' : totalTodos.toLocaleString('pt-BR')}</b></span><Icone nome="seta" tam={16} />
+          <span className="at-seg-txt"><span>Todos</span><b>{cont.carregando && !cont.dados ? '…' : totalTodos.toLocaleString('pt-BR')}</b>{cont.dados && <small>{whatsTodos.toLocaleString('pt-BR')} com WhatsApp</small>}</span><Icone nome="seta" tam={16} />
         </button>
         {Object.entries(SEGMENTOS).map(([k, sg]) => (
           <button key={k} className={`at-seg${f.segmento === k ? ' ativo' : ''}`} onClick={() => mudar('segmento', f.segmento === k ? '' : k)} title={`${sg.explica} · ${(c[k]?.com_whats ?? 0).toLocaleString('pt-BR')} com WhatsApp · ${(c[k]?.livres ?? 0).toLocaleString('pt-BR')} fora de lista`}>
             <span className="at-kpi-icone"><Icone nome={ICONE_SEG[k] ?? 'usuario'} tam={20} /></span>
-            <span className="at-seg-txt"><span>{sg.rotulo}</span><b>{cont.carregando && !cont.dados ? '…' : (c[k]?.total ?? 0).toLocaleString('pt-BR')}</b></span><Icone nome="seta" tam={16} />
+            <span className="at-seg-txt"><span>{sg.rotulo}</span><b>{cont.carregando && !cont.dados ? '…' : (c[k]?.total ?? 0).toLocaleString('pt-BR')}</b>{cont.dados && <small>{(c[k]?.com_whats ?? 0).toLocaleString('pt-BR')} com WhatsApp</small>}</span><Icone nome="seta" tam={16} />
           </button>
         ))}
       </section>
 
+      {poucoWhats && (
+        <div className="at-faixa">
+          <span><b>Só {whatsTodos.toLocaleString('pt-BR')} de {totalTodos.toLocaleString('pt-BR')} contatos têm WhatsApp.</b> Os compradores da Hotmart entraram só com e-mail. Importe a lista do SellFlux e a exportação de vendas da Hotmart para trazer os telefones.</span>
+          <button className="btn btn-mini btn-ouro" onClick={() => setImportar(true)}>Importar contatos</button>
+        </div>
+      )}
       <label className="select-icone at-busca"><Icone nome="busca" /><input placeholder="Nome, WhatsApp ou e-mail" value={buscaTxt} onChange={(e) => setBuscaTxt(e.target.value)} /></label>
       <div className="at-filtros">
         <label className="select-icone"><Icone nome="usuario" tam={16} /><select value={f.compra ?? ''} onChange={(e) => mudar('compra', e.target.value)}>

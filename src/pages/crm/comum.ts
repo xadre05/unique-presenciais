@@ -152,18 +152,20 @@ export function lerArquivoContatos(texto: string): Leitura {
       else descarta('telefone fixo ou quebrado')
       continue
     }
+    // sem nome válido o lead continua valendo (o WhatsApp é o que importa); só fica marcado para a vendedora perguntar o nome
     const nome = iNome >= 0 ? nomeValido(l[iNome]) : null
-    if (!nome) { descarta('nome vazio ou inválido'); continue }
     const mail = iMail >= 0 ? emailValido(l[iMail]) : null
     const tags = iTags >= 0 ? (ehSellflux ? tagsSellflux(l[iTags]) : l[iTags].split(/[;,|]/).map((t) => t.trim()).filter(Boolean)) : []
     const ja = vistos.get(tel)
     if (ja) {
       descarta('repetido no arquivo (juntado)')
       if (mail && !ja.emails!.includes(mail)) ja.emails!.push(mail)
+      if (!ja.nome && nome) { ja.nome = nome; ja.tags = (ja.tags ?? []).filter((t) => t !== 'sem-nome') }
       ja.tags = [...new Set([...(ja.tags ?? []), ...tags])]
       continue
     }
-    vistos.set(tel, { nome, telefone: tel, emails: mail ? [mail] : [], tags: ehSellflux ? ['sellflux', ...tags] : tags, entrou_em: iData >= 0 ? dataBRparaISO(l[iData]) : null })
+    const marcas = [...(ehSellflux ? ['sellflux'] : []), ...(nome ? [] : ['sem-nome']), ...tags]
+    vistos.set(tel, { nome, telefone: tel, emails: mail ? [mail] : [], tags: marcas, entrou_em: iData >= 0 ? dataBRparaISO(l[iData]) : null })
   }
   return { tipo: ehSellflux ? 'sellflux' : 'planilha', lidas: linhas.length, linhas: [...vistos.values()], descartes }
 }
