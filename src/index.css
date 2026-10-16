@@ -761,6 +761,8 @@ select option:checked { background-color: #6d5427; color: #fff3d9; }
 .progresso { position: relative; height: 30px; border-radius: 8px; background: var(--painel); border: 1px solid var(--borda); overflow: hidden; margin-top: 10px; }
 .progresso > div { position: absolute; inset: 0 auto 0 0; background: var(--ouro-fundo); border-right: 2px solid var(--ouro); transition: width .3s; }
 .progresso > span { position: relative; display: block; text-align: center; line-height: 28px; font-size: .9rem; }
+.progresso > div.indeterminado { width: 35%; border-right: 0; animation: progresso-vai 1.2s ease-in-out infinite; }
+@keyframes progresso-vai { from { left: -35%; } to { left: 100%; } }
 .opcoes-vendedoras { display: flex; flex-wrap: wrap; gap: 8px 22px; margin-bottom: 6px; }
 .editor-msgs { display: flex; flex-direction: column; gap: 12px; margin-bottom: 8px; }
 .editor-msg { background: var(--painel-2); border: 1px solid var(--borda); border-radius: var(--raio); padding: 12px; display: flex; flex-direction: column; gap: 8px; }
