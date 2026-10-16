@@ -1,5 +1,5 @@
 // Integração com a Hotmart (só leitura). Chamado pela tela (administrador) ou pela busca automática (cron).
-// Ações: testar · ofertas · pagamentos · tudo. As credenciais ficam cifradas no banco (Vault), cadastradas pela tela.
+// Ações: testar · ofertas · pagamentos · membros · tudo. As credenciais ficam cifradas no banco (Vault), cadastradas pela tela.
 import { createClient, type SupabaseClient } from 'npm:@supabase/supabase-js@2.45.4'
 
 const cors = {
@@ -21,10 +21,10 @@ async function token(c: Cred) {
   return (await r.json()).access_token as string
 }
 
-async function paginas(url: string, tk: string, extra: Record<string, string> = {}) {
+async function paginas(url: string, tk: string, extra: Record<string, string> = {}, maxPaginas = 60) {
   const itens: Record<string, any>[] = []
   let pg: string | null = null
-  for (let i = 0; i < 60; i++) {
+  for (let i = 0; i < maxPaginas; i++) {
     const u = new URL(url)
     u.searchParams.set('max_results', '50')
     for (const [k, v] of Object.entries(extra)) u.searchParams.set(k, v)
@@ -81,6 +81,41 @@ async function ofertas(db: SupabaseClient, integ: Integ, tk: string) {
     for (const s of sumiram ?? []) if (!codigos.includes(s.hotmart_oferta)) { await db.from('links_pagamento').update({ ativo: false, sincronizado_em: agora }).eq('id', s.id); desativados++ }
   }
   return { produtos: produtos.length, novos, atualizados, desativados }
+}
+
+// Área de membros (Hotmart Club): quem tem acesso e com que status. Só leitura.
+async function membros(db: SupabaseClient, tk: string, subdominio: string) {
+  const agora = new Date().toISOString()
+  // a API do Club pode devolver a lista em "items" ou direto como lista
+  const users: Record<string, any>[] = []
+  let pg: string | null = null, formato = ''
+  for (let i = 0; i < 200; i++) {
+    const u = new URL(`${API}/club/api/v1/users`)
+    u.searchParams.set('subdomain', subdominio); u.searchParams.set('max_results', '50')
+    if (pg) u.searchParams.set('page_token', pg)
+    const r = await fetch(u, { headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${tk}` } })
+    if (!r.ok) throw new Error(`Hotmart respondeu ${r.status} na área de membros: ${(await r.text()).slice(0, 200)}`)
+    const d = await r.json()
+    if (i === 0) formato = Array.isArray(d) ? 'lista' : Object.keys(d ?? {}).join(',')
+    const it = Array.isArray(d) ? d : Array.isArray(d?.items) ? d.items : Array.isArray(d?.items?.users) ? d.items.users : []
+    users.push(...it)
+    pg = Array.isArray(d) ? null : (d?.page_info?.next_page_token ?? null)
+    if (!pg || !it.length) break
+  }
+  const status: Record<string, number> = {}
+  const lote = users.map((u) => {
+    status[String(u.status)] = (status[String(u.status)] ?? 0) + 1
+    return {
+      subdominio, user_id: String(u.user_id ?? u.id ?? u.email), email: u.email ? String(u.email).toLowerCase() : null, nome: u.name ?? null,
+      status: u.status ?? null, papel: u.role ?? null, primeiro_acesso: quando(u.first_access_date), ultimo_acesso: quando(u.last_access_date),
+      progresso: u.progress?.completed_percentage ?? null, engajamento: u.engagement ?? null, bruto: u, sincronizado_em: agora,
+    }
+  })
+  for (let i = 0; i < lote.length; i += 500) {
+    const { error } = await db.from('hotmart_membros').upsert(lote.slice(i, i + 500), { onConflict: 'subdominio,user_id' })
+    if (error) throw new Error(error.message)
+  }
+  return { membros: users.length, status, formato, campos: users[0] ? Object.keys(users[0]) : [] }
 }
 
 // Status que a busca traz. Sem filtro a Hotmart só devolve aprovados; para ver reembolso e cancelamento é preciso pedir cada um.
@@ -161,6 +196,11 @@ Deno.serve(async (req) => {
       if (acao === 'preco') {
         const rr = await fetch(`${API}/payments/api/v1/sales/price/details?transaction=${encodeURIComponent(String(corpo.transacao))}`, { headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${tk}` } })
         resultado[integ.id] = { ok: true, status: rr.status, corpo: await rr.text() }
+        continue
+      }
+      if (acao === 'membros') {
+        try { resultado[integ.id] = { ok: true, ...(await membros(db, tk, String(corpo.subdominio ?? 'uniquehofclub'))) } }
+        catch (e) { resultado[integ.id] = { ok: false, erro: (e as Error).message } }
         continue
       }
       if (acao === 'diagnostico') {
