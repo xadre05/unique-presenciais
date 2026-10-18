@@ -46,7 +46,7 @@ export function RedesEmpresa({ empresaId, perfil, aoSalvar }: { empresaId: strin
           </div>
         )
       })}
-      <p className="muted pequeno">Quer outra rede (ex.: X, WhatsApp, e-mail)? Peça para incluir: cada rede precisa dos formatos e do jeito de escrever dela.</p>
+      <p className="muted pequeno">Quer outro canal (ex.: X, Telegram, Spotify)? Peça para incluir: cada canal precisa dos formatos e do jeito de escrever dele.</p>
       <Erro msg={erro} />
       <div className="modal-acoes">{ok && <span className="ok-txt pequeno">Salvo ✓</span>}<button className="btn btn-ouro" onClick={salvar}>Salvar redes sociais</button></div>
     </div>

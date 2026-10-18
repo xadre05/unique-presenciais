@@ -67,17 +67,42 @@ Fixadas pelo Alexandre em 18/10/2026. Qualquer mudança nas telas ou na função
 
 Formatos de cada canal:
 
-| Canal | Formatos |
-|---|---|
-| Instagram | Post, Carrossel, Reels, Stories |
-| YouTube | Vídeo longo, Shorts, Post da comunidade |
-| TikTok | Vídeo, Carrossel de fotos, Stories |
-| Facebook | Post, Carrossel, Reels, Stories |
-| LinkedIn | Post, Carrossel (PDF), Vídeo |
-| Pinterest | Pin, Pin carrossel, Pin em vídeo |
-| Threads | Post de texto, Post com fotos |
+**Canal, formato e finalidade são separados:**
+- O **canal** diz onde a peça sai. Exemplo: YouTube.
+- O **formato** diz o que a peça é. Exemplo: vídeo curto.
+- A **finalidade** (objetivo do briefing) diz para que serve. Exemplo: educativo ou anúncio.
 
-Fora por enquanto: lives (não são peça escrita) e artigos ou newsletter do LinkedIn (precisam de um formato novo).
+Capa, thumbnail e legenda são materiais dentro da peça, não peças separadas. Cada formato tem nomes próprios para esses campos no editor; por exemplo, no e-mail os campos são "Assunto", "Prévia" e "Corpo". Esses nomes ficam em `formatos.ts`.
+
+| Formato | O agente prepara |
+|---|---|
+| Imagem | Texto da arte, legenda e pedido da imagem |
+| Carrossel | Texto de cada lâmina, legenda e direção visual |
+| Vídeo curto | Roteiro cena a cena, legenda e capa |
+| Stories | Texto de cada tela e interações |
+| Vídeo longo | Roteiro em blocos, título, descrição e thumbnail |
+| Live | Pauta, roteiro, perguntas e chamada |
+| Texto / enquete | Texto, pergunta e opções de resposta |
+| Artigo | Estrutura, conteúdo e sugestão de capa |
+| E-mail | Assunto, prévia, corpo e chamada |
+| Mensagem | Mensagem e variações (WhatsApp) |
+| Material PDF | Conteúdo página a página e orientação de diagramação |
+
+| Canal | Formatos (nome no canal) |
+|---|---|
+| Instagram | Imagem, Carrossel, Reels, Stories, Live |
+| YouTube | Vídeo longo, Shorts, Live, Imagem e Texto/enquete na comunidade |
+| TikTok | Vídeo, Carrossel de fotos, Stories, Live |
+| Facebook | Imagem, Carrossel, Reels, Stories, Texto/enquete, Live |
+| LinkedIn | Imagem, Carrossel em PDF, Vídeo, Texto/enquete, Artigo/newsletter, Live |
+| Pinterest | Pin, Pin carrossel, Pin em vídeo |
+| Threads | Texto/enquete, Imagem, Carrossel |
+| E-mail | E-mail, Material PDF |
+| WhatsApp | Mensagem, Material PDF |
+| Site | Artigo do blog, Material PDF |
+
+- Os canais são ligados em Base da marca → Redes sociais. Os filtros e o agente só usam os canais ligados.
+- Produção: cada linha mostra o ícone do formato, o canal (logo), a data, a situação ("Roteiro em revisão", "Texto em revisão"…), o menu ⋯ e a paginação.
 
 ## Uma ideia em vários canais
 
