@@ -2288,3 +2288,4 @@ a.sala-agente:hover { border-color: var(--ouro); transform: translateY(-2px); }
   .pp-hist ol { flex-direction: row; overflow-x: auto; max-height: none; padding-bottom: 4px; }
   .pp-hist ol li { flex: 0 0 240px; }
 }
+.pp-versoes > *, .pp-itens > *, .pp-direcao > *, .pp-corpo > * { min-width: 0; }
