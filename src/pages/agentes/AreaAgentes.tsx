@@ -9,6 +9,7 @@ import { TrocaArea } from '../../components/TrocaArea'
 import Sala from './Sala'
 import AgenteMarketing from './AgenteMarketing'
 import Central from './Central'
+import AgentePlanejado from './AgentePlanejado'
 
 export default function AreaAgentes() {
   const { perfil, isAdmin } = useAuth()
@@ -31,8 +32,11 @@ export default function AreaAgentes() {
         <TrocaArea ativa="agentes" />
         <nav>
           <NavLink to="/agentes" end><Icone nome="contatos" /> Sala dos agentes</NavLink>
-          <NavLink to="/agentes/marketing"><Icone nome="grafico" /> Agente de Marketing</NavLink>
-          <NavLink to="/agentes/central"><Icone nome="equipe" /> Central de agentes</NavLink>
+          <NavLink to="/agentes/marketing"><Icone nome="grafico" /> Marketing</NavLink>
+          <NavLink to="/agentes/atendimento"><Icone nome="whats" /> Atendimento</NavLink>
+          <NavLink to="/agentes/vendas"><Icone nome="dinheiro" /> Vendas</NavLink>
+          <NavLink to="/agentes/trafego"><Icone nome="busca" /> Tráfego</NavLink>
+          <NavLink to="/agentes/central" className="nav-separado"><Icone nome="equipe" /> Central de agentes</NavLink>
         </nav>
         <div className="lateral-rodape">
           <div className="avatar"><Icone nome="usuario" tam={20} /></div>
@@ -54,6 +58,7 @@ export default function AreaAgentes() {
           <Route index element={<Sala />} />
           <Route path="marketing" element={<AgenteMarketing />} />
           <Route path="central" element={<Central />} />
+          <Route path=":id" element={<AgentePlanejado />} />
           <Route path="*" element={<Navigate to="/agentes" replace />} />
         </Routes>
       </main>

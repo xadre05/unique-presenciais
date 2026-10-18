@@ -1247,3 +1247,46 @@ a.sala-agente:hover { border-color: var(--ouro); transform: translateY(-2px); }
 .linha-campos > .campo { flex: 1; min-width: 220px; }
 @media (max-width: 640px) { .pecas-grade { grid-template-columns: 1fr; } .agente-topo { align-items: flex-start; } }
 .agente-erro { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+
+/* sala com retratos (proposta visual do Alexandre) */
+.sala-topo { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; flex-wrap: wrap; margin-bottom: 12px; }
+.sala-topo h1 { font-size: 2.1rem; margin: 0 0 4px; color: var(--ouro-forte); }
+.sala-consumo { display: flex; align-items: center; gap: 12px; padding: 10px 14px; border: 1px solid var(--borda); border-radius: 12px; background: var(--painel); color: var(--ouro); }
+.sala-consumo b { display: block; color: var(--texto); font-size: 1.1rem; }
+.sala-aviso { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border: 1px solid rgba(224,180,79,.45); border-radius: 12px; background: rgba(224,180,79,.08); color: #e0b44f; margin-bottom: 14px; }
+.sala-aviso span { flex: 1; color: var(--texto); }
+.sala-grade { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px; }
+.sala-card { --cor-agente: var(--ouro); position: relative; display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 0 16px 18px; border-radius: 18px; overflow: hidden; text-decoration: none; color: var(--texto);
+  border: 1px solid color-mix(in srgb, var(--cor-agente) 55%, transparent);
+  background: radial-gradient(ellipse at 50% 22%, color-mix(in srgb, var(--cor-agente) 34%, transparent), transparent 62%), linear-gradient(180deg, color-mix(in srgb, var(--cor-agente) 14%, #0e0e10), #0e0e10 70%);
+  transition: transform .2s, box-shadow .2s; }
+.sala-card:hover { transform: translateY(-3px); box-shadow: 0 10px 34px color-mix(in srgb, var(--cor-agente) 28%, transparent); }
+.sala-card-foto { margin-top: 8px; display: flex; justify-content: center; }
+.sala-card-icone { margin-top: -30px; z-index: 1; width: 48px; height: 48px; display: grid; place-items: center; border-radius: 50%; border: 2px solid var(--cor-agente); background: #0e0e10; color: var(--cor-agente); }
+.sala-card-nome { font-family: 'Fraunces', Georgia, serif; font-size: 1.45rem; letter-spacing: .06em; text-transform: uppercase; color: var(--ouro-forte); margin-top: 4px; }
+.sala-card-papel { color: var(--muted); font-size: .9rem; margin-top: -4px; }
+.sala-card-botao { margin-top: 8px; width: 100%; text-align: center; padding: 9px; border-radius: 10px; border: 1.5px solid var(--cor-agente); color: var(--texto); font-weight: 600; font-size: .92rem; }
+.sala-card:hover .sala-card-botao { background: color-mix(in srgb, var(--cor-agente) 22%, transparent); }
+.sala-card.est-em_breve .retrato img { filter: saturate(.55) brightness(.8); }
+.sala-pilula { display: inline-block; padding: 4px 12px; border-radius: 999px; font-size: .8rem; border: 1px solid var(--borda); background: rgba(255,255,255,.04); color: var(--muted); white-space: nowrap; }
+.sala-pilula.tom-alerta { color: #e0b44f; border-color: rgba(224,180,79,.5); }
+.sala-pilula.tom-ok { color: #7fcf96; border-color: rgba(127,207,150,.45); }
+.sala-pilula.tom-erro { color: #e07a6b; border-color: rgba(224,122,107,.5); }
+.sala-pilula.tom-ativo { color: var(--ouro-forte); border-color: var(--ouro); }
+.retrato { --cor-agente: var(--ouro); position: relative; }
+.retrato img { width: 100%; height: 100%; object-fit: contain; display: block; filter: drop-shadow(0 8px 22px color-mix(in srgb, var(--cor-agente) 45%, transparent)); }
+.retrato.est-trabalhando img { animation: retrato-brilho 1.6s ease-in-out infinite; }
+.retrato.est-parado img { animation: pers-respira 4s ease-in-out infinite; }
+.retrato-balao { position: absolute; top: 8%; right: 8%; width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; background: #e0b44f; color: #15171c; font-weight: 800; animation: pers-pula 1.4s ease-in-out infinite; }
+@keyframes retrato-brilho { 0%, 100% { filter: drop-shadow(0 8px 22px color-mix(in srgb, var(--cor-agente) 40%, transparent)); transform: translateY(0) } 50% { filter: drop-shadow(0 8px 34px color-mix(in srgb, var(--cor-agente) 85%, transparent)); transform: translateY(-3px) } }
+@media (prefers-reduced-motion: reduce) { .retrato img, .retrato-balao { animation: none !important; } }
+.sala-baixo { display: grid; grid-template-columns: 1.4fr 1fr; gap: 16px; margin-top: 18px; }
+.sala-fila-vazia { border: 1px dashed var(--borda); border-radius: 12px; padding: 28px; text-align: center; }
+.sala-fila, .sala-marca { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.sala-fila a, .sala-marca a { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border: 1px solid var(--borda); border-radius: 10px; color: var(--texto); text-decoration: none; }
+.sala-fila a:hover, .sala-marca a:hover { border-color: var(--ouro); }
+.sala-marca a span:nth-child(2) { flex: 1; }
+.sala-fila-tipo { --cor-agente: var(--ouro); font-size: .75rem; padding: 2px 8px; border-radius: 6px; border: 1px solid var(--cor-agente); color: var(--cor-agente); }
+.agente-papel { color: var(--muted); margin: -2px 0 8px; }
+.nav-separado { margin-top: 14px; border-top: 1px solid var(--borda); padding-top: 14px !important; }
+@media (max-width: 900px) { .sala-baixo { grid-template-columns: 1fr; } }

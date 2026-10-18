@@ -1,15 +1,15 @@
 // Agente de Marketing: pedir uma semana de conteúdo, acompanhar o trabalho e aprovar peça por peça.
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import { msgErro, useConsulta } from '../../lib/dados'
 import { dataBR, dataHoraBR } from '../../lib/format'
 import { Campo, Erro, InputNumero, Vazio } from '../../components/ui'
 import { EMPRESA_UNIQUE } from '../crm/comum'
-import { Personagem } from './Personagem'
+import { Retrato } from './Retrato'
 import { MarketingPerfil, type PerfilMarketing } from './MarketingPerfil'
 import { PecaCartao } from './PecaCartao'
-import { VISUAL, proximaSegunda, usd, type Peca, type Trabalho } from './comum'
+import { proximaSegunda, usd, type Peca, type Trabalho } from './comum'
 
 const EMPRESA = EMPRESA_UNIQUE
 const ocupado = (t?: Trabalho | null) => t?.status === 'na_fila' || t?.status === 'trabalhando'
@@ -17,6 +17,7 @@ const ocupado = (t?: Trabalho | null) => t?.status === 'na_fila' || t?.status ==
 export default function AgenteMarketing() {
   const trabalhos = useConsulta<Trabalho[]>(() => supabase.from('agentes_trabalhos').select('*').eq('empresa_id', EMPRESA).eq('agente_id', 'marketing').order('criado_em', { ascending: false }).limit(12))
   const perfil = useConsulta<{ perfil: PerfilMarketing; ativo: boolean } | null>(() => supabase.from('agentes_empresa').select('perfil,ativo').eq('empresa_id', EMPRESA).eq('agente_id', 'marketing').maybeSingle())
+  const local = useLocation()
   const [escolhido, setEscolhido] = useState<string | null>(null)
   const atual = (trabalhos.dados ?? []).find((t) => t.id === escolhido) ?? trabalhos.dados?.[0] ?? null
   const pecas = useConsulta<Peca[]>(() => atual ? supabase.from('agentes_pecas').select('*').eq('trabalho_id', atual.id).order('dia').order('ordem') : Promise.resolve({ data: [], error: null }), [atual?.id, atual?.status])
@@ -56,7 +57,7 @@ export default function AgenteMarketing() {
     <div className="pagina larga">
       <div className="migalha"><Link to="/agentes" className="link">← Sala dos agentes</Link></div>
       <header className="agente-topo">
-        <Personagem cor={VISUAL.marketing.cor} estado={estado} tam={92} />
+        <Retrato agente="marketing" estado={estado} tam={130} />
         <div>
           <h1>Agente de Marketing</h1>
           <p className="muted">Monta a semana de conteúdo do Instagram com o que a Unique vende agora (turmas com vaga, campanha ativa). Nada é publicado sozinho.</p>
@@ -101,7 +102,7 @@ export default function AgenteMarketing() {
         </>)}
       </section>
 
-      <details className="bloco agente-perfil">
+      <details id="perfil" className="bloco agente-perfil" open={local.hash === '#perfil' || undefined}>
         <summary><b>O que o agente sabe da Unique</b> <span className="muted pequeno">· abra para ajustar</span></summary>
         {perfil.dados && <MarketingPerfil empresaId={EMPRESA} perfil={perfil.dados.perfil ?? {}} aoSalvar={perfil.recarregar} />}
       </details>

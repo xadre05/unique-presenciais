@@ -20,13 +20,14 @@ export const MODELOS: Record<string, { nome: string; dica: string }> = {
   'claude-haiku-5-5': { nome: 'Claude Haiku 5.5 (econômico)', dica: 'Cerca de 20 vezes mais barato; texto um pouco mais simples.' },
 }
 
-// cor e frase de cada agente na sala
-export const VISUAL: Record<string, { cor: string; trabalhando: string }> = {
-  marketing: { cor: '#c9a45c', trabalhando: 'montando a semana de conteúdo' },
-  atendimento: { cor: '#5aa9a0', trabalhando: 'respondendo leads' },
-  vendas: { cor: '#7d8fd6', trabalhando: 'separando quem chamar' },
-  trafego: { cor: '#c97a5c', trabalhando: 'lendo os anúncios' },
+// visual de cada agente: retrato (feito no GPT pelo Alexandre), cor, ícone e o que diz quando trabalha
+export const VISUAL: Record<string, { cor: string; foto?: string; icone: string; trabalhando: string }> = {
+  marketing: { cor: '#a46ee6', foto: '/agentes/marketing.webp', icone: 'grafico', trabalhando: 'montando a semana de conteúdo' },
+  atendimento: { cor: '#2fb3a0', foto: '/agentes/atendimento.webp', icone: 'whats', trabalhando: 'respondendo leads' },
+  vendas: { cor: '#d9a24b', foto: '/agentes/vendas.webp', icone: 'dinheiro', trabalhando: 'separando quem chamar' },
+  trafego: { cor: '#3f7df0', foto: '/agentes/trafego.webp', icone: 'busca', trabalhando: 'lendo os anúncios' },
 }
+export const visualDe = (id: string) => VISUAL[id] ?? { cor: '#c9a45c', icone: 'info', trabalhando: 'trabalhando' }
 
 export const TIPO_PECA: Record<string, string> = { post: 'Post', carrossel: 'Carrossel', reels: 'Reels', stories: 'Stories' }
 export const usd = (v: number | null | undefined) => `US$ ${(Number(v ?? 0)).toFixed(Number(v ?? 0) < 1 ? 3 : 2)}`
