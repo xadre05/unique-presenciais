@@ -118,7 +118,7 @@ const FERRAMENTA = {
             cta: { type: 'string', description: 'Chamada para ação' },
             hashtags: { type: 'array', items: { type: 'string' } },
             observacao: { type: 'string', description: 'Dica de gravação, imagem ou cuidado com as regras do conselho' },
-            prompt_imagem: { type: 'string', description: 'Para post e carrossel (e a capa do vídeo longo): pedido pronto para colar no ChatGPT e gerar a arte (cena, enquadramento, luz, cores da marca preto e dourado, texto que vai na arte). Nunca pedir rosto de paciente nem antes e depois.' },
+            prompt_imagem: { type: 'string', description: 'Para post e carrossel (e a capa do vídeo longo): pedido pronto para colar no ChatGPT e gerar a arte (cena, enquadramento, luz, cores da marca preto e dourado, texto que vai na arte). Antes e depois só com as fotos reais que a equipe enviar (paciente autorizou); nunca inventar nem gerar com IA o rosto ou o resultado de um paciente.' },
             rede: { type: 'string', enum: NOMES_REDES, description: 'Só quando o item pede para você escolher o canal: o canal escolhido' },
             ref: { type: 'integer', description: 'Quando a lista pedida é numerada: o número do item que esta peça atende' },
             horario: { type: 'string', description: 'Horário sugerido para postar, HH:MM (ex.: 09:00, 12:00, 18:00)' },

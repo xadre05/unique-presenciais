@@ -65,6 +65,24 @@ function Previa({ peca, r, mudar, atual, setAtual }: Pick<Props, 'peca' | 'r' | 
   )
 }
 
+// fotos reais de antes e depois do paciente; o envio só abre depois de confirmar a autorização
+function AntesDepois({ peca, v, muda }: { peca: Peca; v: Visual; muda: (c: Partial<Visual>) => void }) {
+  const fotos = v.antesDepois ?? []
+  return (
+    <div className="pp-campo">
+      <span className="pp-rotulo">Fotos de antes e depois</span>
+      <label className="pp-check"><input type="checkbox" checked={!!v.autorizado} onChange={(e) => muda({ autorizado: e.target.checked })} /> O paciente autorizou o uso destas fotos (termo assinado)</label>
+      <div className="pp-refs">
+        {fotos.map((x, j) => (
+          <span key={x.caminho} className="pp-ref"><Miniatura caminho={x.caminho} nome={x.nome} /><button type="button" className="pp-cor-tirar" aria-label={`Tirar ${x.nome}`} onClick={() => muda({ antesDepois: fotos.filter((_, k) => k !== j) })}><Icone nome="fechar" tam={12} /></button></span>
+        ))}
+        <BotaoEnviar pasta={pastaDa(peca.id)} texto="Enviar foto" classe="btn btn-contorno btn-mini" aceita="image/*" desligado={!v.autorizado} aoEnviar={(caminho, nome) => muda({ antesDepois: [...fotos, { caminho, nome }] })} />
+      </div>
+      <span className="muted pequeno">Só fotos reais. A IA monta a arte com elas, mas não cria nem altera o resultado do paciente.</span>
+    </div>
+  )
+}
+
 export function AbaDirecao({ peca, r, mudar, atual, setAtual, nomeAba, rodando, ultimo, antes, aoPedir }: Props) {
   const cfg = configDe(peca.tipo)
   const porItem = cfg.artes === 'por_item'
@@ -104,6 +122,7 @@ export function AbaDirecao({ peca, r, mudar, atual, setAtual, nomeAba, rodando, 
           </div>
           <span className="muted pequeno">Prints de posts, fotos ou artes que servem de modelo.</span>
         </div>
+        <AntesDepois peca={peca} v={v} muda={muda} />
         <AjusteIA peca={peca} rodando={rodando} ultimo={ultimo} titulo={`O que deseja ajustar em ${minusc(nomeAba)}?`} placeholder="Ex.: menos texto na arte e mais contraste no título"
           alcances={[{ id: 'visual', nome: nomeAba, instrucao: (p) => `${so} Pedido: ${p}. Mantenha o texto, o roteiro e a legenda exatamente como estão.` }, { id: 'peca', nome: 'Peça inteira', instrucao: (p) => p }]}
           antes={antes} aoPedir={aoPedir} />
