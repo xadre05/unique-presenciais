@@ -2002,7 +2002,7 @@ a.sala-agente:hover { border-color: var(--ouro); transform: translateY(-2px); }
 .mk-pop-botao.aberto > svg { transform: rotate(-90deg); }
 
 /* avatar do agente "saindo" do círculo: o desenho passa por cima da borda; só a parte de baixo é cortada pelo círculo */
-.mk-avatar-pop { --d: 92px; position: relative; flex: none; width: calc(var(--d) * 1.3); height: calc(var(--d) * 1.3); margin-top: calc(var(--d) * -0.22); }
+.mk-avatar-pop { --d: 92px; position: relative; flex: none; width: calc(var(--d) * 1.3); height: calc(var(--d) * 1.3); }
 .mk-avatar-fundo { position: absolute; left: calc(50% - var(--d) / 2); bottom: 0; width: var(--d); height: var(--d); border-radius: 50%; padding: 3px; background: conic-gradient(#a46ee6, var(--ouro), #a46ee6); }
 .mk-avatar-fundo::after { content: ''; display: block; width: 100%; height: 100%; border-radius: 50%; background: radial-gradient(circle at 50% 40%, color-mix(in srgb, #a46ee6 40%, #1b1726) 0, #15131c 78%); }
 .mk-avatar-pop img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; filter: drop-shadow(0 4px 10px rgba(0,0,0,.45));
