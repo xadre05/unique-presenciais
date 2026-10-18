@@ -2,18 +2,19 @@
 import { useState } from 'react'
 import { Icone } from '../../../components/Icone'
 import type { Peca } from '../comum'
+import { infoFormato } from './formatos'
 
 export type Rascunho = { objetivo: string; roteiro: string[]; legenda: string; cta: string; hashtags: string; texto_arte: string; prompt_imagem: string; observacao: string }
 export const rascunhoDe = (c: Peca['conteudo']): Rascunho => ({
   objetivo: c.objetivo ?? '', roteiro: c.roteiro ?? [], legenda: c.legenda ?? '', cta: c.cta ?? '', hashtags: (c.hashtags ?? []).join(' '),
   texto_arte: c.texto_arte ?? '', prompt_imagem: c.prompt_imagem ?? '', observacao: c.observacao ?? '',
 })
-export const NOME_ITEM: Record<string, [string, string]> = { carrossel: ['Lâminas', 'Lâmina'], stories: ['Telas', 'Tela'], reels: ['Cenas', 'Cena'], post: ['Texto da arte', 'Linha'], video: ['Blocos do roteiro', 'Bloco'] }
+// nomes dos campos vêm do formato (formatos.ts): "Lâminas" no carrossel, "Páginas" no PDF, "Variações" na mensagem…
 
 async function copiar(texto: string) { try { await navigator.clipboard.writeText(texto) } catch { /* sem permissão: ignora */ } }
 
 export function AbaRoteiro({ peca, r, mudar }: { peca: Peca; r: Rascunho; mudar: (c: Partial<Rascunho>) => void }) {
-  const [plural, singular] = NOME_ITEM[peca.tipo] ?? ['Roteiro', 'Item']
+  const [plural, singular] = infoFormato(peca.tipo).campos.roteiro
   const muda = (i: number, v: string) => mudar({ roteiro: r.roteiro.map((x, j) => (j === i ? v : x)) })
   return (
     <div className="mk-aba">
@@ -29,24 +30,25 @@ export function AbaRoteiro({ peca, r, mudar }: { peca: Peca; r: Rascunho; mudar:
   )
 }
 
-export function AbaLegenda({ r, mudar }: { r: Rascunho; mudar: (c: Partial<Rascunho>) => void }) {
+export function AbaLegenda({ peca, r, mudar }: { peca: Peca; r: Rascunho; mudar: (c: Partial<Rascunho>) => void }) {
+  const c = infoFormato(peca.tipo).campos
   return (
     <div className="mk-aba">
-      <label className="mk-rotulo">Legenda</label>
+      <label className="mk-rotulo">{c.legenda}</label>
       <textarea rows={10} value={r.legenda} onChange={(e) => mudar({ legenda: e.target.value })} />
       <label className="mk-rotulo">Chamada para ação</label>
       <input value={r.cta} onChange={(e) => mudar({ cta: e.target.value })} />
-      <label className="mk-rotulo">Hashtags</label>
-      <input value={r.hashtags} onChange={(e) => mudar({ hashtags: e.target.value })} placeholder="#hof #harmonizacaofacial" />
+      {c.hashtags && <><label className="mk-rotulo">Hashtags</label>
+      <input value={r.hashtags} onChange={(e) => mudar({ hashtags: e.target.value })} placeholder="#hof #harmonizacaofacial" /></>}
     </div>
   )
 }
 
-export function AbaVisual({ r, mudar }: { r: Rascunho; mudar: (c: Partial<Rascunho>) => void }) {
+export function AbaVisual({ peca, r, mudar }: { peca: Peca; r: Rascunho; mudar: (c: Partial<Rascunho>) => void }) {
   const [copiado, setCopiado] = useState(false)
   return (
     <div className="mk-aba">
-      <label className="mk-rotulo">Texto que vai na arte / capa</label>
+      <label className="mk-rotulo">{infoFormato(peca.tipo).campos.arte}</label>
       <input value={r.texto_arte} onChange={(e) => mudar({ texto_arte: e.target.value })} />
       <label className="mk-rotulo">Pedido da imagem <button className="link pequeno" onClick={async () => { await copiar(r.prompt_imagem); setCopiado(true); setTimeout(() => setCopiado(false), 1800) }}>{copiado ? 'copiado ✓' : 'copiar'}</button></label>
       <textarea rows={6} value={r.prompt_imagem} onChange={(e) => mudar({ prompt_imagem: e.target.value })} placeholder="Cena, enquadramento, luz, cores da marca, texto na arte" />

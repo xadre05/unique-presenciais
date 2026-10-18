@@ -1,6 +1,7 @@
 // Topo igual no Planejamento e na Produção: título da aba, um painel com o período (a data fica sempre no
 // mesmo lugar) e os filtros de peça com rótulo, na mesma ordem, com a busca à direita; embaixo, o resumo.
 import { useEffect, useRef, type ReactNode } from 'react'
+import { Link } from 'react-router-dom'
 import { Icone } from '../../../components/Icone'
 import { hojeISO, segundaDe, somaDias } from '../comum'
 import { ETAPAS } from './etapas'
@@ -92,21 +93,22 @@ function Canais({ f, mudar }: Pick<PropsFiltros, 'f' | 'mudar'>) {
         <div className="mk-multi-lista">
           <label><input type="checkbox" checked={todos} onChange={() => definir([])} /> Todos os canais</label>
           {ativas.map((r) => <label key={r}><input type="checkbox" checked={todos || f.canais.includes(r)} onChange={() => alternar(r)} /><LogoRede rede={r} /> {REDES[r].nome}</label>)}
+          <Link to="/agentes/marca" className="mk-multi-rodape"><Icone nome="mais" tam={14} /> Ligar outros canais</Link>
         </div>
       </details>
     </div>
   )
 }
 
-// formatos dos canais em foco: com um canal, o nome que ele usa (Reels, Shorts…); com vários, o nome geral e onde existe
+// formatos dos canais em foco: com um canal, o nome que ele usa (Reels, Shorts…); com vários, o nome geral (Vídeo curto)
 function Formatos({ f, mudar }: Pick<PropsFiltros, 'f' | 'mudar'>) {
   const ativas = useRedes()
   const canais = f.canais.length ? f.canais : ativas
-  const opcoes = FORMATOS.map((k) => ({ k, onde: canais.filter((r) => REDES[r].formatos.includes(k)) })).filter((o) => o.onde.length)
-  const rotulo = (k: string, onde: Rede[]) => (canais.length === 1 ? nomeFormato(k, canais[0]) : `${nomeGenerico(k)} · ${onde.map((r) => REDES[r].nome).join(', ')}`)
+  const opcoes = FORMATOS.filter((k) => canais.some((r) => REDES[r].formatos.includes(k)))
+  const rotulo = (k: string) => (canais.length === 1 ? nomeFormato(k, canais[0]) : nomeGenerico(k))
   return (
     <label className="mk-pf-campo"><span>Formatos</span><span className="select-icone"><select value={f.formato} onChange={(e) => mudar({ formato: e.target.value })}>
-      <option value="">Todos</option>{opcoes.map((o) => <option key={o.k} value={o.k}>{rotulo(o.k, o.onde)}</option>)}
+      <option value="">Todos</option>{opcoes.map((k) => <option key={k} value={k}>{rotulo(k)}</option>)}
     </select></span></label>
   )
 }

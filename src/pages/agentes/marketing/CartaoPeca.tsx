@@ -9,7 +9,7 @@ import { COR_TIPO, ETAPA, ETAPAS, etapaDe, type Etapa } from './etapas'
 
 type Props = { peca: Peca; aoAbrir: () => void; modo: 'quadro' | 'calendario'; trabalhando?: boolean; aoMover?: (etapa: Etapa) => void; aoTirar?: () => void }
 
-function Menu({ etapa, aoAbrir, aoMover, aoTirar }: { etapa: Etapa | 'descartada'; aoAbrir: () => void; aoMover?: (e: Etapa) => void; aoTirar?: () => void }) {
+export function MenuPeca({ etapa, aoAbrir, aoMover, aoTirar }: { etapa: Etapa | 'descartada'; aoAbrir: () => void; aoMover?: (e: Etapa) => void; aoTirar?: () => void }) {
   // posição na tela: o menu flutua por cima das colunas (que têm rolagem e cortariam o menu)
   const [aberto, setAberto] = useState<{ top: number; left: number } | null>(null)
   const caixa = useRef<HTMLDivElement>(null)
@@ -52,7 +52,7 @@ export function CartaoPeca({ peca, aoAbrir, modo, trabalhando, aoMover, aoTirar 
     >
       <div className="mk-cartao-topo">
         <span className="mk-cartao-tipo" title={livre ? undefined : `${REDES[rede].nome} · ${nomeFormato(peca.tipo, rede)}`}>{livre ? <Icone nome="ideia" tam={14} /> : <LogoRede rede={rede} tam={14} />}{formato}</span>
-        <Menu etapa={etapa} aoAbrir={aoAbrir} aoMover={aoMover} aoTirar={aoTirar} />
+        <MenuPeca etapa={etapa} aoAbrir={aoAbrir} aoMover={aoMover} aoTirar={aoTirar} />
       </div>
       <b className="mk-cartao-titulo">{peca.titulo}</b>
       {peca.conteudo.proposta && etapa === 'ideia' && <span className="mk-cartao-linha mk-agente-escrevendo">Proposta do agente</span>}

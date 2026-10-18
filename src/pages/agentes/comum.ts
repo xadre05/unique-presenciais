@@ -1,4 +1,5 @@
 // Tipos e utilidades da área Agentes (núcleo: tudo por empresa).
+import { FORMATO } from './marketing/formatos'
 export type AgenteSala = {
   agente_id: string; nome: string; papel: string; descricao: string; disponivel: boolean; ativo: boolean
   status_agora: 'na_fila' | 'trabalhando' | 'pronto' | 'erro' | null; trabalho_desde: string | null
@@ -48,7 +49,7 @@ export const CATALOGO: AgenteCatalogo[] = [
 export const visualDe = (id: string) => CATALOGO.find((a) => a.id === id) ?? { id, nome: id, papel: '', descricao: '', escopo: 'ambos' as Escopo, cor: '#c9a45c', foto: '', icone: 'info', trabalhando: 'trabalhando' }
 export const VISUAL = Object.fromEntries(CATALOGO.map((a) => [a.id, a]))
 
-export const TIPO_PECA: Record<string, string> = { post: 'Post', carrossel: 'Carrossel', reels: 'Reels', stories: 'Stories', video: 'Vídeo longo' }
+export const TIPO_PECA: Record<string, string> = Object.fromEntries(Object.entries(FORMATO).map(([k, f]) => [k, f.nome]))
 export const usd = (v: number | null | undefined) => {
   const n = Number(v ?? 0)
   return `US$ ${n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: n > 0 && n < 0.1 ? 3 : 2 })}`

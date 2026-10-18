@@ -2,6 +2,7 @@
 // status (rascunho / aprovada / postada / descartada) + conteudo.etapa para "ideia" e "em produção".
 import { supabase } from '../../../lib/supabase'
 import type { Peca } from '../comum'
+import { FORMATO, infoFormato } from './formatos'
 
 export type Etapa = 'ideia' | 'producao' | 'revisao' | 'pronto' | 'publicado'
 
@@ -14,7 +15,15 @@ export const ETAPAS: { id: Etapa; nome: string; icone: string; cor: string }[] =
 ]
 export const ETAPA: Record<Etapa, (typeof ETAPAS)[number]> = Object.fromEntries(ETAPAS.map((e) => [e.id, e])) as Record<Etapa, (typeof ETAPAS)[number]>
 
-export const COR_TIPO: Record<string, string> = { post: '#d9a24b', carrossel: '#a46ee6', reels: '#e5534b', stories: '#2fb3a0', video: '#e07b39' }
+export const COR_TIPO: Record<string, string> = Object.fromEntries(Object.entries(FORMATO).map(([k, f]) => [k, f.cor]))
+
+// nome da situação na lista da Produção: "Roteiro em revisão", "Texto em revisão"…
+export function nomeSituacao(p: Peca) {
+  const e = etapaDe(p)
+  if (e === 'descartada') return 'Fora do planejamento'
+  if (e === 'revisao') return `${infoFormato(p.tipo).material} em revisão`
+  return e === 'ideia' ? 'Ideia' : ETAPA[e].nome
+}
 
 export function etapaDe(p: Peca): Etapa | 'descartada' {
   if (p.status === 'descartada') return 'descartada'
@@ -44,5 +53,6 @@ export function mudarPeca(id: string, campos: Record<string, unknown>) {
 export function tamanho(p: Peca) {
   const n = p.conteudo.roteiro?.length ?? 0
   if (!n) return ''
-  return p.tipo === 'stories' ? `${n} telas` : p.tipo === 'carrossel' ? `${n} lâminas` : p.tipo === 'reels' ? `${n} cenas` : p.tipo === 'video' ? `${n} blocos` : ''
+  if (p.tipo === 'post' || p.tipo === 'email' || p.tipo === 'artigo') return ''
+  return `${n} ${infoFormato(p.tipo).campos.roteiro[0].toLowerCase().split(' ')[0]}`
 }

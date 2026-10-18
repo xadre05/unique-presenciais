@@ -18,7 +18,7 @@ import { PropostaCalendario } from './PropostaCalendario'
 type Modo = 'dia' | 'semana' | 'mes' | 'periodo'
 const MODOS: { id: Modo; nome: string }[] = [{ id: 'dia', nome: 'Dia' }, { id: 'semana', nome: 'Semana' }, { id: 'mes', nome: 'Mês' }, { id: 'periodo', nome: 'Período' }]
 const NOME_DIA = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb']
-const FORMATOS_PADRAO: Record<Rede, Formato[]> = { instagram: ['carrossel', 'reels', 'stories'], youtube: ['video', 'reels'], tiktok: ['reels'], facebook: ['post'], linkedin: ['post'], pinterest: ['post'], threads: ['post'] }
+const FORMATOS_PADRAO: Record<Rede, Formato[]> = { instagram: ['carrossel', 'reels', 'stories'], youtube: ['video', 'reels'], tiktok: ['reels'], facebook: ['post'], linkedin: ['post'], pinterest: ['post'], threads: ['texto'], email: ['email'], whatsapp: ['mensagem'], site: ['artigo'] }
 
 function intervalo(modo: Modo, data: string, ate: string) {
   if (modo === 'dia') return { inicio: data, fim: data }

@@ -1,15 +1,23 @@
-// Produção de conteúdo: a lista de todas as peças (avulsas ou de um plano), com filtros, e o editor de cada peça.
+// Produção de conteúdo: a lista de todas as peças (avulsas ou de um plano), com filtros e páginas, e o editor de cada peça.
+// Cada linha mostra o formato (ícone), o canal (logo), a data e a situação; capa, legenda e roteiro são materiais
+// dentro da peça, não linhas separadas.
+import { useState } from 'react'
+import { msgErro } from '../../../lib/dados'
+import { Erro } from '../../../components/ui'
 import { Icone } from '../../../components/Icone'
 import type { Peca, Trabalho } from '../comum'
-import { ETAPA, etapaDe } from './etapas'
+import { ETAPA, etapaDe, moverPara, mudarPeca, nomeSituacao, type Etapa } from './etapas'
 import { REDES, nomeFormato, redeDe } from './redes'
+import { infoFormato } from './formatos'
 import { LogoRede } from './LogoRede'
+import { MenuPeca } from './CartaoPeca'
 import { CabecalhoAba, PainelFiltros, Resumo } from './BarraFiltros'
 import { aplicarProducao, type FiltrosProducao } from './filtros'
 import { PaginaPeca } from './PaginaPeca'
 import type { Campanha } from './useMarketing'
 import type { Plano } from './planos'
 
+const POR_PAGINA = 15
 const dataBR = (iso: string | null) => (iso ? iso.split('-').reverse().join('/') : 'Sem data')
 
 type Props = {
@@ -17,37 +25,68 @@ type Props = {
   campanhas: Campanha[]; planos: Plano[]; f: FiltrosProducao; mudar: (c: Partial<FiltrosProducao>) => void
 }
 
-export function Producao(pr: Props) {
+function Linha({ p, planos, aoAbrir, aoMover, aoTirar }: { p: Peca; planos: Plano[]; aoAbrir: () => void; aoMover: (e: Etapa) => void; aoTirar: () => void }) {
+  const info = infoFormato(p.tipo)
+  const e = etapaDe(p)
+  const r = redeDe(p)
+  const plano = planos.find((x) => x.id === p.conteudo.plano)?.nome
+  return (
+    <tr onClick={aoAbrir}>
+      <td>
+        <span className="mk-lp-peca">
+          <span className="mk-lp-icone" style={{ ['--cor-tipo' as string]: info.cor }}><Icone nome={info.icone} tam={20} /></span>
+          <span><b>{p.titulo}</b><small className="muted">{p.conteudo.livre ? info.nome : nomeFormato(p.tipo, r)}{plano ? ` · ${plano}` : ''}</small></span>
+        </span>
+      </td>
+      <td>{p.conteudo.livre ? <span className="muted">A definir</span> : <span className="mk-tab-canal"><LogoRede rede={r} tam={20} />{REDES[r].nome}</span>}</td>
+      <td>{dataBR(p.dia)}</td>
+      <td><span className="mk-situacao" style={{ ['--cor-etapa' as string]: e === 'descartada' ? '#777' : ETAPA[e].cor }}>{nomeSituacao(p)}</span></td>
+      <td className="mk-lp-acoes" onClick={(ev) => ev.stopPropagation()}>
+        <button type="button" className="mk-pontos" aria-label="Abrir peça" onClick={aoAbrir}><Icone nome="seta_dir" tam={16} /></button>
+        <MenuPeca etapa={e} aoAbrir={aoAbrir} aoMover={aoMover} aoTirar={e === 'descartada' ? undefined : aoTirar} />
+      </td>
+    </tr>
+  )
+}
+
+function Lista(pr: Props) {
   const { f, mudar } = pr
-  if (pr.aberta) return <PaginaPeca peca={pr.aberta} trabalhos={pr.trabalhos} campanhas={pr.campanhas} planos={pr.planos} aoVoltar={pr.aoFecharPeca} aoMudar={pr.aoMudar} />
+  const [pagina, setPagina] = useState(1)
+  const [erro, setErro] = useState<string | null>(null)
   const lista = aplicarProducao(pr.pecas, f).sort((a, b) => (a.dia ?? '9999').localeCompare(b.dia ?? '9999'))
-  const vinculo = (p: Peca) => pr.planos.find((x) => x.id === p.conteudo.plano)?.nome ?? 'Avulsa'
-  const campanha = (p: Peca) => pr.campanhas.find((x) => x.id === p.conteudo.campanha)?.nome
+  const paginas = Math.max(1, Math.ceil(lista.length / POR_PAGINA))
+  const atual = Math.min(pagina, paginas)
+  const visiveis = lista.slice((atual - 1) * POR_PAGINA, atual * POR_PAGINA)
+  const mover = async (p: Peca, etapa: Etapa) => { const { error } = await moverPara(p, etapa); if (error) return setErro(msgErro(error)); pr.aoMudar() }
+  const tirar = async (p: Peca) => { const { error } = await mudarPeca(p.id, { status: 'descartada' }); if (error) return setErro(msgErro(error)); pr.aoMudar() }
+  const mudarFiltro = (c: Partial<FiltrosProducao>) => { setPagina(1); mudar(c) }
   return (
     <section className="mk-plano">
-      <CabecalhoAba titulo="Produção de conteúdo" sub="Abra uma peça para escrever, revisar ou finalizar." />
-      <PainelFiltros tela={{ periodo: f.periodo, data: f.data, ate: f.ate }} mudarTela={mudar} comTodos f={f} mudar={mudar} campanhas={pr.campanhas} planos={pr.planos} />
-      <Resumo f={f} mudar={mudar} texto={`${lista.length} ${lista.length === 1 ? 'peça' : 'peças'}${f.periodo === 'todos' ? '' : ' no período'} · cada peça é produzida individualmente`} />
+      <CabecalhoAba titulo="Produção de conteúdo" sub="Selecione uma peça para continuar a produção." />
+      <PainelFiltros tela={{ periodo: f.periodo, data: f.data, ate: f.ate }} mudarTela={mudarFiltro} comTodos f={f} mudar={mudarFiltro} campanhas={pr.campanhas} planos={pr.planos} />
+      <Resumo f={f} mudar={mudarFiltro} texto={`${lista.length} ${lista.length === 1 ? 'peça' : 'peças'}${f.periodo === 'todos' ? '' : ' no período'}`} />
+      <Erro msg={erro} />
       <div className="mk-tabela-caixa">
-        <table className="tabela mk-tabela">
-          <thead><tr><th>Peça</th><th>Canal e formato</th><th>Data planejada</th><th>Vínculo</th><th>Situação</th><th /></tr></thead>
-          <tbody>{lista.map((p) => {
-            const e = etapaDe(p), r = redeDe(p)
-            return (
-              <tr key={p.id} onClick={() => pr.aoAbrir(p)}>
-                <td><span className="mk-tab-peca"><Icone nome="documento" tam={16} /><b>{p.titulo}</b></span></td>
-                <td>{p.conteudo.livre ? <span className="muted">A definir</span> : <span className="mk-tab-canal"><LogoRede rede={r} />{REDES[r].nome} <span className="muted">· {nomeFormato(p.tipo, r)}</span></span>}</td>
-                <td className="pequeno">{dataBR(p.dia)}</td>
-                <td><span className="mk-chip-info">{vinculo(p)}</span>{campanha(p) && <span className="mk-chip-info camp">{campanha(p)}</span>}</td>
-                <td>{e !== 'descartada' && <span className="mk-ponto" style={{ ['--cor-etapa' as string]: ETAPA[e].cor }}>{ETAPA[e].nome}</span>}</td>
-                <td><button className="btn btn-contorno-ouro btn-mini" onClick={(ev) => { ev.stopPropagation(); pr.aoAbrir(p) }}>Abrir peça ›</button></td>
-              </tr>
-            )
-          })}</tbody>
+        <table className="tabela mk-tabela mk-lista-producao">
+          <thead><tr><th>Peça</th><th>Canal</th><th>Data planejada</th><th>Situação</th><th /></tr></thead>
+          <tbody>{visiveis.map((p) => <Linha key={p.id} p={p} planos={pr.planos} aoAbrir={() => pr.aoAbrir(p)} aoMover={(e) => mover(p, e)} aoTirar={() => tirar(p)} />)}</tbody>
         </table>
         {!pr.carregando && !lista.length && <p className="muted mk-vazio">Nenhuma peça com esses filtros.</p>}
       </div>
-      <div className="mk-convite"><span className="mk-convite-icone"><Icone nome="ideia" tam={22} /></span><span><b>Peça avulsa ou de um planejamento: o editor é o mesmo.</b><br /><span className="muted pequeno">Dia, semana, mês e período são filtros opcionais.</span></span></div>
+      <div className="mk-paginacao">
+        <span className="muted pequeno">{lista.length ? `${(atual - 1) * POR_PAGINA + 1}–${Math.min(atual * POR_PAGINA, lista.length)} de ${lista.length} peças` : '0 peças'}</span>
+        <div className="mk-paginas">
+          <button className="btn btn-quadrado" aria-label="Página anterior" disabled={atual <= 1} onClick={() => setPagina(atual - 1)}><Icone nome="esquerda" /></button>
+          {Array.from({ length: paginas }, (_, i) => i + 1).map((n) => <button key={n} className={`btn btn-quadrado${n === atual ? ' ativa' : ''}`} onClick={() => setPagina(n)}>{n}</button>)}
+          <button className="btn btn-quadrado" aria-label="Próxima página" disabled={atual >= paginas} onClick={() => setPagina(atual + 1)}><Icone nome="seta_dir" /></button>
+        </div>
+        <span className="muted pequeno"><Icone nome="info" tam={14} /> Clique em uma linha para abrir a peça.</span>
+      </div>
     </section>
   )
+}
+
+export function Producao(pr: Props) {
+  if (pr.aberta) return <PaginaPeca peca={pr.aberta} trabalhos={pr.trabalhos} campanhas={pr.campanhas} planos={pr.planos} aoVoltar={pr.aoFecharPeca} aoMudar={pr.aoMudar} />
+  return <Lista {...pr} />
 }

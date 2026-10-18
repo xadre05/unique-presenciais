@@ -13,6 +13,7 @@ import { AbaLegenda, AbaRoteiro, AbaVersoes, AbaVisual, rascunhoDe, type Rascunh
 import { AjustePeca } from './AjustePeca'
 import { DetalhesPeca } from './DetalhesPeca'
 import { DURACOES, ehVideo, rotuloPeca } from './redes'
+import { infoFormato } from './formatos'
 import { ajustesDa } from './ajuste'
 import { EMPRESA, pedirTrabalho, type Campanha } from './useMarketing'
 import type { Plano } from './planos'
@@ -44,6 +45,7 @@ export function PaginaPeca({ peca, trabalhos, campanhas, planos, aoVoltar, aoMud
   const etapa = etapaDe(peca)
   const plano = planos.find((p) => p.id === peca.conteudo.plano)
   const pendencia = peca.conteudo.pendencia
+  const campos = infoFormato(peca.tipo).campos
 
   const mudar = (c: Partial<Rascunho>) => { setR((x) => ({ ...x, ...c })); setSujo(true) }
   const gravar = async (campos: Record<string, unknown>) => { setErro(null); const { error } = await mudarPeca(peca.id, campos); if (error) return setErro(msgErro(error)); aoMudar() }
@@ -84,15 +86,15 @@ export function PaginaPeca({ peca, trabalhos, campanhas, planos, aoVoltar, aoMud
         ) : (
           <section className="mk-conteudo">
             <h3>Conteúdo desta peça</h3>
-            <label className="mk-rotulo">{peca.tipo === 'video' ? 'Título proposto' : 'Título'}</label>
+            <label className="mk-rotulo">{campos.titulo}</label>
             <input value={titulo} onChange={(e) => { setTitulo(e.target.value); setSujo(true) }} />
             {ehVideo(peca.tipo) && (
               <div className="mk-duracao"><label className="mk-rotulo">Duração desejada</label>
-                <select value={b.duracao ?? ''} onChange={(e) => gravar({ conteudo: { ...peca.conteudo, briefing: { ...b, duracao: e.target.value } } })}><option value="">—</option>{(DURACOES[peca.tipo as 'reels' | 'video'] ?? []).map((d) => <option key={d}>{d}</option>)}</select></div>
+                <select value={b.duracao ?? ''} onChange={(e) => gravar({ conteudo: { ...peca.conteudo, briefing: { ...b, duracao: e.target.value } } })}><option value="">—</option>{(DURACOES[peca.tipo as 'reels'] ?? []).map((d) => <option key={d}>{d}</option>)}</select></div>
             )}
-            <Secao titulo={peca.tipo === 'video' ? 'Descrição, chamada e hashtags' : 'Legenda, chamada e hashtags'} icone="documento" aberta><AbaLegenda r={r} mudar={mudar} /></Secao>
-            <Secao titulo={peca.tipo === 'carrossel' ? 'Lâminas' : peca.tipo === 'stories' ? 'Telas' : peca.tipo === 'post' ? 'Texto da arte' : 'Roteiro'} icone="lista" aberta><AbaRoteiro peca={peca} r={r} mudar={mudar} /></Secao>
-            <Secao titulo={ehVideo(peca.tipo) ? 'Orientações de gravação e capa' : 'Direção visual'} icone="video"><AbaVisual r={r} mudar={mudar} /></Secao>
+            <Secao titulo={campos.secaoLegenda} icone="documento" aberta><AbaLegenda peca={peca} r={r} mudar={mudar} /></Secao>
+            <Secao titulo={campos.secaoRoteiro} icone="lista" aberta><AbaRoteiro peca={peca} r={r} mudar={mudar} /></Secao>
+            <Secao titulo={campos.secaoVisual} icone="video"><AbaVisual peca={peca} r={r} mudar={mudar} /></Secao>
             <Secao titulo="Versões" icone="historico"><AbaVersoes peca={peca} aoRestaurar={restaurar} /></Secao>
           </section>
         )}

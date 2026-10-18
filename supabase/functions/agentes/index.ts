@@ -1,6 +1,7 @@
 // Agentes de IA (núcleo). Recebe o id de um trabalho "na fila", responde na hora e faz o trabalho em segundo plano:
 // chama o Claude com o perfil da empresa e o contexto do sistema, grava as peças para aprovação e o custo.
-// Hoje: agente de Marketing → conteúdo para as redes (Instagram, TikTok, YouTube, Facebook, LinkedIn): plano dia a dia, peça avulsa, ideias, ajustes. Nada é publicado: só vira rascunho para aprovar.
+// Hoje: agente de Marketing → conteúdo para redes sociais, e-mail, WhatsApp e site (imagem, carrossel, vídeos, stories, live,
+// texto/enquete, artigo, e-mail, mensagem, PDF): planos, peças avulsas, ideias, ajustes. Nada é publicado: só vira rascunho para aprovar.
 import { createClient, type SupabaseClient } from 'npm:@supabase/supabase-js@2.45.4'
 
 const cors = {
@@ -22,23 +23,44 @@ const custo = (modelo: string, ent: number, sai: number) => {
 
 type Trabalho = { id: string; empresa_id: string; agente_id: string; tipo: string; status: string; pedido: Record<string, unknown> }
 type Peca = { ref?: number; rede?: string; tipo: string; dia: string; titulo: string; objetivo?: string; legenda?: string; roteiro?: string[]; texto_arte?: string; cta?: string; hashtags?: string[]; observacao?: string; prompt_imagem?: string; horario?: string; pendencia?: string }
-const TIPOS = ['post', 'carrossel', 'reels', 'stories', 'video']
+const TIPOS = ['post', 'carrossel', 'reels', 'stories', 'video', 'live', 'texto', 'artigo', 'email', 'mensagem', 'pdf']
+// como preencher os campos em cada formato (as telas mostram os mesmos campos com estes nomes)
+const GUIA_FORMATO: Record<string, string> = {
+  post: 'Imagem: roteiro = linhas do texto que vai na arte; legenda pronta; prompt_imagem descreve a arte.',
+  carrossel: 'Carrossel: roteiro = texto de cada lâmina (uma por item); legenda pronta; prompt_imagem descreve o visual das lâminas.',
+  reels: 'Vídeo curto vertical: roteiro = cenas em ordem (fala + o que aparece na tela); legenda pronta; texto_arte = texto da capa.',
+  stories: 'Stories: roteiro = cada tela em ordem, com a interação (enquete, caixinha, link) quando fizer sentido.',
+  video: 'Vídeo longo: titulo = título buscável; roteiro = blocos com tempo aproximado; legenda = descrição com capítulos; texto_arte = texto da thumbnail.',
+  live: 'Live: titulo = tema da live; roteiro = pauta em blocos com tempo, incluindo 3 a 5 perguntas para puxar o público e o momento da chamada; legenda = texto de divulgação da live (data e horário se houver); observacao = orientações da transmissão.',
+  texto: 'Texto / enquete: legenda = texto da publicação (termina com uma pergunta); roteiro = opções da enquete (2 a 4), ou vazio se não for enquete.',
+  artigo: 'Artigo: titulo = título do artigo; roteiro = intertítulos (estrutura); legenda = artigo completo, com intertítulos e parágrafos curtos; prompt_imagem = capa. Sem hashtags.',
+  email: 'E-mail: titulo = assunto (até 50 caracteres); texto_arte = prévia (até 90 caracteres); legenda = corpo do e-mail, curto e escaneável; cta = texto do botão; roteiro = 2 ou 3 outros assuntos para testar. Sem hashtags.',
+  mensagem: 'Mensagem de WhatsApp: legenda = a mensagem, curta, pessoal, com no máximo 1 link e sem cara de spam; roteiro = 2 ou 3 variações da mesma mensagem; cta = a ação esperada. Sem hashtags.',
+  pdf: 'Material PDF: titulo = título do material; roteiro = conteúdo de cada página (uma por item); legenda = texto de apresentação para enviar junto; observacao = orientação de diagramação (tamanho, hierarquia, cores da marca); prompt_imagem = capa. Sem hashtags.',
+}
+const guiaFormatos = (tipos: string[]) => [...new Set(tipos)].map((t) => GUIA_FORMATO[t]).filter(Boolean).map((g) => `- ${g}`).join('\n')
 // como escrever em cada rede e o nome de cada formato nela ("reels" = vídeo curto vertical; "video" = vídeo longo)
 const REDES: Record<string, { nome: string; guia: string; nomes: Record<string, string> }> = {
-  instagram: { nome: 'Instagram', nomes: { post: 'post', carrossel: 'carrossel', reels: 'reels', stories: 'stories' },
+  instagram: { nome: 'Instagram', nomes: { post: 'post de imagem', carrossel: 'carrossel', reels: 'reels', stories: 'stories', live: 'live do Instagram' },
     guia: 'Ganchos fortes nos 3 primeiros segundos dos reels, legendas com quebra de linha, chamadas para ação claras, até 8 hashtags.' },
-  tiktok: { nome: 'TikTok', nomes: { reels: 'vídeo do TikTok (vertical, 15 a 60 s)', carrossel: 'carrossel de fotos do TikTok', stories: 'stories do TikTok (some em 24 h)' },
+  tiktok: { nome: 'TikTok', nomes: { reels: 'vídeo do TikTok (vertical, 15 a 60 s)', carrossel: 'carrossel de fotos do TikTok', stories: 'stories do TikTok (some em 24 h)', live: 'live do TikTok' },
     guia: 'Linguagem nativa do TikTok: gancho no 1º segundo, ritmo rápido, fala direta para a câmera, texto na tela curto, legenda curta com 3 a 5 hashtags, nada com cara de anúncio.' },
-  youtube: { nome: 'YouTube', nomes: { reels: 'YouTube Shorts (vertical, até 60 s)', video: 'vídeo longo do YouTube (horizontal, 6 a 15 min)', post: 'post da comunidade do YouTube (texto com imagem ou enquete)' },
+  youtube: { nome: 'YouTube', nomes: { reels: 'YouTube Shorts (vertical, até 60 s)', video: 'vídeo longo do YouTube (horizontal, 6 a 15 min)', post: 'post de imagem na comunidade do YouTube', texto: 'post de texto ou enquete na comunidade do YouTube', live: 'live do YouTube' },
     guia: 'Shorts: gancho no 1º segundo e fechamento que leve ao canal. Vídeo longo: título que as pessoas buscam (até 60 caracteres) no campo titulo, roteiro em blocos com tempo aproximado (abertura, conteúdo, chamada), descrição com capítulos na legenda, e o prompt_imagem descreve a capa (thumbnail) com rosto expressivo e até 4 palavras. Post da comunidade: texto curto que puxa conversa com quem já segue o canal (pergunta, enquete ou bastidor), chamando para o vídeo mais recente.' },
-  facebook: { nome: 'Facebook', nomes: { post: 'post', carrossel: 'post com várias fotos (carrossel)', reels: 'reels do Facebook', stories: 'stories' },
+  facebook: { nome: 'Facebook', nomes: { post: 'post de imagem', carrossel: 'post com várias fotos (carrossel)', reels: 'reels do Facebook', stories: 'stories', texto: 'post de texto ou enquete', live: 'live do Facebook' },
     guia: 'Público um pouco mais velho: texto pode ser um pouco mais longo e explicativo, tom acolhedor, poucas hashtags (até 3).' },
-  linkedin: { nome: 'LinkedIn', nomes: { post: 'post', carrossel: 'carrossel em PDF', reels: 'vídeo curto' },
+  linkedin: { nome: 'LinkedIn', nomes: { post: 'post de imagem', carrossel: 'carrossel em PDF', reels: 'vídeo', texto: 'post de texto ou enquete', artigo: 'artigo ou newsletter do LinkedIn', live: 'live do LinkedIn' },
     guia: 'Tom profissional e de autoridade: bastidores da escola, mercado de HOF, carreira e gestão de consultório. Sem gírias, emojis com moderação, até 3 hashtags.' },
   pinterest: { nome: 'Pinterest', nomes: { post: 'Pin (imagem vertical 2:3)', carrossel: 'Pin carrossel', reels: 'Pin em vídeo (vertical)' },
     guia: 'Pinterest é busca: título com as palavras que as pessoas procuram (até 100 caracteres), descrição curta e útil com palavras-chave e chamada para o link, sem hashtags em excesso. Arte vertical 2:3 com texto grande.' },
-  threads: { nome: 'Threads', nomes: { post: 'post de texto do Threads', carrossel: 'post do Threads com fotos' },
+  threads: { nome: 'Threads', nomes: { texto: 'post de texto ou enquete do Threads', post: 'post do Threads com imagem', carrossel: 'post do Threads com fotos' },
     guia: 'Conversa, não anúncio: texto curto (até 500 caracteres), tom pessoal e de opinião, termina com uma pergunta para puxar resposta. No máximo 1 marcador de tópico.' },
+  email: { nome: 'E-mail', nomes: { email: 'e-mail para a lista', pdf: 'material PDF enviado por e-mail' },
+    guia: 'E-mail para quem já conhece a marca: assunto curioso e honesto (sem caixa alta nem promessa exagerada), um assunto por e-mail, parágrafos curtos, uma chamada só.' },
+  whatsapp: { nome: 'WhatsApp', nomes: { mensagem: 'mensagem de WhatsApp', pdf: 'material PDF enviado no WhatsApp' },
+    guia: 'Mensagem de pessoa para pessoa: curta, sem lista de emojis, sem cara de disparo em massa, chama pelo nome quando fizer sentido ({nome}), uma pergunta ou ação no final.' },
+  site: { nome: 'Site', nomes: { artigo: 'artigo do blog', pdf: 'material PDF para baixar no site' },
+    guia: 'Conteúdo de site é encontrado pela busca: título com as palavras que as pessoas procuram, intertítulos claros, respostas diretas, chamada para a próxima etapa no fim.' },
 }
 const NOMES_REDES = Object.keys(REDES)
 type CadastroRedes = Record<string, { ativa?: boolean; perfil?: string }>
@@ -68,7 +90,7 @@ const FERRAMENTA = {
         items: {
           type: 'object',
           properties: {
-            tipo: { type: 'string', enum: ['post', 'carrossel', 'reels', 'stories', 'video'], description: 'reels = vídeo curto vertical (Reels, TikTok, Shorts); video = vídeo longo do YouTube' },
+            tipo: { type: 'string', enum: TIPOS, description: 'post = imagem; reels = vídeo curto vertical (Reels, TikTok, Shorts); video = vídeo longo; live; texto = publicação de texto ou enquete; artigo; email; mensagem = WhatsApp; pdf = material PDF' },
             dia: { type: 'string', description: 'Data AAAA-MM-DD dentro da semana pedida' },
             titulo: { type: 'string', description: 'Nome curto da peça para a equipe reconhecer' },
             objetivo: { type: 'string', description: 'Para que serve: atrair, educar, gerar desejo, vender, prova social…' },
@@ -256,7 +278,8 @@ async function ajustar(db: SupabaseClient, t: Trabalho, perfil: Record<string, s
   const sobreMemoria = lembrarIsso === true
     ? '\n\nA equipe marcou que este gosto vale para as PRÓXIMAS peças também: preencha "aprendizado" com uma regra geral e curta (sem citar esta peça), para você seguir sempre.'
     : lembrarIsso === false ? '\n\nEste ajuste vale só para esta peça: deixe "aprendizado" vazio.' : ''
-  const usuario = `Esta é uma peça que você preparou:\n${JSON.stringify(atual, null, 2)}\n\nPedido de ajuste da equipe: ${String(t.pedido.instrucao ?? '')}${sobreMemoria}\n\nReescreva a peça inteira já com o ajuste (mantenha o que não foi pedido para mudar) e entregue OBRIGATORIAMENTE chamando a ferramenta entregar_peca.`
+  const guia = GUIA_FORMATO[tipoPedido] ? `\n\nCOMO PREENCHER ESTE FORMATO: ${GUIA_FORMATO[tipoPedido]}` : ''
+  const usuario = `Esta é uma peça que você preparou:\n${JSON.stringify(atual, null, 2)}\n\nPedido de ajuste da equipe: ${String(t.pedido.instrucao ?? '')}${sobreMemoria}\n\nReescreva a peça inteira já com o ajuste (mantenha o que não foi pedido para mudar) e entregue OBRIGATORIAMENTE chamando a ferramenta entregar_peca.${guia}`
   const { entrega: p, entrada, saida } = await chamarClaude(chave, modelo, sistema, usuario, FERRAMENTA_AJUSTE)
   // marcado "lembrar": guarda sempre (se o agente não resumir, guarda o próprio pedido); desmarcado: nunca guarda
   const sugerido = String((p as Record<string, unknown>).aprendizado ?? '').trim()
@@ -317,6 +340,7 @@ function pedidoEscrever(perfil: Record<string, unknown>, pecas: PecaBanco[], ped
     'Você escreve os rascunhos de peças que a equipe já planejou; a equipe aprova antes de publicar. Seja concreto.',
     `COMO ESCREVER EM CADA CANAL:\n${redes.map((r) => `- ${REDES[r].nome}: ${REDES[r].guia}`).join('\n')}`,
     'Vídeos: roteiro cena a cena (ou bloco a bloco no vídeo longo) com a fala e o que aparece na tela, respeitando a duração; dicas de gravação no campo observacao.',
+    `COMO PREENCHER CADA FORMATO:\n${guiaFormatos([...pecas.filter((p) => p.conteudo.livre !== true).map((p) => p.tipo), ...(pecas.some((p) => p.conteudo.livre === true) ? ativas.flatMap((r) => Object.keys(REDES[r].nomes)) : [])])}`,
     ...blocoEmpresa(perfil as Record<string, string>, exemplos),
   ].filter(Boolean).join('\n')
   const usuario = [
@@ -442,6 +466,7 @@ async function proporPlano(db: SupabaseClient, t: Trabalho, perfil: Record<strin
   const sistema = [
     'Você é o Agente de Marketing de uma empresa brasileira. Agora você monta só a PROPOSTA de calendário editorial: temas, canais, formatos e datas. Não escreva roteiros nem legendas ainda; a equipe vai revisar a proposta antes.',
     `COMO É CADA CANAL:\n${canais.map((c) => `- ${REDES[c.rede].nome}: ${REDES[c.rede].guia}`).join('\n')}`,
+    `O QUE CADA FORMATO ENTREGA:\n${guiaFormatos(canais.flatMap((c) => c.formatos))}`,
     ...blocoEmpresa(perfil as Record<string, string>, []),
   ].filter(Boolean).join('\n')
   const usuario = [

@@ -1929,3 +1929,22 @@ a.sala-agente:hover { border-color: var(--ouro); transform: translateY(-2px); }
 .mk-calendario { grid-template-columns: repeat(7, minmax(118px, 1fr)); gap: 8px; }
 .mk-calendario .mk-coluna-corpo { padding: 0 6px 8px; }
 .mk-dia header { padding: 10px 8px; }
+
+/* ===== Produção: lista de peças (modelo do GPT) ===== */
+.mk-lista-producao td { vertical-align: middle; padding-top: 10px; padding-bottom: 10px; }
+.mk-lista-producao tbody tr { cursor: pointer; }
+.mk-lista-producao tbody tr:hover { background: var(--painel-2); }
+.mk-lp-peca { display: flex; align-items: center; gap: 12px; }
+.mk-lp-peca > span:last-child { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.mk-lp-peca small { font-size: .8rem; }
+.mk-lp-icone { width: 38px; height: 38px; flex-shrink: 0; display: grid; place-items: center; border-radius: 10px; color: var(--cor-tipo); background: color-mix(in srgb, var(--cor-tipo) 14%, transparent); border: 1px solid color-mix(in srgb, var(--cor-tipo) 35%, transparent); }
+.mk-lista-producao .mk-tab-canal { gap: 10px; }
+.mk-situacao { display: inline-flex; align-items: center; gap: 8px; padding: 4px 12px; border-radius: 999px; font-size: .82rem; white-space: nowrap; border: 1px solid color-mix(in srgb, var(--cor-etapa) 45%, var(--borda)); background: color-mix(in srgb, var(--cor-etapa) 12%, transparent); }
+.mk-situacao::before { content: ''; width: 9px; height: 9px; border-radius: 50%; background: var(--cor-etapa); }
+.mk-lp-acoes { width: 70px; white-space: nowrap; text-align: right; }
+.mk-lp-acoes > * { display: inline-grid; vertical-align: middle; }
+.mk-paginacao { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.mk-paginas { display: flex; gap: 6px; }
+.mk-paginas .btn.ativa { background: var(--ouro); color: #1a1408; border-color: var(--ouro); }
+.mk-logo-icone { display: inline-grid; place-items: center; flex-shrink: 0; }
+.mk-multi-rodape { display: flex; align-items: center; gap: 6px; margin-top: 4px; padding: 8px; border-top: 1px solid var(--borda); color: var(--ouro-forte); font-size: .85rem; text-decoration: none; }
