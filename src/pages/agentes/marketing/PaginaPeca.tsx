@@ -70,7 +70,9 @@ export function PaginaPeca({ peca, trabalhos, campanhas, planos, aoVoltar, aoMud
     setMotivo(null); await ed.acoes.descartar(); aoVoltar()
   }
   const comum = { peca, r, mudar, rodando, ultimo, antes: ed.salvarSeFaltar, aoPedir: aoMudar }
-  const arte = useArte(peca, trabalhos, ed.salvarSeFaltar, aoMudar)
+  const arte = useArte(peca, trabalhos, ed.salvarSeFaltar, aoMudar, (i) => (i === null
+    ? { titulo: r.texto_arte, apoio: r.apoio }
+    : { titulo: r.itens[i]?.titulo ?? '', apoio: r.itens[i]?.texto ?? '' }))
   const nomeAba = (id: AbaId) => cfg.abas.find((a) => a.id === id)?.nome ?? ''
 
   return (

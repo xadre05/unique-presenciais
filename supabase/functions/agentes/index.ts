@@ -612,6 +612,8 @@ async function prepararArte(db: SupabaseClient, empresa: string) {
 }
 
 type Ref = { caminho: string; nome?: string }
+// "Lâmina 1 (capa):" e parecidos, do começo dos itens antigos (a tela tira o mesmo prefixo)
+const PREFIXO_ITEM = /^(l[âa]mina|tela|cena|p[áa]gina|bloco|se[çc][ãa]o)\s*\d+\s*(\([^)]*\))?\s*[:,\-–—.]\s*/i
 async function baixarImagem(db: SupabaseClient, caminho: string) {
   const { data } = await db.storage.from('arquivos').download(caminho)
   if (!data) return null
@@ -677,6 +679,12 @@ async function gerarArte(db: SupabaseClient, t: Trabalho) {
     if (b) { imagens.push(b); quais.push(`imagem ${imagens.length}: ${papel}`) }
   }
   if (ajuste && artes[idx]?.arquivo) await juntar(artes[idx].arquivo, 'a ARTE ATUAL, que deve ser ajustada')
+  // identidade visual da empresa (Base da marca): o logo real e as referências de estilo
+  const logo = ((Array.isArray(pa.logos) ? pa.logos : []) as Ref[])[0]
+  const antesDoLogo = imagens.length
+  await juntar(logo?.caminho, 'o LOGO OFICIAL da empresa: reproduza exatamente este logo, sem redesenhar, sem mudar letras, cores ou símbolo')
+  const comLogo = imagens.length > antesDoLogo
+  for (const f of ((Array.isArray(pa.estilo_refs) ? pa.estilo_refs : []) as Ref[]).slice(0, 2)) await juntar(f.caminho, 'referência do ESTILO DA MARCA (fontes, cores, acabamento e diagramação que a marca usa): siga este padrão visual')
   const ids = (v.pessoas ?? []).slice(0, 3)
   const { data: pessoas } = ids.length ? await db.from('marca_pessoas').select('id,nome,papel,fotos,autorizado').in('id', ids).eq('empresa_id', t.empresa_id) : { data: [] }
   const nomesPessoas: string[] = []
@@ -688,10 +696,12 @@ async function gerarArte(db: SupabaseClient, t: Trabalho) {
   if (!ajuste && item !== null && item > 0 && artes[0]?.arquivo) await juntar(artes[0].arquivo, 'a CAPA deste mesmo carrossel: siga o mesmo estilo, fontes, cores e diagramação')
   for (const f of (v.referencias ?? []).slice(0, 3)) await juntar(f.caminho, 'referência de estilo (inspire-se, sem copiar texto, marca ou pessoas)')
 
-  const [tituloItem, ...restoItem] = (item !== null ? roteiro[item] ?? '' : '').split('\n')
-  const textoArte = item !== null
-    ? [tituloItem?.trim() && `Título: "${tituloItem.trim()}"`, restoItem.join(' ').trim() && `Texto de apoio (curto, menor): "${restoItem.join(' ').trim().slice(0, 300)}"`].filter(Boolean).join('\n')
-    : [c.texto_arte && `Título: "${c.texto_arte}"`, peca.tipo === 'post' && roteiro.length && `Texto de apoio (curto, menor): "${roteiro.join(' ').slice(0, 300)}"`].filter(Boolean).join('\n')
+  // o texto vem da tela, como a equipe vê (título e apoio); sem ele, sai do roteiro sem o "Lâmina 1 (capa):" do começo
+  const daTela = (t.pedido.texto ?? null) as { titulo?: string; apoio?: string } | null
+  const [tituloItem, ...restoItem] = (item !== null ? roteiro[item] ?? '' : '').replace(PREFIXO_ITEM, '').split('\n')
+  const titulo = (daTela ? daTela.titulo : item !== null ? tituloItem : c.texto_arte as string | undefined)?.trim() ?? ''
+  const apoio = (daTela ? daTela.apoio : item !== null ? restoItem.join(' ') : peca.tipo === 'post' ? roteiro.join(' ') : '')?.trim().slice(0, 300) ?? ''
+  const textoArte = [titulo && `Título: "${titulo}"`, apoio && `Texto de apoio (curto, menor): "${apoio}"`].filter(Boolean).join('\n')
   const memoria = ((Array.isArray(pa.memoria) ? pa.memoria : []) as { texto: string }[]).filter((m) => m.texto.startsWith('Arte:')).map((m) => `- ${m.texto.replace(/^Arte:\s*/, '')}`)
   const qualPeca = item !== null ? `${item === 0 ? 'a CAPA' : `a lâmina ${item + 1}`} de ${roteiro.length} de um ${nomeFormato} do ${rede.nome}` : `a arte de um ${nomeFormato} do ${rede.nome}`
   const prompt = [
@@ -701,6 +711,8 @@ async function gerarArte(db: SupabaseClient, t: Trabalho) {
     c.prompt_imagem ? `Orientação da peça: ${String(c.prompt_imagem).slice(0, 1200)}` : '',
     item !== null && (artes[item]?.orientacao || orientacoes[item]) ? `Orientação desta lâmina: ${[artes[item]?.orientacao, orientacoes[item]].filter(Boolean).join(' · ')}` : '',
     nomesPessoas.length ? `Na arte aparece: ${nomesPessoas.join(', ')}. Mantenha o rosto idêntico ao das fotos enviadas; roupa, pose e cenário podem seguir a orientação.` : 'Não coloque pessoas reconhecíveis, a não ser que a orientação peça; nunca invente o rosto de um paciente.',
+    comLogo ? 'Coloque o LOGO OFICIAL enviado, pequeno e discreto (no topo ou no rodapé), exatamente como ele é.' : 'NÃO desenhe logotipo, monograma nem símbolo de marca: a empresa não enviou o logo. Se quiser assinar a arte, use só o nome da empresa em texto simples e pequeno.',
+    'Não escreva na arte rótulos de organização como "Lâmina 1", "Capa", "Cena" ou números de página: só o texto pedido.',
     'Nunca crie nem altere fotos de resultado de paciente; antes e depois só com as fotos reais enviadas, sem modificar.',
     quais.length ? `IMAGENS ENVIADAS:\n${quais.join('\n')}` : '',
     memoria.length ? `GOSTOS DA EQUIPE (siga sempre):\n${memoria.join('\n')}` : '',

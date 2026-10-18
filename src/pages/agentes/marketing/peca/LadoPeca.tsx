@@ -9,7 +9,7 @@ import { estagioDe } from './progresso'
 import { BotaoEnviar, Miniatura, pastaDa } from './arquivos'
 import { ORIGEM } from './AbaVersoes'
 import { DetalhesPeca } from './DetalhesPeca'
-import { BotaoCriarArte } from './AvisoArte'
+import { AjustarArte, BotaoCriarArte } from './AvisoArte'
 import type { Campanha } from '../useMarketing'
 import type { Plano } from '../planos'
 
@@ -37,6 +37,7 @@ function ArquivosItem({ peca, r, mudar, atual }: Pick<Props, 'peca' | 'r' | 'mud
         <BotaoCriarArte item={i} texto={arte.arquivo ? "Gerar outra" : "Criar arte"} classe="btn btn-contorno" />
       </div>
       {arte.arquivo && <button className="link pequeno" onClick={() => guardar(undefined, undefined)}>Tirar arquivo</button>}
+      {arte.arquivo && <AjustarArte item={i} />}
     </section>
   )
 }
