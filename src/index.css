@@ -2031,3 +2031,21 @@ a.sala-agente:hover { border-color: var(--ouro); transform: translateY(-2px); }
 /* borda do círculo do avatar mais aparente */
 .mk-avatar-fundo { padding: 4px; background: conic-gradient(from 200deg, #e7c46a, #a46ee6, #e7c46a, #c98bff, #e7c46a); box-shadow: 0 0 0 1px rgba(231,196,106,.35), 0 0 18px rgba(164,110,230,.45); }
 .mk-avatar-fundo::after { background: radial-gradient(circle at 50% 38%, color-mix(in srgb, #a46ee6 55%, #241b36) 0, #1a1424 80%); }
+
+/* avatar: imagem mais larga que o círculo (o que o personagem segura pode sair pelos lados);
+   abaixo da linha do círculo, o que está fora dele some aos poucos em vez de ser cortado */
+.mk-avatar-pop img { left: 50%; right: auto; width: calc(var(--d) * 1.3 * 1.356); transform: translateX(-50%);
+  -webkit-mask: linear-gradient(to bottom, #000 calc(100% - var(--d) * .5), transparent calc(100% - var(--d) * .15)), radial-gradient(circle calc(var(--d) / 2) at 50% calc(100% - var(--d) / 2), #000 98%, transparent 100%);
+  mask: linear-gradient(to bottom, #000 calc(100% - var(--d) * .5), transparent calc(100% - var(--d) * .15)), radial-gradient(circle calc(var(--d) / 2) at 50% calc(100% - var(--d) / 2), #000 98%, transparent 100%); }
+/* sala: todos na mesma escala (mesma altura); quem segura algo mais longe pode passar um pouco da caixa */
+.retrato { overflow: visible; }
+.retrato img { max-width: none; }
+
+/* avatar: imagem mais larga que o círculo (o que o personagem segura pode sair pelos lados);
+   abaixo da linha do círculo, o que está fora dele some aos poucos em vez de ser cortado */
+.mk-avatar-pop img { left: 50%; right: auto; width: calc(var(--d) * 1.3 * 1.356); transform: translateX(-50%);
+  -webkit-mask: linear-gradient(to bottom, #000 calc(100% - var(--d) * .5), transparent calc(100% - var(--d) * .15)), radial-gradient(circle calc(var(--d) / 2) at 50% calc(100% - var(--d) / 2), #000 98%, transparent 100%);
+  mask: linear-gradient(to bottom, #000 calc(100% - var(--d) * .5), transparent calc(100% - var(--d) * .15)), radial-gradient(circle calc(var(--d) / 2) at 50% calc(100% - var(--d) / 2), #000 98%, transparent 100%); }
+/* sala: todos na mesma escala (mesma altura); quem segura algo mais longe pode passar um pouco da caixa */
+.retrato { overflow: visible; }
+.retrato img { max-width: none; }
