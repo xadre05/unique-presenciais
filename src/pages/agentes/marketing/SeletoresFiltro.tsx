@@ -1,20 +1,49 @@
-// Seletores em painel do filtro de peças: Canais (vários, com busca) e Formatos (tipo de conteúdo + duração do vídeo).
-// A escolha só vale ao clicar em Aplicar; Limpar volta para "todos". O painel fecha ao clicar fora ou com Esc.
-// A orientação não é um filtro separado: vídeo curto é vertical e vídeo longo é horizontal.
+// Seletores em painel do filtro de peças: Canais e Formatos. Funcionam como os filtros de planilha:
+// tudo começa marcado, "Selecionar todos" no topo, desmarca o que não quer ver e clica em Aplicar.
+// Sem nada marcado não há o que aplicar. Limpar volta tudo para marcado. Fecha ao clicar fora ou com Esc.
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { Icone } from '../../../components/Icone'
-import { REDES, useRedes, type Formato, type Rede } from './redes'
+import { FORMATOS, REDES, nomeFormato, nomeGenerico, useRedes, type Formato, type Rede } from './redes'
+import { infoFormato } from './formatos'
 import { LogoRede } from './LogoRede'
 import type { FiltrosPecas } from './filtros'
 
 type Props = { f: FiltrosPecas; mudar: (c: Partial<FiltrosPecas>) => void }
+type Item = { id: string; nome: string; detalhe?: string; icone: ReactNode }
 
-function Painel({ rotulo, resumo, titulo, sub, largura, alinhar = 'esquerda', aoAbrir, aoLimpar, aoAplicar, children }: {
-  rotulo: string; resumo: ReactNode; titulo: string; sub: string; largura: number; alinhar?: 'esquerda' | 'direita'
-  aoAbrir: () => void; aoLimpar: () => void; aoAplicar: () => void; children: ReactNode
+// lista com "Selecionar todos" e uma caixa por item; devolve só os marcados
+function ListaMarcar({ itens, marcados, setMarcados, busca }: { itens: Item[]; marcados: string[]; setMarcados: (m: string[]) => void; busca: string }) {
+  const visiveis = itens.filter((i) => i.nome.toLowerCase().includes(busca.trim().toLowerCase()))
+  const todos = itens.length > 0 && marcados.length === itens.length
+  const algum = marcados.length > 0 && !todos
+  return (
+    <div className="mk-pop-lista">
+      {!busca.trim() && (
+        <label className="mk-pop-item mk-pop-todos">
+          <input type="checkbox" checked={todos} ref={(el) => { if (el) el.indeterminate = algum }} onChange={() => setMarcados(todos ? [] : itens.map((i) => i.id))} />
+          <span>Selecionar todos</span>
+        </label>
+      )}
+      {visiveis.map((i) => (
+        <label key={i.id} className="mk-pop-item">
+          <input type="checkbox" checked={marcados.includes(i.id)} onChange={() => setMarcados(marcados.includes(i.id) ? marcados.filter((x) => x !== i.id) : [...marcados, i.id])} />
+          <span className="mk-pop-icone">{i.icone}</span>
+          <span className="mk-pop-nome">{i.nome}{i.detalhe && <small className="muted">{i.detalhe}</small>}</span>
+        </label>
+      ))}
+      {!visiveis.length && <span className="muted pequeno">Nada com esse nome.</span>}
+    </div>
+  )
+}
+
+function Painel({ rotulo, resumo, titulo, itens, escolhidos, aoAplicar, largura, alinhar = 'esquerda', rodape }: {
+  rotulo: string; resumo: ReactNode; titulo: string; itens: Item[]; escolhidos: string[]; aoAplicar: (lista: string[]) => void
+  largura: number; alinhar?: 'esquerda' | 'direita'; rodape?: ReactNode
 }) {
   const [aberto, setAberto] = useState(false)
+  const [marcados, setMarcados] = useState<string[]>([])
+  const [busca, setBusca] = useState('')
   const caixa = useRef<HTMLDivElement>(null)
   useEffect(() => {
     if (!aberto) return
@@ -23,19 +52,25 @@ function Painel({ rotulo, resumo, titulo, sub, largura, alinhar = 'esquerda', ao
     document.addEventListener('mousedown', fora); document.addEventListener('keydown', esc)
     return () => { document.removeEventListener('mousedown', fora); document.removeEventListener('keydown', esc) }
   }, [aberto])
+  const abrir = () => { setMarcados(escolhidos.length ? escolhidos.filter((x) => itens.some((i) => i.id === x)) : itens.map((i) => i.id)); setBusca(''); setAberto(true) }
+  // tudo marcado = sem filtro (guarda lista vazia)
+  const aplicar = () => { aoAplicar(marcados.length === itens.length ? [] : marcados); setAberto(false) }
   return (
     <div className="mk-pf-campo mk-pop" ref={caixa}>
       <span>{rotulo}</span>
-      <button type="button" className={`select-icone mk-pop-botao${aberto ? ' aberto' : ''}`} aria-expanded={aberto} onClick={() => { if (!aberto) aoAbrir(); setAberto(!aberto) }}>
+      <button type="button" className={`select-icone mk-pop-botao${aberto ? ' aberto' : ''}`} aria-expanded={aberto} onClick={() => (aberto ? setAberto(false) : abrir())}>
         <span className="mk-pop-resumo">{resumo}</span><Icone nome="seta" tam={14} />
       </button>
       {aberto && (
         <div className={`mk-pop-painel ${alinhar}`} style={{ width: largura }} role="dialog" aria-label={titulo}>
-          <header><b>{titulo}</b><span className="muted pequeno">{sub}</span></header>
-          {children}
+          <header><b>{titulo}</b></header>
+          {itens.length > 6 && <label className="select-icone mk-pop-busca"><Icone nome="busca" tam={16} /><input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Buscar…" autoFocus /></label>}
+          <ListaMarcar itens={itens} marcados={marcados} setMarcados={setMarcados} busca={busca} />
+          {rodape}
           <footer>
-            <button type="button" className="link" onClick={aoLimpar}>Limpar</button>
-            <button type="button" className="btn btn-ouro" onClick={() => { aoAplicar(); setAberto(false) }}>Aplicar</button>
+            <button type="button" className="link" onClick={() => setMarcados(itens.map((i) => i.id))}>Limpar</button>
+            <span className="muted pequeno">{marcados.length} de {itens.length}</span>
+            <button type="button" className="btn btn-ouro" disabled={!marcados.length} title={marcados.length ? '' : 'Marque pelo menos um'} onClick={aplicar}>Aplicar</button>
           </footer>
         </div>
       )}
@@ -45,89 +80,34 @@ function Painel({ rotulo, resumo, titulo, sub, largura, alinhar = 'esquerda', ao
 
 export function SeletorCanais({ f, mudar }: Props) {
   const ativas = useRedes()
-  const [marcados, setMarcados] = useState<Rede[]>([])
-  const [busca, setBusca] = useState('')
-  const lista = ativas.filter((r) => REDES[r].nome.toLowerCase().includes(busca.trim().toLowerCase()))
-  const alternar = (r: Rede) => setMarcados((m) => (m.includes(r) ? m.filter((x) => x !== r) : [...m, r]))
-  const aplicar = () => {
-    const canais = marcados.length === ativas.length ? [] : marcados
+  const itens: Item[] = ativas.map((r) => ({ id: r, nome: REDES[r].nome, icone: <LogoRede rede={r} tam={20} /> }))
+  const aplicar = (lista: string[]) => {
+    const canais = lista as Rede[]
     // formato que nenhum canal escolhido tem sai do filtro
     const validos = f.formatos.filter((k) => (canais.length ? canais : ativas).some((r) => REDES[r].formatos.includes(k as Formato)))
     mudar({ canais, formatos: validos })
   }
   const resumo = !f.canais.length ? 'Todos'
     : <span className="mk-logos">{f.canais.slice(0, 3).map((c) => <LogoRede key={c} rede={c} />)}{f.canais.length === 1 ? REDES[f.canais[0]].nome : `${f.canais.length} canais`}</span>
-  return (
-    <Painel rotulo="Canais" resumo={resumo} titulo="Canais" sub="Selecione um ou mais canais" largura={260}
-      aoAbrir={() => { setMarcados(f.canais.length ? f.canais : []); setBusca('') }} aoLimpar={() => setMarcados([])} aoAplicar={aplicar}>
-      {ativas.length > 5 && <label className="select-icone mk-pop-busca"><Icone nome="busca" tam={16} /><input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Buscar canal…" autoFocus /></label>}
-      <div className="mk-pop-lista">
-        {lista.map((r) => (
-          <label key={r} className="mk-pop-canal"><LogoRede rede={r} tam={20} /><span>{REDES[r].nome}</span><input type="checkbox" checked={marcados.includes(r)} onChange={() => alternar(r)} /></label>
-        ))}
-        {!lista.length && <span className="muted pequeno">Nenhum canal com esse nome.</span>}
-      </div>
-      <p className="muted pequeno">Nenhum marcado = todos os canais.</p>
-      <Link to="/agentes/marca" className="mk-multi-rodape"><Icone nome="mais" tam={14} /> Ligar outros canais</Link>
-    </Painel>
-  )
+  return <Painel rotulo="Canais" resumo={resumo} titulo="Canais" itens={itens} escolhidos={f.canais} aoAplicar={aplicar} largura={260}
+    rodape={<Link to="/agentes/marca" className="mk-multi-rodape"><Icone nome="mais" tam={14} /> Ligar outros canais</Link>} />
 }
 
-type Tipo = { id: string; nome: string; icone: string; formatos: Formato[] }
-const TIPOS: Tipo[] = [
-  { id: 'imagem', nome: 'Imagem', icone: 'imagem', formatos: ['post'] },
-  { id: 'carrossel', nome: 'Carrossel', icone: 'quadro', formatos: ['carrossel'] },
-  { id: 'video', nome: 'Vídeo', icone: 'video', formatos: ['reels', 'video'] },
-  { id: 'stories', nome: 'Stories', icone: 'celular', formatos: ['stories'] },
-  { id: 'live', nome: 'Live', icone: 'live', formatos: ['live'] },
-  { id: 'texto', nome: 'Texto / enquete', icone: 'texto', formatos: ['texto'] },
-  { id: 'artigo', nome: 'Artigo', icone: 'documento', formatos: ['artigo'] },
-  { id: 'email', nome: 'E-mail', icone: 'email', formatos: ['email'] },
-  { id: 'mensagem', nome: 'Mensagem', icone: 'mensagem', formatos: ['mensagem'] },
-  { id: 'pdf', nome: 'Material PDF', icone: 'pdf', formatos: ['pdf'] },
-]
-type Duracao = 'qualquer' | 'curto' | 'longo'
-const DURACAO: Record<Duracao, string> = { qualquer: 'Qualquer', curto: 'Curto · vertical', longo: 'Longo · horizontal' }
-
+// formatos que existem nos canais em foco; com um canal só, o nome que ele usa (Reels, Shorts…),
+// com vários, o nome geral e embaixo como cada canal chama
 export function SeletorFormatos({ f, mudar }: Props) {
   const ativas = useRedes()
   const canais = f.canais.length ? f.canais : ativas
-  const existe = (k: Formato) => canais.some((r) => REDES[r].formatos.includes(k))
-  const disponiveis = TIPOS.filter((t) => t.formatos.some(existe))
-  const [tipos, setTipos] = useState<string[]>([])
-  const [duracao, setDuracao] = useState<Duracao>('qualquer')
-  const comVideo = tipos.includes('video')
-
-  const daSelecao = (lista: string[]) => {
-    const t = TIPOS.filter((x) => x.formatos.some((k) => lista.includes(k))).map((x) => x.id)
-    const d: Duracao = lista.includes('reels') && !lista.includes('video') ? 'curto' : lista.includes('video') && !lista.includes('reels') ? 'longo' : 'qualquer'
-    return { t, d }
-  }
-  const formatosDe = (t: string[], d: Duracao) => TIPOS.filter((x) => t.includes(x.id)).flatMap((x) =>
-    x.id === 'video' && d !== 'qualquer' ? [d === 'curto' ? 'reels' : 'video'] : x.formatos).filter((k) => existe(k as Formato))
-  const atual = daSelecao(f.formatos)
-  const nomeTipo = (id: string, d: Duracao) => { const n = TIPOS.find((x) => x.id === id)?.nome ?? id; return id === 'video' && d !== 'qualquer' ? `${n} ${d}` : n }
-  const resumo = !f.formatos.length ? 'Todos' : atual.t.length === 1 ? nomeTipo(atual.t[0], atual.d) : `${atual.t.length} tipos`
-  const frase = tipos.length ? tipos.map((id) => nomeTipo(id, duracao)).join(' · ') : 'Todos os formatos'
-  return (
-    <Painel rotulo="Formatos" resumo={resumo} titulo="Filtrar formatos" sub="Combine o tipo de conteúdo e, no vídeo, a duração." largura={400} alinhar="direita"
-      aoAbrir={() => { setTipos(atual.t); setDuracao(atual.d) }} aoLimpar={() => { setTipos([]); setDuracao('qualquer') }} aoAplicar={() => mudar({ formatos: formatosDe(tipos, duracao) })}>
-      <span className="mk-pop-secao">Tipo de conteúdo</span>
-      <div className="mk-pop-chips">
-        {disponiveis.map((t) => {
-          const sel = tipos.includes(t.id)
-          return <button key={t.id} type="button" className={`mk-pop-chip${sel ? ' ativo' : ''}`} aria-pressed={sel} onClick={() => setTipos((x) => (sel ? x.filter((y) => y !== t.id) : [...x, t.id]))}>
-            <Icone nome={t.icone} tam={16} />{t.nome}{sel && <Icone nome="check" tam={14} />}</button>
-        })}
-      </div>
-      {comVideo && existe('reels') && existe('video') && (<>
-        <span className="mk-pop-secao">Duração do vídeo</span>
-        <div className="mk-pop-chips tres">
-          {(Object.keys(DURACAO) as Duracao[]).map((d) => <button key={d} type="button" className={`mk-pop-chip${duracao === d ? ' ativo' : ''}`} aria-pressed={duracao === d} onClick={() => setDuracao(d)}>{DURACAO[d]}{duracao === d && <Icone nome="check" tam={14} />}</button>)}
-        </div>
-        <p className="muted pequeno">Curto: Reels, Shorts, TikTok. Longo: vídeo do YouTube.</p>
-      </>)}
-      <div className="mk-pop-frase"><b>{frase}</b><span className="muted pequeno">{tipos.length > 1 ? 'Mostra peças de qualquer um desses tipos.' : tipos.length ? 'Mostra só peças deste tipo.' : 'Nenhum marcado = todos os formatos.'}</span></div>
-    </Painel>
-  )
+  const itens: Item[] = FORMATOS.filter((k) => canais.some((r) => REDES[r].formatos.includes(k))).map((k) => {
+    const onde = canais.filter((r) => REDES[r].formatos.includes(k))
+    const nomes = [...new Set(onde.map((r) => nomeFormato(k, r)))].filter((n) => n !== nomeGenerico(k))
+    return {
+      id: k, icone: <span style={{ color: infoFormato(k).cor }}><Icone nome={infoFormato(k).icone} tam={18} /></span>,
+      nome: canais.length === 1 ? nomeFormato(k, canais[0]) : nomeGenerico(k),
+      detalhe: canais.length > 1 ? (nomes.length ? nomes.join(' · ') : onde.map((r) => REDES[r].nome).join(' · ')) : undefined,
+    }
+  })
+  const nome = (k: string) => (canais.length === 1 ? nomeFormato(k, canais[0]) : nomeGenerico(k))
+  const resumo = !f.formatos.length ? 'Todos' : f.formatos.length === 1 ? nome(f.formatos[0]) : `${f.formatos.length} formatos`
+  return <Painel rotulo="Formatos" resumo={resumo} titulo="Formatos" itens={itens} escolhidos={f.formatos} aoAplicar={(lista) => mudar({ formatos: lista })} largura={300} alinhar="direita" />
 }
