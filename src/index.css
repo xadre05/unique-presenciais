@@ -2000,3 +2000,14 @@ a.sala-agente:hover { border-color: var(--ouro); transform: translateY(-2px); }
 .mk-pop-painel header, .mk-pop-frase { align-items: flex-start; }
 .mk-pop-botao > svg { transform: rotate(90deg); color: var(--muted); flex-shrink: 0; transition: transform .15s; }
 .mk-pop-botao.aberto > svg { transform: rotate(-90deg); }
+
+/* avatar do agente "saindo" do círculo: o desenho passa por cima da borda; só a parte de baixo é cortada pelo círculo */
+.mk-avatar-pop { --d: 92px; position: relative; flex: none; width: calc(var(--d) * 1.3); height: calc(var(--d) * 1.3); margin-top: calc(var(--d) * -0.22); }
+.mk-avatar-fundo { position: absolute; left: 50%; bottom: 0; width: var(--d); height: var(--d); transform: translateX(-50%); border-radius: 50%; padding: 3px; background: conic-gradient(#a46ee6, var(--ouro), #a46ee6); }
+.mk-avatar-fundo::after { content: ''; display: block; width: 100%; height: 100%; border-radius: 50%; background: radial-gradient(circle at 50% 40%, color-mix(in srgb, #a46ee6 40%, #1b1726) 0, #15131c 78%); }
+.mk-avatar-pop img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; filter: drop-shadow(0 4px 10px rgba(0,0,0,.45));
+  -webkit-mask: linear-gradient(#000 0 0) top / 100% calc(100% - var(--d) / 2) no-repeat, radial-gradient(circle calc(var(--d) / 2) at 50% calc(100% - var(--d) / 2), #000 98%, transparent 100%);
+  mask: linear-gradient(#000 0 0) top / 100% calc(100% - var(--d) / 2) no-repeat, radial-gradient(circle calc(var(--d) / 2) at 50% calc(100% - var(--d) / 2), #000 98%, transparent 100%); }
+.mk-avatar-pop.trabalhando .mk-avatar-fundo { animation: mk-gira 3s linear infinite; }
+@media (prefers-reduced-motion: reduce) { .mk-avatar-pop.trabalhando .mk-avatar-fundo { animation: none; } }
+@media (max-width: 640px) { .mk-avatar-pop { --d: 68px; } }
