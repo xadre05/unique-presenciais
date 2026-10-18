@@ -6,16 +6,26 @@ import { brl, dataBR, dataHoraBR, hojeISO } from '../lib/format'
 import { useAuth } from '../auth'
 import { Badge, Campo, Erro, InputMoeda, Modal, Vazio } from '../components/ui'
 import { Icone } from '../components/Icone'
+import { FormGrupo, type GrupoLinks } from './LinksGrupo'
 
 type LinkPg = {
   id: string; titulo: string; curso_id: string | null; turma_id: string | null; tipo: string; endereco: string
   valor: number | null; condicao: string | null; observacao: string | null; ativo: boolean; ordem: number
   finalidade: string; aluno_id: string | null; validade: string | null; origem: string; sincronizado_em: string | null
+  grupo_id: string | null; forma_hotmart: string | null
 }
 
 const FINALIDADES: Record<string, string> = { integral: 'Pagamento integral', matricula: 'Matrícula (entrada)', saldo: 'Saldo restante', exclusivo: 'Exclusivo de um aluno' }
 const ehUrl = (s: string) => /^https?:\/\//i.test(s.trim())
 const pendente = (l: LinkPg) => l.endereco.startsWith('PREENCHER')
+// Parcelamento Hotmart (uma cobrança por mês) é a 2ª opção: primeiro à vista ou no cartão
+const parcelamentoHotmart = (l: LinkPg) => ['HOTMART_INSTALLMENTS_UNIQUE_LINK', 'SMART_INSTALLMENT'].includes(l.forma_hotmart ?? '')
+
+// link da Hotmart com o código da vendedora (src): a venda cai no nome dela na Hotmart e na comissão
+function comRastreio(endereco: string, rastreio: string | null) {
+  if (!rastreio || !/hotmart\.com/i.test(endereco)) return endereco
+  try { const u = new URL(endereco); u.searchParams.set('src', rastreio); return u.toString() } catch { return endereco }
+}
 
 async function copiar(texto: string) {
   try { await navigator.clipboard.writeText(texto) } catch {
@@ -28,6 +38,9 @@ export default function Links() {
   const cad = useCadastros()
   const links = useConsulta<LinkPg[]>(() => supabase.from('links_pagamento').select('*').order('ordem').order('titulo'))
   const alunos = useConsulta<{ id: string; nome: string }[]>(() => supabase.from('alunos').select('id,nome').order('nome'))
+  const grupos = useConsulta<GrupoLinks[]>(() => supabase.from('links_grupos').select('*').order('ordem').order('nome'))
+  const rastreio = useConsulta<string | null>(() => supabase.rpc('meu_rastreio'))
+  const [editandoGrupo, setEditandoGrupo] = useState<Partial<GrupoLinks> | null>(null)
   const [busca, setBusca] = useState('')
   const [curso, setCurso] = useState('')
   const [turma, setTurma] = useState('')
@@ -49,7 +62,12 @@ export default function Links() {
   const pix = todos.filter((l) => l.tipo === 'pix' && !l.curso_id)
   const outros = todos.filter((l) => !pix.includes(l))
   const cursosVisiveis = cad.cursos.filter((c) => !curso || c.id === curso)
-  const semCurso = outros.filter((l) => !l.curso_id)
+  const gruposVisiveis = (grupos.dados ?? []).filter((g) => g.ativo || isAdmin)
+  const agrupados = outros.filter((l) => l.grupo_id && gruposVisiveis.some((g) => g.id === l.grupo_id))
+  const soltos = outros.filter((l) => !agrupados.includes(l))
+  const semCurso = soltos.filter((l) => !l.curso_id)
+  const meuCodigo = rastreio.dados ?? null
+  const enderecoDe = (l: LinkPg) => (l.tipo === 'pix' ? l.endereco : comRastreio(l.endereco, meuCodigo))
 
   const marcar = (id: string) => { setCopiado(id); setTimeout(() => setCopiado(null), 1800) }
   const mensagem = (l: LinkPg) => {
@@ -57,7 +75,7 @@ export default function Links() {
     if (l.tipo === 'pix') return `Segue a chave Pix para o pagamento:\n${l.endereco}\n(${l.titulo})\nDepois de pagar, me envie o comprovante por aqui, por favor.`
     const alvo = [nomeCurso(l.curso_id), nomeTurma(l.turma_id) ? `turma ${nomeTurma(l.turma_id)!.split(' — ').pop()}` : ''].filter(Boolean).join(', ')
     const valor = l.valor != null ? ` no valor de ${brl(l.valor)}` : ''
-    return `Olá${aluno ? `, ${aluno.split(' ')[0]}` : ''}! Segue o link para ${l.finalidade === 'matricula' ? 'a matrícula' : l.finalidade === 'saldo' ? 'o pagamento do saldo' : 'o pagamento'}${alvo ? ` do ${alvo}` : ''}${valor}${l.condicao ? ` (${l.condicao.toLowerCase()})` : ''}:\n${l.endereco}${l.validade ? `\nVálido até ${dataBR(l.validade)}.` : ''}\nQualquer dúvida, é só me chamar.`
+    return `Olá${aluno ? `, ${aluno.split(' ')[0]}` : ''}! Segue o link para ${l.finalidade === 'matricula' ? 'a matrícula' : l.finalidade === 'saldo' ? 'o pagamento do saldo' : 'o pagamento'}${alvo ? ` do ${alvo}` : ''}${valor}${l.condicao ? ` (${l.condicao.toLowerCase()})` : ''}:\n${enderecoDe(l)}${l.validade ? `\nVálido até ${dataBR(l.validade)}.` : ''}\nQualquer dúvida, é só me chamar.`
   }
 
   const sincronizar = async () => {
@@ -72,27 +90,28 @@ export default function Links() {
     links.recarregar()
   }
 
-  const Linha = ({ l }: { l: LinkPg }) => (
+  const Linha = ({ l, noGrupo = false }: { l: LinkPg; noGrupo?: boolean }) => (
     <div className={`link-linha${!l.ativo || vencido(l) ? ' inativo' : ''}`}>
       <div className="link-linha-info">
         <div className="link-linha-titulo">
           <b>{l.titulo}</b>
           {l.finalidade !== 'integral' && <Badge tom={l.finalidade === 'exclusivo' ? 'alerta' : 'neutro'}>{FINALIDADES[l.finalidade]}</Badge>}
           {l.origem === 'hotmart' && <Badge tom="info">Hotmart</Badge>}
+          {parcelamentoHotmart(l) && <Badge tom="alerta">2ª opção</Badge>}
           {!l.ativo && <Badge tom="apagado">desativado</Badge>}
           {vencido(l) && <Badge tom="apagado">vencido</Badge>}
         </div>
         <div className="muted pequeno">
-          {[nomeTurma(l.turma_id), l.aluno_id && `só para ${nomeAluno(l.aluno_id)}`, l.validade && `válido até ${dataBR(l.validade)}`, l.observacao].filter(Boolean).join(' · ')}
+          {[noGrupo && nomeCurso(l.curso_id) && `presencial: ${nomeCurso(l.curso_id)}`, nomeTurma(l.turma_id), l.aluno_id && `só para ${nomeAluno(l.aluno_id)}`, l.validade && `válido até ${dataBR(l.validade)}`, l.observacao].filter(Boolean).join(' · ')}
           {l.origem === 'hotmart' && l.sincronizado_em && <span> · atualizado da Hotmart em {dataHoraBR(l.sincronizado_em)}</span>}
         </div>
       </div>
       <div className="link-linha-valor">{l.valor != null && <b>{brl(l.valor)}</b>}<div className="muted pequeno">{l.condicao}</div></div>
       <div className="link-linha-acoes">
         {pendente(l) ? <span className="erro-txt pequeno">Falta cadastrar o endereço</span> : (<>
-          <button className="btn btn-contorno btn-mini" onClick={async () => { await copiar(l.endereco); marcar(l.id + 'l') }}><Icone nome="links" tam={14} /> {copiado === l.id + 'l' ? 'Copiado ✓' : 'Copiar link'}</button>
+          <button className="btn btn-contorno btn-mini" onClick={async () => { await copiar(enderecoDe(l)); marcar(l.id + 'l') }}><Icone nome="links" tam={14} /> {copiado === l.id + 'l' ? 'Copiado ✓' : 'Copiar link'}</button>
           <button className="btn btn-contorno btn-mini" onClick={async () => { await copiar(mensagem(l)); marcar(l.id + 'm') }}><Icone nome="whats" tam={14} /> {copiado === l.id + 'm' ? 'Copiada ✓' : 'Copiar mensagem'}</button>
-          {ehUrl(l.endereco) && <a className="btn btn-mini btn-quadrado" href={l.endereco} target="_blank" rel="noreferrer" title="Abrir"><Icone nome="seta" tam={14} /></a>}
+          {ehUrl(l.endereco) && <a className="btn btn-mini btn-quadrado" href={enderecoDe(l)} target="_blank" rel="noreferrer" title="Abrir"><Icone nome="seta" tam={14} /></a>}
         </>)}
         {isAdmin && <button className="btn btn-mini" onClick={() => setEditando(l)}>Editar</button>}
       </div>
@@ -105,9 +124,13 @@ export default function Links() {
         <div><h1>Links de venda e pagamento</h1><p className="muted">Encontre a opção certa e copie o link ou a mensagem pronta para o aluno.</p></div>
         {isAdmin && <div className="acoes">
           <button className="btn btn-contorno btn-grande" disabled={sinc.rodando} onClick={sincronizar}><Icone nome="historico" /> {sinc.rodando ? 'Buscando na Hotmart…' : 'Atualizar da Hotmart'}</button>
+          <button className="btn btn-contorno btn-grande" onClick={() => setEditandoGrupo({ ativo: true, ordem: 10 })}><Icone nome="mais" /> Novo grupo</button>
           <button className="btn btn-ouro btn-grande" onClick={() => setEditando({ tipo: 'hotmart', ativo: true, ordem: 10, finalidade: 'integral', origem: 'manual' })}><Icone nome="mais" /> Novo link</button>
         </div>}
       </header>
+      {meuCodigo
+        ? <div className="nota pequeno">Os links da Hotmart que você copiar aqui já saem com o seu código (<code>src={meuCodigo}</code>): a venda cai no seu nome na Hotmart e na sua comissão.</div>
+        : isAdmin && <p className="muted pequeno">Você está como administrador: o link sai sem código de vendedora. Cada vendedora, logada com o acesso dela, copia o link já com o código dela.</p>}
       {sinc.msg && <div className="aviso">{sinc.msg}</div>}
       {sinc.erro && <div className="erro">{sinc.erro}{/credenciais/i.test(sinc.erro) && <> Veja o passo a passo em <Link to="/configuracoes/integracoes" className="link">Configurações → Integrações</Link>.</>}</div>}
 
@@ -135,8 +158,23 @@ export default function Links() {
         ))}
       </>)}
 
+      {gruposVisiveis.map((g) => {
+        const ls = agrupados.filter((l) => l.grupo_id === g.id)
+        if (ls.length === 0 && (termo || turma || curso || !isAdmin)) return null
+        return (
+          <section key={g.id} className={`bloco links-grupo${g.ativo ? '' : ' inativo'}`}>
+            <div className="bloco-topo">
+              <h2><Icone nome="links" className="ouro" /> {g.nome} <span className="muted pequeno">{ls.length} link(s)</span>{!g.ativo && <Badge tom="apagado">desativado</Badge>}</h2>
+              {isAdmin && <button className="btn btn-mini" onClick={() => setEditandoGrupo(g)}>Editar grupo</button>}
+            </div>
+            {g.descricao && <p className="muted pequeno links-grupo-desc">{g.descricao}</p>}
+            {ls.length === 0 ? <p className="muted pequeno">Nenhum link neste grupo. Escolha o grupo em "Editar" no link.</p> : ls.map((l) => <Linha key={l.id} l={l} noGrupo />)}
+          </section>
+        )
+      })}
+
       {cursosVisiveis.map((c) => {
-        const ls = outros.filter((l) => l.curso_id === c.id)
+        const ls = soltos.filter((l) => l.curso_id === c.id)
         if (ls.length === 0 && (termo || turma)) return null
         return (
           <section key={c.id} className="bloco">
@@ -157,13 +195,15 @@ export default function Links() {
       {isAdmin && <p className="muted pequeno">Para os links da Hotmart virem sozinhos, ligue cada produto da Hotmart a um curso em <Link to="/configuracoes/integracoes" className="link">Configurações → Integrações</Link>.</p>}
       <p className="muted pequeno">Cadastro e edição: administrador. Consulta e cópia: toda a equipe.</p>
 
-      {isAdmin && <FormLink link={editando} cursos={cad.cursos} turmas={cad.turmas} alunos={alunos.dados ?? []} onFechar={() => setEditando(null)} onSalvo={() => { setEditando(null); links.recarregar() }} />}
+      {isAdmin && <FormLink link={editando} cursos={cad.cursos} turmas={cad.turmas} alunos={alunos.dados ?? []} grupos={grupos.dados ?? []} onFechar={() => setEditando(null)} onSalvo={() => { setEditando(null); links.recarregar() }} />}
+      {isAdmin && <FormGrupo grupo={editandoGrupo} onFechar={() => setEditandoGrupo(null)} onSalvo={() => { setEditandoGrupo(null); grupos.recarregar() }} />}
     </div>
   )
 }
 
-function FormLink({ link, cursos, turmas, alunos, onFechar, onSalvo }: {
-  link: Partial<LinkPg> | null; cursos: { id: string; nome: string }[]; turmas: { id: string; nome: string; status: string }[]; alunos: { id: string; nome: string }[]; onFechar: () => void; onSalvo: () => void
+function FormLink({ link, cursos, turmas, alunos, grupos, onFechar, onSalvo }: {
+  link: Partial<LinkPg> | null; cursos: { id: string; nome: string }[]; turmas: { id: string; nome: string; status: string }[]; alunos: { id: string; nome: string }[]
+  grupos: GrupoLinks[]; onFechar: () => void; onSalvo: () => void
 }) {
   const [f, setF] = useState<Partial<LinkPg>>({})
   const [erro, setErro] = useState<string | null>(null)
@@ -179,6 +219,7 @@ function FormLink({ link, cursos, turmas, alunos, onFechar, onSalvo }: {
       titulo: f.titulo.trim(), curso_id: f.curso_id || null, turma_id: f.turma_id || null, tipo: f.tipo || 'hotmart', endereco: f.endereco.trim(),
       valor: f.valor ?? null, condicao: f.condicao?.trim() || null, observacao: f.observacao?.trim() || null, ativo: f.ativo ?? true, ordem: f.ordem ?? 10,
       finalidade: f.finalidade || 'integral', aluno_id: f.finalidade === 'exclusivo' ? f.aluno_id : null, validade: f.validade || null,
+      grupo_id: f.grupo_id || null,
     }
     const { error } = f.id ? await supabase.from('links_pagamento').update(dados).eq('id', f.id) : await supabase.from('links_pagamento').insert(dados)
     if (error) return setErro(msgErro(error))
@@ -192,6 +233,7 @@ function FormLink({ link, cursos, turmas, alunos, onFechar, onSalvo }: {
         <Campo rotulo="Nome do link" dica="Como a equipe vai reconhecer. Ex.: Mini Residência — 12x no cartão"><input value={f.titulo ?? ''} onChange={(e) => set('titulo', e.target.value)} autoFocus /></Campo>
         <Campo rotulo="Tipo"><select value={f.tipo ?? 'hotmart'} disabled={daHotmart} onChange={(e) => set('tipo', e.target.value)}><option value="hotmart">Hotmart</option><option value="pix">Pix</option><option value="link">Outro link</option></select></Campo>
         <Campo rotulo="Curso"><select value={f.curso_id ?? ''} onChange={(e) => set('curso_id', e.target.value || null)}><option value="">Geral (qualquer curso)</option>{cursos.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}</select></Campo>
+        <Campo rotulo="Grupo (opcional)" dica="Ex.: Black Friday Limited Edition — os links do grupo aparecem juntos no topo"><select value={f.grupo_id ?? ''} onChange={(e) => set('grupo_id', e.target.value || null)}><option value="">Sem grupo (aparece no curso)</option>{grupos.map((g) => <option key={g.id} value={g.id}>{g.nome}</option>)}</select></Campo>
         <Campo rotulo="Turma (opcional)"><select value={f.turma_id ?? ''} onChange={(e) => set('turma_id', e.target.value || null)}><option value="">Qualquer turma</option>{turmas.filter((t) => !['realizada', 'cancelada'].includes(t.status)).map((t) => <option key={t.id} value={t.id}>{t.nome}</option>)}</select></Campo>
         <Campo rotulo="Finalidade"><select value={f.finalidade ?? 'integral'} onChange={(e) => set('finalidade', e.target.value)}>{Object.entries(FINALIDADES).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></Campo>
         {f.finalidade === 'exclusivo' && <Campo rotulo="Aluno"><select value={f.aluno_id ?? ''} onChange={(e) => set('aluno_id', e.target.value || null)}><option value="">Escolha…</option>{alunos.map((a) => <option key={a.id} value={a.id}>{a.nome}</option>)}</select></Campo>}

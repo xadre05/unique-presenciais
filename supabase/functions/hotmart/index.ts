@@ -41,7 +41,8 @@ async function paginas(url: string, tk: string, extra: Record<string, string> = 
 
 const FORMAS: Record<string, string> = {
   PAY_IN_FULL: 'Pagamento único (Pix, boleto ou cartão)', UNIQUE_PAYMENT: 'Pagamento único (cartão em até 12x, Pix ou boleto)',
-  SMART_INSTALLMENT: 'Parcelamento Hotmart (mês a mês)', HOTMART_INSTALLMENTS_UNIQUE_LINK: 'Parcelamento Hotmart (mês a mês no boleto, Pix ou cartão)',
+  SMART_INSTALLMENT: 'Parcelamento Hotmart: 1 cobrança por mês (boleto, Pix ou cartão), sem usar o limite do cartão',
+  HOTMART_INSTALLMENTS_UNIQUE_LINK: 'Parcelamento Hotmart: 1 cobrança por mês (boleto, Pix ou cartão), sem usar o limite do cartão',
   SUBSCRIPTION: 'Assinatura', INSTALLMENT: 'Parcelado',
 }
 const quando = (ms: unknown) => (typeof ms === 'number' && ms > 0 ? new Date(ms).toISOString() : null)
