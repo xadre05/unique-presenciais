@@ -67,3 +67,23 @@ export function proximaSegunda() {
   d.setDate(d.getDate() + ((8 - dia) % 7 || 7))
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
+
+const isoLocal = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+export const hojeISO = () => isoLocal(new Date())
+export function somaDias(iso: string, n: number) {
+  const d = new Date(iso + 'T12:00:00'); d.setDate(d.getDate() + n)
+  return isoLocal(d)
+}
+const ddmm = (iso: string) => `${iso.slice(8, 10)}/${iso.slice(5, 7)}`
+
+// nome curto do trabalho para listas: "Reels avulso · 20/10", "Semana 20/10 a 26/10", "3 dias · 20/10 a 22/10"
+export function rotuloTrabalho(t: Pick<Trabalho, 'tipo' | 'pedido'>) {
+  const p = t.pedido
+  if (t.tipo === 'ajuste') return 'Ajuste de peça'
+  const inicio = String(p.semana_inicio ?? '')
+  if (!inicio) return 'Conteúdo'
+  if (p.modo === 'peca') return `${TIPO_PECA[String(p.tipo_peca)] ?? 'Peça'} avulso · ${ddmm(inicio)}`
+  const dias = Number(p.dias ?? 7)
+  if (dias === 1) return `Conteúdo do dia ${ddmm(inicio)}`
+  return `${dias === 7 ? 'Semana' : `${dias} dias`} · ${ddmm(inicio)} a ${ddmm(somaDias(inicio, dias - 1))}`
+}

@@ -6,7 +6,7 @@ import { msgErro } from '../../lib/dados'
 import { dataBR } from '../../lib/format'
 import { Badge, Erro } from '../../components/ui'
 import { TIPO_PECA, textoDaPeca, type Peca } from './comum'
-import { lembrar } from './memoria'
+import { esquecer, lembrar } from './memoria'
 
 const STATUS: Record<Peca['status'], { rotulo: string; tom: string }> = {
   rascunho: { rotulo: 'Esperando aprovação', tom: 'alerta' },
@@ -23,28 +23,35 @@ async function copiar(texto: string) {
 }
 
 // pede ao agente para reescrever a peça e acompanha até ficar pronta
+// quando "lembrar" está marcado, o agente também guarda o gosto na memória e a peça mostra o que ele aprendeu
 function usePedirAjuste(peca: Peca, aoMudar: () => void) {
   const [trabalho, setTrabalho] = useState<string | null>(null)
   const [erro, setErro] = useState<string | null>(null)
+  const [aprendeu, setAprendeu] = useState<{ texto: string; empresa: string; agente: string } | null>(null)
   useEffect(() => {
     if (!trabalho) return
     const t = setInterval(async () => {
-      const { data } = await supabase.from('agentes_trabalhos').select('status,erro').eq('id', trabalho).maybeSingle()
-      if (data?.status === 'pronto') { setTrabalho(null); aoMudar() }
+      const { data } = await supabase.from('agentes_trabalhos').select('status,erro,pedido,empresa_id,agente_id').eq('id', trabalho).maybeSingle()
+      if (data?.status === 'pronto') {
+        const texto = String((data.pedido as Record<string, unknown>)?.aprendizado ?? '')
+        setAprendeu(texto ? { texto, empresa: data.empresa_id, agente: data.agente_id } : null)
+        setTrabalho(null); aoMudar()
+      }
       if (data?.status === 'erro') { setTrabalho(null); setErro(data.erro) }
     }, 3000)
     return () => clearInterval(t)
   }, [trabalho]) // eslint-disable-line react-hooks/exhaustive-deps
-  const pedir = async (instrucao: string) => {
-    setErro(null)
+  const pedir = async (instrucao: string, guardar: boolean) => {
+    setErro(null); setAprendeu(null)
     const { data: emp } = await supabase.from('agentes_pecas').select('empresa_id').eq('id', peca.id).single()
-    const { data, error } = await supabase.from('agentes_trabalhos').insert({ empresa_id: emp?.empresa_id, agente_id: 'marketing', tipo: 'ajuste', pedido: { peca_id: peca.id, instrucao } }).select('id').single()
+    const { data, error } = await supabase.from('agentes_trabalhos').insert({ empresa_id: emp?.empresa_id, agente_id: 'marketing', tipo: 'ajuste', pedido: { peca_id: peca.id, instrucao, lembrar: guardar } }).select('id').single()
     if (error) return setErro(msgErro(error))
     setTrabalho(data.id)
     const r = await supabase.functions.invoke('agentes', { body: { trabalho: data.id } })
     if (r.error) { setTrabalho(null); setErro('O agente não conseguiu começar. Tente de novo.') }
   }
-  return { ajustando: !!trabalho, erroAjuste: erro, pedir }
+  const desfazerAprendizado = async () => { if (aprendeu) await esquecer(aprendeu.empresa, aprendeu.agente, aprendeu.texto); setAprendeu(null) }
+  return { ajustando: !!trabalho, erroAjuste: erro, pedir, aprendeu: aprendeu?.texto ?? null, desfazerAprendizado }
 }
 
 export function PecaCartao({ peca, aoMudar }: { peca: Peca; aoMudar: () => void }) {
@@ -53,12 +60,13 @@ export function PecaCartao({ peca, aoMudar }: { peca: Peca; aoMudar: () => void 
   const [legenda, setLegenda] = useState(c.legenda ?? '')
   const [roteiro, setRoteiro] = useState((c.roteiro ?? []).join('\n'))
   const [instrucao, setInstrucao] = useState('')
+  const [guardar, setGuardar] = useState(true)
   const [pedindo, setPedindo] = useState(false)
   const [copiado, setCopiado] = useState(false)
   const [copiadoImg, setCopiadoImg] = useState(false)
   const [motivo, setMotivo] = useState<string | null>(null)
   const [erro, setErro] = useState<string | null>(null)
-  const { ajustando, erroAjuste, pedir } = usePedirAjuste(peca, aoMudar)
+  const { ajustando, erroAjuste, pedir, aprendeu, desfazerAprendizado } = usePedirAjuste(peca, aoMudar)
   useEffect(() => { setLegenda(c.legenda ?? ''); setRoteiro((c.roteiro ?? []).join('\n')) }, [c.legenda, c.roteiro])
 
   const atualizar = async (campos: Record<string, unknown>) => {
@@ -78,7 +86,7 @@ export function PecaCartao({ peca, aoMudar }: { peca: Peca; aoMudar: () => void 
     }
     setMotivo(null); await decidir('descartada')
   }
-  const enviarAjuste = async () => { if (!instrucao.trim()) return; await pedir(instrucao.trim()); setInstrucao(''); setPedindo(false) }
+  const enviarAjuste = async () => { if (!instrucao.trim()) return; await pedir(instrucao.trim(), guardar); setInstrucao(''); setPedindo(false) }
 
   return (
     <article className={`peca peca-${peca.status}${ajustando ? ' peca-ajustando' : ''}`}>
@@ -111,6 +119,14 @@ export function PecaCartao({ peca, aoMudar }: { peca: Peca; aoMudar: () => void 
           <input autoFocus value={instrucao} onChange={(e) => setInstrucao(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && enviarAjuste()} placeholder={peca.tipo === 'stories' ? 'Ex.: aumente para 8 telas e termine com caixinha de pergunta' : 'Ex.: deixe mais curta e fale da turma de novembro'} />
           <button className="btn btn-ouro btn-mini" disabled={!instrucao.trim()} onClick={enviarAjuste}>Pedir</button>
           <button className="btn btn-mini" onClick={() => setPedindo(false)}>Cancelar</button>
+          <label className="peca-lembrar"><input type="checkbox" checked={guardar} onChange={(e) => setGuardar(e.target.checked)} /> Lembrar disso nas próximas peças (o agente guarda o gosto na memória)</label>
+        </div>
+      )}
+      {aprendeu && !ajustando && (
+        <div className="peca-aprendeu">
+          <span>O agente aprendeu: <b>{aprendeu}</b></span>
+          <span className="muted pequeno">Vale para as próximas peças.</span>
+          <button className="btn btn-mini" onClick={desfazerAprendizado}>Não guardar</button>
         </div>
       )}
       {motivo !== null && (

@@ -96,17 +96,20 @@ type Exemplo = { tipo: string; titulo: string; conteudo: { legenda?: string; rot
 function pedidoMarketing(perfil: Record<string, string>, pedido: Record<string, unknown>, ctx: string, exemplos: Exemplo[] = []) {
   const memoria = (Array.isArray((perfil as Record<string, unknown>).memoria) ? (perfil as Record<string, unknown>).memoria : []) as { texto: string }[]
   const inicio = String(pedido.semana_inicio)
-  const fim = new Date(new Date(inicio + 'T12:00:00Z').getTime() + 6 * 86400000).toISOString().slice(0, 10)
-  const dias = Number(pedido.stories ?? 3), telas = Number(pedido.stories_telas ?? 5)
+  const nDias = Math.min(14, Math.max(1, Number(pedido.dias ?? 7)))
+  const fim = new Date(new Date(inicio + 'T12:00:00Z').getTime() + (nDias - 1) * 86400000).toISOString().slice(0, 10)
+  const dias = Math.min(nDias, Number(pedido.stories ?? 3)), telas = Number(pedido.stories_telas ?? 5)
   const partes = [
     Number(pedido.posts ?? 3) > 0 && `${pedido.posts ?? 3} post(s) ou carrossel(is)`,
     Number(pedido.reels ?? 2) > 0 && `${pedido.reels ?? 2} reels`,
-    dias > 0 && `stories em ${dias} dia(s) da semana${dias >= 7 ? ' (todos os dias)' : ''}, cada dia com uma sequência de ${telas} telas (o roteiro de cada stories tem exatamente ${telas} itens, um por tela)`,
+    dias > 0 && `stories em ${dias} dia(s)${dias >= nDias && nDias > 1 ? ' (todos os dias)' : ''}, cada dia com uma sequência de ${telas} telas (o roteiro de cada stories tem exatamente ${telas} itens, um por tela)`,
   ].filter(Boolean)
-  const qtd = partes.join(' e ')
+  const avulsa = pedido.modo === 'peca'
+  const nomes: Record<string, string> = { post: 'post', carrossel: 'carrossel', reels: 'reels', stories: `sequência de stories com exatamente ${telas} telas` }
+  const qtd = avulsa ? `1 ${nomes[String(pedido.tipo_peca)] ?? 'post'} (tipo "${String(pedido.tipo_peca ?? 'post')}")` : partes.join(' e ')
   const sistema = [
     'Você é o Agente de Marketing de uma empresa brasileira. Escreve em português do Brasil, pronto para colar no Instagram.',
-    'Você monta a semana de conteúdo; a equipe aprova antes de publicar. Seja concreto: ganchos fortes nos 3 primeiros segundos dos reels, legendas com quebra de linha, chamadas para ação claras.',
+    'Você prepara o conteúdo (peças avulsas, alguns dias ou a semana); a equipe aprova antes de publicar. Seja concreto: ganchos fortes nos 3 primeiros segundos dos reels, legendas com quebra de linha, chamadas para ação claras.',
     'Respeite sempre as regras abaixo, em especial o que é proibido. Não invente números, depoimentos, preços ou datas que não estejam no contexto.',
     '',
     `EMPRESA: ${perfil.empresa ?? ''}`,
@@ -122,8 +125,10 @@ function pedidoMarketing(perfil: Record<string, string>, pedido: Record<string, 
     exemplos.length ? `\nPEÇAS QUE A EQUIPE APROVOU (use como referência de estilo, sem repetir o conteúdo):\n${exemplos.map((e) => `[${e.tipo}] ${e.titulo}\n${(e.conteudo.legenda ?? (e.conteudo.roteiro ?? []).join(' / ')).slice(0, 700)}`).join('\n---\n')}` : '',
   ].filter(Boolean).join('\n')
   const usuario = [
-    `Monte a semana de ${inicio} a ${fim}: ${qtd}. Espalhe pelos dias (não precisa ter peça todo dia).`,
-    pedido.foco ? `Foco da semana pedido pela equipe: ${pedido.foco}` : 'Foco livre: equilibre atrair, educar e vender.',
+    avulsa ? `Faça UMA peça só, para o dia ${inicio}: ${qtd}. É uma peça avulsa pedida pela equipe: capriche no gancho e na chamada.`
+      : nDias === 1 ? `Monte o conteúdo do dia ${inicio}: ${qtd}.`
+      : `Monte o conteúdo de ${inicio} a ${fim} (${nDias} dias): ${qtd}. Espalhe pelos dias (não precisa ter peça todo dia).`,
+    pedido.foco ? `${avulsa ? 'Sobre o que é a peça' : 'Foco pedido pela equipe'}: ${pedido.foco}` : avulsa ? 'Tema livre: escolha o que mais ajuda a vender agora.' : 'Foco livre: equilibre atrair, educar e vender.',
     ctx ? `Informações atuais do sistema:\n${ctx}` : '',
     'Entregue OBRIGATORIAMENTE chamando a ferramenta entregar_semana, com todas as peças de uma vez. Não escreva nada fora da ferramenta.',
   ].filter(Boolean).join('\n\n')
@@ -179,9 +184,15 @@ async function ajustar(db: SupabaseClient, t: Trabalho, perfil: Record<string, s
   if (!peca) throw new Error('Peça não encontrada.')
   const { sistema } = pedidoMarketing(perfil, { semana_inicio: peca.dia ?? new Date().toISOString().slice(0, 10) }, '')
   const atual = { tipo: peca.tipo, dia: peca.dia, titulo: peca.titulo, ...peca.conteudo }
-  const usuario = `Esta é uma peça que você preparou:\n${JSON.stringify(atual, null, 2)}\n\nPedido de ajuste da equipe: ${String(t.pedido.instrucao ?? '')}\n\nReescreva a peça inteira já com o ajuste (mantenha o que não foi pedido para mudar) e entregue OBRIGATORIAMENTE chamando a ferramenta entregar_peca.`
+  const lembrarIsso = t.pedido.lembrar
+  const sobreMemoria = lembrarIsso === true
+    ? '\n\nA equipe marcou que este gosto vale para as PRÓXIMAS peças também: preencha "aprendizado" com uma regra geral e curta (sem citar esta peça), para você seguir sempre.'
+    : lembrarIsso === false ? '\n\nEste ajuste vale só para esta peça: deixe "aprendizado" vazio.' : ''
+  const usuario = `Esta é uma peça que você preparou:\n${JSON.stringify(atual, null, 2)}\n\nPedido de ajuste da equipe: ${String(t.pedido.instrucao ?? '')}${sobreMemoria}\n\nReescreva a peça inteira já com o ajuste (mantenha o que não foi pedido para mudar) e entregue OBRIGATORIAMENTE chamando a ferramenta entregar_peca.`
   const { entrega: p, entrada, saida } = await chamarClaude(chave, modelo, sistema, usuario, FERRAMENTA_AJUSTE)
-  const aprendizado = String((p as Record<string, unknown>).aprendizado ?? '')
+  // marcado "lembrar": guarda sempre (se o agente não resumir, guarda o próprio pedido); desmarcado: nunca guarda
+  const sugerido = String((p as Record<string, unknown>).aprendizado ?? '').trim()
+  const aprendizado = lembrarIsso === false ? '' : sugerido || (lembrarIsso === true ? String(t.pedido.instrucao ?? '').trim() : '')
   if (aprendizado) await lembrar(db, t.empresa_id, t.agente_id, aprendizado)
   const { anterior: _a, ...semHistorico } = (peca.conteudo ?? {}) as Record<string, unknown>
   await db.from('agentes_pecas').update({
@@ -189,6 +200,7 @@ async function ajustar(db: SupabaseClient, t: Trabalho, perfil: Record<string, s
     conteudo: { objetivo: p.objetivo, legenda: p.legenda, roteiro: p.roteiro, texto_arte: p.texto_arte, cta: p.cta, hashtags: p.hashtags, observacao: p.observacao, prompt_imagem: p.prompt_imagem, anterior: semHistorico },
   }).eq('id', peca.id)
   await db.from('agentes_trabalhos').update({
+    pedido: { ...t.pedido, aprendizado: aprendizado || null },
     status: 'pronto', resumo: `Ajuste: ${String(t.pedido.instrucao ?? '').slice(0, 200)}${aprendizado ? ` · Aprendeu: ${aprendizado}` : ''}`, modelo, tokens_entrada: entrada, tokens_saida: saida,
     custo_usd: custo(modelo, entrada, saida), terminado_em: new Date().toISOString(),
   }).eq('id', t.id)

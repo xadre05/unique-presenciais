@@ -1,4 +1,4 @@
-// A semana montada em quadro: uma coluna por dia, cada peça um cartão pequeno; clicando, a peça abre embaixo.
+// O conteúdo de vários dias em quadro: uma coluna por dia, cada peça um cartão pequeno; clicando, a peça abre embaixo.
 import { useState } from 'react'
 import type { Peca } from './comum'
 import { TIPO_PECA } from './comum'
@@ -7,17 +7,17 @@ import { PecaCartao } from './PecaCartao'
 const COR_TIPO: Record<string, string> = { post: '#d9a24b', carrossel: '#a46ee6', reels: '#e5534b', stories: '#2fb3a0' }
 const STATUS_TXT: Record<Peca['status'], string> = { rascunho: 'Para aprovar', aprovada: 'Aprovada', descartada: 'Descartada', postada: 'Postada' }
 
-function diasDaSemana(inicio: string) {
+function diasDoPeriodo(inicio: string, quantos: number) {
   const base = new Date(inicio + 'T12:00:00')
-  return Array.from({ length: 7 }, (_, i) => {
+  return Array.from({ length: quantos }, (_, i) => {
     const d = new Date(base); d.setDate(base.getDate() + i)
     return { iso: d.toISOString().slice(0, 10), nome: d.toLocaleDateString('pt-BR', { weekday: 'short' }).replace('.', ''), data: d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) }
   })
 }
 
-export function SemanaQuadro({ inicio, pecas, aoMudar }: { inicio: string; pecas: Peca[]; aoMudar: () => void }) {
+export function SemanaQuadro({ inicio, dias: quantos = 7, pecas, aoMudar }: { inicio: string; dias?: number; pecas: Peca[]; aoMudar: () => void }) {
   const [aberta, setAberta] = useState<string | null>(null)
-  const dias = diasDaSemana(inicio)
+  const dias = diasDoPeriodo(inicio, Math.max(1, quantos))
   const semDia = pecas.filter((p) => !p.dia || !dias.some((d) => d.iso === p.dia))
   const selecionada = pecas.find((p) => p.id === aberta) ?? null
   const contagem = (s: Peca['status']) => pecas.filter((p) => p.status === s).length

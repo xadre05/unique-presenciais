@@ -1391,3 +1391,16 @@ a.sala-agente:hover { border-color: var(--ouro); transform: translateY(-2px); }
 .memoria li { display: flex; align-items: center; gap: 10px; padding: 6px 8px; border-radius: 8px; background: var(--painel); }
 .memoria li > span:first-child { flex: 1; }
 .memoria li button { background: none; border: 0; color: var(--muted); font-size: 1.1rem; cursor: pointer; }
+
+/* Agentes: pedido em modos (uma peça / alguns dias) e aprendizado visível na peça */
+.agente-modos { display: flex; gap: 4px; padding: 3px; border: 1px solid var(--borda); border-radius: 10px; background: var(--painel-2); }
+.agente-modos button { padding: 6px 14px; border-radius: 7px; border: 0; background: transparent; color: var(--muted); font: inherit; font-size: .9rem; cursor: pointer; }
+.agente-modos button.ativa { background: linear-gradient(180deg, var(--ouro-forte), var(--ouro)); color: #1a1407; font-weight: 600; }
+.agente-pedido .chips, .agente-atalhos { display: flex; flex-wrap: wrap; gap: 6px; }
+.agente-atalhos { margin-bottom: 12px; }
+.agente-pedido .chip, .agente-atalhos .chip { padding: 7px 14px; border-radius: 999px; border: 1px solid var(--borda); background: var(--painel); color: var(--texto); font: inherit; font-size: .9rem; cursor: pointer; }
+.agente-pedido .chip.ativo, .agente-atalhos .chip.ativo { border-color: var(--ouro); color: var(--ouro-forte); background: color-mix(in srgb, var(--ouro) 14%, transparent); font-weight: 600; }
+.peca-lembrar { display: flex; align-items: center; gap: 6px; font-size: .85rem; color: var(--muted); width: 100%; }
+.peca-aprendeu { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 8px 10px; border-radius: 10px; border: 1px solid color-mix(in srgb, var(--ouro) 45%, transparent); background: color-mix(in srgb, var(--ouro) 10%, transparent); font-size: .9rem; }
+.peca-aprendeu b { color: var(--ouro-forte); }
+.peca-avulsa { max-width: 760px; }
