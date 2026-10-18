@@ -99,6 +99,7 @@ function pedidoMarketing(perfil: Record<string, string>, pedido: Record<string, 
     `REGRAS DO CONSELHO: ${perfil.conselho ?? ''}`,
     perfil.instagram ? `PERFIL NO INSTAGRAM: ${perfil.instagram}` : '',
     perfil.instrucoes ? `\nINSTRUÇÕES DA EQUIPE PARA ESTE AGENTE (siga sempre): ${perfil.instrucoes}` : '',
+    perfil.materiais ? `\nOFERTAS E MATERIAIS DA EMPRESA (fonte da verdade: preços, condições, bônus e datas só podem vir daqui):\n${perfil.materiais}` : '',
   ].filter(Boolean).join('\n')
   const usuario = [
     `Monte a semana de ${inicio} a ${fim}: ${qtd}. Espalhe pelos dias (não precisa ter peça todo dia).`,
@@ -109,7 +110,19 @@ function pedidoMarketing(perfil: Record<string, string>, pedido: Record<string, 
   return { sistema, usuario }
 }
 
-async function chamarClaude(chave: string, modelo: string, sistema: string, usuario: string, ferramenta: typeof FERRAMENTA | typeof FERRAMENTA_AJUSTE = FERRAMENTA) {
+type Anexo = { nome: string; tipo: 'imagem' | 'pdf'; media_type: string; dados: string }
+// arquivos de referência mandados no pedido (prints, imagens, PDF): vão junto com o texto
+function comAnexos(usuario: string, anexos: Anexo[]) {
+  if (!anexos.length) return usuario
+  return [
+    ...anexos.map((a) => a.tipo === 'pdf'
+      ? { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: a.dados } }
+      : { type: 'image', source: { type: 'base64', media_type: a.media_type, data: a.dados } }),
+    { type: 'text', text: `${usuario}\n\nOs arquivos acima foram enviados pela equipe como REFERÊNCIA (${anexos.map((a) => a.nome).join(', ')}): use como modelo de estilo, formato e ideia, adaptando para a marca. Não copie textos nem marcas de terceiros.` },
+  ]
+}
+
+async function chamarClaude(chave: string, modelo: string, sistema: string, usuario: string | unknown[], ferramenta: typeof FERRAMENTA | typeof FERRAMENTA_AJUSTE = FERRAMENTA) {
   const r = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: { 'x-api-key': chave, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
@@ -188,7 +201,8 @@ async function executar(db: SupabaseClient, t: Trabalho) {
     ].filter((pd) => Number(pd.posts ?? 0) + Number(pd.reels ?? 0) + Number(pd.stories ?? 0) > 0)
     // stories são textos curtos e muitos: vão no modelo econômico (cerca de 20x mais barato); posts e reels no modelo escolhido
     const modeloDe = (pd: Record<string, unknown>) => (Number(pd.posts ?? 0) + Number(pd.reels ?? 0) === 0 && pa.stories_economico !== false ? 'claude-haiku-5-5' : modelo)
-    const respostas = await Promise.all(pedidos.map(async (pd) => { const { sistema, usuario } = pedidoMarketing(perfil, pd, ctx); const m = modeloDe(pd); return { ...(await chamarClaude(String(chave), m, sistema, usuario)), modelo: m } }))
+    const anexos = (Array.isArray(t.pedido.anexos) ? t.pedido.anexos : []) as Anexo[]
+    const respostas = await Promise.all(pedidos.map(async (pd) => { const { sistema, usuario } = pedidoMarketing(perfil, pd, ctx); const m = modeloDe(pd); return { ...(await chamarClaude(String(chave), m, sistema, comAnexos(usuario, anexos))), modelo: m } }))
     const entrega = { resumo: respostas.map((r) => r.entrega.resumo).filter(Boolean)[0] ?? null, pecas: respostas.flatMap((r) => r.entrega.pecas ?? []) }
     const entrada = respostas.reduce((s, r) => s + r.entrada, 0), saida = respostas.reduce((s, r) => s + r.saida, 0)
     const custoTotal = Math.round(respostas.reduce((s, r) => s + custo(r.modelo, r.entrada, r.saida), 0) * 10000) / 10000
@@ -199,11 +213,14 @@ async function executar(db: SupabaseClient, t: Trabalho) {
     }))
     if (pecas.length) { const { error } = await db.from('agentes_pecas').insert(pecas); if (error) throw new Error(error.message) }
     await db.from('agentes_trabalhos').update({
+      // os arquivos já foram usados: fica só o nome, para não pesar o histórico
+      pedido: { ...t.pedido, anexos: anexos.map((a) => ({ nome: a.nome, tipo: a.tipo })) },
       status: 'pronto', resumo: entrega.resumo ?? null, modelo: [...new Set(respostas.map((r) => r.modelo))].join(' + '), tokens_entrada: entrada, tokens_saida: saida,
       custo_usd: custoTotal, terminado_em: new Date().toISOString(),
     }).eq('id', t.id)
   } catch (e) {
-    await db.from('agentes_trabalhos').update({ status: 'erro', erro: (e as Error).message, terminado_em: new Date().toISOString() }).eq('id', t.id)
+    const anexosLeves = (Array.isArray(t.pedido.anexos) ? t.pedido.anexos as Anexo[] : []).map((a) => ({ nome: a.nome, tipo: a.tipo }))
+    await db.from('agentes_trabalhos').update({ status: 'erro', erro: (e as Error).message, terminado_em: new Date().toISOString(), pedido: { ...t.pedido, anexos: anexosLeves } }).eq('id', t.id)
   }
 }
 

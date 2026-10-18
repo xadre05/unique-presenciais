@@ -1374,3 +1374,10 @@ a.sala-agente:hover { border-color: var(--ouro); transform: translateY(-2px); }
 .tarefas-grade { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; }
 .tarefa-agente { display: flex; align-items: center; gap: 12px; padding: 10px; border: 1px solid color-mix(in srgb, var(--cor-agente) 50%, transparent); border-radius: 12px; }
 .tarefa-agente > div:last-child { display: flex; flex-direction: column; gap: 8px; align-items: flex-start; }
+.anexos { display: flex; flex-direction: column; gap: 8px; margin: 10px 0; }
+.anexos-topo { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.anexos-lista { display: flex; flex-wrap: wrap; gap: 8px; }
+.anexo { display: inline-flex; align-items: center; gap: 8px; padding: 4px 6px 4px 4px; border: 1px solid var(--borda); border-radius: 9px; background: var(--painel-2); font-size: .82rem; max-width: 240px; }
+.anexo img { width: 36px; height: 36px; object-fit: cover; border-radius: 6px; }
+.anexo span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.anexo button { background: none; border: 0; color: var(--muted); font-size: 1.1rem; cursor: pointer; }

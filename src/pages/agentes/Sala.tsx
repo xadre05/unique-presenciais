@@ -28,6 +28,7 @@ export const BASE_MARCA: { rotulo: string; icone: string; ok: (p: PerfilMarketin
   { rotulo: 'Tom de voz', icone: 'whats', ok: (p) => !!p.tom },
   { rotulo: 'Cursos e ofertas', icone: 'livro', ok: (p) => !!p.o_que_vende },
   { rotulo: 'Público', icone: 'contatos', ok: (p) => !!p.publico },
+  { rotulo: 'Ofertas e materiais', icone: 'documento', ok: (p) => !!p.materiais },
   { rotulo: 'Regras e limites', icone: 'alerta', ok: (p) => !!p.evitar && !!p.conselho },
 ]
 

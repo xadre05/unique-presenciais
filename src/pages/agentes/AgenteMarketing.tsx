@@ -10,6 +10,7 @@ import { Retrato } from './Retrato'
 import type { PerfilMarketing } from './MarketingPerfil'
 import { SemanaQuadro } from './SemanaQuadro'
 import { ConfigAgente } from './ConfigAgente'
+import { AnexosPedido, type Anexo } from './AnexosPedido'
 import { proximaSegunda, usd, type Peca, type Trabalho } from './comum'
 
 const EMPRESA = EMPRESA_UNIQUE
@@ -24,6 +25,7 @@ export default function AgenteMarketing() {
   const atual = (trabalhos.dados ?? []).find((t) => t.id === escolhido) ?? trabalhos.dados?.[0] ?? null
   const pecas = useConsulta<Peca[]>(() => atual ? supabase.from('agentes_pecas').select('*').eq('trabalho_id', atual.id).order('dia').order('ordem') : Promise.resolve({ data: [], error: null }), [atual?.id, atual?.status])
   const [pedido, setPedido] = useState({ semana_inicio: proximaSegunda(), foco: '', posts: 3, reels: 2, stories: 7, stories_telas: 5 })
+  const [anexos, setAnexos] = useState<Anexo[]>([])
   const [erro, setErro] = useState<string | null>(null)
   const [enviando, setEnviando] = useState(false)
   const trabalhando = (trabalhos.dados ?? []).some(ocupado)
@@ -37,11 +39,11 @@ export default function AgenteMarketing() {
 
   const pedir = async () => {
     setErro(null); setEnviando(true)
-    const { data, error } = await supabase.from('agentes_trabalhos').insert({ empresa_id: EMPRESA, agente_id: 'marketing', tipo: 'semana', pedido: { ...pedido, foco: pedido.foco.trim() || null } }).select('id').single()
+    const { data, error } = await supabase.from('agentes_trabalhos').insert({ empresa_id: EMPRESA, agente_id: 'marketing', tipo: 'semana', pedido: { ...pedido, foco: pedido.foco.trim() || null, anexos } }).select('id').single()
     if (error) { setEnviando(false); return setErro(msgErro(error)) }
     const r = await supabase.functions.invoke('agentes', { body: { trabalho: data.id } })
     if (r.error) setErro('O agente não conseguiu começar. Tente de novo em instantes.')
-    setEscolhido(data.id); setEnviando(false); trabalhos.recarregar()
+    setEscolhido(data.id); setEnviando(false); setAnexos([]); trabalhos.recarregar()
   }
 
   const apagarErro = async () => {
@@ -86,6 +88,7 @@ export default function AgenteMarketing() {
           <Campo rotulo="Dias com stories" dica="7 = todos os dias"><InputNumero valor={pedido.stories} min={0} max={7} onChange={(v) => setPedido((p) => ({ ...p, stories: v ?? 0 }))} /></Campo>
           <Campo rotulo="Stories por dia" dica="Telas em cada dia"><InputNumero valor={pedido.stories_telas} min={2} max={15} onChange={(v) => setPedido((p) => ({ ...p, stories_telas: v ?? 5 }))} /></Campo>
         </div>
+        <AnexosPedido anexos={anexos} aoMudar={setAnexos} />
         <Campo rotulo="Foco da semana (opcional)" dica="Ex.: Black Friday Limited Edition — últimas vagas do módulo de toxina"><textarea rows={2} value={pedido.foco} onChange={(e) => setPedido((p) => ({ ...p, foco: e.target.value }))} /></Campo>
         <Erro msg={erro} />
         <div className="modal-acoes"><button className="btn btn-ouro btn-grande" disabled={enviando || trabalhando} onClick={pedir}>{trabalhando ? 'O agente está trabalhando…' : enviando ? 'Enviando…' : 'Montar a semana'}</button></div>
