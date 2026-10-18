@@ -51,6 +51,15 @@ Fixadas pelo Alexandre em 18/10/2026. Qualquer mudança nas telas ou na função
 - Catálogo disponível: Instagram, YouTube, TikTok, Facebook, LinkedIn, Pinterest e Threads.
 - Uma rede nova (X, WhatsApp, e-mail…) precisa de formatos e de um guia de escrita próprios, por isso entra por desenvolvimento.
 
+## Telas do Planejamento (modelo do GPT, 18/10/2026)
+
+- Um painel só com o período e os filtros. Cada filtro tem o rótulo em cima.
+- Embaixo do painel fica o resumo ("12 peças no período · 19 – 31/10") e o "Limpar filtros".
+- **Quadro:** cada coluna tem a cor da etapa, a contagem, um "+" para criar e o estado vazio "Nenhuma peça".
+- **Calendário:** mostra uma semana por vez. No mês e no período há setas e "Semana 1 de 2".
+- **Cartão:** tem o logo do canal, o formato, o título, a data ou horário e a situação.
+- **Menu ⋯ do cartão:** abrir a peça, mover para outra etapa ou tirar do planejamento.
+
 ## Canais
 
 - **Primeira fase:** Instagram, YouTube e TikTok.
@@ -61,8 +70,14 @@ Formatos de cada canal:
 | Canal | Formatos |
 |---|---|
 | Instagram | Post, Carrossel, Reels, Stories |
-| YouTube | Vídeo (longo), Shorts |
-| TikTok | Vídeo curto, Carrossel de fotos |
+| YouTube | Vídeo longo, Shorts, Post da comunidade |
+| TikTok | Vídeo, Carrossel de fotos, Stories |
+| Facebook | Post, Carrossel, Reels, Stories |
+| LinkedIn | Post, Carrossel (PDF), Vídeo |
+| Pinterest | Pin, Pin carrossel, Pin em vídeo |
+| Threads | Post de texto, Post com fotos |
+
+Fora por enquanto: lives (não são peça escrita) e artigos ou newsletter do LinkedIn (precisam de um formato novo).
 
 ## Uma ideia em vários canais
 
