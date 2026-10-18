@@ -1916,3 +1916,13 @@ a.sala-agente:hover { border-color: var(--ouro); transform: translateY(-2px); }
 .mk-dia.fora { opacity: .35; }
 .mk-calendario.um-dia { grid-template-columns: minmax(0, 760px); }
 .mk-criar-dia { min-height: 90px; flex: 0 0 auto; }
+/* ajustes de largura (telas de notebook) */
+.mk-pf-periodo .mk-navega { flex: 1 1 280px; }
+.mk-pf-periodo .mk-visoes button { padding: 8px 12px; }
+.mk-hoje { min-width: 80px; }
+.mk-pf-filtros { grid-template-columns: repeat(5, minmax(110px, 1fr)) minmax(180px, 1.3fr); }
+.mk-quadro { grid-template-columns: repeat(5, minmax(172px, 1fr)); gap: 10px; }
+.mk-coluna header { padding: 12px 10px; gap: 6px; }
+.mk-coluna header b { white-space: nowrap; font-size: 1rem; }
+.mk-coluna-corpo { padding: 0 8px 10px; }
+.mk-coluna-vazia { justify-content: flex-start; padding-top: 70px; }

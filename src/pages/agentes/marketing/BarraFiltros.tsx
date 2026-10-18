@@ -88,7 +88,7 @@ function Canais({ f, mudar }: Pick<PropsFiltros, 'f' | 'mudar'>) {
   return (
     <div className="mk-pf-campo"><span>Canais</span>
       <details ref={caixa} className="mk-multi select-icone">
-        <summary>{todos ? 'Todos os canais' : <span className="mk-logos">{f.canais.map((c) => <LogoRede key={c} rede={c} />)}{f.canais.length === 1 ? REDES[f.canais[0]].nome : `${f.canais.length} canais`}</span>}</summary>
+        <summary>{todos ? 'Todos' : <span className="mk-logos">{f.canais.map((c) => <LogoRede key={c} rede={c} />)}{f.canais.length === 1 ? REDES[f.canais[0]].nome : `${f.canais.length} canais`}</span>}</summary>
         <div className="mk-multi-lista">
           <label><input type="checkbox" checked={todos} onChange={() => definir([])} /> Todos os canais</label>
           {ativas.map((r) => <label key={r}><input type="checkbox" checked={todos || f.canais.includes(r)} onChange={() => alternar(r)} /><LogoRede rede={r} /> {REDES[r].nome}</label>)}
@@ -106,7 +106,7 @@ function Formatos({ f, mudar }: Pick<PropsFiltros, 'f' | 'mudar'>) {
   const rotulo = (k: string, onde: Rede[]) => (canais.length === 1 ? nomeFormato(k, canais[0]) : `${nomeGenerico(k)} · ${onde.map((r) => REDES[r].nome).join(', ')}`)
   return (
     <label className="mk-pf-campo"><span>Formatos</span><span className="select-icone"><select value={f.formato} onChange={(e) => mudar({ formato: e.target.value })}>
-      <option value="">Todos os formatos</option>{opcoes.map((o) => <option key={o.k} value={o.k}>{rotulo(o.k, o.onde)}</option>)}
+      <option value="">Todos</option>{opcoes.map((o) => <option key={o.k} value={o.k}>{rotulo(o.k, o.onde)}</option>)}
     </select></span></label>
   )
 }
@@ -118,15 +118,15 @@ export function PainelFiltros({ tela, mudarTela, comTodos, ...pf }: PropsFiltros
       <LinhaPeriodo {...tela} mudar={mudarTela} comTodos={comTodos} />
       <div className="mk-pf-filtros">
         <label className="mk-pf-campo"><span>Campanhas</span><span className="select-icone"><select value={f.campanha} onChange={(e) => (e.target.value === '__nova' ? aoCriarCampanha?.() : mudar({ campanha: e.target.value }))}>
-          <option value="">Todas as campanhas</option>{campanhas.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}{aoCriarCampanha && <option value="__nova">+ Nova campanha…</option>}
+          <option value="">Todas</option>{campanhas.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}{aoCriarCampanha && <option value="__nova">+ Nova campanha…</option>}
         </select></span></label>
         <label className="mk-pf-campo"><span>Planejamentos</span><span className="select-icone"><select value={f.plano} onChange={(e) => mudar({ plano: e.target.value })}>
-          <option value="">Todos os planejamentos</option><option value="avulsa">Peças avulsas</option>{planos.map((p) => <option key={p.id} value={p.id}>{p.nome}</option>)}
+          <option value="">Todos</option><option value="avulsa">Peças avulsas</option>{planos.map((p) => <option key={p.id} value={p.id}>{p.nome}</option>)}
         </select></span></label>
         <Canais f={f} mudar={mudar} />
         <Formatos f={f} mudar={mudar} />
         <label className="mk-pf-campo"><span>Situações</span><span className="select-icone"><select value={f.situacao} onChange={(e) => mudar({ situacao: e.target.value })}>
-          <option value="">Todas as situações</option>{ETAPAS.map((e) => <option key={e.id} value={e.id}>{e.nome}</option>)}
+          <option value="">Todas</option>{ETAPAS.map((e) => <option key={e.id} value={e.id}>{e.nome}</option>)}
         </select></span></label>
         <label className="select-icone mk-busca"><Icone nome="busca" /><input value={f.busca} onChange={(e) => mudar({ busca: e.target.value })} placeholder="Buscar peça…" /></label>
       </div>
