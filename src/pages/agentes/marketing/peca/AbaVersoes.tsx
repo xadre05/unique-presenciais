@@ -6,11 +6,11 @@ import { configDe } from './editor'
 import { diferencas, type Grupo } from './diferencas'
 import type { Versao } from './modelo'
 
-export const ORIGEM: Record<Versao['origem'], string> = { ia: 'Gerada pela IA', ajuste_ia: 'Ajuste com IA', manual: 'Editada pela equipe', restaurada: 'Restaurada', atual: 'Versão atual' }
+export const ORIGEM: Record<Versao['origem'], string> = { ia: 'Gerada pela IA', ajuste_ia: 'Ajuste com IA', manual: 'Editada pela equipe', restaurada: 'Restaurada', atual: 'Antes do histórico' }
 export const seloDe = (v: Versao) => (v.aprovada ? 'Texto aprovado' : v.n === 1 && v.origem === 'ia' ? 'Rascunho inicial' : ORIGEM[v.origem])
 
 export function quando(iso: string | null) {
-  if (!iso) return 'Antes do histórico'
+  if (!iso) return 'Data não registrada'
   const d = new Date(iso), hoje = new Date()
   const hora = d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
   const dias = Math.round((new Date(hoje.toDateString()).getTime() - new Date(d.toDateString()).getTime()) / 86400000)

@@ -2271,3 +2271,20 @@ a.sala-agente:hover { border-color: var(--ouro); transform: translateY(-2px); }
   .pp-duas, .pp-dif-par, .pp-dif-cab { grid-template-columns: 1fr; }
   .pp-rodape-dir { align-items: stretch; }
 }
+/* detalhe da peça: ajustes para telas de notebook */
+.pp-segmento button { white-space: nowrap; }
+.pp-previa-quadro { max-width: 320px; margin-inline: auto; }
+.pp-direcao { grid-template-columns: minmax(0, 1fr) 270px; }
+@media (max-width: 1400px) {
+  .pp-direcao { grid-template-columns: 1fr; }
+  .pp-previa { position: static; }
+  .pp-itens { grid-template-columns: 250px minmax(0, 1fr); }
+  .pp-versoes { grid-template-columns: 250px minmax(0, 1fr); }
+}
+.pp-subabas { scrollbar-width: none; }
+.pp-subabas::-webkit-scrollbar { display: none; }
+@media (max-width: 1400px) {
+  .pp-versoes { grid-template-columns: 1fr; }
+  .pp-hist ol { flex-direction: row; overflow-x: auto; max-height: none; padding-bottom: 4px; }
+  .pp-hist ol li { flex: 0 0 240px; }
+}

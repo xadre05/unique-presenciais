@@ -33,8 +33,15 @@ export function separarItem(s: string, cfg: ConfigItem, orientacao = ''): Item {
   if (!cfg.texto) return { titulo: s, texto: '', orientacao }
   const quebra = s.indexOf('\n')
   if (quebra >= 0) return { titulo: s.slice(0, quebra).trim(), texto: s.slice(quebra + 1).trim(), orientacao }
-  return s.length <= (cfg.maxTitulo ?? 90) ? { titulo: s, texto: '', orientacao } : { titulo: '', texto: s, orientacao }
+  // texto antigo numa linha só: tira o "Lâmina 1 (capa):" do começo e usa a primeira frase como título
+  const limpo = s.replace(PREFIXO_ITEM, '').trim()
+  const max = cfg.maxTitulo ?? 90
+  if (limpo.length <= max) return { titulo: limpo.replace(/[.;]$/, ''), texto: '', orientacao }
+  const fim = limpo.search(/[.!?:]\s/)
+  if (fim > 0 && fim < max) return { titulo: limpo.slice(0, limpo[fim] === '.' || limpo[fim] === ':' ? fim : fim + 1).trim(), texto: limpo.slice(fim + 1).trim(), orientacao }
+  return { titulo: '', texto: limpo, orientacao }
 }
+const PREFIXO_ITEM = /^(l[âa]mina|tela|cena|p[áa]gina|bloco|se[çc][ãa]o)\s*\d+\s*(\([^)]*\))?\s*[:\-–—.]\s*/i
 export function juntarItem(i: Item, cfg: ConfigItem) {
   if (!cfg.titulo) return i.texto
   if (!cfg.texto) return i.titulo
@@ -94,7 +101,7 @@ export function versoesDe(p: { titulo: string; tipo: string; conteudo: Record<st
   const a = c.anterior as Record<string, unknown> | undefined
   if (a) lista.push({ n: 1, em: null, por: 'Agente de Marketing', origem: 'ia', nota: 'Versão antes do último ajuste', dados: fotoDe(p.titulo, p.tipo, a) })
   const atual = fotoDe(p.titulo, p.tipo, c)
-  if (atual.legenda || atual.roteiro?.length || atual.texto_arte) lista.push({ n: lista.length + 1, em: null, por: 'Agente de Marketing', origem: 'atual', nota: 'Versão atual', dados: atual })
+  if (atual.legenda || atual.roteiro?.length || atual.texto_arte) lista.push({ n: lista.length + 1, em: null, por: 'Agente de Marketing', origem: 'atual', nota: 'Rascunho do agente', dados: atual })
   return lista
 }
 
