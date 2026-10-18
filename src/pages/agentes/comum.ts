@@ -46,7 +46,10 @@ export const visualDe = (id: string) => CATALOGO.find((a) => a.id === id) ?? { i
 export const VISUAL = Object.fromEntries(CATALOGO.map((a) => [a.id, a]))
 
 export const TIPO_PECA: Record<string, string> = { post: 'Post', carrossel: 'Carrossel', reels: 'Reels', stories: 'Stories' }
-export const usd = (v: number | null | undefined) => `US$ ${(Number(v ?? 0)).toFixed(Number(v ?? 0) < 1 ? 3 : 2)}`
+export const usd = (v: number | null | undefined) => {
+  const n = Number(v ?? 0)
+  return `US$ ${n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: n > 0 && n < 0.1 ? 3 : 2 })}`
+}
 
 // texto pronto para copiar de uma peça
 export function textoDaPeca(p: Peca) {

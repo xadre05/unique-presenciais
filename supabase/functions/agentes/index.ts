@@ -79,7 +79,12 @@ function pedidoMarketing(perfil: Record<string, string>, pedido: Record<string, 
   const inicio = String(pedido.semana_inicio)
   const fim = new Date(new Date(inicio + 'T12:00:00Z').getTime() + 6 * 86400000).toISOString().slice(0, 10)
   const dias = Number(pedido.stories ?? 3), telas = Number(pedido.stories_telas ?? 5)
-  const qtd = `${pedido.posts ?? 3} post(s) ou carrossel(is), ${pedido.reels ?? 2} reels e stories em ${dias} dia(s) da semana${dias >= 7 ? ' (todos os dias)' : ''}, cada dia com uma sequência de ${telas} telas (o roteiro do stories tem exatamente ${telas} itens, um por tela)`
+  const partes = [
+    Number(pedido.posts ?? 3) > 0 && `${pedido.posts ?? 3} post(s) ou carrossel(is)`,
+    Number(pedido.reels ?? 2) > 0 && `${pedido.reels ?? 2} reels`,
+    dias > 0 && `stories em ${dias} dia(s) da semana${dias >= 7 ? ' (todos os dias)' : ''}, cada dia com uma sequência de ${telas} telas (o roteiro de cada stories tem exatamente ${telas} itens, um por tela)`,
+  ].filter(Boolean)
+  const qtd = partes.join(' e ')
   const sistema = [
     'Você é o Agente de Marketing de uma empresa brasileira. Escreve em português do Brasil, pronto para colar no Instagram.',
     'Você monta a semana de conteúdo; a equipe aprova antes de publicar. Seja concreto: ganchos fortes nos 3 primeiros segundos dos reels, legendas com quebra de linha, chamadas para ação claras.',
@@ -97,7 +102,7 @@ function pedidoMarketing(perfil: Record<string, string>, pedido: Record<string, 
     `Monte a semana de ${inicio} a ${fim}: ${qtd}. Espalhe pelos dias (não precisa ter peça todo dia).`,
     pedido.foco ? `Foco da semana pedido pela equipe: ${pedido.foco}` : 'Foco livre: equilibre atrair, educar e vender.',
     ctx ? `Informações atuais do sistema:\n${ctx}` : '',
-    'Entregue usando a ferramenta entregar_semana.',
+    'Entregue OBRIGATORIAMENTE chamando a ferramenta entregar_semana, com todas as peças de uma vez. Não escreva nada fora da ferramenta.',
   ].filter(Boolean).join('\n\n')
   return { sistema, usuario }
 }
@@ -107,9 +112,10 @@ async function chamarClaude(chave: string, modelo: string, sistema: string, usua
     method: 'POST',
     headers: { 'x-api-key': chave, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
     body: JSON.stringify({
-      model: modelo, max_tokens: 16000, system: sistema,
+      model: modelo, max_tokens: 32000, system: sistema,
       messages: [{ role: 'user', content: usuario }],
-      tools: [ferramenta], tool_choice: { type: 'tool', name: ferramenta.name },
+      // os modelos 5.5 não aceitam forçar a ferramenta: fica "auto" e o pedido manda usá-la
+      tools: [ferramenta], tool_choice: { type: 'auto' },
     }),
   })
   const corpo = await r.json().catch(() => ({}))
@@ -121,8 +127,15 @@ async function chamarClaude(chave: string, modelo: string, sistema: string, usua
   }
   const uso = corpo.usage ?? {}
   const bloco = (corpo.content ?? []).find((b: { type: string }) => b.type === 'tool_use')
-  if (!bloco) throw new Error('O Claude não entregou a semana no formato esperado. Tente de novo.')
-  return { entrega: bloco.input as { resumo: string; pecas: Peca[] } & Peca, entrada: Number(uso.input_tokens ?? 0), saida: Number(uso.output_tokens ?? 0) }
+  let entrega: unknown = bloco?.input
+  if (!entrega) {
+    // sem a ferramenta: tenta ler o JSON que veio no texto
+    const texto = (corpo.content ?? []).filter((b: { type: string }) => b.type === 'text').map((b: { text: string }) => b.text).join('\n')
+    const ini = texto.indexOf('{'), fim = texto.lastIndexOf('}')
+    try { if (ini >= 0 && fim > ini) entrega = JSON.parse(texto.slice(ini, fim + 1)) } catch { /* segue para o erro */ }
+  }
+  if (!entrega) throw new Error('O Claude não entregou no formato esperado. Tente de novo.')
+  return { entrega: entrega as { resumo: string; pecas: Peca[] } & Peca, entrada: Number(uso.input_tokens ?? 0), saida: Number(uso.output_tokens ?? 0) }
 }
 
 // ajuste de uma peça já feita: a equipe pede ("mais 3 telas", "mais curta", "fala da turma de março") e o agente reescreve
@@ -131,7 +144,7 @@ async function ajustar(db: SupabaseClient, t: Trabalho, perfil: Record<string, s
   if (!peca) throw new Error('Peça não encontrada.')
   const { sistema } = pedidoMarketing(perfil, { semana_inicio: peca.dia ?? new Date().toISOString().slice(0, 10) }, '')
   const atual = { tipo: peca.tipo, dia: peca.dia, titulo: peca.titulo, ...peca.conteudo }
-  const usuario = `Esta é uma peça que você preparou:\n${JSON.stringify(atual, null, 2)}\n\nPedido de ajuste da equipe: ${String(t.pedido.instrucao ?? '')}\n\nReescreva a peça inteira já com o ajuste (mantenha o que não foi pedido para mudar) e entregue com a ferramenta entregar_peca.`
+  const usuario = `Esta é uma peça que você preparou:\n${JSON.stringify(atual, null, 2)}\n\nPedido de ajuste da equipe: ${String(t.pedido.instrucao ?? '')}\n\nReescreva a peça inteira já com o ajuste (mantenha o que não foi pedido para mudar) e entregue OBRIGATORIAMENTE chamando a ferramenta entregar_peca.`
   const { entrega: p, entrada, saida } = await chamarClaude(chave, modelo, sistema, usuario, FERRAMENTA_AJUSTE)
   const { anterior: _a, ...semHistorico } = (peca.conteudo ?? {}) as Record<string, unknown>
   await db.from('agentes_pecas').update({
@@ -160,9 +173,17 @@ async function executar(db: SupabaseClient, t: Trabalho) {
     if (t.agente_id !== 'marketing' || !['semana', 'ajuste'].includes(t.tipo)) throw new Error('Trabalho que este agente ainda não sabe fazer.')
     if (t.tipo === 'ajuste') return await ajustar(db, t, (perfilAg.perfil ?? {}) as Record<string, string>, String(chave), modelo)
 
-    const { sistema, usuario } = pedidoMarketing((perfilAg.perfil ?? {}) as Record<string, string>, t.pedido, await contexto(db))
-    const { entrega, entrada, saida } = await chamarClaude(String(chave), modelo, sistema, usuario)
-    const pecas = (entrega.pecas ?? []).map((p, i) => ({
+    // posts/reels e stories em dois pedidos ao mesmo tempo: sai na metade do tempo
+    const perfil = (perfilAg.perfil ?? {}) as Record<string, string>
+    const ctx = await contexto(db)
+    const pedidos = [
+      { ...t.pedido, stories: 0 },
+      { ...t.pedido, posts: 0, reels: 0 },
+    ].filter((pd) => Number(pd.posts ?? 0) + Number(pd.reels ?? 0) + Number(pd.stories ?? 0) > 0)
+    const respostas = await Promise.all(pedidos.map((pd) => { const { sistema, usuario } = pedidoMarketing(perfil, pd, ctx); return chamarClaude(String(chave), modelo, sistema, usuario) }))
+    const entrega = { resumo: respostas.map((r) => r.entrega.resumo).filter(Boolean)[0] ?? null, pecas: respostas.flatMap((r) => r.entrega.pecas ?? []) }
+    const entrada = respostas.reduce((s, r) => s + r.entrada, 0), saida = respostas.reduce((s, r) => s + r.saida, 0)
+    const pecas = entrega.pecas.map((p, i) => ({
       trabalho_id: t.id, empresa_id: t.empresa_id, agente_id: t.agente_id, tipo: p.tipo, dia: /^\d{4}-\d{2}-\d{2}$/.test(p.dia) ? p.dia : null,
       titulo: p.titulo || `Peça ${i + 1}`, ordem: i,
       conteudo: { objetivo: p.objetivo, legenda: p.legenda, roteiro: p.roteiro, texto_arte: p.texto_arte, cta: p.cta, hashtags: p.hashtags, observacao: p.observacao },
