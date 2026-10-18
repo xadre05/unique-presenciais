@@ -1,106 +1,107 @@
-// Sala dos agentes: cada especialista com o retrato, o que está fazendo e o que espera de você;
-// embaixo, a fila de peças para aprovar e o que os agentes já sabem da marca.
-import { useEffect } from 'react'
+// Sala dos agentes: os especialistas (corpo inteiro), números do momento, abas Academy/Clinical,
+// e embaixo a fila de aprovações e a base da marca.
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import { useConsulta } from '../../lib/dados'
 import { Erro } from '../../components/ui'
 import { Icone } from '../../components/Icone'
 import { EMPRESA_UNIQUE } from '../crm/comum'
-import type { Estado } from './Personagem'
 import { Retrato } from './Retrato'
-import { TIPO_PECA, usd, visualDe, type AgenteSala, type Config } from './comum'
+import { useSala, type AgenteNaSala } from './useSala'
+import { TIPO_PECA, usd, visualDe } from './comum'
 import type { PerfilMarketing } from './MarketingPerfil'
 
-const EMPRESA = EMPRESA_UNIQUE
+const ABAS = [{ id: 'todos', nome: 'Todos' }, { id: 'academy', nome: 'Academy' }, { id: 'clinical', nome: 'Clinical' }] as const
 
-export function estadoDo(a: AgenteSala): Estado {
-  if (!a.disponivel) return 'em_breve'
-  if (a.status_agora === 'trabalhando' || a.status_agora === 'na_fila') return 'trabalhando'
-  if (a.status_agora === 'erro') return 'erro'
-  if (a.aguardando > 0) return 'esperando'
-  return 'parado'
-}
-
-function situacao(a: AgenteSala, estado: Estado, temChave: boolean): { txt: string; tom: string } {
-  if (estado === 'em_breve') return { txt: 'Planejado', tom: 'neutro' }
+function situacao(a: AgenteNaSala, temChave: boolean): { txt: string; tom: string } {
+  if (!a.disponivel) return { txt: 'Em breve', tom: 'neutro' }
   if (!temChave) return { txt: 'Configuração pendente', tom: 'alerta' }
   if (!a.ativo) return { txt: 'Desligado', tom: 'neutro' }
-  if (estado === 'trabalhando') return { txt: 'Trabalhando…', tom: 'ativo' }
-  if (estado === 'erro') return { txt: 'Deu erro: abra para ver', tom: 'erro' }
-  if (estado === 'esperando') return { txt: `${a.aguardando} para aprovar`, tom: 'alerta' }
-  return { txt: 'Pronto para trabalhar', tom: 'ok' }
+  if (a.estado === 'trabalhando') return { txt: 'Trabalhando…', tom: 'ativo' }
+  if (a.estado === 'erro') return { txt: 'Deu erro', tom: 'erro' }
+  if (a.estado === 'esperando') return { txt: `${a.dados?.aguardando} para aprovar`, tom: 'alerta' }
+  return { txt: 'Pronto', tom: 'ok' }
 }
 
-const MARCA: { rotulo: string; icone: string; ok: (p: PerfilMarketing) => boolean }[] = [
+export const BASE_MARCA: { rotulo: string; icone: string; ok: (p: PerfilMarketing) => boolean }[] = [
   { rotulo: 'Tom de voz', icone: 'whats', ok: (p) => !!p.tom },
   { rotulo: 'Cursos e ofertas', icone: 'livro', ok: (p) => !!p.o_que_vende },
   { rotulo: 'Público', icone: 'contatos', ok: (p) => !!p.publico },
   { rotulo: 'Regras e limites', icone: 'alerta', ok: (p) => !!p.evitar && !!p.conselho },
 ]
 
-export default function Sala() {
-  const sala = useConsulta<AgenteSala[]>(() => supabase.rpc('agentes_sala', { p_empresa: EMPRESA }))
-  const cfg = useConsulta<Config | null>(() => supabase.from('agentes_config').select('*').eq('empresa_id', EMPRESA).maybeSingle())
-  const fila = useConsulta<{ id: string; titulo: string; tipo: string; agente_id: string; dia: string | null }[]>(() => supabase.from('agentes_pecas').select('id,titulo,tipo,agente_id,dia').eq('empresa_id', EMPRESA).eq('status', 'rascunho').order('dia').limit(6))
-  const perfil = useConsulta<{ perfil: PerfilMarketing } | null>(() => supabase.from('agentes_empresa').select('perfil').eq('empresa_id', EMPRESA).eq('agente_id', 'marketing').maybeSingle())
-  const algumTrabalhando = (sala.dados ?? []).some((a) => estadoDo(a) === 'trabalhando')
-  useEffect(() => {
-    if (!algumTrabalhando) return
-    const t = setInterval(() => { sala.recarregar(); fila.recarregar() }, 5000)
-    return () => clearInterval(t)
-  }, [algumTrabalhando]) // eslint-disable-line react-hooks/exhaustive-deps
+function CartaoAgente({ a, temChave }: { a: AgenteNaSala; temChave: boolean }) {
+  const st = situacao(a, temChave)
+  const pronto = a.disponivel && temChave
+  const destino = a.disponivel && !temChave ? '/agentes/central' : `/agentes/${a.id}`
+  return (
+    <Link to={destino} className={`sala-card est-${a.estado}`} style={{ ['--cor-agente' as string]: a.cor }}>
+      <div className="sala-card-foto"><Retrato agente={a.id} estado={a.estado} alto={250} /></div>
+      <div className="sala-card-info">
+        <span className="sala-card-icone"><Icone nome={a.icone} tam={24} /></span>
+        <b className="sala-card-nome">{a.nome}</b>
+        <span className="sala-card-papel">{a.papel}.</span>
+        <span className="sala-card-linha" />
+        <span className={`sala-pilula tom-${st.tom}`}>{st.txt}</span>
+        <span className={`sala-card-botao${a.disponivel && !temChave ? ' cheio' : ''}`}>{a.disponivel && !temChave ? 'Configurar' : pronto ? 'Abrir' : 'Ver detalhes'}</span>
+      </div>
+    </Link>
+  )
+}
 
-  const temChave = !!cfg.dados?.chave_em
-  const custoMes = (sala.dados ?? []).reduce((s, a) => s + Number(a.custo_mes_usd ?? 0), 0)
+export default function Sala() {
+  const { agentes, cfg, erro } = useSala()
+  const [aba, setAba] = useState<(typeof ABAS)[number]['id']>('todos')
+  const fila = useConsulta<{ id: string; titulo: string; tipo: string; agente_id: string }[]>(() => supabase.from('agentes_pecas').select('id,titulo,tipo,agente_id').eq('empresa_id', EMPRESA_UNIQUE).eq('status', 'rascunho').order('dia').limit(5))
+  const perfil = useConsulta<{ perfil: PerfilMarketing } | null>(() => supabase.from('agentes_empresa').select('perfil').eq('empresa_id', EMPRESA_UNIQUE).eq('agente_id', 'marketing').maybeSingle())
+
+  const temChave = !!cfg?.chave_em
+  const visiveis = agentes.filter((a) => aba === 'todos' || a.escopo === aba || a.escopo === 'ambos')
+  const ativos = agentes.filter((a) => a.disponivel && a.ativo).length
+  const emAprovacao = agentes.reduce((s, a) => s + (a.dados?.aguardando ?? 0), 0)
+  const emExecucao = agentes.filter((a) => a.estado === 'trabalhando').length
+  const consumo = agentes.reduce((s, a) => s + Number(a.dados?.custo_mes_usd ?? 0), 0)
   const p = perfil.dados?.perfil ?? {}
+
   return (
     <div className="pagina larga sala">
       <header className="sala-topo">
-        <div><h1>Sala dos agentes</h1><p className="muted">Especialistas de IA conectados à identidade da Unique. Eles preparam; você aprova.</p></div>
-        <div className="sala-consumo">
-          <Icone nome="moedas" tam={22} />
-          <div><span className="muted pequeno">Consumo do mês</span><b>{usd(custoMes)}</b></div>
-          <Link to="/agentes/central" className="btn btn-contorno btn-mini">{cfg.dados?.limite_mes_usd != null ? `Limite ${usd(cfg.dados.limite_mes_usd)}` : 'Definir limite'}</Link>
-        </div>
+        <div><h1>Sala dos agentes</h1><p>Sua equipe de inteligência, com a identidade da Unique.</p></div>
+        <Link to="/agentes/marca" className="btn btn-contorno-ouro"><Icone nome="livro" /> Central da marca</Link>
       </header>
-      {cfg.dados && !temChave && (
-        <div className="sala-aviso"><Icone nome="alerta" tam={18} /><span>Cadastre a chave do Claude para ativar os agentes.</span><Link to="/agentes/central" className="btn btn-ouro btn-mini">Configurar</Link></div>
-      )}
-      <Erro msg={sala.erro} />
 
-      <div className="sala-grade">
-        {(sala.dados ?? []).map((a) => {
-          const estado = estadoDo(a)
-          const v = visualDe(a.agente_id)
-          const st = situacao(a, estado, temChave)
-          const destino = a.disponivel && !temChave ? '/agentes/central' : `/agentes/${a.agente_id}`
-          return (
-            <Link key={a.agente_id} to={destino} className={`sala-card est-${estado}`} style={{ ['--cor-agente' as string]: v.cor }}>
-              <div className="sala-card-foto"><Retrato agente={a.agente_id} estado={estado} tam={230} /></div>
-              <span className="sala-card-icone"><Icone nome={v.icone} tam={22} /></span>
-              <b className="sala-card-nome">{a.nome.replace('Agente de ', '')}</b>
-              <span className="sala-card-papel">{a.papel}</span>
-              <span className={`sala-pilula tom-${st.tom}`}>{st.txt}</span>
-              <span className="sala-card-botao">{a.disponivel ? (temChave ? 'Abrir agente' : 'Configurar agente') : 'Ver agente'} →</span>
-            </Link>
-          )
-        })}
+      <div className="sala-kpis">
+        <div><Icone nome="usuario" tam={22} /><span>Agentes ativos<b>{ativos}</b></span></div>
+        <div><Icone nome="documento" tam={22} /><span>Em aprovação<b>{emAprovacao}</b></span></div>
+        <div><Icone nome="relogio" tam={22} /><span>Em execução<b>{emExecucao}</b></span></div>
+        <div><Icone nome="grafico" tam={22} /><span>Consumo do mês<b>{usd(consumo)}</b></span><Link to="/agentes/central" className="link pequeno">{cfg?.limite_mes_usd != null ? `Limite ${usd(cfg.limite_mes_usd)}` : 'Definir limite'} ›</Link></div>
       </div>
+
+      {cfg && !temChave && (
+        <div className="sala-aviso"><Icone nome="alerta" tam={20} /><span>Configure a IA para ativar seu primeiro agente.</span><Link to="/agentes/central" className="btn btn-ouro btn-mini">Configurar</Link></div>
+      )}
+      <Erro msg={erro} />
+
+      <div className="sala-abas">{ABAS.map((x) => (
+        <button key={x.id} className={aba === x.id ? 'ativa' : ''} onClick={() => setAba(x.id)}>{x.nome}{x.id === 'todos' && <span>{agentes.length}</span>}</button>
+      ))}</div>
+
+      <div className="sala-grade">{visiveis.map((a) => <CartaoAgente key={a.id} a={a} temChave={temChave} />)}</div>
 
       <div className="sala-baixo">
         <section className="bloco">
-          <div className="bloco-topo"><h2><Icone nome="documento" className="ouro" /> Fila de aprovações</h2><Link to="/agentes/marketing" className="link pequeno">Ver tudo →</Link></div>
+          <div className="bloco-topo"><h2><Icone nome="documento" className="ouro" /> Fila de aprovações</h2><Link to="/agentes/historico" className="link pequeno">Ver histórico ›</Link></div>
           {(fila.dados ?? []).length === 0
-            ? <div className="sala-fila-vazia muted">Os rascunhos dos agentes aparecem aqui para sua revisão.</div>
+            ? <div className="sala-fila-vazia muted"><Icone nome="documento" tam={30} /><span>Os rascunhos aparecerão aqui para sua revisão.<br />Quando um agente gerar conteúdo, ele aparecerá aqui.</span></div>
             : <ul className="sala-fila">{(fila.dados ?? []).map((f) => (
-                <li key={f.id}><Link to={`/agentes/${f.agente_id}`}><span className="sala-fila-tipo" style={{ ['--cor-agente' as string]: visualDe(f.agente_id).cor }}>{TIPO_PECA[f.tipo] ?? f.tipo}</span>{f.titulo}</Link></li>
+                <li key={f.id}><Link to="/agentes/aprovacoes"><span className="sala-fila-tipo" style={{ ['--cor-agente' as string]: visualDe(f.agente_id).cor }}>{TIPO_PECA[f.tipo] ?? f.tipo}</span>{f.titulo}</Link></li>
               ))}</ul>}
         </section>
         <section className="bloco">
-          <div className="bloco-topo"><h2><Icone nome="livro" className="ouro" /> O que os agentes sabem da marca</h2></div>
-          <ul className="sala-marca">{MARCA.map((m) => (
-            <li key={m.rotulo}><Link to="/agentes/marketing#perfil"><Icone nome={m.icone} tam={16} /><span>{m.rotulo}</span><span className={`sala-pilula tom-${m.ok(p) ? 'ok' : 'alerta'}`}>{m.ok(p) ? 'Preenchido' : 'Pendente'}</span></Link></li>
+          <div className="bloco-topo"><h2><Icone nome="livro" className="ouro" /> Base da marca</h2><Link to="/agentes/marca" className="link pequeno">Completar base ›</Link></div>
+          <ul className="sala-marca">{BASE_MARCA.map((m) => (
+            <li key={m.rotulo}><Link to="/agentes/marca"><Icone nome={m.icone} tam={16} /><span>{m.rotulo}</span><span className={`sala-ponto ${m.ok(p) ? 'ok' : 'pendente'}`}>{m.ok(p) ? 'Preenchido' : 'Pendente'}</span></Link></li>
           ))}</ul>
         </section>
       </div>

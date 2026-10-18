@@ -10,6 +10,9 @@ import Sala from './Sala'
 import AgenteMarketing from './AgenteMarketing'
 import Central from './Central'
 import AgentePlanejado from './AgentePlanejado'
+import Aprovacoes from './Aprovacoes'
+import Historico from './Historico'
+import CentralMarca from './CentralMarca'
 
 export default function AreaAgentes() {
   const { perfil, isAdmin } = useAuth()
@@ -31,12 +34,11 @@ export default function AreaAgentes() {
         <Marca sub="Agentes" />
         <TrocaArea ativa="agentes" />
         <nav>
-          <NavLink to="/agentes" end><Icone nome="contatos" /> Sala dos agentes</NavLink>
-          <NavLink to="/agentes/marketing"><Icone nome="grafico" /> Marketing</NavLink>
-          <NavLink to="/agentes/atendimento"><Icone nome="whats" /> Atendimento</NavLink>
-          <NavLink to="/agentes/vendas"><Icone nome="dinheiro" /> Vendas</NavLink>
-          <NavLink to="/agentes/trafego"><Icone nome="busca" /> Tráfego</NavLink>
-          <NavLink to="/agentes/central" className="nav-separado"><Icone nome="equipe" /> Central de agentes</NavLink>
+          <NavLink to="/agentes" end><Icone nome="equipe" /> Sala dos agentes</NavLink>
+          <NavLink to="/agentes/aprovacoes"><Icone nome="documento" /> Aprovações</NavLink>
+          <NavLink to="/agentes/historico"><Icone nome="historico" /> Histórico</NavLink>
+          <NavLink to="/agentes/marca"><Icone nome="livro" /> Central da marca</NavLink>
+          <NavLink to="/agentes/central"><Icone nome="atualizar" /> Configurações</NavLink>
         </nav>
         <div className="lateral-rodape">
           <div className="avatar"><Icone nome="usuario" tam={20} /></div>
@@ -49,8 +51,8 @@ export default function AreaAgentes() {
       </aside>
       <nav className="barra-inferior">
         <NavLink to="/agentes" end><Icone nome="contatos" /><span>Sala</span></NavLink>
-        <NavLink to="/agentes/marketing"><Icone nome="grafico" /><span>Marketing</span></NavLink>
-        <NavLink to="/agentes/central"><Icone nome="equipe" /><span>Central</span></NavLink>
+        <NavLink to="/agentes/aprovacoes"><Icone nome="documento" /><span>Aprovar</span></NavLink>
+        <NavLink to="/agentes/marca"><Icone nome="livro" /><span>Marca</span></NavLink>
         <NavLink to="/" end><Icone nome="painel" /><span>Comercial</span></NavLink>
       </nav>
       <main className="conteudo">
@@ -58,6 +60,9 @@ export default function AreaAgentes() {
           <Route index element={<Sala />} />
           <Route path="marketing" element={<AgenteMarketing />} />
           <Route path="central" element={<Central />} />
+          <Route path="aprovacoes" element={<Aprovacoes />} />
+          <Route path="historico" element={<Historico />} />
+          <Route path="marca" element={<CentralMarca />} />
           <Route path=":id" element={<AgentePlanejado />} />
           <Route path="*" element={<Navigate to="/agentes" replace />} />
         </Routes>

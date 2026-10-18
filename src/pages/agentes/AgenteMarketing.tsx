@@ -57,7 +57,7 @@ export default function AgenteMarketing() {
     <div className="pagina larga">
       <div className="migalha"><Link to="/agentes" className="link">← Sala dos agentes</Link></div>
       <header className="agente-topo">
-        <Retrato agente="marketing" estado={estado} tam={130} />
+        <Retrato agente="marketing" estado={estado} alto={210} />
         <div>
           <h1>Agente de Marketing</h1>
           <p className="muted">Monta a semana de conteúdo do Instagram com o que a Unique vende agora (turmas com vaga, campanha ativa). Nada é publicado sozinho.</p>
