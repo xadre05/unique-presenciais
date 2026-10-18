@@ -1,17 +1,16 @@
 // Barras do topo, iguais no Planejamento e na Produção: título da aba, período de visualização (a data fica
 // sempre no mesmo lugar, qualquer que seja o período) e filtros de peça na mesma ordem, com a busca à direita.
-import type { ReactNode } from 'react'
+import { useEffect, useRef, type ReactNode } from 'react'
 import { Icone } from '../../../components/Icone'
 import { hojeISO, segundaDe } from '../comum'
 import { ETAPAS } from './etapas'
-import { REDES, nomeFormato, useRedes, type Formato, type Rede } from './redes'
+import { FORMATOS, REDES, nomeFormato, nomeGenerico, useRedes, type Rede } from './redes'
 import { LogoRede } from './LogoRede'
 import { andar, filtrosPecasVazios, rotuloPeriodo, type FiltrosPecas, type Periodo } from './filtros'
 import type { Campanha } from './useMarketing'
 import type { Plano } from './planos'
 
 const maiuscula = (t: string) => t.charAt(0).toUpperCase() + t.slice(1)
-const FORMATOS: Formato[] = ['post', 'carrossel', 'reels', 'stories', 'video']
 
 export function CabecalhoAba({ titulo, sub, children }: { titulo: string; sub: string; children?: ReactNode }) {
   return (
@@ -59,16 +58,28 @@ export function BarraPeriodo({ periodo, data, ate, mudar, comTodos, nota }: Prop
 function Canais({ f, mudar }: Pick<PropsFiltros, 'f' | 'mudar'>) {
   const ativas = useRedes()
   const todos = !f.canais.length
+  const caixa = useRef<HTMLDetailsElement>(null)
+  // fecha ao clicar fora ou apertar Esc (o <details> sozinho fica aberto)
+  useEffect(() => {
+    const fora = (e: MouseEvent) => { if (caixa.current?.open && !caixa.current.contains(e.target as Node)) caixa.current.open = false }
+    const esc = (e: KeyboardEvent) => { if (e.key === 'Escape' && caixa.current) caixa.current.open = false }
+    document.addEventListener('mousedown', fora); document.addEventListener('keydown', esc)
+    return () => { document.removeEventListener('mousedown', fora); document.removeEventListener('keydown', esc) }
+  }, [])
+  const definir = (canais: Rede[]) => {
+    const vale = (canais.length ? canais : ativas).some((r) => REDES[r].formatos.includes(f.formato as never))
+    mudar({ canais, ...(f.formato && !vale ? { formato: '' } : {}) })
+  }
   const alternar = (r: Rede) => {
     const atual = todos ? [...ativas] : f.canais
     const novo = atual.includes(r) ? atual.filter((x) => x !== r) : [...atual, r]
-    mudar({ canais: novo.length === ativas.length ? [] : novo })
+    definir(novo.length === ativas.length ? [] : novo)
   }
   return (
-    <details className="mk-multi select-icone">
+    <details ref={caixa} className="mk-multi select-icone">
       <summary>{todos ? 'Canais' : <span className="mk-logos">{f.canais.map((c) => <LogoRede key={c} rede={c} />)}{f.canais.length === 1 ? REDES[f.canais[0]].nome : `${f.canais.length} canais`}</span>}</summary>
       <div className="mk-multi-lista">
-        <label><input type="checkbox" checked={todos} onChange={() => mudar({ canais: [] })} /> Todos os canais</label>
+        <label><input type="checkbox" checked={todos} onChange={() => definir([])} /> Todos os canais</label>
         {ativas.map((r) => <label key={r}><input type="checkbox" checked={todos || f.canais.includes(r)} onChange={() => alternar(r)} /><LogoRede rede={r} /> {REDES[r].nome}</label>)}
       </div>
     </details>
@@ -77,6 +88,19 @@ function Canais({ f, mudar }: Pick<PropsFiltros, 'f' | 'mudar'>) {
 
 type PropsFiltros = { f: FiltrosPecas; mudar: (c: Partial<FiltrosPecas>) => void; campanhas: Campanha[]; planos: Plano[]; aoCriarCampanha?: () => void }
 
+// formatos dos canais em foco: com um canal, o nome que ele usa (Reels, Shorts…); com vários, o nome geral e onde existe
+function Formatos({ f, mudar }: Pick<PropsFiltros, 'f' | 'mudar'>) {
+  const ativas = useRedes()
+  const canais = f.canais.length ? f.canais : ativas
+  const opcoes = FORMATOS.map((k) => ({ k, onde: canais.filter((r) => REDES[r].formatos.includes(k)) })).filter((o) => o.onde.length)
+  const rotulo = (k: string, onde: Rede[]) => (canais.length === 1 ? nomeFormato(k, canais[0]) : `${nomeGenerico(k)} · ${onde.map((r) => REDES[r].nome).join(', ')}`)
+  return (
+    <label className="select-icone"><select value={f.formato} onChange={(e) => mudar({ formato: e.target.value })}>
+      <option value="">Formatos</option>{opcoes.map((o) => <option key={o.k} value={o.k}>{rotulo(o.k, o.onde)}</option>)}
+    </select></label>
+  )
+}
+
 export function BarraFiltros({ f, mudar, campanhas, planos, aoCriarCampanha }: PropsFiltros) {
   const camp = campanhas.find((c) => c.id === f.campanha)
   const plano = f.plano === 'avulsa' ? 'Peças avulsas' : planos.find((p) => p.id === f.plano)?.nome
@@ -84,7 +108,7 @@ export function BarraFiltros({ f, mudar, campanhas, planos, aoCriarCampanha }: P
     camp && { txt: camp.nome, tirar: () => mudar({ campanha: '' }) },
     plano && { txt: plano, tirar: () => mudar({ plano: '' }) },
     f.canais.length > 0 && { txt: f.canais.map((c) => REDES[c].nome).join(', '), tirar: () => mudar({ canais: [] }) },
-    f.formato && { txt: nomeFormato(f.formato), tirar: () => mudar({ formato: '' }) },
+    f.formato && { txt: f.canais.length === 1 ? nomeFormato(f.formato, f.canais[0]) : nomeGenerico(f.formato), tirar: () => mudar({ formato: '' }) },
     f.situacao && { txt: ETAPAS.find((e) => e.id === f.situacao)?.nome ?? f.situacao, tirar: () => mudar({ situacao: '' }) },
     f.busca && { txt: `"${f.busca}"`, tirar: () => mudar({ busca: '' }) },
   ].filter(Boolean) as { txt: string; tirar: () => void }[]
@@ -97,7 +121,7 @@ export function BarraFiltros({ f, mudar, campanhas, planos, aoCriarCampanha }: P
         <option value="">Planejamentos</option><option value="avulsa">Peças avulsas</option>{planos.map((p) => <option key={p.id} value={p.id}>{p.nome}</option>)}
       </select></label>
       <Canais f={f} mudar={mudar} />
-      <label className="select-icone"><select value={f.formato} onChange={(e) => mudar({ formato: e.target.value })}><option value="">Formatos</option>{FORMATOS.map((k) => <option key={k} value={k}>{nomeFormato(k)}</option>)}</select></label>
+      <Formatos f={f} mudar={mudar} />
       <label className="select-icone"><select value={f.situacao} onChange={(e) => mudar({ situacao: e.target.value })}><option value="">Situações</option>{ETAPAS.map((e) => <option key={e.id} value={e.id}>{e.nome}</option>)}</select></label>
       <label className="select-icone mk-busca"><Icone nome="busca" /><input value={f.busca} onChange={(e) => mudar({ busca: e.target.value })} placeholder="Buscar peça…" /></label>
     </div>

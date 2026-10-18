@@ -10,11 +10,11 @@ export type Formato = 'post' | 'carrossel' | 'reels' | 'stories' | 'video'
 
 type InfoRede = { nome: string; cor: string; formatos: Formato[]; nomes?: Partial<Record<Formato, string>>; exemplo: string }
 export const REDES: Record<Rede, InfoRede> = {
-  instagram: { nome: 'Instagram', cor: '#e1306c', formatos: ['post', 'carrossel', 'reels', 'stories'], exemplo: '@suaempresa' },
+  instagram: { nome: 'Instagram', cor: '#e1306c', formatos: ['post', 'carrossel', 'reels', 'stories'], nomes: { post: 'Post', reels: 'Reels' }, exemplo: '@suaempresa' },
   youtube: { nome: 'YouTube', cor: '#ff3d3d', formatos: ['video', 'reels'], nomes: { video: 'Vídeo', reels: 'Shorts' }, exemplo: 'youtube.com/@suaempresa' },
   tiktok: { nome: 'TikTok', cor: '#25f4ee', formatos: ['reels', 'carrossel'], nomes: { reels: 'Vídeo curto', carrossel: 'Carrossel de fotos' }, exemplo: '@suaempresa' },
-  facebook: { nome: 'Facebook', cor: '#4f8fe6', formatos: ['post', 'reels', 'stories'], exemplo: 'facebook.com/suaempresa' },
-  linkedin: { nome: 'LinkedIn', cor: '#3b9bd9', formatos: ['post', 'carrossel', 'reels'], nomes: { reels: 'Vídeo curto', carrossel: 'Carrossel (PDF)' }, exemplo: 'linkedin.com/company/suaempresa' },
+  facebook: { nome: 'Facebook', cor: '#4f8fe6', formatos: ['post', 'reels', 'stories'], nomes: { post: 'Post', reels: 'Reels' }, exemplo: 'facebook.com/suaempresa' },
+  linkedin: { nome: 'LinkedIn', cor: '#3b9bd9', formatos: ['post', 'carrossel', 'reels'], nomes: { post: 'Post', reels: 'Vídeo curto', carrossel: 'Carrossel (PDF)' }, exemplo: 'linkedin.com/company/suaempresa' },
   pinterest: { nome: 'Pinterest', cor: '#e60023', formatos: ['post', 'carrossel', 'reels'], nomes: { post: 'Pin', carrossel: 'Pin carrossel', reels: 'Pin em vídeo' }, exemplo: 'pinterest.com/suaempresa' },
   threads: { nome: 'Threads', cor: '#d9d9d9', formatos: ['post', 'carrossel'], nomes: { post: 'Post de texto', carrossel: 'Post com fotos' }, exemplo: '@suaempresa' },
 }
@@ -33,7 +33,10 @@ export function redesAtivas(perfil: Record<string, unknown> | undefined): Rede[]
 export const RedesAtivas = createContext<Rede[]>(REDES_PADRAO)
 export const useRedes = () => useContext(RedesAtivas)
 
-const NOME_PADRAO: Record<Formato, string> = { post: 'Post', carrossel: 'Carrossel', reels: 'Reels', stories: 'Stories', video: 'Vídeo longo' }
+// nome do formato sem canal (filtros com vários canais): o jeito do formato, não o nome que cada rede dá a ele
+const NOME_PADRAO: Record<Formato, string> = { post: 'Imagem (post)', carrossel: 'Carrossel', reels: 'Vídeo curto vertical', stories: 'Stories', video: 'Vídeo longo horizontal' }
+export const FORMATOS: Formato[] = ['post', 'carrossel', 'reels', 'stories', 'video']
+export const nomeGenerico = (tipo: string) => NOME_PADRAO[tipo as Formato] ?? tipo
 
 // duração desejada para vídeos (regra 3)
 export const DURACOES: Partial<Record<Formato, string[]>> = {

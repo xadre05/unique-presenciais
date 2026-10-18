@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { Icone } from '../../components/Icone'
 import { ConfigAgente } from './ConfigAgente'
-import { usd, type Peca } from './comum'
+import type { Peca } from './comum'
 import { useMarketing, EMPRESA } from './marketing/useMarketing'
 import { Planejamento, type ModoPlano } from './marketing/Planejamento'
 import { Producao } from './marketing/Producao'
@@ -14,6 +14,7 @@ import { PaginaPlanejar } from './marketing/PaginaPlanejar'
 import { NovaCampanha } from './marketing/Campanhas'
 import { etapaDe } from './marketing/etapas'
 import { RedesAtivas, redesAtivas } from './marketing/redes'
+import { CabecalhoAba } from './marketing/BarraFiltros'
 import { aplicar, filtrosIniciais, filtrosProducaoIniciais, intervaloDe, type Filtros, type FiltrosProducao } from './marketing/filtros'
 import type { Plano } from './marketing/planos'
 
@@ -84,10 +85,9 @@ export default function AgenteMarketing() {
           trabalhos={trabalhos.dados ?? []} aoMudar={recarregar} campanhas={campanhas} planos={planos} f={fp} mudar={(c) => setFp((x) => ({ ...x, ...c }))} />
       )}
       {aba === 'config' && (
-        <section className="bloco">
-          <h2>Configurar o Agente de Marketing</h2>
-          {perfil.dados !== undefined && !perfil.carregando && <ConfigAgente empresaId={EMPRESA} agenteId="marketing" ativo={perfil.dados?.ativo ?? true} perfil={(perfil.dados?.perfil ?? {}) as Record<string, unknown>} aoSalvar={perfil.recarregar} />}
-          <p className="muted pequeno">Últimos trabalhos deste agente: {usd(custoMes)}. Tudo em <Link to="/agentes/historico" className="link">Histórico</Link>.</p>
+        <section className="mk-plano">
+          <CabecalhoAba titulo="Funcionamento e preferências" sub="Defina como este agente trabalha e revise o que ele deve lembrar." />
+          {perfil.dados !== undefined && !perfil.carregando && <ConfigAgente key={perfil.dados?.perfil ? 'ok' : 'novo'} empresaId={EMPRESA} agenteId="marketing" ativo={perfil.dados?.ativo ?? true} perfil={(perfil.dados?.perfil ?? {}) as Record<string, unknown>} aoSalvar={perfil.recarregar} custoMes={custoMes} />}
         </section>
       )}
 

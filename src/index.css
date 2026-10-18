@@ -1814,3 +1814,46 @@ a.sala-agente:hover { border-color: var(--ouro); transform: translateY(-2px); }
 @media (max-width: 720px) { .mk-rede-linha { grid-template-columns: 46px 1fr auto; } .mk-rede-linha input { grid-column: 1 / -1; } }
 
 .mk-rede-linha .interruptor { min-width: 118px; justify-content: center; }
+
+/* ===== Configurar agente (quadros) ===== */
+.mk-cfg { display: grid; gap: 14px; }
+.mk-cfg-grade { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.mk-cfg-quadro { display: flex; flex-direction: column; gap: 10px; padding: 18px 20px; }
+.mk-cfg-quadro hr { border: 0; border-top: 1px solid var(--borda); margin: 4px 0; width: 100%; }
+.mk-cfg-quadro label { display: flex; flex-direction: column; gap: 6px; font-size: .9rem; color: var(--texto); }
+.mk-cfg-quadro label.check { flex-direction: row; align-items: flex-start; gap: 10px; }
+.mk-cfg-quadro label.check small { display: block; margin-top: 2px; }
+.mk-cfg-quadro textarea { width: 100%; resize: vertical; }
+.mk-cfg-cab { display: flex; align-items: center; gap: 10px; color: var(--ouro); }
+.mk-cfg-cab h3 { margin: 0; font-size: 1.15rem; color: var(--texto); flex: 1; }
+.mk-cfg-acao { margin-left: auto; }
+.mk-cfg-status { margin: -6px 0 0; text-align: right; }
+.mk-cfg-duas { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.mk-cfg-link { display: inline-flex; align-items: center; gap: 6px; align-self: flex-start; }
+.mk-cfg-atalho { display: flex; align-items: flex-start; gap: 12px; color: var(--texto); text-decoration: none; padding: 4px 0; }
+.mk-cfg-atalho b { color: var(--ouro-forte); display: block; }
+.mk-cfg-atalho small { display: block; }
+.mk-cfg-atalho > svg { color: var(--ouro); flex-shrink: 0; }
+.mk-cfg-gasto { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; }
+.mk-cfg-gasto > span { display: flex; flex-direction: column; gap: 2px; }
+.mk-cfg-gasto b { font-size: 1.2rem; }
+.mk-cfg-gasto .link { display: inline-flex; align-items: center; gap: 6px; }
+.mk-cfg-vazio { display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center; padding: 8px 12px 4px; }
+.mk-cfg-vazio svg { color: var(--muted); }
+.mk-cfg-prefs { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; max-height: 260px; overflow: auto; }
+.mk-cfg-prefs li { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 10px; border: 1px solid var(--borda); border-radius: 10px; background: var(--painel-2); }
+.mk-cfg-prefs li small { display: block; font-size: .78rem; }
+.mk-cfg-nova { display: flex; gap: 10px; }
+.mk-cfg-nova input { flex: 1; min-width: 0; }
+.mk-cfg-rodape { display: flex; align-items: center; justify-content: flex-end; gap: 12px; padding-top: 14px; border-top: 1px solid var(--borda); }
+.mk-cfg-rodape > span:first-child { margin-right: auto; display: inline-flex; align-items: center; gap: 8px; }
+.mk-switch { display: inline-flex !important; flex-direction: row !important; align-items: center; gap: 10px; padding: 6px 10px 6px 12px; border: 1px solid var(--borda); border-radius: 10px; cursor: pointer; color: var(--muted); }
+.mk-switch input { position: absolute; opacity: 0; pointer-events: none; }
+.mk-switch i { width: 40px; height: 22px; border-radius: 99px; background: var(--painel-2); border: 1px solid var(--borda); position: relative; transition: background .15s; }
+.mk-switch i::after { content: ''; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%; background: var(--muted); transition: transform .15s, background .15s; }
+.mk-switch.ligado { color: var(--ok); }
+.mk-switch.ligado i { background: var(--ouro); border-color: var(--ouro); }
+.mk-switch.ligado i::after { transform: translateX(18px); background: #fff; }
+.mk-switch:focus-within { outline: 2px solid var(--ouro); outline-offset: 2px; }
+@media (max-width: 900px) { .mk-cfg-grade { grid-template-columns: 1fr; } }
+@media (max-width: 560px) { .mk-cfg-duas { grid-template-columns: 1fr; } .mk-cfg-rodape { flex-wrap: wrap; } .mk-cfg-nova { flex-direction: column; } }
