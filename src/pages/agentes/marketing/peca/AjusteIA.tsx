@@ -45,13 +45,14 @@ export function AjusteIA({ peca, rodando, ultimo, titulo, placeholder, alcances,
       )}
       <label className="pp-rotulo" htmlFor={`ajuste-${peca.id}`}>{titulo}</label>
       <textarea id={`ajuste-${peca.id}`} rows={2} value={texto} onChange={(e) => setTexto(e.target.value)} placeholder={placeholder}
-        onKeyDown={(e) => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) pedir() }} />
+        onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); pedir() } }} />
       <div className="pp-ajuste-linha">
         {alcances.length > 1 && (
           <label className="pp-ajuste-alcance"><span className="muted">Aplicar ajuste em:</span>
             <span className="select-icone"><select value={alcance} onChange={(e) => setAlcance(e.target.value)}>{alcances.map((a) => <option key={a.id} value={a.id}>{a.nome}</option>)}</select></span></label>
         )}
         <label className="pp-check"><input type="checkbox" checked={guardar} onChange={(e) => setGuardar(e.target.checked)} /> Sugerir como preferência do agente</label>
+        <span className="muted pequeno">Enter envia · Shift+Enter quebra a linha</span>
         <button className="btn btn-contorno-ouro" disabled={!texto.trim()} onClick={pedir}><Icone nome="floco" tam={16} /> Pedir ajuste à IA</button>
       </div>
       <Erro msg={erro} />
