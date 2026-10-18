@@ -51,7 +51,7 @@ export default function AgenteMarketing() {
     <div className="pagina larga mk">
       <div className="migalha"><Link to="/agentes" className="link">← Todos os agentes</Link></div>
       <header className="mk-topo">
-        <span className={`mk-avatar${ocupado ? ' trabalhando' : ''}`}><img src="/agentes/marketing-rosto.webp?v=2" alt="" /></span>
+        <span className={`mk-avatar${ocupado ? ' trabalhando' : ''}`}><img src="/agentes/marketing-rosto.webp?v=3" alt="" /></span>
         <div className="mk-topo-txt">
           <h1>Agente de Marketing</h1>
           <p className="muted">Conteúdo e campanhas para os seus canais. Nada é publicado sozinho.</p>

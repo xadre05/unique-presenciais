@@ -5,7 +5,8 @@ import { Icone } from '../../../components/Icone'
 import { dataLonga, type Peca } from '../comum'
 import { REDES, nomeFormato, redeDe } from './redes'
 import { LogoRede } from './LogoRede'
-import { COR_TIPO, ETAPA, ETAPAS, etapaDe, type Etapa } from './etapas'
+import { COR_TIPO, ETAPA, ETAPAS, etapaDe, nomeSituacao, tamanho, type Etapa } from './etapas'
+import { infoFormato } from './formatos'
 
 type Props = { peca: Peca; aoAbrir: () => void; modo: 'quadro' | 'calendario'; trabalhando?: boolean; aoMover?: (etapa: Etapa) => void; aoTirar?: () => void }
 
@@ -42,26 +43,26 @@ export function CartaoPeca({ peca, aoAbrir, modo, trabalhando, aoMover, aoTirar 
   const e = etapa === 'descartada' ? null : ETAPA[etapa]
   const rede = redeDe(peca)
   const livre = !!peca.conteudo.livre
-  // o logo já mostra o canal; o texto diz o formato (o nome do canal fica no título do cartão para leitores de tela)
-  const formato = livre ? 'Canal a definir' : nomeFormato(peca.tipo, rede)
+  const info = infoFormato(peca.tipo)
   return (
     <div
-      role="button" tabIndex={0} draggable className={`mk-cartao${trabalhando ? ' trabalhando' : ''}`} style={{ ['--cor-tipo' as string]: COR_TIPO[peca.tipo] ?? '#888' }}
+      role="button" tabIndex={0} draggable className={`mk-cartao${trabalhando ? ' trabalhando' : ''}`} style={{ ['--cor-tipo' as string]: COR_TIPO[peca.tipo] ?? '#888', ['--cor-rede' as string]: livre ? 'var(--muted)' : REDES[rede].cor }}
       onClick={aoAbrir} onKeyDown={(ev) => { if (ev.key === 'Enter') aoAbrir() }}
       onDragStart={(ev) => { ev.dataTransfer.setData('text/peca', peca.id); ev.dataTransfer.effectAllowed = 'move' }}
     >
       <div className="mk-cartao-topo">
-        <span className="mk-cartao-tipo" title={livre ? undefined : `${REDES[rede].nome} · ${nomeFormato(peca.tipo, rede)}`}>{livre ? <Icone nome="ideia" tam={14} /> : <LogoRede rede={rede} tam={14} />}{formato}</span>
+        <span className="mk-cartao-canal">{livre ? <><Icone nome="ideia" tam={15} />Canal a definir</> : <><LogoRede rede={rede} tam={16} />{REDES[rede].nome}</>}</span>
         <MenuPeca etapa={etapa} aoAbrir={aoAbrir} aoMover={aoMover} aoTirar={aoTirar} />
       </div>
       <b className="mk-cartao-titulo">{peca.titulo}</b>
-      {peca.conteudo.proposta && etapa === 'ideia' && <span className="mk-cartao-linha mk-agente-escrevendo">Proposta do agente</span>}
+      <span className="mk-cartao-formato"><Icone nome={info.icone} tam={14} />{livre ? info.nome : nomeFormato(peca.tipo, rede)}{tamanho(peca) && <i>· {tamanho(peca)}</i>}</span>
+      {trabalhando
+        ? <span className="mk-cartao-situacao mk-agente-escrevendo">O agente está escrevendo…</span>
+        : e && <span className="mk-cartao-situacao" style={{ ['--cor-etapa' as string]: e.cor }}>{nomeSituacao(peca)}</span>}
+      {peca.conteudo.pendencia && etapa !== 'publicado' && <span className="mk-pendente"><Icone nome="alerta" tam={13} />Pendência na oferta</span>}
       {modo === 'quadro'
         ? peca.dia && <span className="mk-cartao-linha"><Icone nome="agenda" tam={14} />{dataLonga(peca.dia)}{peca.conteudo.horario ? ` · ${peca.conteudo.horario}` : ''}</span>
         : <span className="mk-cartao-linha"><Icone nome="relogio" tam={14} />{peca.conteudo.horario || 'Sem horário'}</span>}
-      {peca.conteudo.pendencia && etapa !== 'publicado' && <span className="mk-pendente"><Icone nome="alerta" tam={13} />Pendência na oferta</span>}
-      {trabalhando && <span className="mk-cartao-linha mk-agente-escrevendo">O agente está escrevendo…</span>}
-      {modo === 'calendario' && e && <span className="mk-ponto" style={{ ['--cor-etapa' as string]: e.cor }}>{e.id === 'ideia' ? 'Ideia' : e.nome}</span>}
     </div>
   )
 }

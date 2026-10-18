@@ -17,12 +17,15 @@ export const ETAPA: Record<Etapa, (typeof ETAPAS)[number]> = Object.fromEntries(
 
 export const COR_TIPO: Record<string, string> = Object.fromEntries(Object.entries(FORMATO).map(([k, f]) => [k, f.cor]))
 
-// nome da situação na lista da Produção: "Roteiro em revisão", "Texto em revisão"…
+// nome da situação no cartão e na lista: "Ideia salva", "Roteiro em elaboração", "Texto em revisão", "Aprovado"…
 export function nomeSituacao(p: Peca) {
   const e = etapaDe(p)
   if (e === 'descartada') return 'Fora do planejamento'
-  if (e === 'revisao') return `${infoFormato(p.tipo).material} em revisão`
-  return e === 'ideia' ? 'Ideia' : ETAPA[e].nome
+  const material = infoFormato(p.tipo).material
+  if (e === 'ideia') return p.conteudo.proposta ? 'Proposta do agente' : 'Ideia salva'
+  if (e === 'producao') return `${material} em elaboração`
+  if (e === 'revisao') return `${material} em revisão`
+  return e === 'pronto' ? 'Aprovado' : 'Publicado'
 }
 
 export function etapaDe(p: Peca): Etapa | 'descartada' {

@@ -6,8 +6,8 @@ import { redeDe, type Rede } from './redes'
 
 export type Periodo = 'dia' | 'semana' | 'mes' | 'periodo'
 // os mesmos filtros de peça valem no Planejamento e na Produção (mesma barra, mesma ordem)
-export type FiltrosPecas = { campanha: string; plano: string; canais: Rede[]; formato: string; situacao: string; busca: string }
-export const filtrosPecasVazios = (): FiltrosPecas => ({ campanha: '', plano: '', canais: [], formato: '', situacao: '', busca: '' })
+export type FiltrosPecas = { campanha: string; plano: string; canais: Rede[]; formatos: string[]; situacao: string; busca: string }
+export const filtrosPecasVazios = (): FiltrosPecas => ({ campanha: '', plano: '', canais: [], formatos: [], situacao: '', busca: '' })
 export type Filtros = { periodo: Periodo; data: string; ate: string; visao: 'quadro' | 'calendario' } & FiltrosPecas
 export const filtrosIniciais = (): Filtros => ({ periodo: 'semana', data: segundaDe(hojeISO()), ate: somaDias(hojeISO(), 13), visao: 'quadro', ...filtrosPecasVazios() })
 type PeriodoTela = { periodo: Periodo; data: string; ate: string }
@@ -45,7 +45,7 @@ function combina(p: Peca, f: FiltrosPecas) {
   return (!f.campanha || p.conteudo.campanha === f.campanha)
     && (!f.plano || (f.plano === 'avulsa' ? !p.conteudo.plano : p.conteudo.plano === f.plano))
     && (!f.canais.length || f.canais.includes(redeDe(p)))
-    && (!f.formato || p.tipo === f.formato)
+    && (!f.formatos.length || f.formatos.includes(p.tipo))
     && (!f.situacao || etapaDe(p) === f.situacao)
     && (!termo || p.titulo.toLowerCase().includes(termo))
 }
