@@ -1,0 +1,43 @@
+// Dados do Agente de Marketing para uma semana: peças (de qualquer pedido), trabalhos em andamento,
+// último erro e campanhas. Enquanto o agente trabalha, confere a cada 4 segundos.
+import { useEffect } from 'react'
+import { supabase } from '../../../lib/supabase'
+import { useConsulta } from '../../../lib/dados'
+import { EMPRESA_UNIQUE } from '../../crm/comum'
+import { somaDias, type Peca, type Trabalho } from '../comum'
+
+export const EMPRESA = EMPRESA_UNIQUE
+export type Campanha = { id: string; nome: string; descricao?: string; inicio?: string; fim?: string }
+
+export function useMarketing(inicio: string) {
+  const fim = somaDias(inicio, 6)
+  const pecas = useConsulta<Peca[]>(() => supabase.from('agentes_pecas').select('*').eq('empresa_id', EMPRESA).eq('agente_id', 'marketing')
+    .or(`and(dia.gte.${inicio},dia.lte.${fim}),dia.is.null`).neq('status', 'descartada').order('dia').order('ordem'), [inicio])
+  const trabalhos = useConsulta<Trabalho[]>(() => supabase.from('agentes_trabalhos').select('*').eq('empresa_id', EMPRESA).eq('agente_id', 'marketing')
+    .order('criado_em', { ascending: false }).limit(8))
+  const perfil = useConsulta<{ perfil: Record<string, unknown>; ativo: boolean } | null>(() => supabase.from('agentes_empresa').select('perfil,ativo').eq('empresa_id', EMPRESA).eq('agente_id', 'marketing').maybeSingle())
+
+  const emAndamento = (trabalhos.dados ?? []).filter((t) => t.status === 'na_fila' || t.status === 'trabalhando')
+  const ultimo = trabalhos.dados?.[0] ?? null
+  const erro = ultimo?.status === 'erro' && ultimo.tipo !== 'ajuste' ? ultimo : null
+  const ocupado = emAndamento.some((t) => t.tipo !== 'ajuste')
+
+  useEffect(() => {
+    if (!emAndamento.length) return
+    const t = setInterval(() => trabalhos.recarregar(), 4000)
+    return () => clearInterval(t)
+  }, [emAndamento.length]) // eslint-disable-line react-hooks/exhaustive-deps
+  // quando um trabalho termina, recarrega as peças
+  useEffect(() => { if (!emAndamento.length) pecas.recarregar() }, [emAndamento.length]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const campanhas = (Array.isArray(perfil.dados?.perfil?.campanhas) ? perfil.dados?.perfil?.campanhas : []) as Campanha[]
+  return { pecas, trabalhos, perfil, campanhas, emAndamento, ocupado, erro }
+}
+
+// cria um trabalho e chama o agente; devolve o erro em texto, se houver
+export async function pedirTrabalho(tipo: 'semana' | 'ideia', pedido: Record<string, unknown>) {
+  const { data, error } = await supabase.from('agentes_trabalhos').insert({ empresa_id: EMPRESA, agente_id: 'marketing', tipo, pedido }).select('id').single()
+  if (error) return error.message
+  const r = await supabase.functions.invoke('agentes', { body: { trabalho: data.id } })
+  return r.error ? 'O agente não conseguiu começar. Tente de novo em instantes.' : null
+}

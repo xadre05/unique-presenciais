@@ -10,8 +10,11 @@ export type Trabalho = {
   erro: string | null; criado_em: string; terminado_em: string | null
 }
 export type Peca = {
-  id: string; trabalho_id: string; tipo: string; dia: string | null; titulo: string; status: 'rascunho' | 'aprovada' | 'descartada' | 'postada'; ordem: number
-  conteudo: { objetivo?: string; legenda?: string; roteiro?: string[]; texto_arte?: string; cta?: string; hashtags?: string[]; observacao?: string; prompt_imagem?: string }
+  id: string; trabalho_id: string; tipo: string; dia: string | null; titulo: string; status: 'rascunho' | 'aprovada' | 'descartada' | 'postada'; ordem: number; atualizado_em: string
+  conteudo: {
+    objetivo?: string; legenda?: string; roteiro?: string[]; texto_arte?: string; cta?: string; hashtags?: string[]; observacao?: string; prompt_imagem?: string
+    horario?: string; pendencia?: string; etapa?: 'ideia' | 'producao'; campanha?: string; anterior?: Record<string, unknown>
+  }
 }
 export type Config = { empresa_id: string; modelo: string; limite_mes_usd: number | null; chave_em: string | null }
 
@@ -87,3 +90,11 @@ export function rotuloTrabalho(t: Pick<Trabalho, 'tipo' | 'pedido'>) {
   if (dias === 1) return `Conteúdo do dia ${ddmm(inicio)}`
   return `${dias === 7 ? 'Semana' : `${dias} dias`} · ${ddmm(inicio)} a ${ddmm(somaDias(inicio, dias - 1))}`
 }
+
+// segunda-feira da semana de uma data (no domingo, já mostra a semana que vem, que é a que se planeja)
+export function segundaDe(iso: string) {
+  const d = new Date(iso + 'T12:00:00'); const dia = d.getDay()
+  return somaDias(iso, dia === 0 ? 1 : 1 - dia)
+}
+export const diaCurto = (iso: string) => new Date(iso + 'T12:00:00').toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: '2-digit' }).replace('.', '')
+export const dataLonga = (iso: string) => new Date(iso + 'T12:00:00').toLocaleDateString('pt-BR', { day: 'numeric', month: 'short', year: 'numeric' }).replace('.', '')
