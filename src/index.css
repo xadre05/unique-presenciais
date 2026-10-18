@@ -2060,3 +2060,13 @@ a.sala-agente:hover { border-color: var(--ouro); transform: translateY(-2px); }
   background: conic-gradient(from 200deg, #e7c46a, #a46ee6, #e7c46a, #c98bff, #e7c46a) border-box;
   -webkit-mask: linear-gradient(#000 0 0) padding-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask-composite: exclude; }
 .mk-avatar-pop.trabalhando .mk-avatar-frente::before { animation: mk-gira 3s linear infinite; }
+
+/* avatar pronto (desenhado no GPT: personagem saindo do círculo na cor do agente) */
+.mk-avatar-pronto { flex: none; width: 112px; height: 112px; display: block; }
+.mk-avatar-pronto img { width: 100%; height: 100%; object-fit: contain; display: block; filter: drop-shadow(0 6px 14px rgba(0,0,0,.45)); }
+.mk-avatar-pronto.trabalhando img { animation: avatar-trabalha 1.8s ease-in-out infinite; }
+@keyframes avatar-trabalha { 0%, 100% { transform: translateY(0); filter: drop-shadow(0 6px 14px rgba(0,0,0,.45)); } 50% { transform: translateY(-3px); filter: drop-shadow(0 6px 22px rgba(164,110,230,.7)); } }
+@media (prefers-reduced-motion: reduce) { .mk-avatar-pronto.trabalhando img { animation: none; } }
+@media (max-width: 640px) { .mk-avatar-pronto { width: 84px; height: 84px; } }
+.mk-msg-foto.avatar { background: none; border: 0; overflow: visible; }
+.mk-msg-foto.avatar img { object-fit: contain; border-radius: 0; background: none; }

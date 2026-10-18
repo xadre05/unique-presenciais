@@ -27,23 +27,23 @@ export const MODELOS: Record<string, { nome: string; dica: string }> = {
 // Catálogo dos agentes (nome, função, escopo e visual). Os retratos foram criados no GPT pelo Alexandre.
 // O banco guarda o que muda (ligado, trabalhos, custo); o que é fixo de cada agente fica aqui.
 export type Escopo = 'academy' | 'clinical' | 'ambos'
-export type AgenteCatalogo = { id: string; nome: string; papel: string; descricao: string; escopo: Escopo; cor: string; foto: string; icone: string; trabalhando: string }
+export type AgenteCatalogo = { id: string; nome: string; papel: string; descricao: string; escopo: Escopo; cor: string; foto: string; avatar?: string; icone: string; trabalhando: string }
 export const CATALOGO: AgenteCatalogo[] = [
-  { id: 'marketing', nome: 'Marketing', papel: 'Conteúdo e campanhas', escopo: 'ambos', cor: '#a46ee6', foto: '/agentes/marketing.webp?v=4', icone: 'grafico', trabalhando: 'montando a semana de conteúdo',
+  { id: 'marketing', nome: 'Marketing', papel: 'Conteúdo e campanhas', escopo: 'ambos', cor: '#a46ee6', foto: '/agentes/marketing.webp?v=4', avatar: '/agentes/marketing-avatar.webp?v=1', icone: 'grafico', trabalhando: 'montando a semana de conteúdo',
     descricao: 'Monta a semana de conteúdo do Instagram (posts, reels, stories e legendas) com o que a empresa vende agora. Nada é publicado sozinho: você aprova, copia e posta.' },
-  { id: 'atendimento', nome: 'Atendimento', papel: 'Conversas e relacionamento', escopo: 'ambos', cor: '#3f7df0', foto: '/agentes/atendimento.webp?v=4', icone: 'whats', trabalhando: 'respondendo leads',
+  { id: 'atendimento', nome: 'Atendimento', papel: 'Conversas e relacionamento', escopo: 'ambos', cor: '#3f7df0', foto: '/agentes/atendimento.webp?v=4', avatar: '/agentes/atendimento-avatar.webp?v=1', icone: 'whats', trabalhando: 'respondendo leads',
     descricao: 'Responde o lead novo nas Conversas do Atendimento, tira dúvidas com o material da empresa e passa para a vendedora quando a pessoa quer comprar ou pede para falar com alguém. Entra quando o WhatsApp estiver ligado.' },
-  { id: 'vendas', nome: 'Vendas', papel: 'Ofertas e acompanhamento', escopo: 'ambos', cor: '#d9a24b', foto: '/agentes/vendas.webp?v=4', icone: 'dinheiro', trabalhando: 'separando quem chamar',
+  { id: 'vendas', nome: 'Vendas', papel: 'Ofertas e acompanhamento', escopo: 'ambos', cor: '#d9a24b', foto: '/agentes/vendas.webp?v=4', avatar: '/agentes/vendas-avatar.webp?v=1', icone: 'dinheiro', trabalhando: 'separando quem chamar',
     descricao: 'Escolhe todo dia quem da base tem mais chance de comprar agora, escreve a mensagem de cada um e acompanha o retorno. A vendedora manda do celular dela; com o WhatsApp ligado, ele envia sozinho no ritmo seguro.' },
-  { id: 'trafego', nome: 'Tráfego', papel: 'Anúncios e performance', escopo: 'ambos', cor: '#2fb38a', foto: '/agentes/trafego.webp?v=4', icone: 'busca', trabalhando: 'lendo os anúncios',
+  { id: 'trafego', nome: 'Tráfego', papel: 'Anúncios e performance', escopo: 'ambos', cor: '#2fb38a', foto: '/agentes/trafego.webp?v=4', avatar: '/agentes/trafego-avatar.webp?v=1', icone: 'busca', trabalhando: 'lendo os anúncios',
     descricao: 'Lê os resultados dos anúncios e sugere o que pausar, o que aumentar e quais criativos testar. Nunca mexe no orçamento sem aprovação.' },
-  { id: 'cobranca', nome: 'Cobrança', papel: 'Parcelas e lembretes', escopo: 'ambos', cor: '#e5534b', foto: '/agentes/cobranca.webp?v=4', icone: 'moedas', trabalhando: 'conferindo parcelas',
+  { id: 'cobranca', nome: 'Cobrança', papel: 'Parcelas e lembretes', escopo: 'ambos', cor: '#e5534b', foto: '/agentes/cobranca.webp?v=4', avatar: '/agentes/cobranca-avatar.webp?v=1', icone: 'moedas', trabalhando: 'conferindo parcelas',
     descricao: 'Avisa a parcela que vai vencer e a que atrasou, com o link certo de pagamento, no tom da empresa. Para quando a pessoa paga.' },
-  { id: 'analista', nome: 'Analista', papel: 'Indicadores e decisões', escopo: 'ambos', cor: '#3cc8d4', foto: '/agentes/analista.webp?v=4', icone: 'grafico', trabalhando: 'lendo os números',
+  { id: 'analista', nome: 'Analista', papel: 'Indicadores e decisões', escopo: 'ambos', cor: '#3cc8d4', foto: '/agentes/analista.webp?v=4', avatar: '/agentes/analista-avatar.webp?v=1', icone: 'grafico', trabalhando: 'lendo os números',
     descricao: 'Toda semana lê vendas, base, turmas e anúncios e entrega um resumo curto: o que melhorou, o que piorou e as 3 ações da semana.' },
-  { id: 'sucesso', nome: 'Sucesso do aluno', papel: 'Jornada e engajamento', escopo: 'academy', cor: '#e46aa0', foto: '/agentes/sucesso.webp?v=4', icone: 'formatura', trabalhando: 'acompanhando alunos',
+  { id: 'sucesso', nome: 'Sucesso do aluno', papel: 'Jornada e engajamento', escopo: 'academy', cor: '#e46aa0', foto: '/agentes/sucesso.webp?v=4', avatar: '/agentes/sucesso-avatar.webp?v=1', icone: 'formatura', trabalhando: 'acompanhando alunos',
     descricao: 'Acompanha o aluno do pagamento ao presencial: lembra a turma, a data e o que levar, pergunta como foi e chama de volta quem sumiu da plataforma.' },
-  { id: 'recepcao', nome: 'Recepção', papel: 'Agenda e retornos', escopo: 'clinical', cor: '#c9ccd4', foto: '/agentes/recepcao.webp?v=4', icone: 'agenda', trabalhando: 'confirmando consultas',
+  { id: 'recepcao', nome: 'Recepção', papel: 'Agenda e retornos', escopo: 'clinical', cor: '#c9ccd4', foto: '/agentes/recepcao.webp?v=4', avatar: '/agentes/recepcao-avatar.webp?v=1', icone: 'agenda', trabalhando: 'confirmando consultas',
     descricao: 'Confirma consulta, remarca e chama o paciente na hora do retorno pelo WhatsApp da clínica.' },
 ]
 export const visualDe = (id: string) => CATALOGO.find((a) => a.id === id) ?? { id, nome: id, papel: '', descricao: '', escopo: 'ambos' as Escopo, cor: '#c9a45c', foto: '', icone: 'info', trabalhando: 'trabalhando' }
