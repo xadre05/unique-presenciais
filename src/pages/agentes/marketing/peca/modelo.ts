@@ -39,8 +39,8 @@ export function separarItem(s: string, cfg: ConfigItem, orientacao = ''): Item {
   // cena e bloco de vídeo: o tempo entre parênteses vira o título ("0–3s")
   if (prefixo?.[2] && /\d\s*(s|seg|min|:)/i.test(prefixo[2])) return { titulo: prefixo[2].slice(1, -1).trim(), texto: limpo, orientacao }
   const max = cfg.maxTitulo ?? 90
-  if (limpo.length <= max) return { titulo: limpo.replace(/[.;]$/, ''), texto: '', orientacao }
   const fim = limpo.search(/(?<!\b(?:Dra?|Sra?|Prof|Profa|etc|ex))[.!?:]\s/)
+  if (limpo.length <= max && fim < 0) return { titulo: limpo.replace(/[.;]$/, ''), texto: '', orientacao }
   if (fim > 0 && fim < max) return { titulo: limpo.slice(0, limpo[fim] === '.' || limpo[fim] === ':' ? fim : fim + 1).trim(), texto: limpo.slice(fim + 1).trim(), orientacao }
   return { titulo: '', texto: limpo, orientacao }
 }
