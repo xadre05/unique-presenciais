@@ -1,0 +1,171 @@
+// Agentes de IA (núcleo). Recebe o id de um trabalho "na fila", responde na hora e faz o trabalho em segundo plano:
+// chama o Claude com o perfil da empresa e o contexto do sistema, grava as peças para aprovação e o custo.
+// Hoje: agente de Marketing → semana de conteúdo do Instagram. Nada é publicado: só vira rascunho para aprovar.
+import { createClient, type SupabaseClient } from 'npm:@supabase/supabase-js@2.45.4'
+
+const cors = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+}
+const json = (corpo: unknown, status = 200) => new Response(JSON.stringify(corpo), { status, headers: { ...cors, 'Content-Type': 'application/json' } })
+
+// preço por milhão de tokens (US$), tabela oficial da Anthropic (out/2026)
+const PRECO: Record<string, { entrada: number; saida: number }> = {
+  'claude-sonnet-5-5': { entrada: 2, saida: 10 },
+  'claude-haiku-5-5': { entrada: 0.1, saida: 0.5 },
+}
+const custo = (modelo: string, ent: number, sai: number) => {
+  const p = PRECO[modelo] ?? PRECO['claude-sonnet-5-5']
+  return Math.round(((ent * p.entrada + sai * p.saida) / 1_000_000) * 10000) / 10000
+}
+
+type Trabalho = { id: string; empresa_id: string; agente_id: string; tipo: string; status: string; pedido: Record<string, unknown> }
+type Peca = { tipo: string; dia: string; titulo: string; objetivo?: string; legenda?: string; roteiro?: string[]; texto_arte?: string; cta?: string; hashtags?: string[]; observacao?: string }
+
+const FERRAMENTA = {
+  name: 'entregar_semana',
+  description: 'Entrega a semana de conteúdo do Instagram, peça por peça, para a equipe aprovar.',
+  input_schema: {
+    type: 'object',
+    properties: {
+      resumo: { type: 'string', description: 'Duas ou três frases explicando a linha da semana (o fio que liga as peças) e por quê.' },
+      pecas: {
+        type: 'array',
+        items: {
+          type: 'object',
+          properties: {
+            tipo: { type: 'string', enum: ['post', 'carrossel', 'reels', 'stories'] },
+            dia: { type: 'string', description: 'Data AAAA-MM-DD dentro da semana pedida' },
+            titulo: { type: 'string', description: 'Nome curto da peça para a equipe reconhecer' },
+            objetivo: { type: 'string', description: 'Para que serve: atrair, educar, gerar desejo, vender, prova social…' },
+            legenda: { type: 'string', description: 'Legenda pronta para colar (com quebras de linha). Stories podem não ter.' },
+            roteiro: { type: 'array', items: { type: 'string' }, description: 'Reels: cenas/falas em ordem. Carrossel: texto de cada lâmina. Stories: cada tela em ordem.' },
+            texto_arte: { type: 'string', description: 'Texto curto que vai escrito na arte/capa' },
+            cta: { type: 'string', description: 'Chamada para ação' },
+            hashtags: { type: 'array', items: { type: 'string' } },
+            observacao: { type: 'string', description: 'Dica de gravação, imagem ou cuidado com as regras do conselho' },
+          },
+          required: ['tipo', 'dia', 'titulo', 'objetivo'],
+        },
+      },
+    },
+    required: ['resumo', 'pecas'],
+  },
+}
+
+async function contexto(db: SupabaseClient) {
+  const [cursos, turmas, grupos] = await Promise.all([
+    db.from('cursos').select('nome').eq('ativo', true).order('nome'),
+    db.from('v_turmas').select('nome,curso_nome,data_inicio,vagas,inscritos,vendas_abertas,status').gte('data_inicio', new Date().toISOString().slice(0, 10)).order('data_inicio').limit(12),
+    db.from('links_grupos').select('nome,descricao').eq('ativo', true),
+  ])
+  const linhas: string[] = []
+  if (cursos.data?.length) linhas.push(`Cursos presenciais cadastrados: ${cursos.data.map((c) => c.nome).join('; ')}.`)
+  const abertas = (turmas.data ?? []).filter((t) => t.vendas_abertas && !['cancelada', 'realizada'].includes(String(t.status)))
+  if (abertas.length) linhas.push('Próximas turmas com vendas abertas:\n' + abertas.map((t) => `- ${t.curso_nome} · ${t.nome} · início ${t.data_inicio} · ${Math.max(0, Number(t.vagas ?? 0) - Number(t.inscritos ?? 0))} vagas livres de ${t.vagas ?? '?'}`).join('\n'))
+  for (const g of grupos.data ?? []) linhas.push(`Campanha ativa "${g.nome}": ${g.descricao ?? ''}`)
+  return linhas.join('\n\n')
+}
+
+function pedidoMarketing(perfil: Record<string, string>, pedido: Record<string, unknown>, ctx: string) {
+  const inicio = String(pedido.semana_inicio)
+  const fim = new Date(new Date(inicio + 'T12:00:00Z').getTime() + 6 * 86400000).toISOString().slice(0, 10)
+  const qtd = `${pedido.posts ?? 3} post(s) ou carrossel(is), ${pedido.reels ?? 2} reels e ${pedido.stories ?? 3} sequência(s) de stories`
+  const sistema = [
+    'Você é o Agente de Marketing de uma empresa brasileira. Escreve em português do Brasil, pronto para colar no Instagram.',
+    'Você monta a semana de conteúdo; a equipe aprova antes de publicar. Seja concreto: ganchos fortes nos 3 primeiros segundos dos reels, legendas com quebra de linha, chamadas para ação claras.',
+    'Respeite sempre as regras abaixo, em especial o que é proibido. Não invente números, depoimentos, preços ou datas que não estejam no contexto.',
+    '',
+    `EMPRESA: ${perfil.empresa ?? ''}`,
+    `O QUE VENDE: ${perfil.o_que_vende ?? ''}`,
+    `PÚBLICO: ${perfil.publico ?? ''}`,
+    `TOM DE VOZ: ${perfil.tom ?? ''}`,
+    `NUNCA FAZER: ${perfil.evitar ?? ''}`,
+    `REGRAS DO CONSELHO: ${perfil.conselho ?? ''}`,
+    perfil.instagram ? `PERFIL NO INSTAGRAM: ${perfil.instagram}` : '',
+  ].filter(Boolean).join('\n')
+  const usuario = [
+    `Monte a semana de ${inicio} a ${fim}: ${qtd}. Espalhe pelos dias (não precisa ter peça todo dia).`,
+    pedido.foco ? `Foco da semana pedido pela equipe: ${pedido.foco}` : 'Foco livre: equilibre atrair, educar e vender.',
+    ctx ? `Informações atuais do sistema:\n${ctx}` : '',
+    'Entregue usando a ferramenta entregar_semana.',
+  ].filter(Boolean).join('\n\n')
+  return { sistema, usuario }
+}
+
+async function chamarClaude(chave: string, modelo: string, sistema: string, usuario: string) {
+  const r = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: { 'x-api-key': chave, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
+    body: JSON.stringify({
+      model: modelo, max_tokens: 12000, system: sistema,
+      messages: [{ role: 'user', content: usuario }],
+      tools: [FERRAMENTA], tool_choice: { type: 'tool', name: FERRAMENTA.name },
+    }),
+  })
+  const corpo = await r.json().catch(() => ({}))
+  if (!r.ok) {
+    const msg = corpo?.error?.message ?? `erro ${r.status}`
+    if (r.status === 401) throw new Error('A Anthropic recusou a chave. Confira a chave na Central de agentes.')
+    if (r.status === 400 && /credit|balance/i.test(msg)) throw new Error('A conta da Anthropic está sem crédito. Coloque crédito em console.anthropic.com → Billing.')
+    throw new Error(`Claude respondeu ${r.status}: ${msg}`)
+  }
+  const uso = corpo.usage ?? {}
+  const bloco = (corpo.content ?? []).find((b: { type: string }) => b.type === 'tool_use')
+  if (!bloco) throw new Error('O Claude não entregou a semana no formato esperado. Tente de novo.')
+  return { entrega: bloco.input as { resumo: string; pecas: Peca[] }, entrada: Number(uso.input_tokens ?? 0), saida: Number(uso.output_tokens ?? 0) }
+}
+
+async function executar(db: SupabaseClient, t: Trabalho) {
+  try {
+    const [{ data: cfg }, { data: perfilAg }, { data: chave }, { data: gastos }] = await Promise.all([
+      db.from('agentes_config').select('modelo,limite_mes_usd').eq('empresa_id', t.empresa_id).maybeSingle(),
+      db.from('agentes_empresa').select('perfil,ativo').eq('empresa_id', t.empresa_id).eq('agente_id', t.agente_id).maybeSingle(),
+      db.rpc('agentes_ler_chave', { p_empresa: t.empresa_id }),
+      db.from('agentes_trabalhos').select('custo_usd').eq('empresa_id', t.empresa_id).gte('criado_em', new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString()),
+    ])
+    if (!chave) throw new Error('Falta cadastrar a chave do Claude na Central de agentes.')
+    if (!perfilAg?.ativo) throw new Error('Este agente está desligado na Central de agentes.')
+    const gastoMes = (gastos ?? []).reduce((s, g) => s + Number(g.custo_usd ?? 0), 0)
+    if (cfg?.limite_mes_usd != null && gastoMes >= Number(cfg.limite_mes_usd)) throw new Error(`Limite do mês atingido (US$ ${Number(cfg.limite_mes_usd).toFixed(2)}). Aumente na Central de agentes.`)
+    const modelo = cfg?.modelo ?? 'claude-sonnet-5-5'
+    if (t.agente_id !== 'marketing' || t.tipo !== 'semana') throw new Error('Trabalho que este agente ainda não sabe fazer.')
+
+    const { sistema, usuario } = pedidoMarketing((perfilAg.perfil ?? {}) as Record<string, string>, t.pedido, await contexto(db))
+    const { entrega, entrada, saida } = await chamarClaude(String(chave), modelo, sistema, usuario)
+    const pecas = (entrega.pecas ?? []).map((p, i) => ({
+      trabalho_id: t.id, empresa_id: t.empresa_id, agente_id: t.agente_id, tipo: p.tipo, dia: /^\d{4}-\d{2}-\d{2}$/.test(p.dia) ? p.dia : null,
+      titulo: p.titulo || `Peça ${i + 1}`, ordem: i,
+      conteudo: { objetivo: p.objetivo, legenda: p.legenda, roteiro: p.roteiro, texto_arte: p.texto_arte, cta: p.cta, hashtags: p.hashtags, observacao: p.observacao },
+    }))
+    if (pecas.length) { const { error } = await db.from('agentes_pecas').insert(pecas); if (error) throw new Error(error.message) }
+    await db.from('agentes_trabalhos').update({
+      status: 'pronto', resumo: entrega.resumo ?? null, modelo, tokens_entrada: entrada, tokens_saida: saida,
+      custo_usd: custo(modelo, entrada, saida), terminado_em: new Date().toISOString(),
+    }).eq('id', t.id)
+  } catch (e) {
+    await db.from('agentes_trabalhos').update({ status: 'erro', erro: (e as Error).message, terminado_em: new Date().toISOString() }).eq('id', t.id)
+  }
+}
+
+Deno.serve(async (req) => {
+  if (req.method === 'OPTIONS') return new Response('ok', { headers: cors })
+  const url = Deno.env.get('SUPABASE_URL')!
+  const usuario = createClient(url, Deno.env.get('SUPABASE_ANON_KEY')!, { global: { headers: { Authorization: req.headers.get('Authorization') ?? '' } } })
+  const { data: admin } = await usuario.rpc('is_admin')
+  if (admin !== true) return json({ erro: 'Só o administrador pode acionar os agentes.' }, 403)
+  const db = createClient(url, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!)
+
+  const { trabalho } = await req.json().catch(() => ({}))
+  const { data: t } = await db.from('agentes_trabalhos').select('*').eq('id', String(trabalho ?? '')).maybeSingle()
+  if (!t) return json({ erro: 'Trabalho não encontrado.' }, 404)
+  if (t.status !== 'na_fila') return json({ ok: true, status: t.status })
+  // marca como "trabalhando" só se ainda estiver na fila (evita rodar duas vezes)
+  const { data: pego } = await db.from('agentes_trabalhos').update({ status: 'trabalhando', iniciado_em: new Date().toISOString() }).eq('id', t.id).eq('status', 'na_fila').select('id').maybeSingle()
+  if (!pego) return json({ ok: true, status: 'trabalhando' })
+
+  // @ts-ignore EdgeRuntime existe no Supabase
+  EdgeRuntime.waitUntil(executar(db, t as Trabalho))
+  return json({ ok: true, status: 'trabalhando' }, 202)
+})

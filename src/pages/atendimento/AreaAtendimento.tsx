@@ -6,6 +6,7 @@ import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../auth'
 import { Badge, Marca, Vazio } from '../../components/ui'
 import { Icone } from '../../components/Icone'
+import { TrocaArea } from '../../components/TrocaArea'
 import { useBaseCRM } from '../../crm/tipos'
 import Conversas, { type Aba } from '../../crm/Conversas'
 import MinhaFila from '../../crm/MinhaFila'
@@ -49,7 +50,7 @@ function AgenteIA() {
   return (
     <div className="pagina estreita">
       <h1>Agente IA</h1>
-      <Vazio>Em construção. Aqui vai ficar a IA que faz o primeiro contato com o lead novo, responde dúvidas sobre os cursos com base no material da Unique e passa para a vendedora quando a pessoa quer comprar ou pede para falar com alguém.</Vazio>
+      <Vazio>O Agente de Atendimento agora mora na área <Link to="/agentes" className="link">Agentes</Link>, junto com os outros agentes de IA. Ele vai fazer o primeiro contato com o lead novo aqui nas Conversas, responder dúvidas sobre os cursos e passar para a vendedora quando a pessoa quiser comprar. Entra quando o WhatsApp estiver ligado.</Vazio>
     </div>
   )
 }
@@ -88,7 +89,7 @@ export default function AreaAtendimento() {
       <aside className={`lateral${menu ? ' aberta' : ''}`}>
         <button className="btn btn-quadrado fechar-menu" aria-label="Fechar menu" onClick={() => setMenu(false)}><Icone nome="fechar" /></button>
         <Marca sub="Atendimento" />
-        <div className="troca-area"><Link to="/">Comercial</Link><span className="ativa">Atendimento</span></div>
+        <TrocaArea ativa="atendimento" />
         <nav>{itens}</nav>
         <div className="lateral-rodape">
           <div className="avatar"><Icone nome="usuario" tam={20} /></div>

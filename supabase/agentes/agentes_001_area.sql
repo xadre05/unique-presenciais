@@ -1,0 +1,5 @@
+-- 071 · Área Agentes (aplicada em 17/10/2026). Catálogo, config por empresa (modelo + chave no Vault),
+-- perfil de cada agente por empresa, trabalhos (com tokens e custo) e peças para aprovação. Só administrador.
+-- Texto completo da migração: ver histórico de migrações do Supabase (071_area_agentes).
+-- Tabelas: agentes, agentes_config, agentes_empresa, agentes_trabalhos, agentes_pecas
+-- Funções: agentes_salvar_chave(empresa, valor), agentes_ler_chave(empresa) [só service_role], agentes_sala(empresa)

@@ -19,6 +19,8 @@ import Ajuda from './pages/Ajuda'
 import Agenda from './pages/Agenda'
 import PaginaCaptura from './pages/publico/PaginaCaptura'
 import AreaAtendimento from './pages/atendimento/AreaAtendimento'
+import AreaAgentes from './pages/agentes/AreaAgentes'
+import { TrocaArea } from './components/TrocaArea'
 import { Icone } from './components/Icone'
 import { Marca } from './components/ui'
 
@@ -62,7 +64,7 @@ function Layout() {
       <aside className={`lateral${menu ? ' aberta' : ''}`}>
         <button className="btn btn-quadrado fechar-menu" aria-label="Fechar menu" onClick={() => setMenu(false)}><Icone nome="fechar" /></button>
         <Marca />
-        <div className="troca-area"><span className="ativa">Comercial</span><Link to="/atendimento">Atendimento</Link></div>
+        <TrocaArea ativa="comercial" />
         <nav>
           <NavLink to="/" end><Icone nome="painel" /> Painel</NavLink>
           <NavLink to="/turmas"><Icone nome="turmas" /> Turmas</NavLink>
@@ -154,6 +156,7 @@ function Portao() {
   return (
     <Routes>
       <Route path="/atendimento/*" element={<AreaAtendimento />} />
+      <Route path="/agentes/*" element={<AreaAgentes />} />
       <Route path="*" element={<Layout />} />
     </Routes>
   )
