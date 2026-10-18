@@ -1579,7 +1579,8 @@ a.sala-agente:hover { border-color: var(--ouro); transform: translateY(-2px); }
 .mk-barra-periodo { gap: 14px; }
 .mk-rotulo-barra { font-size: .72rem; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
 .mk-barra-periodo .mk-semana { border-right: 0; padding-right: 0; }
-.mk-semana b { display: inline-flex; align-items: center; gap: 8px; text-transform: capitalize; }
+.mk-semana b { display: inline-flex; align-items: center; gap: 8px; }
+.mk-semana b::first-letter { text-transform: uppercase; }
 .mk-nota-filtro { margin-left: auto; display: inline-flex; align-items: center; gap: 5px; }
 .mk-multi { position: relative; }
 .mk-multi summary { list-style: none; cursor: pointer; padding: 9px 12px; min-width: 170px; white-space: nowrap; color: var(--texto); }

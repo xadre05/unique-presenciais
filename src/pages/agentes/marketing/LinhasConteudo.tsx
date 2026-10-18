@@ -10,7 +10,8 @@ const NOME_DIA = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb']
 
 export function novaLinha(rede: Rede = 'instagram', formato?: Formato): LinhaConteudo {
   const f = formato ?? REDES[rede].formatos[0]
-  return { id: crypto.randomUUID(), rede, formato: f, qtd: 1, diasSemana: [...TODOS_OS_DIAS], telas: 5, duracao: DURACOES[f]?.[1] ?? '' }
+  // stories todo dia; o resto em dias alternados (segunda, quarta e sexta) — dá para mudar nos botões de dia
+  return { id: crypto.randomUUID(), rede, formato: f, qtd: 1, diasSemana: f === 'stories' ? [...TODOS_OS_DIAS] : [1, 3, 5], telas: 5, duracao: DURACOES[f]?.[1] ?? '' }
 }
 
 export function LinhasConteudo({ linhas, mudar, unica, porSemana }: { linhas: LinhaConteudo[]; mudar: (l: LinhaConteudo[]) => void; unica: boolean; porSemana: boolean }) {
