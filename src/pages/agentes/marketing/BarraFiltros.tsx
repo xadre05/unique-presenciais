@@ -1,8 +1,8 @@
-// Barras do topo, iguais no Planejamento e na Produção: título da aba, período de visualização (a data fica
-// sempre no mesmo lugar, qualquer que seja o período) e filtros de peça na mesma ordem, com a busca à direita.
+// Topo igual no Planejamento e na Produção: título da aba, um painel com o período (a data fica sempre no
+// mesmo lugar) e os filtros de peça com rótulo, na mesma ordem, com a busca à direita; embaixo, o resumo.
 import { useEffect, useRef, type ReactNode } from 'react'
 import { Icone } from '../../../components/Icone'
-import { hojeISO, segundaDe } from '../comum'
+import { hojeISO, segundaDe, somaDias } from '../comum'
 import { ETAPAS } from './etapas'
 import { FORMATOS, REDES, nomeFormato, nomeGenerico, useRedes, type Rede } from './redes'
 import { LogoRede } from './LogoRede'
@@ -21,39 +21,49 @@ export function CabecalhoAba({ titulo, sub, children }: { titulo: string; sub: s
   )
 }
 
-type Tela = { periodo: Periodo | 'todos'; data: string; ate: string }
-type PropsPeriodo = Tela & { mudar: (c: Partial<Tela>) => void; comTodos?: boolean; nota: string }
-const OPCOES: { id: Periodo | 'todos'; nome: string }[] = [{ id: 'todos', nome: 'Todos' }, { id: 'dia', nome: 'Dia' }, { id: 'semana', nome: 'Semana' }, { id: 'mes', nome: 'Mês' }, { id: 'periodo', nome: 'Período' }]
-
-export function BarraPeriodo({ periodo, data, ate, mudar, comTodos, nota }: PropsPeriodo) {
-  const trocar = (p: Periodo | 'todos') => mudar({ periodo: p, data: p === 'semana' ? segundaDe(data) : data })
-  const opcoes = OPCOES.filter((o) => comTodos || o.id !== 'todos')
+// Quadro ou Calendário (fica no cabeçalho do Planejamento)
+export function TrocaVisao({ visao, mudar }: { visao: 'quadro' | 'calendario'; mudar: (v: 'quadro' | 'calendario') => void }) {
   return (
-    <div className="mk-barra mk-periodo">
-      <div className="mk-periodo-cab">
-        <span className="mk-rotulo-barra">Período de visualização</span>
-        <span className="muted pequeno mk-nota-filtro"><Icone nome="info" tam={14} /> {nota}</span>
-      </div>
-      <div className="mk-periodo-linha">
-        <div className="mk-visoes">{opcoes.map((o) => <button key={o.id} className={periodo === o.id ? 'ativa' : ''} onClick={() => trocar(o.id)}>{o.id !== 'todos' && <Icone nome="agenda" tam={15} />} {o.nome}</button>)}</div>
-        <div className="mk-navega">
-          {periodo === 'todos' && <span className="mk-navega-rotulo muted">Todas as datas</span>}
-          {periodo === 'periodo' && (<>
-            <input type="date" value={data} onChange={(e) => mudar({ data: e.target.value })} aria-label="De" />
-            <span className="muted">até</span>
-            <input type="date" value={ate} min={data} onChange={(e) => mudar({ ate: e.target.value })} aria-label="Até" />
-          </>)}
-          {periodo !== 'todos' && periodo !== 'periodo' && (<>
-            <button className="btn btn-quadrado" aria-label="Anterior" onClick={() => mudar({ data: andar({ periodo, data, ate }, -1) })}><Icone nome="esquerda" /></button>
-            <span className="mk-navega-rotulo"><Icone nome="agenda" tam={16} /> {maiuscula(rotuloPeriodo({ periodo, data, ate }))}</span>
-            <button className="btn btn-quadrado" aria-label="Próximo" onClick={() => mudar({ data: andar({ periodo, data, ate }, 1) })}><Icone nome="seta_dir" /></button>
-            <button className="btn btn-contorno-ouro btn-mini" onClick={() => mudar({ data: periodo === 'semana' ? segundaDe(hojeISO()) : hojeISO() })}>Hoje</button>
-          </>)}
-        </div>
-      </div>
+    <div className="mk-visoes mk-visoes-grande">
+      <button className={visao === 'quadro' ? 'ativa' : ''} onClick={() => mudar('quadro')}><Icone nome="quadro" /> Quadro</button>
+      <button className={visao === 'calendario' ? 'ativa' : ''} onClick={() => mudar('calendario')}><Icone nome="agenda" /> Calendário</button>
     </div>
   )
 }
+
+type Tela = { periodo: Periodo | 'todos'; data: string; ate: string }
+const OPCOES: { id: Periodo | 'todos'; nome: string }[] = [{ id: 'todos', nome: 'Todos' }, { id: 'dia', nome: 'Dia' }, { id: 'semana', nome: 'Semana' }, { id: 'mes', nome: 'Mês' }, { id: 'periodo', nome: 'Período' }]
+
+function LinhaPeriodo({ periodo, data, ate, mudar, comTodos }: Tela & { mudar: (c: Partial<Tela>) => void; comTodos?: boolean }) {
+  const trocar = (p: Periodo | 'todos') => mudar({ periodo: p, data: p === 'semana' ? segundaDe(data) : data })
+  const hoje = () => {
+    const h = hojeISO()
+    if (periodo === 'periodo') return mudar({ data: h, ate: ate > h ? ate : somaDias(h, 13) })
+    mudar({ data: periodo === 'semana' ? segundaDe(h) : h })
+  }
+  return (
+    <div className="mk-pf-periodo">
+      <span className="mk-pf-rotulo">Período</span>
+      <div className="mk-visoes">{OPCOES.filter((o) => comTodos || o.id !== 'todos').map((o) => <button key={o.id} className={periodo === o.id ? 'ativa' : ''} onClick={() => trocar(o.id)}>{o.id !== 'todos' && <Icone nome="agenda" tam={15} />} {o.nome}</button>)}</div>
+      <div className="mk-navega">
+        {periodo === 'todos' && <span className="mk-navega-rotulo muted">Todas as datas</span>}
+        {periodo === 'periodo' && (<>
+          <label className="mk-data"><Icone nome="agenda" tam={16} /><input type="date" value={data} onChange={(e) => mudar({ data: e.target.value })} aria-label="De" /></label>
+          <span className="muted">até</span>
+          <label className="mk-data"><Icone nome="agenda" tam={16} /><input type="date" value={ate} min={data} onChange={(e) => mudar({ ate: e.target.value })} aria-label="Até" /></label>
+        </>)}
+        {periodo !== 'todos' && periodo !== 'periodo' && (<>
+          <button className="btn btn-quadrado" aria-label="Anterior" onClick={() => mudar({ data: andar({ periodo, data, ate }, -1) })}><Icone nome="esquerda" /></button>
+          <span className="mk-navega-rotulo"><Icone nome="agenda" tam={16} /> {maiuscula(rotuloPeriodo({ periodo, data, ate }))}</span>
+          <button className="btn btn-quadrado" aria-label="Próximo" onClick={() => mudar({ data: andar({ periodo, data, ate }, 1) })}><Icone nome="seta_dir" /></button>
+        </>)}
+      </div>
+      {periodo !== 'todos' && <button className="btn mk-hoje" onClick={hoje}>Hoje</button>}
+    </div>
+  )
+}
+
+type PropsFiltros = { f: FiltrosPecas; mudar: (c: Partial<FiltrosPecas>) => void; campanhas: Campanha[]; planos: Plano[]; aoCriarCampanha?: () => void }
 
 function Canais({ f, mudar }: Pick<PropsFiltros, 'f' | 'mudar'>) {
   const ativas = useRedes()
@@ -76,17 +86,17 @@ function Canais({ f, mudar }: Pick<PropsFiltros, 'f' | 'mudar'>) {
     definir(novo.length === ativas.length ? [] : novo)
   }
   return (
-    <details ref={caixa} className="mk-multi select-icone">
-      <summary>{todos ? 'Canais' : <span className="mk-logos">{f.canais.map((c) => <LogoRede key={c} rede={c} />)}{f.canais.length === 1 ? REDES[f.canais[0]].nome : `${f.canais.length} canais`}</span>}</summary>
-      <div className="mk-multi-lista">
-        <label><input type="checkbox" checked={todos} onChange={() => definir([])} /> Todos os canais</label>
-        {ativas.map((r) => <label key={r}><input type="checkbox" checked={todos || f.canais.includes(r)} onChange={() => alternar(r)} /><LogoRede rede={r} /> {REDES[r].nome}</label>)}
-      </div>
-    </details>
+    <div className="mk-pf-campo"><span>Canais</span>
+      <details ref={caixa} className="mk-multi select-icone">
+        <summary>{todos ? 'Todos os canais' : <span className="mk-logos">{f.canais.map((c) => <LogoRede key={c} rede={c} />)}{f.canais.length === 1 ? REDES[f.canais[0]].nome : `${f.canais.length} canais`}</span>}</summary>
+        <div className="mk-multi-lista">
+          <label><input type="checkbox" checked={todos} onChange={() => definir([])} /> Todos os canais</label>
+          {ativas.map((r) => <label key={r}><input type="checkbox" checked={todos || f.canais.includes(r)} onChange={() => alternar(r)} /><LogoRede rede={r} /> {REDES[r].nome}</label>)}
+        </div>
+      </details>
+    </div>
   )
 }
-
-type PropsFiltros = { f: FiltrosPecas; mudar: (c: Partial<FiltrosPecas>) => void; campanhas: Campanha[]; planos: Plano[]; aoCriarCampanha?: () => void }
 
 // formatos dos canais em foco: com um canal, o nome que ele usa (Reels, Shorts…); com vários, o nome geral e onde existe
 function Formatos({ f, mudar }: Pick<PropsFiltros, 'f' | 'mudar'>) {
@@ -95,49 +105,44 @@ function Formatos({ f, mudar }: Pick<PropsFiltros, 'f' | 'mudar'>) {
   const opcoes = FORMATOS.map((k) => ({ k, onde: canais.filter((r) => REDES[r].formatos.includes(k)) })).filter((o) => o.onde.length)
   const rotulo = (k: string, onde: Rede[]) => (canais.length === 1 ? nomeFormato(k, canais[0]) : `${nomeGenerico(k)} · ${onde.map((r) => REDES[r].nome).join(', ')}`)
   return (
-    <label className="select-icone"><select value={f.formato} onChange={(e) => mudar({ formato: e.target.value })}>
-      <option value="">Formatos</option>{opcoes.map((o) => <option key={o.k} value={o.k}>{rotulo(o.k, o.onde)}</option>)}
-    </select></label>
+    <label className="mk-pf-campo"><span>Formatos</span><span className="select-icone"><select value={f.formato} onChange={(e) => mudar({ formato: e.target.value })}>
+      <option value="">Todos os formatos</option>{opcoes.map((o) => <option key={o.k} value={o.k}>{rotulo(o.k, o.onde)}</option>)}
+    </select></span></label>
   )
 }
 
-export function BarraFiltros({ f, mudar, campanhas, planos, aoCriarCampanha }: PropsFiltros) {
-  const camp = campanhas.find((c) => c.id === f.campanha)
-  const plano = f.plano === 'avulsa' ? 'Peças avulsas' : planos.find((p) => p.id === f.plano)?.nome
-  const etiquetas = [
-    camp && { txt: camp.nome, tirar: () => mudar({ campanha: '' }) },
-    plano && { txt: plano, tirar: () => mudar({ plano: '' }) },
-    f.canais.length > 0 && { txt: f.canais.map((c) => REDES[c].nome).join(', '), tirar: () => mudar({ canais: [] }) },
-    f.formato && { txt: f.canais.length === 1 ? nomeFormato(f.formato, f.canais[0]) : nomeGenerico(f.formato), tirar: () => mudar({ formato: '' }) },
-    f.situacao && { txt: ETAPAS.find((e) => e.id === f.situacao)?.nome ?? f.situacao, tirar: () => mudar({ situacao: '' }) },
-    f.busca && { txt: `"${f.busca}"`, tirar: () => mudar({ busca: '' }) },
-  ].filter(Boolean) as { txt: string; tirar: () => void }[]
-  return (<>
-    <div className="mk-filtros">
-      <label className="select-icone"><select value={f.campanha} onChange={(e) => (e.target.value === '__nova' ? aoCriarCampanha?.() : mudar({ campanha: e.target.value }))}>
-        <option value="">Campanhas</option>{campanhas.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}{aoCriarCampanha && <option value="__nova">+ Nova campanha…</option>}
-      </select></label>
-      <label className="select-icone"><select value={f.plano} onChange={(e) => mudar({ plano: e.target.value })}>
-        <option value="">Planejamentos</option><option value="avulsa">Peças avulsas</option>{planos.map((p) => <option key={p.id} value={p.id}>{p.nome}</option>)}
-      </select></label>
-      <Canais f={f} mudar={mudar} />
-      <Formatos f={f} mudar={mudar} />
-      <label className="select-icone"><select value={f.situacao} onChange={(e) => mudar({ situacao: e.target.value })}><option value="">Situações</option>{ETAPAS.map((e) => <option key={e.id} value={e.id}>{e.nome}</option>)}</select></label>
-      <label className="select-icone mk-busca"><Icone nome="busca" /><input value={f.busca} onChange={(e) => mudar({ busca: e.target.value })} placeholder="Buscar peça…" /></label>
+export function PainelFiltros({ tela, mudarTela, comTodos, ...pf }: PropsFiltros & { tela: Tela; mudarTela: (c: Partial<Tela>) => void; comTodos?: boolean }) {
+  const { f, mudar, campanhas, planos, aoCriarCampanha } = pf
+  return (
+    <div className="mk-painel-filtros">
+      <LinhaPeriodo {...tela} mudar={mudarTela} comTodos={comTodos} />
+      <div className="mk-pf-filtros">
+        <label className="mk-pf-campo"><span>Campanhas</span><span className="select-icone"><select value={f.campanha} onChange={(e) => (e.target.value === '__nova' ? aoCriarCampanha?.() : mudar({ campanha: e.target.value }))}>
+          <option value="">Todas as campanhas</option>{campanhas.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}{aoCriarCampanha && <option value="__nova">+ Nova campanha…</option>}
+        </select></span></label>
+        <label className="mk-pf-campo"><span>Planejamentos</span><span className="select-icone"><select value={f.plano} onChange={(e) => mudar({ plano: e.target.value })}>
+          <option value="">Todos os planejamentos</option><option value="avulsa">Peças avulsas</option>{planos.map((p) => <option key={p.id} value={p.id}>{p.nome}</option>)}
+        </select></span></label>
+        <Canais f={f} mudar={mudar} />
+        <Formatos f={f} mudar={mudar} />
+        <label className="mk-pf-campo"><span>Situações</span><span className="select-icone"><select value={f.situacao} onChange={(e) => mudar({ situacao: e.target.value })}>
+          <option value="">Todas as situações</option>{ETAPAS.map((e) => <option key={e.id} value={e.id}>{e.nome}</option>)}
+        </select></span></label>
+        <label className="select-icone mk-busca"><Icone nome="busca" /><input value={f.busca} onChange={(e) => mudar({ busca: e.target.value })} placeholder="Buscar peça…" /></label>
+      </div>
     </div>
-    {!!etiquetas.length && (
-      <div className="mk-etiquetas">{etiquetas.map((e) => <span key={e.txt} className="mk-etiqueta">{e.txt}<button aria-label={`Tirar ${e.txt}`} onClick={e.tirar}><Icone nome="fechar" tam={13} /></button></span>)}
-        <button className="link pequeno" onClick={() => mudar(filtrosPecasVazios())}>Limpar filtros</button></div>
-    )}
-  </>)
+  )
 }
 
-// Quadro ou Calendário (fica no cabeçalho do Planejamento)
-export function TrocaVisao({ visao, mudar }: { visao: 'quadro' | 'calendario'; mudar: (v: 'quadro' | 'calendario') => void }) {
+export const temFiltro = (f: FiltrosPecas) => !!(f.campanha || f.plano || f.canais.length || f.formato || f.situacao || f.busca.trim())
+
+// linha abaixo do painel: quantas peças, (opcional) navegação do calendário e "Limpar filtros"
+export function Resumo({ texto, f, mudar, meio, direita }: { texto: string; f: FiltrosPecas; mudar: (c: Partial<FiltrosPecas>) => void; meio?: ReactNode; direita?: ReactNode }) {
   return (
-    <div className="mk-visoes">
-      <button className={visao === 'quadro' ? 'ativa' : ''} onClick={() => mudar('quadro')}><Icone nome="quadro" /> Quadro</button>
-      <button className={visao === 'calendario' ? 'ativa' : ''} onClick={() => mudar('calendario')}><Icone nome="agenda" /> Calendário</button>
+    <div className="mk-resumo">
+      <span className="muted">{texto}</span>
+      {meio && <div className="mk-resumo-meio">{meio}</div>}
+      <div className="mk-resumo-dir">{direita}{temFiltro(f) && <button className="link" onClick={() => mudar(filtrosPecasVazios())}>Limpar filtros</button>}</div>
     </div>
   )
 }

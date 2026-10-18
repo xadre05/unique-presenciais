@@ -11,10 +11,10 @@ export type Formato = 'post' | 'carrossel' | 'reels' | 'stories' | 'video'
 type InfoRede = { nome: string; cor: string; formatos: Formato[]; nomes?: Partial<Record<Formato, string>>; exemplo: string }
 export const REDES: Record<Rede, InfoRede> = {
   instagram: { nome: 'Instagram', cor: '#e1306c', formatos: ['post', 'carrossel', 'reels', 'stories'], nomes: { post: 'Post', reels: 'Reels' }, exemplo: '@suaempresa' },
-  youtube: { nome: 'YouTube', cor: '#ff3d3d', formatos: ['video', 'reels'], nomes: { video: 'Vídeo', reels: 'Shorts' }, exemplo: 'youtube.com/@suaempresa' },
-  tiktok: { nome: 'TikTok', cor: '#25f4ee', formatos: ['reels', 'carrossel'], nomes: { reels: 'Vídeo curto', carrossel: 'Carrossel de fotos' }, exemplo: '@suaempresa' },
-  facebook: { nome: 'Facebook', cor: '#4f8fe6', formatos: ['post', 'reels', 'stories'], nomes: { post: 'Post', reels: 'Reels' }, exemplo: 'facebook.com/suaempresa' },
-  linkedin: { nome: 'LinkedIn', cor: '#3b9bd9', formatos: ['post', 'carrossel', 'reels'], nomes: { post: 'Post', reels: 'Vídeo curto', carrossel: 'Carrossel (PDF)' }, exemplo: 'linkedin.com/company/suaempresa' },
+  youtube: { nome: 'YouTube', cor: '#ff3d3d', formatos: ['video', 'reels', 'post'], nomes: { video: 'Vídeo longo', reels: 'Shorts', post: 'Post da comunidade' }, exemplo: 'youtube.com/@suaempresa' },
+  tiktok: { nome: 'TikTok', cor: '#25f4ee', formatos: ['reels', 'carrossel', 'stories'], nomes: { reels: 'Vídeo', carrossel: 'Carrossel de fotos', stories: 'Stories' }, exemplo: '@suaempresa' },
+  facebook: { nome: 'Facebook', cor: '#4f8fe6', formatos: ['post', 'carrossel', 'reels', 'stories'], nomes: { post: 'Post', reels: 'Reels' }, exemplo: 'facebook.com/suaempresa' },
+  linkedin: { nome: 'LinkedIn', cor: '#3b9bd9', formatos: ['post', 'carrossel', 'reels'], nomes: { post: 'Post', reels: 'Vídeo', carrossel: 'Carrossel (PDF)' }, exemplo: 'linkedin.com/company/suaempresa' },
   pinterest: { nome: 'Pinterest', cor: '#e60023', formatos: ['post', 'carrossel', 'reels'], nomes: { post: 'Pin', carrossel: 'Pin carrossel', reels: 'Pin em vídeo' }, exemplo: 'pinterest.com/suaempresa' },
   threads: { nome: 'Threads', cor: '#d9d9d9', formatos: ['post', 'carrossel'], nomes: { post: 'Post de texto', carrossel: 'Post com fotos' }, exemplo: '@suaempresa' },
 }

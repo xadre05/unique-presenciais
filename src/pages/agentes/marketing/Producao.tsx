@@ -4,7 +4,7 @@ import type { Peca, Trabalho } from '../comum'
 import { ETAPA, etapaDe } from './etapas'
 import { REDES, nomeFormato, redeDe } from './redes'
 import { LogoRede } from './LogoRede'
-import { BarraFiltros, BarraPeriodo, CabecalhoAba } from './BarraFiltros'
+import { CabecalhoAba, PainelFiltros, Resumo } from './BarraFiltros'
 import { aplicarProducao, type FiltrosProducao } from './filtros'
 import { PaginaPeca } from './PaginaPeca'
 import type { Campanha } from './useMarketing'
@@ -26,9 +26,8 @@ export function Producao(pr: Props) {
   return (
     <section className="mk-plano">
       <CabecalhoAba titulo="Produção de conteúdo" sub="Abra uma peça para escrever, revisar ou finalizar." />
-      <BarraPeriodo periodo={f.periodo} data={f.data} ate={f.ate} mudar={mudar} comTodos nota="O período filtra a lista; cada peça é produzida individualmente." />
-      <BarraFiltros f={f} mudar={mudar} campanhas={pr.campanhas} planos={pr.planos} />
-      <h3 className="mk-lista-titulo">Peças <span className="muted pequeno">{lista.length} {lista.length === 1 ? 'resultado' : 'resultados'}</span></h3>
+      <PainelFiltros tela={{ periodo: f.periodo, data: f.data, ate: f.ate }} mudarTela={mudar} comTodos f={f} mudar={mudar} campanhas={pr.campanhas} planos={pr.planos} />
+      <Resumo f={f} mudar={mudar} texto={`${lista.length} ${lista.length === 1 ? 'peça' : 'peças'}${f.periodo === 'todos' ? '' : ' no período'} · cada peça é produzida individualmente`} />
       <div className="mk-tabela-caixa">
         <table className="tabela mk-tabela">
           <thead><tr><th>Peça</th><th>Canal e formato</th><th>Data planejada</th><th>Vínculo</th><th>Situação</th><th /></tr></thead>
