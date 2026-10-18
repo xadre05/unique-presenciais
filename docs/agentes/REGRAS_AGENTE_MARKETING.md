@@ -31,6 +31,22 @@ Fixadas pelo Alexandre em 18/10/2026. Qualquer mudança nas telas ou na função
 - **Mês fechado:** o filtro "Mês" mostra só os dias daquele mês (outubro = 1 a 31).
 - Calendário: o "+" de cada dia cria uma peça naquela data.
 
+## Padrão das telas (18/10/2026)
+
+- Planejamento e Produção usam **as mesmas barras**: título da aba, período de visualização e filtros.
+- A data fica sempre no mesmo lugar, ao lado dos botões Dia / Semana / Mês / Período (na Produção existe também "Todos").
+- Os filtros estão sempre na mesma ordem: Campanhas, Planejamentos, Canais, Formatos, Situações. A busca fica à direita.
+- Quadro / Calendário fica no cabeçalho do Planejamento.
+- Os canais aparecem com o logo deles.
+
+## Cadastro de redes sociais
+
+- O cadastro fica em **Base da marca → Redes sociais**. Ali se liga ou desliga cada canal e se registra o perfil (@ ou link).
+- Só os canais ligados aparecem nos filtros, no planejamento e na criação de peças.
+- O agente só propõe e escreve para os canais ligados e usa os perfis cadastrados.
+- Catálogo disponível: Instagram, YouTube, TikTok, Facebook, LinkedIn, Pinterest e Threads.
+- Uma rede nova (X, WhatsApp, e-mail…) precisa de formatos e de um guia de escrita próprios, por isso entra por desenvolvimento.
+
 ## Canais
 
 - **Primeira fase:** Instagram, YouTube e TikTok.
