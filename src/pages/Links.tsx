@@ -12,7 +12,7 @@ type LinkPg = {
   id: string; titulo: string; curso_id: string | null; turma_id: string | null; tipo: string; endereco: string
   valor: number | null; condicao: string | null; observacao: string | null; ativo: boolean; ordem: number
   finalidade: string; aluno_id: string | null; validade: string | null; origem: string; sincronizado_em: string | null
-  grupo_id: string | null; forma_hotmart: string | null
+  grupo_id: string | null; forma_hotmart: string | null; hotmart_produto_id: number | null
 }
 
 const FINALIDADES: Record<string, string> = { integral: 'Pagamento integral', matricula: 'Matrícula (entrada)', saldo: 'Saldo restante', exclusivo: 'Exclusivo de um aluno' }
@@ -196,7 +196,7 @@ export default function Links() {
       <p className="muted pequeno">Cadastro e edição: administrador. Consulta e cópia: toda a equipe.</p>
 
       {isAdmin && <FormLink link={editando} cursos={cad.cursos} turmas={cad.turmas} alunos={alunos.dados ?? []} grupos={grupos.dados ?? []} onFechar={() => setEditando(null)} onSalvo={() => { setEditando(null); links.recarregar() }} />}
-      {isAdmin && <FormGrupo grupo={editandoGrupo} onFechar={() => setEditandoGrupo(null)} onSalvo={() => { setEditandoGrupo(null); grupos.recarregar() }} />}
+      {isAdmin && <FormGrupo grupo={editandoGrupo} links={links.dados ?? []} grupos={grupos.dados ?? []} onFechar={() => setEditandoGrupo(null)} onSalvo={() => { setEditandoGrupo(null); grupos.recarregar(); links.recarregar() }} />}
     </div>
   )
 }
