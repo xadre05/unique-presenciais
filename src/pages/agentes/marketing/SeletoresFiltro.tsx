@@ -64,7 +64,7 @@ function Painel({ rotulo, resumo, titulo, itens, escolhidos, aoAplicar, largura,
       {aberto && (
         <div className={`mk-pop-painel ${alinhar}`} style={{ width: largura }} role="dialog" aria-label={titulo}>
           <header><b>{titulo}</b></header>
-          {itens.length > 6 && <label className="select-icone mk-pop-busca"><Icone nome="busca" tam={16} /><input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Buscar…" autoFocus /></label>}
+          {itens.length > 10 && <label className="select-icone mk-pop-busca"><Icone nome="busca" tam={16} /><input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Buscar…" autoFocus /></label>}
           <ListaMarcar itens={itens} marcados={marcados} setMarcados={setMarcados} busca={busca} />
           {rodape}
           <footer>
@@ -94,17 +94,16 @@ export function SeletorCanais({ f, mudar }: Props) {
 }
 
 // formatos que existem nos canais em foco; com um canal só, o nome que ele usa (Reels, Shorts…),
-// com vários, o nome geral e embaixo como cada canal chama
+// com vários, o nome geral e embaixo em quais canais existe
 export function SeletorFormatos({ f, mudar }: Props) {
   const ativas = useRedes()
   const canais = f.canais.length ? f.canais : ativas
   const itens: Item[] = FORMATOS.filter((k) => canais.some((r) => REDES[r].formatos.includes(k))).map((k) => {
     const onde = canais.filter((r) => REDES[r].formatos.includes(k))
-    const nomes = [...new Set(onde.map((r) => nomeFormato(k, r)))].filter((n) => n !== nomeGenerico(k))
     return {
       id: k, icone: <span style={{ color: infoFormato(k).cor }}><Icone nome={infoFormato(k).icone} tam={18} /></span>,
       nome: canais.length === 1 ? nomeFormato(k, canais[0]) : nomeGenerico(k),
-      detalhe: canais.length > 1 ? (nomes.length ? nomes.join(' · ') : onde.map((r) => REDES[r].nome).join(' · ')) : undefined,
+      detalhe: canais.length > 1 ? onde.map((r) => REDES[r].nome).join(' · ') : undefined,
     }
   })
   const nome = (k: string) => (canais.length === 1 ? nomeFormato(k, canais[0]) : nomeGenerico(k))
