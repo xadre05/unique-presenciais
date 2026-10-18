@@ -2049,3 +2049,14 @@ a.sala-agente:hover { border-color: var(--ouro); transform: translateY(-2px); }
 /* sala: todos na mesma escala (mesma altura); quem segura algo mais longe pode passar um pouco da caixa */
 .retrato { overflow: visible; }
 .retrato img { max-width: none; }
+
+/* "saindo de dentro": a metade de baixo da borda fica NA FRENTE do personagem (o corpo entra atrás dela),
+   a metade de cima fica atrás da cabeça. O corpo é cortado na borda de dentro do círculo. */
+.mk-avatar-pop img { z-index: 1;
+  -webkit-mask: linear-gradient(to bottom, #000 calc(100% - var(--d) * .5), transparent calc(100% - var(--d) * .15)), radial-gradient(circle calc(var(--d) / 2 - 3px) at 50% calc(100% - var(--d) / 2), #000 98%, transparent 100%);
+  mask: linear-gradient(to bottom, #000 calc(100% - var(--d) * .5), transparent calc(100% - var(--d) * .15)), radial-gradient(circle calc(var(--d) / 2 - 3px) at 50% calc(100% - var(--d) / 2), #000 98%, transparent 100%); }
+.mk-avatar-frente { position: absolute; z-index: 2; left: calc(50% - var(--d) / 2); bottom: 0; width: var(--d); height: calc(var(--d) * .55); overflow: hidden; pointer-events: none; }
+.mk-avatar-frente::before { content: ''; position: absolute; left: 0; bottom: 0; width: var(--d); height: var(--d); box-sizing: border-box; border-radius: 50%; border: 4px solid transparent;
+  background: conic-gradient(from 200deg, #e7c46a, #a46ee6, #e7c46a, #c98bff, #e7c46a) border-box;
+  -webkit-mask: linear-gradient(#000 0 0) padding-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask-composite: exclude; }
+.mk-avatar-pop.trabalhando .mk-avatar-frente::before { animation: mk-gira 3s linear infinite; }
