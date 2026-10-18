@@ -38,6 +38,10 @@ Fixadas pelo Alexandre em 18/10/2026. Qualquer mudança nas telas ou na função
 - Os filtros estão sempre na mesma ordem: Campanhas, Planejamentos, Canais, Formatos, Situações. A busca fica à direita.
 - Quadro / Calendário fica no cabeçalho do Planejamento.
 - Os canais aparecem com o logo deles.
+- **Nome dos formatos depende do canal.**
+  - Com um canal só, aparece o nome que a rede usa: Reels, Shorts, Vídeo curto do TikTok.
+  - Com vários canais, aparece o nome geral e onde o formato existe. Ex.: "Vídeo curto vertical · Instagram, YouTube, TikTok"; "Vídeo longo horizontal · YouTube".
+  - Ao tirar um canal, o formato que ele não tem sai do filtro.
 
 ## Cadastro de redes sociais
 
