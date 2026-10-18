@@ -2290,3 +2290,23 @@ a.sala-agente:hover { border-color: var(--ouro); transform: translateY(-2px); }
 }
 .pp-versoes > *, .pp-itens > *, .pp-direcao > *, .pp-corpo > * { min-width: 0; }
 .pp-aviso-arte { grid-column: 1 / -1; font-size: .88rem; align-items: flex-start; }
+
+/* Configurações → Inteligências artificiais; Base da marca → Pessoas da marca */
+.ia-grade { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 12px; margin-top: 10px; }
+.ia-cartao { display: flex; flex-direction: column; gap: 10px; padding: 14px; border: 1px solid var(--borda); border-radius: 12px; background: var(--painel-2); }
+.ia-cartao.ligada { border-color: color-mix(in srgb, var(--ok) 40%, var(--borda)); }
+.ia-topo { display: flex; justify-content: space-between; gap: 10px; align-items: flex-start; }
+.ia-topo p { margin: 2px 0 0; }
+.ia-linha { display: flex; gap: 8px; }
+.ia-linha input { flex: 1; }
+.ia-quem { display: flex; flex-direction: column; gap: 14px; }
+.ia-quem-linha { display: grid; grid-template-columns: 240px minmax(240px, 360px) 1fr; gap: 12px; align-items: center; }
+.ia-quem-linha .select-icone select { padding: 9px 0; }
+.pessoas-marca { display: flex; flex-direction: column; gap: 12px; }
+.pessoa-cartao { display: flex; flex-direction: column; gap: 10px; padding: 14px; border: 1px solid var(--borda); border-radius: 12px; background: var(--painel-2); }
+.pessoa-topo { display: grid; grid-template-columns: minmax(160px, 1fr) minmax(200px, 1.4fr) auto; gap: 8px; align-items: center; }
+.pessoa-nome { font-weight: 600; }
+.pp-pessoas { display: flex; flex-wrap: wrap; gap: 6px; }
+.pp-pessoas button { padding: 7px 14px; border-radius: 999px; border: 1px solid var(--borda); background: var(--painel-2); color: var(--texto); font: inherit; font-size: .88rem; cursor: pointer; }
+.pp-pessoas button.ativo { border-color: var(--ouro); background: var(--ouro-fundo); color: var(--ouro-forte); font-weight: 600; }
+@media (max-width: 860px) { .ia-quem-linha, .pessoa-topo { grid-template-columns: 1fr; } }

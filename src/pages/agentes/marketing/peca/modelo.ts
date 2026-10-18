@@ -10,7 +10,7 @@ export type Arte = { arquivo?: string; nome?: string; orientacao?: string }
 export type Cor = { nome: string; hex: string }
 export type Referencia = { caminho: string; nome: string }
 // antes e depois: só fotos reais, com a autorização do paciente confirmada por quem enviou
-export type Visual = { estilo: string; proporcao: string; paleta: Cor[]; referencias: Referencia[]; antesDepois?: Referencia[]; autorizado?: boolean }
+export type Visual = { estilo: string; proporcao: string; paleta: Cor[]; referencias: Referencia[]; antesDepois?: Referencia[]; autorizado?: boolean; pessoas?: string[] }
 export type Rascunho = {
   titulo: string; objetivo: string; itens: Item[]; legenda: string; cta: string; hashtags: string
   texto_arte: string; apoio: string; prompt_imagem: string; observacao: string; visual: Visual; artes: Arte[]
@@ -54,7 +54,7 @@ export function juntarItem(i: Item, cfg: ConfigItem) {
 
 export function visualDe(c: Conteudo, tipo: string): Visual {
   const v = c.visual
-  return { estilo: v?.estilo ?? 'Editorial premium', proporcao: v?.proporcao ?? configDe(tipo).proporcao, paleta: v?.paleta?.length ? v.paleta : PALETA_PADRAO, referencias: v?.referencias ?? [], antesDepois: v?.antesDepois ?? [], autorizado: v?.autorizado ?? false }
+  return { estilo: v?.estilo ?? 'Editorial premium', proporcao: v?.proporcao ?? configDe(tipo).proporcao, paleta: v?.paleta?.length ? v.paleta : PALETA_PADRAO, referencias: v?.referencias ?? [], antesDepois: v?.antesDepois ?? [], autorizado: v?.autorizado ?? false, pessoas: v?.pessoas ?? [] }
 }
 
 export function rascunhoDe(titulo: string, tipo: string, c: Conteudo): Rascunho {

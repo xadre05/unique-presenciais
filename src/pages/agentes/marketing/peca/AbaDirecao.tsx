@@ -2,6 +2,9 @@
 // Estilo, proporção e paleta valem para a peça toda; a orientação pode ser geral ou de um item só.
 // À direita, a prévia: o arquivo enviado (ou, quando o Agente de Arte estiver ligado, a arte gerada).
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
+import { usePessoasMarca } from '../../PessoasMarca'
+import { EMPRESA } from '../useMarketing'
 import { Icone } from '../../../../components/Icone'
 import type { Peca, Trabalho } from '../../comum'
 import { ESTILOS, PROPORCOES, configDe, nomesItem, type Campo, type CampoTexto } from './editor'
@@ -66,6 +69,24 @@ function Previa({ peca, r, mudar, atual, setAtual }: Pick<Props, 'peca' | 'r' | 
   )
 }
 
+// pessoas da marca (cadastradas na Base da marca, com autorização) que aparecem na arte
+function QuemAparece({ v, muda }: { v: Visual; muda: (c: Partial<Visual>) => void }) {
+  const pessoas = usePessoasMarca(EMPRESA).dados ?? []
+  const prontas = pessoas.filter((p) => p.autorizado && p.fotos.length)
+  const marcadas = v.pessoas ?? []
+  const trocar = (id: string) => muda({ pessoas: marcadas.includes(id) ? marcadas.filter((x) => x !== id) : [...marcadas, id] })
+  return (
+    <div className="pp-campo">
+      <span className="pp-rotulo">Quem aparece nesta arte?</span>
+      <div className="pp-pessoas">
+        <button type="button" className={!marcadas.length ? 'ativo' : ''} onClick={() => muda({ pessoas: [] })}>Ninguém</button>
+        {prontas.map((p) => <button key={p.id} type="button" className={marcadas.includes(p.id) ? 'ativo' : ''} onClick={() => trocar(p.id)}>{p.nome}</button>)}
+      </div>
+      <span className="muted pequeno">{prontas.length ? 'A IA usa as fotos cadastradas como referência do rosto.' : <>Cadastre as pessoas e as fotos em <Link to="/agentes/marca" className="link">Base da marca → Pessoas da marca</Link>.</>}</span>
+    </div>
+  )
+}
+
 // fotos reais de antes e depois do paciente; o envio só abre depois de confirmar a autorização
 function AntesDepois({ peca, v, muda }: { peca: Peca; v: Visual; muda: (c: Partial<Visual>) => void }) {
   const fotos = v.antesDepois ?? []
@@ -123,6 +144,7 @@ export function AbaDirecao({ peca, r, mudar, atual, setAtual, nomeAba, rodando, 
           </div>
           <span className="muted pequeno">Prints de posts, fotos ou artes que servem de modelo.</span>
         </div>
+        <QuemAparece v={v} muda={muda} />
         <AntesDepois peca={peca} v={v} muda={muda} />
         <AjusteIA peca={peca} rodando={rodando} ultimo={ultimo} titulo={`O que deseja ajustar em ${minusc(nomeAba)}?`} placeholder="Ex.: menos texto na arte e mais contraste no título"
           alcances={[{ id: 'visual', nome: nomeAba, instrucao: (p) => `${so} Pedido: ${p}. Mantenha o texto, o roteiro e a legenda exatamente como estão.` }, { id: 'peca', nome: 'Peça inteira', instrucao: (p) => p }]}
