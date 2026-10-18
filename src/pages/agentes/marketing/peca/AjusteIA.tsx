@@ -27,7 +27,8 @@ export function AjusteIA({ peca, rodando, ultimo, titulo, placeholder, alcances,
 
   const pedir = async () => {
     const pedido = texto.trim()
-    if (!pedido || !escolhido) return
+    if (!pedido) { setErro('Escreva primeiro, na caixa acima, o que você quer mudar.'); document.getElementById(`ajuste-${peca.id}`)?.focus(); return }
+    if (!escolhido) return
     setErro(null)
     await antes()
     const m = await pedirAjuste(peca, escolhido.instrucao(pedido), { lembrar: guardar, nota: `${escolhido.nome}: ${pedido}`.slice(0, 160) })
@@ -44,7 +45,7 @@ export function AjusteIA({ peca, rodando, ultimo, titulo, placeholder, alcances,
           <button className="btn btn-mini" onClick={async () => { await esquecer(EMPRESA, 'marketing', aprendeu); setEsquecido(aprendeu) }}>Não guardar</button></div>
       )}
       <label className="pp-rotulo" htmlFor={`ajuste-${peca.id}`}>{titulo}</label>
-      <textarea id={`ajuste-${peca.id}`} rows={2} value={texto} onChange={(e) => setTexto(e.target.value)} placeholder={placeholder}
+      <textarea id={`ajuste-${peca.id}`} rows={2} value={texto} onChange={(e) => { setTexto(e.target.value); setErro(null) }} placeholder={placeholder}
         onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); pedir() } }} />
       <div className="pp-ajuste-linha">
         {alcances.length > 1 && (
@@ -53,7 +54,7 @@ export function AjusteIA({ peca, rodando, ultimo, titulo, placeholder, alcances,
         )}
         <label className="pp-check"><input type="checkbox" checked={guardar} onChange={(e) => setGuardar(e.target.checked)} /> Sugerir como preferência do agente</label>
         <span className="muted pequeno">Enter envia · Shift+Enter quebra a linha</span>
-        <button className="btn btn-contorno-ouro" disabled={!texto.trim()} onClick={pedir}><Icone nome="floco" tam={16} /> Pedir ajuste à IA</button>
+        <button className="btn btn-contorno-ouro" onClick={pedir}><Icone nome="floco" tam={16} /> Pedir ajuste à IA</button>
       </div>
       <Erro msg={erro} />
     </div>

@@ -2289,3 +2289,4 @@ a.sala-agente:hover { border-color: var(--ouro); transform: translateY(-2px); }
   .pp-hist ol li { flex: 0 0 240px; }
 }
 .pp-versoes > *, .pp-itens > *, .pp-direcao > *, .pp-corpo > * { min-width: 0; }
+.pp-aviso-arte { grid-column: 1 / -1; font-size: .88rem; align-items: flex-start; }

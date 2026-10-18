@@ -9,6 +9,7 @@ import type { Arte, Cor, Rascunho, Visual } from './modelo'
 import { CampoEditor } from './CampoEditor'
 import { AjusteIA } from './AjusteIA'
 import { BotaoEnviar, Miniatura, pastaDa } from './arquivos'
+import { BotaoCriarArte } from './AvisoArte'
 
 type Props = {
   peca: Peca; r: Rascunho; mudar: (c: Partial<Rascunho>) => void; atual: number; setAtual: (i: number) => void; nomeAba: string
@@ -50,11 +51,11 @@ function Previa({ peca, r, mudar, atual, setAtual }: Pick<Props, 'peca' | 'r' | 
         {arte.arquivo ? <Miniatura caminho={arte.arquivo} nome={arte.nome} /> : <span className="muted"><Icone nome="imagem" tam={34} />{cfg.etapa2?.arquivos === false ? `${cfg.rotuloArte} (opcional)` : `${cfg.rotuloArte} ainda não criada`}<small>{r.visual.proporcao}</small></span>}
       </div>
       <div className="pp-previa-botoes">
-        <button className="btn btn-contorno-ouro" disabled title="O Agente de Arte entra quando a chave de imagem estiver ligada em Configurações"><Icone nome="floco" tam={16} /> Gerar {porItem ? `arte desta ${minusc(singular)}` : minusc(cfg.rotuloArte)}</button>
-        <BotaoEnviar pasta={pastaDa(peca.id)} aoEnviar={(caminho, n) => guardar({ ...arte, arquivo: caminho, nome: n })} />
+        <BotaoCriarArte texto={`Gerar ${porItem ? `arte desta ${minusc(singular)}` : minusc(cfg.rotuloArte)}`} />
+        <BotaoEnviar pasta={pastaDa(peca.id)} texto={cfg.etapa2?.arquivos === false ? 'Enviar arquivo' : 'Enviar arte pronta'} aoEnviar={(caminho, n) => guardar({ ...arte, arquivo: caminho, nome: n })} />
         {arte.arquivo && <button className="btn btn-mini" onClick={() => guardar({ ...arte, arquivo: undefined, nome: undefined })}>Tirar arquivo</button>}
       </div>
-      <span className="muted pequeno">A geração de imagem entra com o Agente de Arte. Até lá, envie a arte pronta.</span>
+      <span className="muted pequeno">Feita fora do sistema? Envie a arte pronta. Gerar aqui depende do Agente de Arte.</span>
       {porItem && total > 0 && (
         <div className="pp-numeros">
           <span className="muted pequeno">{prontas} de {total} artes prontas</span>

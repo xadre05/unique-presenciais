@@ -9,6 +9,7 @@ import { estagioDe } from './progresso'
 import { BotaoEnviar, Miniatura, pastaDa } from './arquivos'
 import { ORIGEM } from './AbaVersoes'
 import { DetalhesPeca } from './DetalhesPeca'
+import { BotaoCriarArte } from './AvisoArte'
 import type { Campanha } from '../useMarketing'
 import type { Plano } from '../planos'
 
@@ -32,8 +33,8 @@ function ArquivosItem({ peca, r, mudar, atual }: Pick<Props, 'peca' | 'r' | 'mud
       <header><h3>Arquivos da {minusc(singular)}</h3></header>
       {arte.arquivo ? <Miniatura caminho={arte.arquivo} nome={arte.nome} proporcao={r.visual.proporcao} /> : <p className="muted pequeno">Nenhum arquivo para a {minusc(singular)} {i + 1}.</p>}
       <div className="pp-botoes-lado">
-        <BotaoEnviar pasta={pastaDa(peca.id)} aoEnviar={(c, n) => guardar(c, n)} />
-        <button className="btn btn-contorno" disabled title="O Agente de Arte entra quando a chave de imagem estiver ligada em Configurações">Criar arte</button>
+        <BotaoEnviar pasta={pastaDa(peca.id)} texto="Enviar arte pronta" aoEnviar={(c, n) => guardar(c, n)} />
+        <BotaoCriarArte texto="Criar arte" classe="btn btn-contorno" />
       </div>
       {arte.arquivo && <button className="link pequeno" onClick={() => guardar(undefined, undefined)}>Tirar arquivo</button>}
     </section>
