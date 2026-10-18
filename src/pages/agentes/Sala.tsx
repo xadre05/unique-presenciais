@@ -12,7 +12,7 @@ import { TIPO_PECA, usd, visualDe } from './comum'
 import type { PerfilMarketing } from './MarketingPerfil'
 
 function situacao(a: AgenteNaSala, temChave: boolean): { txt: string; tom: string } {
-  if (!a.disponivel) return { txt: 'Em breve', tom: 'neutro' }
+  if (!a.disponivel) return { txt: a.escopo === 'clinical' ? 'Para clínicas · Em breve' : 'Em breve', tom: 'neutro' }
   if (!temChave) return { txt: 'Configuração pendente', tom: 'alerta' }
   if (!a.ativo) return { txt: 'Desligado', tom: 'neutro' }
   if (a.estado === 'trabalhando') return { txt: 'Trabalhando…', tom: 'ativo' }

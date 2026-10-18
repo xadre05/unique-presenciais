@@ -19,8 +19,8 @@ export function estadoDo(a: AgenteSala | null): Estado {
 export function useSala() {
   const sala = useConsulta<AgenteSala[]>(() => supabase.rpc('agentes_sala', { p_empresa: EMPRESA_UNIQUE }))
   const cfg = useConsulta<Config | null>(() => supabase.from('agentes_config').select('*').eq('empresa_id', EMPRESA_UNIQUE).maybeSingle())
-  // aqui é a Unique (Academy): os agentes só do Clinical ficam no sistema das clínicas
-  const agentes: AgenteNaSala[] = CATALOGO.filter((c) => c.escopo !== 'clinical').map((c) => {
+  // a sala mostra os 8 agentes; os que são só do Clinical (ex.: Recepção) aparecem como "Para clínicas · Em breve"
+  const agentes: AgenteNaSala[] = CATALOGO.map((c) => {
     const d = (sala.dados ?? []).find((x) => x.agente_id === c.id) ?? null
     return { ...c, dados: d, disponivel: !!d?.disponivel, ativo: !!d?.ativo, estado: estadoDo(d) }
   })
