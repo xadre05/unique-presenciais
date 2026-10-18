@@ -7,8 +7,8 @@ import { pedirTrabalho, type Campanha } from './useMarketing'
 
 type Tipo = 'post' | 'carrossel' | 'reels' | 'stories'
 
-export function NovaPeca({ aberto, aoFechar, campanhas, campanhaPadrao, diaPadrao, aoPedir }: {
-  aberto: boolean; aoFechar: () => void; campanhas: Campanha[]; campanhaPadrao: string; diaPadrao?: string; aoPedir: () => void
+export function NovaPeca({ aberto, aoFechar, campanhas, campanhaPadrao, diaPadrao, aoPedir, aoCriarCampanha }: {
+  aberto: boolean; aoFechar: () => void; campanhas: Campanha[]; campanhaPadrao: string; diaPadrao?: string; aoPedir: () => void; aoCriarCampanha: () => void
 }) {
   const [tipo, setTipo] = useState<Tipo>('reels')
   const [dia, setDia] = useState(diaPadrao ?? hojeISO())
@@ -18,7 +18,7 @@ export function NovaPeca({ aberto, aoFechar, campanhas, campanhaPadrao, diaPadra
   const [campanha, setCampanha] = useState(campanhaPadrao)
   const [erro, setErro] = useState<string | null>(null)
   const [enviando, setEnviando] = useState(false)
-  useEffect(() => { if (aberto) { setDia(diaPadrao ?? hojeISO()); setCampanha(campanhaPadrao); setErro(null) } }, [aberto]) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { if (aberto) { setCampanha(campanhaPadrao); setErro(null) } }, [aberto, campanhaPadrao]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const enviar = async (soIdeia: boolean) => {
     setErro(null)
@@ -45,7 +45,7 @@ export function NovaPeca({ aberto, aoFechar, campanhas, campanhaPadrao, diaPadra
         </Campo>
         <div className="form-duas">
           <Campo rotulo="Dia"><input type="date" value={dia} onChange={(e) => setDia(e.target.value)} /></Campo>
-          <Campo rotulo="Campanha"><select value={campanha} onChange={(e) => setCampanha(e.target.value)}><option value="">Sem campanha</option>{campanhas.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}</select></Campo>
+          <Campo rotulo="Campanha"><select value={campanha} onChange={(e) => (e.target.value === '__nova' ? aoCriarCampanha() : setCampanha(e.target.value))}><option value="">Sem campanha</option>{campanhas.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}<option value="__nova">+ Nova campanha…</option></select></Campo>
         </div>
         {tipo === 'stories' && <Campo rotulo="Telas na sequência"><InputNumero valor={telas} min={2} max={15} onChange={(v) => setTelas(v ?? 5)} /></Campo>}
         <Campo rotulo="Título ou ideia"><input value={titulo} onChange={(e) => setTitulo(e.target.value)} placeholder="Ex.: Os 3 bônus da Black" /></Campo>

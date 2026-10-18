@@ -95,7 +95,8 @@ async function contexto(db: SupabaseClient) {
   if (cursos.data?.length) linhas.push(`Cursos presenciais cadastrados: ${cursos.data.map((c) => c.nome).join('; ')}.`)
   const abertas = (turmas.data ?? []).filter((t) => t.vendas_abertas && !['cancelada', 'realizada'].includes(String(t.status)))
   if (abertas.length) linhas.push('Próximas turmas com vendas abertas:\n' + abertas.map((t) => `- ${t.curso_nome} · ${t.nome} · início ${t.data_inicio} · ${Math.max(0, Number(t.vagas ?? 0) - Number(t.inscritos ?? 0))} vagas livres de ${t.vagas ?? '?'}`).join('\n'))
-  for (const g of grupos.data ?? []) linhas.push(`Campanha ativa "${g.nome}": ${g.descricao ?? ''}`)
+  // grupos de links de pagamento criados no Comercial: não são campanhas, só ofertas que estão à venda agora
+  for (const g of grupos.data ?? []) linhas.push(`Grupo de links de pagamento ativo "${g.nome}" (oferta à venda agora): ${g.descricao ?? ''}`)
   return linhas.join('\n\n')
 }
 

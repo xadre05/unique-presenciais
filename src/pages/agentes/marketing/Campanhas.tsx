@@ -1,8 +1,7 @@
 // Campanha: escolher qual está em foco e criar uma nova (nome, período e o que ela vende).
 // Fica guardada no perfil do agente de Marketing; as peças pedidas dentro dela levam a campanha junto.
 import { useState } from 'react'
-import { supabase } from '../../../lib/supabase'
-import { msgErro, useConsulta } from '../../../lib/dados'
+import { msgErro } from '../../../lib/dados'
 import { Campo, Erro, Modal } from '../../../components/ui'
 import { atualizarPerfil } from '../memoria'
 import { EMPRESA, type Campanha } from './useMarketing'
@@ -27,7 +26,6 @@ export function SeletorCampanha({ campanhas, valor, aoMudar, aoCriar }: { campan
 const vazia = { nome: '', inicio: '', fim: '', descricao: '' }
 
 export function NovaCampanha({ aberto, aoFechar, aoCriar }: { aberto: boolean; aoFechar: () => void; aoCriar: (id: string) => void }) {
-  const grupos = useConsulta<{ nome: string; descricao: string | null }[]>(() => supabase.from('links_grupos').select('nome,descricao').eq('ativo', true))
   const [f, setF] = useState(vazia)
   const [erro, setErro] = useState<string | null>(null)
   const salvar = async () => {
@@ -40,11 +38,7 @@ export function NovaCampanha({ aberto, aoFechar, aoCriar }: { aberto: boolean; a
   return (
     <Modal titulo="Nova campanha" aberto={aberto} onFechar={aoFechar}>
       <div className="mk-form">
-        {!!grupos.dados?.length && (
-          <p className="pequeno muted">Usar uma campanha que já está nos Links: {grupos.dados.map((g) => (
-            <button key={g.nome} type="button" className="link" onClick={() => setF((x) => ({ ...x, nome: g.nome, descricao: x.descricao || (g.descricao ?? '') }))}>{g.nome}</button>
-          ))}</p>
-        )}
+        <p className="pequeno muted">A campanha existe só aqui no agente: serve para agrupar as peças e dizer ao agente o foco delas.</p>
         <Campo rotulo="Nome"><input value={f.nome} onChange={(e) => setF((x) => ({ ...x, nome: e.target.value }))} placeholder="Ex.: Black Friday Limited Edition" /></Campo>
         <div className="form-duas">
           <Campo rotulo="Começa em"><input type="date" value={f.inicio} onChange={(e) => setF((x) => ({ ...x, inicio: e.target.value }))} /></Campo>

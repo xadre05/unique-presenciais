@@ -22,6 +22,9 @@ export default function AgenteMarketing() {
   const [campanha, setCampanha] = useState(TODAS)
   const [aberta, setAberta] = useState<string | null>(null)
   const [modal, setModal] = useState<'planejar' | 'nova' | 'campanha' | null>(null)
+  // de onde a "Nova campanha" foi aberta, para voltar para lá depois de criar
+  const [voltarPara, setVoltarPara] = useState<'planejar' | 'nova' | null>(null)
+  const criarCampanhaDe = (origem: 'planejar' | 'nova' | null) => { setVoltarPara(origem); setModal('campanha') }
   const { pecas, trabalhos, perfil, campanhas, emAndamento, ocupado, erro } = useMarketing(inicio)
   useEffect(() => { if (new URLSearchParams(local.search).get('modo') === 'peca') setModal('nova') }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -56,7 +59,7 @@ export default function AgenteMarketing() {
 
       {aba === 'planejamento' && (
         <Planejamento inicio={inicio} aoMudarSemana={setInicio} pecas={daCampanha} recarregar={pecas.recarregar} ocupadas={ocupadas}
-          campanhas={campanhas} campanha={campanha} aoMudarCampanha={setCampanha} aoCriarCampanha={() => setModal('campanha')}
+          campanhas={campanhas} campanha={campanha} aoMudarCampanha={setCampanha} aoCriarCampanha={() => criarCampanhaDe(null)}
           aoAbrir={abrir} aoPlanejar={() => setModal('planejar')} aoNova={() => setModal('nova')} />
       )}
       {aba === 'producao' && <Producao pecas={daCampanha} aberta={pecaAberta} aoAbrir={(p) => setAberta(p.id)} trabalhos={trabalhos.dados ?? []} aoMudar={() => { pecas.recarregar(); trabalhos.recarregar() }} />}
@@ -68,9 +71,9 @@ export default function AgenteMarketing() {
         </section>
       )}
 
-      <Planejar aberto={modal === 'planejar'} aoFechar={() => setModal(null)} inicioPadrao={inicio} campanhas={campanhas} campanhaPadrao={campanha} aoPedir={depoisDoPedido} />
-      <NovaPeca aberto={modal === 'nova'} aoFechar={() => setModal(null)} campanhas={campanhas} campanhaPadrao={campanha} aoPedir={depoisDoPedido} />
-      <NovaCampanha aberto={modal === 'campanha'} aoFechar={() => setModal(null)} aoCriar={(id) => { setModal(null); perfil.recarregar(); setCampanha(id) }} />
+      <Planejar aberto={modal === 'planejar'} aoFechar={() => setModal(null)} inicioPadrao={inicio} campanhas={campanhas} campanhaPadrao={campanha} aoPedir={depoisDoPedido} aoCriarCampanha={() => criarCampanhaDe('planejar')} />
+      <NovaPeca aberto={modal === 'nova'} aoFechar={() => setModal(null)} campanhas={campanhas} campanhaPadrao={campanha} aoPedir={depoisDoPedido} aoCriarCampanha={() => criarCampanhaDe('nova')} />
+      <NovaCampanha aberto={modal === 'campanha'} aoFechar={() => setModal(voltarPara)} aoCriar={(id) => { perfil.recarregar(); setCampanha(id); setModal(voltarPara) }} />
     </div>
   )
 }
