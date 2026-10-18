@@ -1573,3 +1573,61 @@ a.sala-agente:hover { border-color: var(--ouro); transform: translateY(-2px); }
 .mk-prod-barra { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; padding: 10px 12px; border: 1px solid var(--borda); border-radius: 12px; background: var(--painel); margin-bottom: 12px; }
 .mk-prod-barra .mk-sep { width: 1px; align-self: stretch; background: var(--borda); }
 .mk-prod-barra .mk-prod-st { margin-left: auto; }
+
+/* ===== Agente de Marketing: período livre, filtros e Criar conteúdo ===== */
+.mk-topo-botoes { display: flex; gap: 10px; flex-wrap: wrap; align-self: flex-start; }
+.mk-barra-periodo { gap: 14px; }
+.mk-rotulo-barra { font-size: .72rem; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+.mk-barra-periodo .mk-semana { border-right: 0; padding-right: 0; }
+.mk-semana b { display: inline-flex; align-items: center; gap: 8px; text-transform: capitalize; }
+.mk-nota-filtro { margin-left: auto; display: inline-flex; align-items: center; gap: 5px; }
+.mk-multi { position: relative; }
+.mk-multi summary { list-style: none; cursor: pointer; padding: 9px 12px; min-width: 170px; white-space: nowrap; color: var(--texto); }
+.mk-multi summary::-webkit-details-marker { display: none; }
+.mk-multi summary::after { content: '▾'; margin-left: 8px; color: var(--muted); }
+.mk-multi-lista { position: absolute; z-index: 20; top: calc(100% + 4px); left: 0; min-width: 200px; display: flex; flex-direction: column; gap: 2px; padding: 8px; border: 1px solid var(--borda); border-radius: 12px; background: var(--painel); box-shadow: 0 10px 30px rgba(0,0,0,.4); }
+.mk-multi-lista label { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 8px; cursor: pointer; }
+.mk-multi-lista label:hover { background: var(--painel-2); }
+.mk-multi-lista i { width: 9px; height: 9px; border-radius: 50%; }
+.mk-etiquetas { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.mk-etiqueta { display: inline-flex; align-items: center; gap: 6px; padding: 5px 8px 5px 12px; border-radius: 999px; border: 1px solid color-mix(in srgb, #a46ee6 50%, var(--borda)); background: color-mix(in srgb, #a46ee6 12%, transparent); font-size: .85rem; }
+.mk-etiqueta button { background: none; border: 0; color: var(--muted); cursor: pointer; display: grid; place-items: center; padding: 0; }
+.mk-contagem { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.mk-convite { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; padding: 14px 16px; border: 1px solid var(--borda); border-radius: 14px; background: var(--painel); }
+.mk-convite > span:nth-child(2) { flex: 1; min-width: 220px; }
+.mk-convite-icone { width: 44px; height: 44px; display: grid; place-items: center; border-radius: 12px; background: var(--ouro-fundo); color: var(--ouro); }
+.mk-calendario { grid-template-columns: repeat(min(var(--dias, 7), 7), minmax(130px, 1fr)); }
+.mk-calendario .mk-dia { min-height: 140px; }
+
+.mk-criar-sub { margin: -6px 0 0; }
+.mk-modos { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.mk-modos button { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 12px; border-radius: 12px; border: 1px solid var(--borda); background: var(--painel-2); color: var(--texto); font: inherit; cursor: pointer; }
+.mk-modos button.ativa { border-color: var(--ouro); background: var(--ouro-fundo); color: var(--ouro-forte); font-weight: 600; }
+.mk-criar-cab { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; flex-wrap: wrap; border-top: 1px solid var(--borda); padding-top: 12px; }
+.mk-criar-cab h3 { margin: 0; }
+.mk-linhas { display: flex; flex-direction: column; gap: 6px; border: 1px solid var(--borda); border-radius: 12px; padding: 8px; }
+.mk-linha { display: grid; grid-template-columns: 1fr 1.2fr 110px 1.3fr 32px; gap: 8px; align-items: center; }
+.mk-linha-cab { font-size: .8rem; color: var(--muted); padding: 0 4px; }
+.mk-linhas.unica .mk-linha { grid-template-columns: 1fr 1.2fr 1.3fr 32px; }
+.mk-linha-bloco { display: flex; flex-direction: column; gap: 6px; padding: 6px 4px; border-top: 1px solid var(--borda); }
+.mk-sel-rede { border-left: 4px solid var(--cor-rede) !important; }
+.mk-linha-det { display: flex; gap: 8px; flex-wrap: wrap; }
+.mk-linha-det label { display: flex; align-items: center; gap: 6px; font-size: .8rem; color: var(--muted); }
+.mk-linha-det .moeda { width: 96px; }
+.mk-dias-semana { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
+.mk-chip.mini { padding: 3px 9px; font-size: .78rem; }
+.mk-add-linha { align-self: flex-start; border-style: dashed; }
+.mk-criar-extra { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; flex-wrap: wrap; }
+.mk-adaptar { display: flex; align-items: flex-start; gap: 8px; max-width: 340px; cursor: pointer; }
+.mk-adaptar input { margin-top: 3px; accent-color: var(--ouro); }
+.mk-criar-rodape { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; border-top: 1px solid var(--borda); padding-top: 12px; }
+.mk-criar-resumo { display: flex; align-items: center; gap: 10px; margin-right: auto; color: var(--ouro); }
+.mk-criar-resumo b { color: var(--texto); }
+@media (max-width: 760px) {
+  .mk-modos { grid-template-columns: 1fr 1fr; }
+  .mk-linha { grid-template-columns: 1fr 1fr; }
+  .mk-linha-cab { display: none; }
+  .mk-nota-filtro { margin-left: 0; }
+  .mk-topo-botoes { width: 100%; }
+  .mk-topo-botoes .btn { flex: 1; justify-content: center; }
+}

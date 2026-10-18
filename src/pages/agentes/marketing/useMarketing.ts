@@ -24,7 +24,8 @@ export function useMarketing(inicio: string, dias = 7) {
 
   useEffect(() => {
     if (!emAndamento.length) return
-    const t = setInterval(() => trabalhos.recarregar(), 4000)
+    // as peças também, para ver as que o agente cria e escreve aparecendo
+    const t = setInterval(() => { trabalhos.recarregar(); pecas.recarregar() }, 4000)
     return () => clearInterval(t)
   }, [emAndamento.length]) // eslint-disable-line react-hooks/exhaustive-deps
   // quando um trabalho termina, recarrega as peças
@@ -35,7 +36,7 @@ export function useMarketing(inicio: string, dias = 7) {
 }
 
 // cria um trabalho e chama o agente; devolve o erro em texto, se houver
-export async function pedirTrabalho(tipo: 'semana' | 'ideia', pedido: Record<string, unknown>) {
+export async function pedirTrabalho(tipo: 'semana' | 'ideia' | 'escrever', pedido: Record<string, unknown>) {
   const { data, error } = await supabase.from('agentes_trabalhos').insert({ empresa_id: EMPRESA, agente_id: 'marketing', tipo, pedido }).select('id').single()
   if (error) return error.message
   const r = await supabase.functions.invoke('agentes', { body: { trabalho: data.id } })

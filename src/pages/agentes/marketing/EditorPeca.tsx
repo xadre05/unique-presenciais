@@ -9,10 +9,17 @@ import { textoDaPeca, type Peca, type Trabalho } from '../comum'
 import { REDES, nomeFormato, redeDe, rotuloPeca } from './redes'
 import { lembrar } from '../memoria'
 import { ETAPA, ehIdeia, etapaDe, moverPara, mudarPeca } from './etapas'
-import { instrucaoEscrever, instrucaoNovoFormato, pedirAjuste } from './ajuste'
+import { instrucaoNovoFormato, pedirAjuste } from './ajuste'
 import { AbaLegenda, AbaRoteiro, AbaVersoes, AbaVisual, NOME_ITEM, rascunhoDe, type Rascunho } from './AbasPeca'
 import { AjustePeca } from './AjustePeca'
-import { EMPRESA } from './useMarketing'
+import { EMPRESA, pedirTrabalho } from './useMarketing'
+
+// o que foi planejado para a peça (aparece enquanto ela é só ideia)
+function briefing(p: Peca) {
+  const b = (p.conteudo as { briefing?: Record<string, string | number | undefined> }).briefing ?? {}
+  const itens = [b.objetivo, b.publico, b.duracao && `Duração: ${b.duracao}`, b.telas && `${b.telas} telas`, b.orientacao && `Gravação: ${b.orientacao}`].filter(Boolean)
+  return itens.length ? <p className="pequeno muted">{itens.join(' · ')}</p> : null
+}
 
 const ABAS = [['roteiro', 'Roteiro'], ['legenda', 'Legenda'], ['visual', 'Direção visual'], ['versoes', 'Versões']] as const
 const MOTIVOS = ['Texto longo demais', 'Faltou emoji', 'Emoji demais', 'Tom muito vendedor', 'Tom muito técnico', 'Não é o nosso assunto']
@@ -32,6 +39,8 @@ export function EditorPeca({ peca, rodando, ultimo, aoMudar }: { peca: Peca; rod
   const restaurar = () => { const { anterior, ...atual } = peca.conteudo; gravar({ conteudo: { ...(anterior as object), campanha: atual.campanha, anterior: atual } }) }
   const mover = async (etapa: Parameters<typeof moverPara>[1]) => { const { error } = await moverPara(peca, etapa); if (error) return setErro(msgErro(error)); aoMudar() }
   const agente = async (instrucao: string, opcoes: { lembrar?: boolean; tipo_novo?: string } = {}) => { const m = await pedirAjuste(peca, instrucao, { lembrar: false, ...opcoes }); if (m) setErro(m); setTipoNovo(null); aoMudar() }
+  // ideia salva no planejamento: o agente escreve usando o que foi planejado (canal, formato, objetivo, duração)
+  const escrever = async () => { setErro(null); const m = await pedirTrabalho('escrever', { peca_ids: [peca.id] }); if (m) setErro(m); aoMudar() }
   const descartar = async (razao: string) => {
     if (razao.trim()) await lembrar(EMPRESA, 'marketing', `Evitar: ${razao.trim()} (recusou "${peca.titulo.slice(0, 60)}")`, 'descarte')
     setMotivo(null); await gravar({ status: 'descartada' })
@@ -61,7 +70,8 @@ export function EditorPeca({ peca, rodando, ultimo, aoMudar }: { peca: Peca; rod
       {ehIdeia(peca) && !rodando ? (
         <div className="mk-ideia">
           <Icone nome="ideia" tam={30} /><p>Esta peça ainda é uma ideia{peca.conteudo.objetivo ? `: ${peca.conteudo.objetivo}` : '.'}</p>
-          <button className="btn btn-ouro" onClick={() => agente(instrucaoEscrever(peca))}>O agente escreve esta peça</button>
+          {briefing(peca)}
+          <button className="btn btn-ouro" onClick={escrever}>Gerar rascunho desta peça</button>
         </div>
       ) : (<>
         <nav className="mk-abas">{ABAS.map(([k, n]) => <button key={k} className={aba === k ? 'ativa' : ''} onClick={() => setAba(k)}>{n}</button>)}</nav>

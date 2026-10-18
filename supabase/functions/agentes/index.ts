@@ -21,7 +21,7 @@ const custo = (modelo: string, ent: number, sai: number) => {
 }
 
 type Trabalho = { id: string; empresa_id: string; agente_id: string; tipo: string; status: string; pedido: Record<string, unknown> }
-type Peca = { tipo: string; dia: string; titulo: string; objetivo?: string; legenda?: string; roteiro?: string[]; texto_arte?: string; cta?: string; hashtags?: string[]; observacao?: string; prompt_imagem?: string; horario?: string; pendencia?: string }
+type Peca = { ref?: number; tipo: string; dia: string; titulo: string; objetivo?: string; legenda?: string; roteiro?: string[]; texto_arte?: string; cta?: string; hashtags?: string[]; observacao?: string; prompt_imagem?: string; horario?: string; pendencia?: string }
 const TIPOS = ['post', 'carrossel', 'reels', 'stories', 'video']
 // como escrever em cada rede e o nome de cada formato nela ("reels" = vídeo curto vertical; "video" = vídeo longo)
 const REDES: Record<string, { nome: string; guia: string; nomes: Record<string, string> }> = {
@@ -65,6 +65,7 @@ const FERRAMENTA = {
             hashtags: { type: 'array', items: { type: 'string' } },
             observacao: { type: 'string', description: 'Dica de gravação, imagem ou cuidado com as regras do conselho' },
             prompt_imagem: { type: 'string', description: 'Para post e carrossel (e a capa do vídeo longo): pedido pronto para colar no ChatGPT e gerar a arte (cena, enquadramento, luz, cores da marca preto e dourado, texto que vai na arte). Nunca pedir rosto de paciente nem antes e depois.' },
+            ref: { type: 'integer', description: 'Quando a lista pedida é numerada: o número do item que esta peça atende' },
             horario: { type: 'string', description: 'Horário sugerido para postar, HH:MM (ex.: 09:00, 12:00, 18:00)' },
             pendencia: { type: 'string', description: 'Só se a peça depende de algo que NÃO está nos materiais/contexto e a equipe precisa confirmar (ex.: qual bônus vale, data de encerramento). Diga em uma frase o que confirmar. Se não há dúvida, deixe vazio.' },
           },
@@ -115,8 +116,26 @@ async function contexto(db: SupabaseClient) {
 }
 
 type Exemplo = { tipo: string; titulo: string; conteudo: { legenda?: string; roteiro?: string[] } }
-function pedidoMarketing(perfil: Record<string, string>, pedido: Record<string, unknown>, ctx: string, exemplos: Exemplo[] = []) {
+// o que o agente sabe da empresa (Base da marca, instruções, ofertas, memória e peças aprovadas): vale para todo pedido
+function blocoEmpresa(perfil: Record<string, string>, exemplos: Exemplo[]) {
   const memoria = (Array.isArray((perfil as Record<string, unknown>).memoria) ? (perfil as Record<string, unknown>).memoria : []) as { texto: string }[]
+  return [
+    'Respeite sempre as regras abaixo, em especial o que é proibido. Não invente números, depoimentos, preços ou datas que não estejam no contexto.',
+    '',
+    `EMPRESA: ${perfil.empresa ?? ''}`,
+    `O QUE VENDE: ${perfil.o_que_vende ?? ''}`,
+    `PÚBLICO: ${perfil.publico ?? ''}`,
+    `TOM DE VOZ: ${perfil.tom ?? ''}`,
+    `NUNCA FAZER: ${perfil.evitar ?? ''}`,
+    `REGRAS DO CONSELHO: ${perfil.conselho ?? ''}`,
+    perfil.instagram ? `PERFIL NO INSTAGRAM: ${perfil.instagram}` : '',
+    perfil.instrucoes ? `\nINSTRUÇÕES DA EQUIPE PARA ESTE AGENTE (siga sempre): ${perfil.instrucoes}` : '',
+    perfil.materiais ? `\nOFERTAS E MATERIAIS DA EMPRESA (fonte da verdade: preços, condições, bônus e datas só podem vir daqui):\n${perfil.materiais}` : '',
+    memoria.length ? `\nO QUE VOCÊ JÁ APRENDEU COM ESTA EQUIPE (gostos e recusas; siga sempre):\n${memoria.map((m) => `- ${m.texto}`).join('\n')}` : '',
+    exemplos.length ? `\nPEÇAS QUE A EQUIPE APROVOU (use como referência de estilo, sem repetir o conteúdo):\n${exemplos.map((e) => `[${e.tipo}] ${e.titulo}\n${(e.conteudo.legenda ?? (e.conteudo.roteiro ?? []).join(' / ')).slice(0, 700)}`).join('\n---\n')}` : '',
+  ]
+}
+function pedidoMarketing(perfil: Record<string, string>, pedido: Record<string, unknown>, ctx: string, exemplos: Exemplo[] = []) {
   const inicio = String(pedido.semana_inicio)
   const nDias = Math.min(14, Math.max(1, Number(pedido.dias ?? 7)))
   const fim = new Date(new Date(inicio + 'T12:00:00Z').getTime() + (nDias - 1) * 86400000).toISOString().slice(0, 10)
@@ -143,19 +162,7 @@ function pedidoMarketing(perfil: Record<string, string>, pedido: Record<string, 
   const sistema = [
     `Você é o Agente de Marketing de uma empresa brasileira. Escreve em português do Brasil, pronto para colar no ${rede.nome}.`,
     `Você prepara o conteúdo (peças avulsas, alguns dias ou a semana); a equipe aprova antes de publicar. Seja concreto. REDE DESTE PEDIDO: ${rede.nome}. ${rede.guia}`,
-    'Respeite sempre as regras abaixo, em especial o que é proibido. Não invente números, depoimentos, preços ou datas que não estejam no contexto.',
-    '',
-    `EMPRESA: ${perfil.empresa ?? ''}`,
-    `O QUE VENDE: ${perfil.o_que_vende ?? ''}`,
-    `PÚBLICO: ${perfil.publico ?? ''}`,
-    `TOM DE VOZ: ${perfil.tom ?? ''}`,
-    `NUNCA FAZER: ${perfil.evitar ?? ''}`,
-    `REGRAS DO CONSELHO: ${perfil.conselho ?? ''}`,
-    perfil.instagram ? `PERFIL NO INSTAGRAM: ${perfil.instagram}` : '',
-    perfil.instrucoes ? `\nINSTRUÇÕES DA EQUIPE PARA ESTE AGENTE (siga sempre): ${perfil.instrucoes}` : '',
-    perfil.materiais ? `\nOFERTAS E MATERIAIS DA EMPRESA (fonte da verdade: preços, condições, bônus e datas só podem vir daqui):\n${perfil.materiais}` : '',
-    memoria.length ? `\nO QUE VOCÊ JÁ APRENDEU COM ESTA EQUIPE (gostos e recusas; siga sempre):\n${memoria.map((m) => `- ${m.texto}`).join('\n')}` : '',
-    exemplos.length ? `\nPEÇAS QUE A EQUIPE APROVOU (use como referência de estilo, sem repetir o conteúdo):\n${exemplos.map((e) => `[${e.tipo}] ${e.titulo}\n${(e.conteudo.legenda ?? (e.conteudo.roteiro ?? []).join(' / ')).slice(0, 700)}`).join('\n---\n')}` : '',
+    ...blocoEmpresa(perfil, exemplos),
   ].filter(Boolean).join('\n')
   const usuario = [
     linhasPlano.length ? `Monte exatamente este plano, dia por dia (cada peça com o "dia" e o "tipo" indicados; nem mais, nem menos):\n${linhasPlano.join('\n')}`
@@ -248,13 +255,108 @@ async function ajustar(db: SupabaseClient, t: Trabalho, perfil: Record<string, s
 
 // ideias que a equipe anotou (sem IA, sem custo): viram cartões na coluna Ideias para o agente escrever depois
 async function guardarIdeias(db: SupabaseClient, t: Trabalho) {
-  const lista = (Array.isArray(t.pedido.pecas) ? t.pedido.pecas : []) as { tipo: string; rede?: string; dia?: string; titulo: string; tema?: string; campanha?: string }[]
+  const lista = (Array.isArray(t.pedido.pecas) ? t.pedido.pecas : []) as { tipo: string; rede?: string; dia?: string; titulo: string; tema?: string; campanha?: string; briefing?: Briefing }[]
   const pecas = lista.filter((x) => TIPOS.includes(x.tipo) && x.titulo?.trim()).map((x, i) => ({
     trabalho_id: t.id, empresa_id: t.empresa_id, agente_id: t.agente_id, tipo: x.tipo, dia: /^\d{4}-\d{2}-\d{2}$/.test(x.dia ?? '') ? x.dia : null,
-    titulo: x.titulo.trim(), ordem: i, conteudo: { etapa: 'ideia', rede: redeDo(x.rede), objetivo: x.tema?.trim() || undefined, campanha: x.campanha || undefined },
+    titulo: x.titulo.trim(), ordem: i, conteudo: { etapa: 'ideia', rede: redeDo(x.rede), objetivo: x.tema?.trim() || undefined, campanha: x.campanha || undefined, briefing: x.briefing },
   }))
   if (pecas.length) { const { error } = await db.from('agentes_pecas').insert(pecas); if (error) throw new Error(error.message) }
   await db.from('agentes_trabalhos').update({ status: 'pronto', resumo: `${pecas.length} ideia(s) anotada(s)`, custo_usd: 0, terminado_em: new Date().toISOString() }).eq('id', t.id)
+}
+
+// ===== escrever: peças planejadas (ideias) viram rascunhos. Regra 5: planejar e gerar são passos separados =====
+type PecaBanco = { id: string; tipo: string; dia: string | null; titulo: string; conteudo: Record<string, unknown> }
+type Briefing = { objetivo?: string; publico?: string; telas?: number; duracao?: string; orientacao?: string }
+
+function pedidoEscrever(perfil: Record<string, unknown>, pecas: PecaBanco[], pedido: Record<string, unknown>, ctx: string, exemplos: Exemplo[]) {
+  const redes = [...new Set(pecas.map((p) => redeDo(p.conteudo.rede)))]
+  const campanhas = (Array.isArray(perfil.campanhas) ? perfil.campanhas : []) as Campanha[]
+  const itens = pecas.map((p, i) => {
+    const r = REDES[redeDo(p.conteudo.rede)], b = (p.conteudo.briefing ?? {}) as Briefing
+    const camp = campanhas.find((c) => c.id === p.conteudo.campanha)
+    const partes = [
+      p.dia ?? 'sem dia', r.nome, `${r.nomes[p.tipo] ?? p.tipo} (tipo "${p.tipo}")`,
+      b.telas ? `exatamente ${b.telas} telas` : '', b.duracao ? `duração ${b.duracao}` : '',
+      b.objetivo ? `objetivo: ${b.objetivo}` : '', b.publico ? `público: ${b.publico}` : '',
+      camp ? `campanha: ${camp.nome}` : 'sem campanha (pode ser educativo ou de relacionamento, sem empurrar oferta)',
+      p.titulo ? `título provisório: ${p.titulo}` : '', p.conteudo.objetivo ? `tema: ${p.conteudo.objetivo}` : '',
+      b.orientacao ? `gravação: ${b.orientacao}` : '',
+    ].filter(Boolean)
+    return `${i + 1}) ${partes.join(' · ')}`
+  })
+  const usadas = [...new Set(pecas.map((p) => String(p.conteudo.campanha ?? '')).filter(Boolean))].map((id) => campanhas.find((c) => c.id === id)).filter(Boolean) as Campanha[]
+  const sistema = [
+    'Você é o Agente de Marketing de uma empresa brasileira. Escreve em português do Brasil, pronto para colar em cada canal.',
+    'Você escreve os rascunhos de peças que a equipe já planejou; a equipe aprova antes de publicar. Seja concreto.',
+    `COMO ESCREVER EM CADA CANAL:\n${redes.map((r) => `- ${REDES[r].nome}: ${REDES[r].guia}`).join('\n')}`,
+    'Vídeos: roteiro cena a cena (ou bloco a bloco no vídeo longo) com a fala e o que aparece na tela, respeitando a duração; dicas de gravação no campo observacao.',
+    ...blocoEmpresa(perfil as Record<string, string>, exemplos),
+  ].filter(Boolean).join('\n')
+  const usuario = [
+    `Escreva estas ${pecas.length} peças, uma para cada item da lista. Em cada peça preencha "ref" com o número do item e mantenha o "tipo" e o "dia" do item:\n${itens.join('\n')}`,
+    pedido.tema ? `Tema central pedido pela equipe: ${pedido.tema}` : '',
+    pedido.adaptar !== false && redes.length > 1 ? 'Todas partem da mesma ideia central, mas adapte a abertura, a profundidade e a chamada ao jeito de cada canal. Não repita o mesmo texto entre canais.' : '',
+    usadas.length ? `Campanhas:\n${usadas.map((c) => `- ${c.nome}${c.inicio ? ` (de ${c.inicio}${c.fim ? ` a ${c.fim}` : ''})` : ''}: ${c.descricao ?? ''}`).join('\n')}` : '',
+    ctx ? `Informações atuais do sistema:\n${ctx}` : '',
+    'Entregue OBRIGATORIAMENTE chamando a ferramenta entregar_semana, com todas as peças de uma vez. Não escreva nada fora da ferramenta.',
+  ].filter(Boolean).join('\n\n')
+  return { sistema, usuario }
+}
+
+async function escrever(db: SupabaseClient, t: Trabalho, perfil: Record<string, unknown>, chave: string, modelo: string, economico: boolean) {
+  let ids = (Array.isArray(t.pedido.peca_ids) ? t.pedido.peca_ids : []) as string[]
+  const novas = (Array.isArray(t.pedido.novas) ? t.pedido.novas : []) as { tipo: string; rede?: string; dia?: string; titulo: string; tema?: string; campanha?: string; briefing?: Briefing }[]
+  if (novas.length) {
+    const linhas = novas.filter((x) => TIPOS.includes(x.tipo)).slice(0, 40).map((x, i) => ({
+      trabalho_id: t.id, empresa_id: t.empresa_id, agente_id: t.agente_id, tipo: x.tipo, dia: /^\d{4}-\d{2}-\d{2}$/.test(x.dia ?? '') ? x.dia : null, titulo: (x.titulo || 'Peça').trim(), ordem: i,
+      conteudo: { etapa: 'producao', rede: redeDo(x.rede), objetivo: x.tema?.trim() || undefined, campanha: x.campanha || undefined, briefing: x.briefing },
+    }))
+    const { data, error } = await db.from('agentes_pecas').insert(linhas).select('id')
+    if (error) throw new Error(error.message)
+    ids = (data ?? []).map((d) => d.id)
+  }
+  // a tela mostra estas peças como "o agente está escrevendo"
+  await db.from('agentes_trabalhos').update({ pedido: { ...t.pedido, peca_ids: ids } }).eq('id', t.id)
+  const { data: lidas } = await db.from('agentes_pecas').select('id,tipo,dia,titulo,conteudo').in('id', ids).eq('empresa_id', t.empresa_id)
+  const pecas = (lidas ?? []) as PecaBanco[]
+  if (!pecas.length) throw new Error('Nenhuma peça para escrever.')
+  const voltarParaIdeia = () => Promise.all(pecas.map((p) => db.from('agentes_pecas').update({ conteudo: { ...p.conteudo, etapa: 'ideia' } }).eq('id', p.id)))
+  await Promise.all(pecas.map((p) => db.from('agentes_pecas').update({ conteudo: { ...p.conteudo, etapa: 'producao' } }).eq('id', p.id)))
+  try {
+    const ctx = await contexto(db)
+    const { data: exemplos } = await db.from('agentes_pecas').select('tipo,titulo,conteudo').eq('empresa_id', t.empresa_id).eq('agente_id', t.agente_id).in('status', ['aprovada', 'postada']).order('atualizado_em', { ascending: false }).limit(3)
+    // stories no modelo econômico; o resto no modelo escolhido. Os dois pedidos correm ao mesmo tempo
+    const grupos = [pecas.filter((p) => p.tipo !== 'stories'), pecas.filter((p) => p.tipo === 'stories')].filter((g) => g.length)
+    const anexos = (Array.isArray(t.pedido.anexos) ? t.pedido.anexos : []) as Anexo[]
+    const respostas = await Promise.all(grupos.map(async (g) => {
+      const m = g[0].tipo === 'stories' && economico ? 'claude-haiku-5-5' : modelo
+      const { sistema, usuario } = pedidoEscrever(perfil, g, t.pedido, ctx, (exemplos ?? []) as Exemplo[])
+      return { grupo: g, modelo: m, ...(await chamarClaude(chave, m, sistema, comAnexos(usuario, anexos))) }
+    }))
+    let escritas = 0
+    for (const r of respostas) {
+      const entregues = r.entrega.pecas ?? []
+      await Promise.all(r.grupo.map(async (p, i) => {
+        const e = entregues.find((x) => Number(x.ref) === i + 1) ?? (entregues.every((x) => !x.ref) ? entregues[i] : undefined)
+        if (!e) return db.from('agentes_pecas').update({ conteudo: { ...p.conteudo, etapa: 'ideia' } }).eq('id', p.id)
+        escritas++
+        return db.from('agentes_pecas').update({
+          titulo: e.titulo || p.titulo, status: 'rascunho', atualizado_em: new Date().toISOString(),
+          conteudo: conteudoDe(e, { rede: redeDo(p.conteudo.rede), campanha: p.conteudo.campanha, briefing: p.conteudo.briefing }),
+        }).eq('id', p.id)
+      }))
+    }
+    const entrada = respostas.reduce((s, r) => s + r.entrada, 0), saida = respostas.reduce((s, r) => s + r.saida, 0)
+    await db.from('agentes_trabalhos').update({
+      pedido: { ...t.pedido, peca_ids: ids, anexos: anexos.map((a) => ({ nome: a.nome, tipo: a.tipo })) },
+      status: 'pronto', resumo: respostas.map((r) => r.entrega.resumo).filter(Boolean)[0] ?? `${escritas} rascunho(s) escritos`,
+      modelo: [...new Set(respostas.map((r) => r.modelo))].join(' + '), tokens_entrada: entrada, tokens_saida: saida,
+      custo_usd: Math.round(respostas.reduce((s, r) => s + custo(r.modelo, r.entrada, r.saida), 0) * 10000) / 10000, terminado_em: new Date().toISOString(),
+    }).eq('id', t.id)
+  } catch (e) {
+    await voltarParaIdeia()
+    throw e
+  }
 }
 
 async function executar(db: SupabaseClient, t: Trabalho) {
@@ -275,8 +377,9 @@ async function executar(db: SupabaseClient, t: Trabalho) {
     const gastoAgente = (gastos ?? []).filter((g) => g.agente_id === t.agente_id).reduce((s, g) => s + Number(g.custo_usd ?? 0), 0)
     if (pa.limite_mes_usd != null && pa.limite_mes_usd !== '' && gastoAgente >= Number(pa.limite_mes_usd)) throw new Error(`Limite do mês deste agente atingido (US$ ${Number(pa.limite_mes_usd).toFixed(2)}). Aumente em Configurar agente.`)
     const modelo = (typeof pa.modelo === 'string' && PRECO[pa.modelo] ? pa.modelo : null) ?? cfg?.modelo ?? 'claude-sonnet-5-5'
-    if (t.agente_id !== 'marketing' || !['semana', 'ajuste', 'ideia'].includes(t.tipo)) throw new Error('Trabalho que este agente ainda não sabe fazer.')
+    if (t.agente_id !== 'marketing' || !['semana', 'ajuste', 'ideia', 'escrever'].includes(t.tipo)) throw new Error('Trabalho que este agente ainda não sabe fazer.')
     if (t.tipo === 'ajuste') return await ajustar(db, t, (perfilAg.perfil ?? {}) as Record<string, string>, String(chave), modelo)
+    if (t.tipo === 'escrever') return await escrever(db, t, pa, String(chave), modelo, pa.stories_economico !== false)
 
     // posts/reels e stories em dois pedidos ao mesmo tempo: sai na metade do tempo
     const perfil = (perfilAg.perfil ?? {}) as Record<string, string>

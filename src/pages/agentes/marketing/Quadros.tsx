@@ -48,7 +48,7 @@ export function Calendario({ inicio, quantos = 7, pecas, aoAbrir, ocupadas, aoMu
   const semDia = pecas.filter((p) => !p.dia)
   return (
     <>
-      <div className={`mk-calendario${quantos === 1 ? ' um-dia' : ''}`}>
+      <div className={`mk-calendario${quantos === 1 ? ' um-dia' : ''}`} style={{ ['--dias' as string]: quantos }}>
         {dias.map((d) => {
           const doDia = pecas.filter((p) => p.dia === d).sort((a, b) => (a.conteudo.horario ?? '99').localeCompare(b.conteudo.horario ?? '99'))
           const data = new Date(d + 'T12:00:00')

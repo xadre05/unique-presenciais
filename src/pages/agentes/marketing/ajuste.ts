@@ -12,8 +12,6 @@ export async function pedirAjuste(peca: Peca, instrucao: string, opcoes: { lembr
   return r.error ? 'O agente não conseguiu começar. Tente de novo.' : null
 }
 
-export const instrucaoEscrever = (p: Peca) =>
-  `Esta peça ainda é só uma ideia (título${p.conteudo.objetivo ? ' e tema' : ''}). Escreva a peça completa no formato ${p.tipo}, pronta para aprovar.`
 export const instrucaoNovoDia = (dia: string) =>
   `A peça foi mudada para o dia ${dia}. Ajuste o que depender da data (dia da semana, "hoje", "amanhã", contagem regressiva); o resto fica igual.`
 export const instrucaoNovoFormato = (tipo: string) =>
@@ -21,7 +19,7 @@ export const instrucaoNovoFormato = (tipo: string) =>
 
 // trabalho de ajuste desta peça: o que está rodando agora e o último que terminou
 export function ajustesDa(peca: Peca | null, trabalhos: Trabalho[]) {
-  const daPeca = peca ? trabalhos.filter((t) => t.tipo === 'ajuste' && t.pedido.peca_id === peca.id) : []
+  const daPeca = peca ? trabalhos.filter((t) => (t.tipo === 'ajuste' && t.pedido.peca_id === peca.id) || (t.tipo === 'escrever' && ((t.pedido.peca_ids as string[] | undefined) ?? []).includes(peca.id))) : []
   return {
     rodando: daPeca.find((t) => t.status === 'na_fila' || t.status === 'trabalhando') ?? null,
     ultimo: daPeca.find((t) => t.status === 'pronto' || t.status === 'erro') ?? null,

@@ -83,6 +83,8 @@ const ddmm = (iso: string) => `${iso.slice(8, 10)}/${iso.slice(5, 7)}`
 export function rotuloTrabalho(t: Pick<Trabalho, 'tipo' | 'pedido'>) {
   const p = t.pedido
   if (t.tipo === 'ajuste') return 'Ajuste de peça'
+  if (t.tipo === 'ideia') return `Planejamento salvo · ${Array.isArray(p.pecas) ? p.pecas.length : 0} ideia(s)`
+  if (t.tipo === 'escrever') return `Rascunhos · ${Array.isArray(p.novas) ? p.novas.length : Array.isArray(p.peca_ids) ? p.peca_ids.length : 0} peça(s)`
   const inicio = String(p.semana_inicio ?? '')
   if (!inicio) return 'Conteúdo'
   if (p.modo === 'peca') return `${TIPO_PECA[String(p.tipo_peca)] ?? 'Peça'} avulso · ${ddmm(inicio)}`

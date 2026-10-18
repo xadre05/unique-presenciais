@@ -1,80 +1,61 @@
-// Planejamento editorial: um dia ou a semana, em Quadro (por etapa) ou Calendário (por dia), com campanha, rede, formato e busca.
+// Planejamento editorial: período livre (dia, semana, mês, período), Quadro por etapa ou Calendário,
+// filtros que não se perdem e o convite para criar conteúdo do período que está na tela.
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { msgErro } from '../../../lib/dados'
 import { Erro } from '../../../components/ui'
 import { Icone } from '../../../components/Icone'
-import { hojeISO, segundaDe, somaDias, type Peca } from '../comum'
-import { LISTA_REDES, REDES, nomeFormato, redeDe } from './redes'
-import { moverPara, mudarPeca, type Etapa } from './etapas'
+import type { Peca } from '../comum'
+import { moverPara, mudarPeca, ehIdeia, type Etapa } from './etapas'
 import { instrucaoNovoDia, pedirAjuste } from './ajuste'
 import { Calendario, QuadroEtapas } from './Quadros'
-import { SeletorCampanha } from './Campanhas'
-import type { Campanha } from './useMarketing'
+import { BarraFiltros, BarraPeriodo } from './BarraFiltros'
+import { NOME_PERIODO, intervaloDe, type Filtros } from './filtros'
+import { pedirTrabalho, type Campanha } from './useMarketing'
+import type { ModoCriar } from './CriarConteudo'
 
-const umDia = (iso: string) => new Date(iso + 'T12:00:00').toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })
-const intervalo = (inicio: string) => {
-  const a = new Date(inicio + 'T12:00:00'), b = new Date(somaDias(inicio, 6) + 'T12:00:00')
-  const mesA = a.toLocaleDateString('pt-BR', { month: 'long' }), mesB = b.toLocaleDateString('pt-BR', { month: 'long' })
-  return `${a.getDate()}${mesA !== mesB ? ` de ${mesA}` : ''} – ${b.getDate()} de ${mesB} de ${b.getFullYear()}`
+const CONVITE: Record<Filtros['periodo'], { pergunta: string; botao: string; modo: ModoCriar }> = {
+  dia: { pergunta: 'Planejar conteúdo para este dia?', botao: 'Planejar este dia', modo: 'dia' },
+  semana: { pergunta: 'Planejar conteúdo para esta semana?', botao: 'Planejar esta semana', modo: 'semana' },
+  mes: { pergunta: 'Planejar uma semana deste mês?', botao: 'Planejar uma semana', modo: 'semana' },
+  periodo: { pergunta: 'Planejar conteúdo para este período?', botao: 'Planejar o período', modo: 'periodo' },
 }
 
-export type Periodo = 'dia' | 'semana'
 type Props = {
-  periodo: Periodo; aoMudarPeriodo: (p: Periodo, inicio: string) => void
-  inicio: string; aoMudarSemana: (inicio: string) => void; pecas: Peca[]; recarregar: () => void; ocupadas: Set<string>
-  campanhas: Campanha[]; campanha: string; aoMudarCampanha: (id: string) => void; aoCriarCampanha: () => void
-  aoAbrir: (p: Peca) => void; aoPlanejar: () => void; aoNova: () => void
+  f: Filtros; mudar: (c: Partial<Filtros>) => void; pecas: Peca[]; recarregar: () => void; ocupadas: Set<string>
+  campanhas: Campanha[]; aoCriarCampanha: () => void; aoAbrir: (p: Peca) => void; aoCriar: (modo: ModoCriar, data: string) => void; aoPedido: () => void
 }
 
 export function Planejamento(pr: Props) {
-  const [visao, setVisao] = useState<'quadro' | 'calendario'>('quadro')
-  const [formato, setFormato] = useState('')
-  const [rede, setRede] = useState('')
-  const [busca, setBusca] = useState('')
+  const { f } = pr
   const [movida, setMovida] = useState<{ peca: Peca; dia: string } | null>(null)
   const [erro, setErro] = useState<string | null>(null)
-
-  const termo = busca.trim().toLowerCase()
-  const visiveis = pr.pecas.filter((p) => (!formato || p.tipo === formato) && (!rede || redeDe(p) === rede) && (!termo || p.titulo.toLowerCase().includes(termo)))
-  const dia = pr.periodo === 'dia'
-  const passo = dia ? 1 : 7
-  const pendentes = visiveis.filter((p) => p.conteudo.pendencia && p.status !== 'postada')
+  const { inicio, dias } = intervaloDe(f)
+  const pendentes = pr.pecas.filter((p) => p.conteudo.pendencia && p.status !== 'postada')
+  const ideias = pr.pecas.filter((p) => ehIdeia(p) && !pr.ocupadas.has(p.id))
+  const convite = CONVITE[f.periodo]
 
   const mover = async (p: Peca, etapa: Etapa) => { const { error } = await moverPara(p, etapa); if (error) return setErro(msgErro(error)); pr.recarregar() }
   // mudar o dia pode deixar o texto errado ("amanhã", "segunda"): oferece pedir ao agente para ajustar
   const mudarDia = async (p: Peca, dia: string) => {
     const { error } = await mudarPeca(p.id, { dia }); if (error) return setErro(msgErro(error))
-    pr.recarregar(); if (p.conteudo.roteiro?.length || p.conteudo.legenda) setMovida({ peca: p, dia })
+    pr.recarregar(); if (!ehIdeia(p) && (p.conteudo.roteiro?.length || p.conteudo.legenda)) setMovida({ peca: p, dia })
   }
   const ajustarDia = async () => { if (!movida) return; const m = await pedirAjuste(movida.peca, instrucaoNovoDia(movida.dia), { lembrar: false }); setMovida(null); if (m) setErro(m) }
+  // regra 5: as ideias salvas só viram texto quando alguém pede
+  const gerarIdeias = async () => {
+    setErro(null)
+    const m = await pedirTrabalho('escrever', { peca_ids: ideias.slice(0, 40).map((p) => p.id), adaptar: true })
+    if (m) setErro(m); else pr.aoPedido()
+  }
 
   return (
     <section className="mk-plano">
       <div className="mk-titulo-aba"><h2>Planejamento editorial</h2><p className="muted">Organize as peças e acompanhe cada etapa da produção.</p></div>
-      <div className="mk-barra">
-        <div className="mk-visoes mk-periodo">
-          <button className={dia ? 'ativa' : ''} onClick={() => pr.aoMudarPeriodo('dia', dia ? pr.inicio : hojeISO() >= pr.inicio && hojeISO() <= somaDias(pr.inicio, 6) ? hojeISO() : pr.inicio)}>Dia</button>
-          <button className={!dia ? 'ativa' : ''} onClick={() => pr.aoMudarPeriodo('semana', segundaDe(pr.inicio))}>Semana</button>
-        </div>
-        <div className="mk-semana">
-          <button className="btn btn-quadrado" aria-label={dia ? 'Dia anterior' : 'Semana anterior'} onClick={() => pr.aoMudarSemana(somaDias(pr.inicio, -passo))}><Icone nome="esquerda" /></button>
-          <b>{dia ? umDia(pr.inicio) : intervalo(pr.inicio)}</b>
-          <button className="btn btn-quadrado" aria-label={dia ? 'Próximo dia' : 'Próxima semana'} onClick={() => pr.aoMudarSemana(somaDias(pr.inicio, passo))}><Icone nome="seta_dir" /></button>
-          <button className="btn btn-mini" onClick={() => pr.aoMudarSemana(dia ? hojeISO() : segundaDe(hojeISO()))}>Hoje</button>
-        </div>
-        <SeletorCampanha campanhas={pr.campanhas} valor={pr.campanha} aoMudar={pr.aoMudarCampanha} aoCriar={pr.aoCriarCampanha} />
-        <button className="btn btn-contorno-ouro mk-planejar" onClick={pr.aoPlanejar}><Icone nome="agenda" /> {dia ? 'Planejar o dia' : 'Planejar'}</button>
-      </div>
-      <div className="mk-barra mk-barra-2">
-        <div className="mk-visoes">
-          <button className={visao === 'quadro' ? 'ativa' : ''} onClick={() => setVisao('quadro')}><Icone nome="quadro" /> Quadro</button>
-          <button className={visao === 'calendario' ? 'ativa' : ''} onClick={() => setVisao('calendario')}><Icone nome="agenda" /> Calendário</button>
-        </div>
-        <label className="select-icone"><select value={rede} onChange={(e) => setRede(e.target.value)}><option value="">Rede: todas</option>{LISTA_REDES.map((r) => <option key={r} value={r}>{REDES[r].nome}</option>)}</select></label>
-        <label className="select-icone"><select value={formato} onChange={(e) => setFormato(e.target.value)}><option value="">Formato: todos</option>{(rede ? REDES[rede as keyof typeof REDES].formatos : ['post', 'carrossel', 'reels', 'stories', 'video']).map((k) => <option key={k} value={k}>{nomeFormato(k, (rede || 'instagram') as keyof typeof REDES)}</option>)}</select></label>
-        <label className="select-icone mk-busca"><Icone nome="busca" /><input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Buscar peça…" /></label>
-      </div>
+      <BarraPeriodo f={f} mudar={pr.mudar} />
+      <BarraFiltros f={f} mudar={pr.mudar} campanhas={pr.campanhas} aoCriarCampanha={pr.aoCriarCampanha} />
+      <div className="mk-contagem"><span className="pequeno muted">{pr.pecas.length} {pr.pecas.length === 1 ? 'peça' : 'peças'} {NOME_PERIODO[f.periodo]}</span>
+        {!!ideias.length && <button className="btn btn-contorno-ouro btn-mini" onClick={gerarIdeias}><Icone nome="floco" tam={14} /> Gerar rascunhos das {Math.min(40, ideias.length)} ideias</button>}</div>
 
       {!!pendentes.length && (
         <div className="mk-aviso"><Icone nome="alerta" tam={20} /><span>{pendentes.length === 1 ? 'Há 1 peça com pendência na oferta.' : `Há ${pendentes.length} peças com pendências na oferta.`}</span>
@@ -87,11 +68,16 @@ export function Planejamento(pr: Props) {
       )}
       <Erro msg={erro} />
 
-      {!pr.pecas.length
-        ? <div className="mk-vazio-grande"><Icone nome="ideia" tam={34} /><p>{dia ? 'Nada planejado para este dia.' : 'Nada planejado nesta semana.'}</p><div><button className="btn btn-ouro" onClick={pr.aoPlanejar}>{dia ? 'Planejar o dia' : 'Planejar os dias'}</button> <button className="btn" onClick={pr.aoNova}>Uma peça só</button></div></div>
-        : visao === 'quadro'
-          ? <QuadroEtapas pecas={visiveis} aoAbrir={pr.aoAbrir} ocupadas={pr.ocupadas} aoMover={mover} aoNova={pr.aoNova} />
-          : <Calendario inicio={pr.inicio} quantos={dia ? 1 : 7} pecas={visiveis} aoAbrir={pr.aoAbrir} ocupadas={pr.ocupadas} aoMudarDia={mudarDia} aoAbrirDia={dia ? undefined : (d) => pr.aoMudarPeriodo('dia', d)} />}
+      {f.visao === 'quadro'
+        ? <QuadroEtapas pecas={pr.pecas} aoAbrir={pr.aoAbrir} ocupadas={pr.ocupadas} aoMover={mover} aoNova={() => pr.aoCriar('peca', f.periodo === 'dia' ? f.data : inicio)} />
+        : <Calendario inicio={inicio} quantos={dias} pecas={pr.pecas} aoAbrir={pr.aoAbrir} ocupadas={pr.ocupadas} aoMudarDia={mudarDia}
+            aoAbrirDia={f.periodo === 'dia' ? undefined : (d) => pr.mudar({ periodo: 'dia', data: d })} />}
+
+      <div className="mk-convite">
+        <span className="mk-convite-icone"><Icone nome="agenda" tam={22} /></span>
+        <span><b>{convite.pergunta}</b><br /><span className="muted pequeno">Escolha os canais e os formatos. Você pode só salvar o planejamento ou já pedir os rascunhos.</span></span>
+        <button className="btn btn-contorno-ouro" onClick={() => pr.aoCriar(convite.modo, f.periodo === 'mes' ? inicio : f.data)}><Icone nome="agenda" /> {convite.botao}</button>
+      </div>
       <p className="pequeno muted mk-rodape">Arraste os cartões: no Quadro muda a etapa (Pronto = aprovada, Publicado = postada); no Calendário muda o dia. Nada é publicado sozinho.</p>
     </section>
   )
