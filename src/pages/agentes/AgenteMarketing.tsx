@@ -15,13 +15,13 @@ const EMPRESA = EMPRESA_UNIQUE
 const ocupado = (t?: Trabalho | null) => t?.status === 'na_fila' || t?.status === 'trabalhando'
 
 export default function AgenteMarketing() {
-  const trabalhos = useConsulta<Trabalho[]>(() => supabase.from('agentes_trabalhos').select('*').eq('empresa_id', EMPRESA).eq('agente_id', 'marketing').order('criado_em', { ascending: false }).limit(12))
+  const trabalhos = useConsulta<Trabalho[]>(() => supabase.from('agentes_trabalhos').select('*').eq('empresa_id', EMPRESA).eq('agente_id', 'marketing').eq('tipo', 'semana').order('criado_em', { ascending: false }).limit(12))
   const perfil = useConsulta<{ perfil: PerfilMarketing; ativo: boolean } | null>(() => supabase.from('agentes_empresa').select('perfil,ativo').eq('empresa_id', EMPRESA).eq('agente_id', 'marketing').maybeSingle())
   const local = useLocation()
   const [escolhido, setEscolhido] = useState<string | null>(null)
   const atual = (trabalhos.dados ?? []).find((t) => t.id === escolhido) ?? trabalhos.dados?.[0] ?? null
   const pecas = useConsulta<Peca[]>(() => atual ? supabase.from('agentes_pecas').select('*').eq('trabalho_id', atual.id).order('dia').order('ordem') : Promise.resolve({ data: [], error: null }), [atual?.id, atual?.status])
-  const [pedido, setPedido] = useState({ semana_inicio: proximaSegunda(), foco: '', posts: 3, reels: 2, stories: 3 })
+  const [pedido, setPedido] = useState({ semana_inicio: proximaSegunda(), foco: '', posts: 3, reels: 2, stories: 7, stories_telas: 5 })
   const [erro, setErro] = useState<string | null>(null)
   const [enviando, setEnviando] = useState(false)
   const trabalhando = (trabalhos.dados ?? []).some(ocupado)
@@ -71,7 +71,8 @@ export default function AgenteMarketing() {
           <Campo rotulo="Semana que começa em"><input type="date" value={pedido.semana_inicio} onChange={(e) => setPedido((p) => ({ ...p, semana_inicio: e.target.value }))} /></Campo>
           <Campo rotulo="Posts / carrosséis"><InputNumero valor={pedido.posts} min={0} max={7} onChange={(v) => setPedido((p) => ({ ...p, posts: v ?? 0 }))} /></Campo>
           <Campo rotulo="Reels"><InputNumero valor={pedido.reels} min={0} max={7} onChange={(v) => setPedido((p) => ({ ...p, reels: v ?? 0 }))} /></Campo>
-          <Campo rotulo="Stories (sequências)"><InputNumero valor={pedido.stories} min={0} max={7} onChange={(v) => setPedido((p) => ({ ...p, stories: v ?? 0 }))} /></Campo>
+          <Campo rotulo="Dias com stories" dica="7 = todos os dias"><InputNumero valor={pedido.stories} min={0} max={7} onChange={(v) => setPedido((p) => ({ ...p, stories: v ?? 0 }))} /></Campo>
+          <Campo rotulo="Stories por dia" dica="Telas em cada dia"><InputNumero valor={pedido.stories_telas} min={2} max={15} onChange={(v) => setPedido((p) => ({ ...p, stories_telas: v ?? 5 }))} /></Campo>
         </div>
         <Campo rotulo="Foco da semana (opcional)" dica="Ex.: Black Friday Limited Edition — últimas vagas do módulo de toxina"><textarea rows={2} value={pedido.foco} onChange={(e) => setPedido((p) => ({ ...p, foco: e.target.value }))} /></Campo>
         <Erro msg={erro} />

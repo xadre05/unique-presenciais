@@ -1290,3 +1290,8 @@ a.sala-agente:hover { border-color: var(--ouro); transform: translateY(-2px); }
 .agente-papel { color: var(--muted); margin: -2px 0 8px; }
 .nav-separado { margin-top: 14px; border-top: 1px solid var(--borda); padding-top: 14px !important; }
 @media (max-width: 900px) { .sala-baixo { grid-template-columns: 1fr; } }
+.peca-edit-rotulo { display: flex; flex-direction: column; gap: 4px; font-size: .82rem; color: var(--muted); }
+.peca-edit-rotulo textarea { font: inherit; font-size: .92rem; color: var(--texto); width: 100%; }
+.peca-ajuste { display: flex; gap: 6px; flex-wrap: wrap; }
+.peca-ajuste input { flex: 1; min-width: 200px; }
+.peca-ajustando { border-color: var(--ouro); }
