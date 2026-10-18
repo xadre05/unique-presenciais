@@ -1,5 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import { supabase } from '../lib/supabase'
+import { comprimirImagem } from '../lib/comprimir'
 import { Icone } from './Icone'
 
 export function Badge({ tom = 'neutro', children }: { tom?: string; children: ReactNode }) {
@@ -81,10 +82,15 @@ export function Erro({ msg }: { msg: string | null }) {
   return <div className="erro">{msg}</div>
 }
 
-export async function enviarArquivo(pasta: string, arquivo: File): Promise<string> {
+const LIMITE_ARQUIVO_MB = 10
+
+export async function enviarArquivo(pasta: string, original: File): Promise<string> {
+  // fotos grandes são reduzidas antes de subir (o armazenamento aceita até 10 MB por arquivo)
+  const arquivo = await comprimirImagem(original).catch(() => original)
+  if (arquivo.size > LIMITE_ARQUIVO_MB * 1024 * 1024) throw new Error(`O arquivo tem ${(arquivo.size / 1024 / 1024).toFixed(1)} MB; o limite é ${LIMITE_ARQUIVO_MB} MB.`)
   const ext = arquivo.name.split('.').pop()?.toLowerCase() || 'bin'
   const caminho = `${pasta}/${crypto.randomUUID()}.${ext}`
-  const { error } = await supabase.storage.from('arquivos').upload(caminho, arquivo, { upsert: false })
+  const { error } = await supabase.storage.from('arquivos').upload(caminho, arquivo, { upsert: false, contentType: arquivo.type || undefined })
   if (error) throw new Error('Não consegui enviar o arquivo: ' + error.message)
   return caminho
 }

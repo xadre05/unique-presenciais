@@ -612,6 +612,18 @@ async function prepararArte(db: SupabaseClient, empresa: string) {
 }
 
 type Ref = { caminho: string; nome?: string }
+// logo da arte: o escolhido na peça; no automático, o marcado para o fundo da arte (1ª cor da paleta escura → "para fundo escuro")
+type Logo = Ref & { uso?: 'escuro' | 'claro' }
+const POSICAO_LOGO: Record<string, string> = { auto: 'pequeno e discreto, onde ficar mais elegante (topo ou rodapé)', topo: 'pequeno, centralizado no TOPO', rodape: 'pequeno, centralizado no RODAPÉ', canto: 'pequeno, no CANTO INFERIOR direito' }
+function escolherLogo(logos: Logo[], escolha: string | undefined, paleta: { hex: string }[] | undefined) {
+  if (escolha === 'nenhum' || !logos.length) return undefined
+  const escolhido = logos.find((l) => l.caminho === escolha)
+  if (escolhido) return escolhido
+  const hex = (paleta?.[0]?.hex ?? '#000000').replace('#', '')
+  const [r, g, b] = [0, 2, 4].map((i) => parseInt(hex.slice(i, i + 2), 16) || 0)
+  const fundo = (0.299 * r + 0.587 * g + 0.114 * b) / 255 < 0.5 ? 'escuro' : 'claro'
+  return logos.find((l) => l.uso === fundo) ?? logos.find((l) => !l.uso) ?? logos[0]
+}
 // "Lâmina 1 (capa):" e parecidos, do começo dos itens antigos (a tela tira o mesmo prefixo)
 const PREFIXO_ITEM = /^(l[âa]mina|tela|cena|p[áa]gina|bloco|se[çc][ãa]o)\s*\d+\s*(\([^)]*\))?\s*[:,\-–—.]\s*/i
 async function baixarImagem(db: SupabaseClient, caminho: string) {
@@ -660,10 +672,10 @@ async function gerarArte(db: SupabaseClient, t: Trabalho) {
   const { data: peca } = await db.from('agentes_pecas').select('*').eq('id', String(t.pedido.peca_id)).eq('empresa_id', t.empresa_id).maybeSingle()
   if (!peca) throw new Error('Peça não encontrada.')
   const c = (peca.conteudo ?? {}) as Record<string, unknown>
-  const v = (c.visual ?? {}) as { estilo?: string; proporcao?: string; paleta?: { nome: string; hex: string }[]; referencias?: Ref[]; antesDepois?: Ref[]; autorizado?: boolean; pessoas?: string[] }
+  const v = (c.visual ?? {}) as { estilo?: string; proporcao?: string; paleta?: { nome: string; hex: string }[]; referencias?: Ref[]; antesDepois?: Ref[]; autorizado?: boolean; pessoas?: string[]; logo?: string; logoPosicao?: string; elementos?: Ref[] }
   const roteiro = (Array.isArray(c.roteiro) ? c.roteiro : []) as string[]
   const orientacoes = (Array.isArray(c.orientacoes) ? c.orientacoes : []) as string[]
-  const artes = (Array.isArray(c.artes) ? [...c.artes] : []) as { arquivo?: string; nome?: string; orientacao?: string; gerada?: boolean }[]
+  const artes = (Array.isArray(c.artes) ? [...c.artes] : []) as { arquivo?: string; nome?: string; orientacao?: string; gerada?: boolean; elementos?: Ref[] }[]
   const item = typeof t.pedido.item === 'number' ? Number(t.pedido.item) : null
   const idx = item ?? 0
   const ajuste = String(t.pedido.ajuste ?? '').trim()
@@ -680,7 +692,7 @@ async function gerarArte(db: SupabaseClient, t: Trabalho) {
   }
   if (ajuste && artes[idx]?.arquivo) await juntar(artes[idx].arquivo, 'a ARTE ATUAL, que deve ser ajustada')
   // identidade visual da empresa (Base da marca): o logo real e as referências de estilo
-  const logo = ((Array.isArray(pa.logos) ? pa.logos : []) as Ref[])[0]
+  const logo = escolherLogo((Array.isArray(pa.logos) ? pa.logos : []) as Logo[], v.logo, v.paleta)
   const antesDoLogo = imagens.length
   await juntar(logo?.caminho, 'o LOGO OFICIAL da empresa: reproduza exatamente este logo, sem redesenhar, sem mudar letras, cores ou símbolo')
   const comLogo = imagens.length > antesDoLogo
@@ -690,8 +702,10 @@ async function gerarArte(db: SupabaseClient, t: Trabalho) {
   const nomesPessoas: string[] = []
   for (const p of (pessoas ?? []).filter((p) => p.autorizado)) {
     nomesPessoas.push(`${p.nome}${p.papel ? ` (${p.papel})` : ''}`)
-    for (const f of ((p.fotos ?? []) as Ref[]).slice(0, 3)) await juntar(f.caminho, `foto de ${p.nome}, para manter o MESMO ROSTO`)
+    for (const f of ((p.fotos ?? []) as Ref[]).slice(0, 3)) await juntar(f.caminho, `foto de ${p.nome}: referência do ROSTO (a roupa, o fundo e a pose desta foto NÃO precisam ser copiados)`)
   }
+  // imagens que a equipe quer NA arte (logo de produto, foto de produto, selo): entram como são
+  for (const f of ((item !== null ? artes[idx]?.elementos : v.elementos) ?? []).slice(0, 4)) await juntar(f.caminho, `IMAGEM PARA USAR NA ARTE${f.nome ? ` (${f.nome})` : ''}: coloque na arte exatamente como é, sem redesenhar; siga a orientação sobre onde ela vai`)
   if (v.autorizado) for (const f of (v.antesDepois ?? []).slice(0, 4)) await juntar(f.caminho, 'foto REAL de antes/depois de paciente (autorizada): use como está, sem alterar o resultado')
   if (!ajuste && item !== null && item > 0 && artes[0]?.arquivo) await juntar(artes[0].arquivo, 'a CAPA deste mesmo carrossel: siga o mesmo estilo, fontes, cores e diagramação')
   for (const f of (v.referencias ?? []).slice(0, 3)) await juntar(f.caminho, 'referência de estilo (inspire-se, sem copiar texto, marca ou pessoas)')
@@ -710,8 +724,10 @@ async function gerarArte(db: SupabaseClient, t: Trabalho) {
     textoArte ? `TEXTO NA ARTE, em português do Brasil, escrito EXATAMENTE assim (com acentos, sem erros, sem inventar outras palavras):\n${textoArte}\nTipografia elegante, legível no celular, com bom contraste e margens seguras.` : 'Sem texto na arte.',
     c.prompt_imagem ? `Orientação da peça: ${String(c.prompt_imagem).slice(0, 1200)}` : '',
     item !== null && (artes[item]?.orientacao || orientacoes[item]) ? `Orientação desta lâmina: ${[artes[item]?.orientacao, orientacoes[item]].filter(Boolean).join(' · ')}` : '',
-    nomesPessoas.length ? `Na arte aparece: ${nomesPessoas.join(', ')}. Mantenha o rosto idêntico ao das fotos enviadas; roupa, pose e cenário podem seguir a orientação.` : 'Não coloque pessoas reconhecíveis, a não ser que a orientação peça; nunca invente o rosto de um paciente.',
-    comLogo ? 'Coloque o LOGO OFICIAL enviado, pequeno e discreto (no topo ou no rodapé), exatamente como ele é.' : 'NÃO desenhe logotipo, monograma nem símbolo de marca: a empresa não enviou o logo. Se quiser assinar a arte, use só o nome da empresa em texto simples e pequeno.',
+    nomesPessoas.length ? `Na arte aparece: ${nomesPessoas.join(', ')}. Mantenha o rosto e os traços idênticos aos das fotos enviadas (a pessoa precisa ser reconhecida); roupa, cor da roupa, cabelo, pose, enquadramento e cenário seguem a orientação da peça.` : 'Não coloque pessoas reconhecíveis, a não ser que a orientação peça; nunca invente o rosto de um paciente.',
+    comLogo ? `Coloque o LOGO OFICIAL enviado ${POSICAO_LOGO[v.logoPosicao ?? 'auto'] ?? POSICAO_LOGO.auto}, exatamente como ele é.`
+      : v.logo === 'nenhum' ? 'A arte vai SEM logo: não desenhe logotipo, monograma nem símbolo da empresa.'
+      : 'NÃO desenhe logotipo, monograma nem símbolo de marca: a empresa não enviou o logo. Se quiser assinar a arte, use só o nome da empresa em texto simples e pequeno.',
     'Não escreva na arte rótulos de organização como "Lâmina 1", "Capa", "Cena" ou números de página: só o texto pedido.',
     'Nunca crie nem altere fotos de resultado de paciente; antes e depois só com as fotos reais enviadas, sem modificar.',
     quais.length ? `IMAGENS ENVIADAS:\n${quais.join('\n')}` : '',

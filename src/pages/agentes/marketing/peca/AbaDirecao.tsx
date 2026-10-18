@@ -8,11 +8,12 @@ import { EMPRESA } from '../useMarketing'
 import { Icone } from '../../../../components/Icone'
 import type { Peca, Trabalho } from '../../comum'
 import { ESTILOS, PROPORCOES, configDe, nomesItem, type Campo, type CampoTexto } from './editor'
-import type { Arte, Cor, Rascunho, Visual } from './modelo'
+import type { Arte, Cor, Rascunho, Referencia, Visual } from './modelo'
 import { CampoEditor } from './CampoEditor'
 import { AjusteIA } from './AjusteIA'
 import { BotaoEnviar, Miniatura, pastaDa } from './arquivos'
 import { AjustarArte, BotaoCriarArte } from './AvisoArte'
+import { EscolhaLogo, ImagensParaUsar } from './ImagensArte'
 
 type Props = {
   peca: Peca; r: Rascunho; mudar: (c: Partial<Rascunho>) => void; atual: number; setAtual: (i: number) => void; nomeAba: string
@@ -114,7 +115,9 @@ export function AbaDirecao({ peca, r, mudar, atual, setAtual, nomeAba, rodando, 
   const v = r.visual
   const muda = (c: Partial<Visual>) => mudar({ visual: { ...v, ...c } })
   const i = Math.min(atual, Math.max(0, r.itens.length - 1))
-  const orientaItem = (o: string) => mudar({ artes: Array.from({ length: Math.max(r.itens.length, r.artes.length) }, (_, j) => (j === i ? { ...r.artes[j], orientacao: o } : r.artes[j] ?? {})) })
+  const mudaArte = (c: Partial<Arte>) => mudar({ artes: Array.from({ length: Math.max(r.itens.length, r.artes.length) }, (_, j) => (j === i ? { ...r.artes[j], ...c } : r.artes[j] ?? {})) })
+  const orientaItem = (orientacao: string) => mudaArte({ orientacao })
+  const elementosItem = (elementos: Referencia[]) => mudaArte({ elementos })
   const campos: Campo[] = cfg.visual
   const so = `Ajuste SOMENTE a parte visual (${campos.map((c) => `${c.rotulo}: campo ${c.campo}`).join('; ')}).`
   return (
@@ -131,10 +134,15 @@ export function AbaDirecao({ peca, r, mudar, atual, setAtual, nomeAba, rodando, 
           <label className="pp-campo"><span className="pp-rotulo">Proporção</span><span className="select-icone"><select value={v.proporcao} onChange={(e) => muda({ proporcao: e.target.value })}>{[...new Set([v.proporcao, ...PROPORCOES])].map((s) => <option key={s}>{s}</option>)}</select></span></label>
         </div>
         <div className="pp-campo"><span className="pp-rotulo">Paleta de cores</span><Paleta cores={v.paleta} mudar={(paleta) => muda({ paleta })} /></div>
+        {cfg.artes && <EscolhaLogo v={v} muda={muda} />}
         {especifica && porItem
-          ? <CampoEditor id="arte-item" rotulo={`Orientação para a arte da ${minusc(singular)} ${i + 1}`} valor={r.artes[i]?.orientacao ?? ''} mudar={orientaItem} linhas={4}
-              dica={`Só para esta ${minusc(singular)}. Troque o número na prévia ao lado.`} placeholder="Ex.: fundo escuro e o preço em dourado, com bastante respiro" />
+          ? <>
+              <CampoEditor id="arte-item" rotulo={`Orientação para a arte da ${minusc(singular)} ${i + 1}`} valor={r.artes[i]?.orientacao ?? ''} mudar={orientaItem} linhas={4}
+                dica={`Só para esta ${minusc(singular)}. Troque o número na prévia ao lado.`} placeholder="Ex.: fundo escuro e o preço em dourado, com bastante respiro" />
+              <ImagensParaUsar pecaId={peca.id} lista={r.artes[i]?.elementos ?? []} mudar={elementosItem} onde={`na ${minusc(singular)} ${i + 1}`} />
+            </>
           : campos.map((c) => <CampoEditor key={c.campo} id={`visual-${c.campo}`} rotulo={c.rotulo} valor={valor(r, c.campo)} mudar={(x) => mudar({ [c.campo]: x })} max={c.max} linhas={c.linhas} dica={c.dica} />)}
+        {cfg.artes && !porItem && <ImagensParaUsar pecaId={peca.id} lista={v.elementos ?? []} mudar={(elementos) => muda({ elementos })} onde="na arte" />}
         <div className="pp-campo">
           <span className="pp-rotulo">Referências visuais</span>
           <div className="pp-refs">
@@ -143,7 +151,7 @@ export function AbaDirecao({ peca, r, mudar, atual, setAtual, nomeAba, rodando, 
             ))}
             <BotaoEnviar pasta={pastaDa(peca.id)} texto="Enviar referência" classe="btn btn-contorno btn-mini" aceita="image/*" aoEnviar={(caminho, nome) => muda({ referencias: [...v.referencias, { caminho, nome }] })} />
           </div>
-          <span className="muted pequeno">Prints de posts, fotos ou artes que servem de modelo.</span>
+          <span className="muted pequeno">Só inspiram o estilo (a IA não copia). Para uma imagem aparecer na arte, use "Imagens para usar".</span>
         </div>
         <QuemAparece v={v} muda={muda} />
         <AntesDepois peca={peca} v={v} muda={muda} />
