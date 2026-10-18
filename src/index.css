@@ -2028,3 +2028,6 @@ a.sala-agente:hover { border-color: var(--ouro); transform: translateY(-2px); }
 .mk-pop-nome small { font-size: .75rem; }
 .mk-pop-painel footer .muted { margin: 0 auto; }
 .mk-pop-painel .btn:disabled { opacity: .5; cursor: not-allowed; }
+/* borda do círculo do avatar mais aparente */
+.mk-avatar-fundo { padding: 4px; background: conic-gradient(from 200deg, #e7c46a, #a46ee6, #e7c46a, #c98bff, #e7c46a); box-shadow: 0 0 0 1px rgba(231,196,106,.35), 0 0 18px rgba(164,110,230,.45); }
+.mk-avatar-fundo::after { background: radial-gradient(circle at 50% 38%, color-mix(in srgb, #a46ee6 55%, #241b36) 0, #1a1424 80%); }
