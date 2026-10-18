@@ -127,7 +127,7 @@ export function SeletorFormatos({ f, mudar }: Props) {
         </div>
         <p className="muted pequeno">Curto: Reels, Shorts, TikTok. Longo: vídeo do YouTube.</p>
       </>)}
-      <div className="mk-pop-frase"><b>{frase}</b><span className="muted pequeno">{tipos.length > 1 ? 'Mostra peças de qualquer um desses tipos.' : 'Nenhum marcado = todos os formatos.'}</span></div>
+      <div className="mk-pop-frase"><b>{frase}</b><span className="muted pequeno">{tipos.length > 1 ? 'Mostra peças de qualquer um desses tipos.' : tipos.length ? 'Mostra só peças deste tipo.' : 'Nenhum marcado = todos os formatos.'}</span></div>
     </Painel>
   )
 }
