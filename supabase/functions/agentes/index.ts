@@ -35,7 +35,21 @@ const REDES: Record<string, { nome: string; guia: string; nomes: Record<string, 
     guia: 'Público um pouco mais velho: texto pode ser um pouco mais longo e explicativo, tom acolhedor, poucas hashtags (até 3).' },
   linkedin: { nome: 'LinkedIn', nomes: { post: 'post', carrossel: 'carrossel em PDF', reels: 'vídeo curto' },
     guia: 'Tom profissional e de autoridade: bastidores da escola, mercado de HOF, carreira e gestão de consultório. Sem gírias, emojis com moderação, até 3 hashtags.' },
+  pinterest: { nome: 'Pinterest', nomes: { post: 'Pin (imagem vertical 2:3)', carrossel: 'Pin carrossel', reels: 'Pin em vídeo (vertical)' },
+    guia: 'Pinterest é busca: título com as palavras que as pessoas procuram (até 100 caracteres), descrição curta e útil com palavras-chave e chamada para o link, sem hashtags em excesso. Arte vertical 2:3 com texto grande.' },
+  threads: { nome: 'Threads', nomes: { post: 'post de texto do Threads', carrossel: 'post do Threads com fotos' },
+    guia: 'Conversa, não anúncio: texto curto (até 500 caracteres), tom pessoal e de opinião, termina com uma pergunta para puxar resposta. No máximo 1 marcador de tópico.' },
 }
+const NOMES_REDES = Object.keys(REDES)
+type CadastroRedes = Record<string, { ativa?: boolean; perfil?: string }>
+// canais que a empresa usa (Base da marca → Redes sociais); sem cadastro valem Instagram, YouTube e TikTok
+const redesAtivas = (perfil: Record<string, unknown>) => {
+  const cad = (perfil.redes ?? null) as CadastroRedes | null
+  const lista = cad ? NOMES_REDES.filter((r) => cad[r]?.ativa) : []
+  return lista.length ? lista : ['instagram', 'youtube', 'tiktok']
+}
+const formatosDe = (rede: string) => Object.entries(REDES[rede].nomes).map(([tipo, nome]) => `${nome} = "${tipo}"`).join(', ')
+const listaCanais = (redes: string[]) => redes.map((r) => `${REDES[r].nome} (rede "${r}": ${formatosDe(r)})`).join('; ')
 const redeDo = (x: unknown) => (typeof x === 'string' && REDES[x] ? x : 'instagram')
 type DiaPlano = { dia: string; post?: number; carrossel?: number; reels?: number; stories?: number; video?: number }
 type Campanha = { id: string; nome: string; descricao?: string; inicio?: string; fim?: string }
@@ -65,7 +79,7 @@ const FERRAMENTA = {
             hashtags: { type: 'array', items: { type: 'string' } },
             observacao: { type: 'string', description: 'Dica de gravação, imagem ou cuidado com as regras do conselho' },
             prompt_imagem: { type: 'string', description: 'Para post e carrossel (e a capa do vídeo longo): pedido pronto para colar no ChatGPT e gerar a arte (cena, enquadramento, luz, cores da marca preto e dourado, texto que vai na arte). Nunca pedir rosto de paciente nem antes e depois.' },
-            rede: { type: 'string', enum: ['instagram', 'youtube', 'tiktok'], description: 'Só quando o item pede para você escolher o canal: o canal escolhido' },
+            rede: { type: 'string', enum: NOMES_REDES, description: 'Só quando o item pede para você escolher o canal: o canal escolhido' },
             ref: { type: 'integer', description: 'Quando a lista pedida é numerada: o número do item que esta peça atende' },
             horario: { type: 'string', description: 'Horário sugerido para postar, HH:MM (ex.: 09:00, 12:00, 18:00)' },
             pendencia: { type: 'string', description: 'Só se a peça depende de algo que NÃO está nos materiais/contexto e a equipe precisa confirmar (ex.: qual bônus vale, data de encerramento). Diga em uma frase o que confirmar. Se não há dúvida, deixe vazio.' },
@@ -116,6 +130,14 @@ async function contexto(db: SupabaseClient) {
   return linhas.join('\n\n')
 }
 
+// perfis da empresa em cada canal ligado (para citar o @ certo e não inventar)
+function perfisRedes(perfil: Record<string, unknown>) {
+  const cad = (perfil.redes ?? {}) as CadastroRedes
+  const linhas = redesAtivas(perfil).map((r) => `${REDES[r].nome}${cad[r]?.perfil ? `: ${cad[r]?.perfil}` : ''}`)
+  if (!cad.instagram && perfil.instagram) linhas.unshift(`Instagram: ${perfil.instagram}`)
+  return `CANAIS QUE A EMPRESA USA: ${[...new Set(linhas)].join(' · ')}`
+}
+
 type Exemplo = { tipo: string; titulo: string; conteudo: { legenda?: string; roteiro?: string[] } }
 // o que o agente sabe da empresa (Base da marca, instruções, ofertas, memória e peças aprovadas): vale para todo pedido
 function blocoEmpresa(perfil: Record<string, string>, exemplos: Exemplo[]) {
@@ -129,7 +151,7 @@ function blocoEmpresa(perfil: Record<string, string>, exemplos: Exemplo[]) {
     `TOM DE VOZ: ${perfil.tom ?? ''}`,
     `NUNCA FAZER: ${perfil.evitar ?? ''}`,
     `REGRAS DO CONSELHO: ${perfil.conselho ?? ''}`,
-    perfil.instagram ? `PERFIL NO INSTAGRAM: ${perfil.instagram}` : '',
+    perfisRedes(perfil as Record<string, unknown>),
     perfil.instrucoes ? `\nINSTRUÇÕES DA EQUIPE PARA ESTE AGENTE (siga sempre): ${perfil.instrucoes}` : '',
     perfil.materiais ? `\nOFERTAS E MATERIAIS DA EMPRESA (fonte da verdade: preços, condições, bônus e datas só podem vir daqui):\n${perfil.materiais}` : '',
     memoria.length ? `\nO QUE VOCÊ JÁ APRENDEU COM ESTA EQUIPE (gostos e recusas; siga sempre):\n${memoria.map((m) => `- ${m.texto}`).join('\n')}` : '',
@@ -271,7 +293,8 @@ type PecaBanco = { id: string; tipo: string; dia: string | null; titulo: string;
 type Briefing = { objetivo?: string; publico?: string; telas?: number; duracao?: string; orientacao?: string }
 
 function pedidoEscrever(perfil: Record<string, unknown>, pecas: PecaBanco[], pedido: Record<string, unknown>, ctx: string, exemplos: Exemplo[]) {
-  const redes = pecas.some((p) => p.conteudo.livre === true) ? ['instagram', 'youtube', 'tiktok'] : [...new Set(pecas.map((p) => redeDo(p.conteudo.rede)))]
+  const ativas = redesAtivas(perfil)
+  const redes = [...new Set([...(pecas.some((p) => p.conteudo.livre === true) ? ativas : []), ...pecas.filter((p) => p.conteudo.livre !== true).map((p) => redeDo(p.conteudo.rede))])]
   const campanhas = (Array.isArray(perfil.campanhas) ? perfil.campanhas : []) as Campanha[]
   const itens = pecas.map((p, i) => {
     const r = REDES[redeDo(p.conteudo.rede)], b = (p.conteudo.briefing ?? {}) as Briefing
@@ -279,7 +302,7 @@ function pedidoEscrever(perfil: Record<string, unknown>, pecas: PecaBanco[], ped
     const livre = p.conteudo.livre === true
     const partes = [
       p.dia ?? 'sem dia',
-      livre ? 'canal e formato: ESCOLHA o mais indicado para a mensagem entre Instagram (post, carrossel, reels, stories), YouTube (video = vídeo longo, reels = Shorts) e TikTok (reels = vídeo curto, carrossel) e informe em "rede" e "tipo"' : `${r.nome} · ${r.nomes[p.tipo] ?? p.tipo} (tipo "${p.tipo}")`,
+      livre ? `canal e formato: ESCOLHA o mais indicado para a mensagem entre ${listaCanais(ativas)} e informe em "rede" e "tipo"` : `${r.nome} · ${r.nomes[p.tipo] ?? p.tipo} (tipo "${p.tipo}")`,
       b.telas ? `exatamente ${b.telas} telas` : '', b.duracao ? `duração ${b.duracao}` : '',
       b.objetivo ? `objetivo: ${b.objetivo}` : '', b.publico ? `público: ${b.publico}` : '',
       camp ? `campanha: ${camp.nome}` : 'sem campanha (pode ser educativo ou de relacionamento, sem empurrar oferta)',
@@ -381,7 +404,7 @@ const FERRAMENTA_PLANO = {
           type: 'object',
           properties: {
             dia: { type: 'string', description: 'AAAA-MM-DD, somente entre as datas disponíveis' },
-            rede: { type: 'string', enum: ['instagram', 'youtube', 'tiktok'] },
+            rede: { type: 'string', enum: NOMES_REDES },
             tipo: { type: 'string', enum: TIPOS, description: 'reels = vídeo curto vertical (Reels, TikTok, Shorts); video = vídeo longo do YouTube' },
             titulo: { type: 'string', description: 'Título curto da peça' },
             angulo: { type: 'string', description: 'Em uma frase: a abordagem da peça (o que ela diz e para quê)' },
@@ -464,7 +487,7 @@ const FERRAMENTA_CONVERSA = {
       proposta: {
         type: 'object',
         properties: {
-          rede: { type: 'string', enum: ['instagram', 'youtube', 'tiktok'] },
+          rede: { type: 'string', enum: NOMES_REDES },
           tipo: { type: 'string', enum: TIPOS },
           titulo: { type: 'string', description: 'Título sugerido para a peça' },
           abordagem: { type: 'string', description: 'Em 1 ou 2 frases: o que a peça diz, o gancho e a chamada' },
@@ -484,7 +507,7 @@ async function conversar(db: SupabaseClient, empresa: string, corpo: { mensagens
   if (!mensagens.length || mensagens[mensagens.length - 1].de !== 'equipe') throw new Error('Escreva sua mensagem.')
   const sistema = [
     'Você é o Agente de Marketing de uma empresa brasileira e está conversando com a equipe para definir UMA peça de conteúdo antes de escrevê-la.',
-    'Ajude a definir a abordagem, o canal e o formato (Instagram: post, carrossel, reels, stories; YouTube: video = vídeo longo, reels = Shorts; TikTok: reels = vídeo curto, carrossel). Respeite o que a equipe já escolheu.',
+    `Ajude a definir a abordagem, o canal e o formato. Canais que a empresa usa (só estes): ${listaCanais(redesAtivas(pa))}. Respeite o que a equipe já escolheu.`,
     'Seja breve e prático. Quando faltar informação importante, pergunte uma coisa de cada vez e ofereça opções rápidas. Sempre devolva a proposta atualizada.',
     `Proposta atual (pode estar vazia): ${JSON.stringify(corpo.proposta ?? {})}`,
     ...blocoEmpresa(pa as Record<string, string>, []),

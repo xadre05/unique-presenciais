@@ -13,6 +13,7 @@ import { NovaPecaIA } from './marketing/NovaPecaIA'
 import { PaginaPlanejar } from './marketing/PaginaPlanejar'
 import { NovaCampanha } from './marketing/Campanhas'
 import { etapaDe } from './marketing/etapas'
+import { RedesAtivas, redesAtivas } from './marketing/redes'
 import { aplicar, filtrosIniciais, filtrosProducaoIniciais, intervaloDe, type Filtros, type FiltrosProducao } from './marketing/filtros'
 import type { Plano } from './marketing/planos'
 
@@ -33,6 +34,7 @@ export default function AgenteMarketing() {
   const { pecas, todas, trabalhos, perfil, campanhas, planos, emAndamento, ocupado, erro } = useMarketing(inicio, dias)
   useEffect(() => { if (new URLSearchParams(local.search).get('modo') === 'peca') setNova({ data: '' }) }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
+  const redes = useMemo(() => redesAtivas((perfil.dados?.perfil ?? undefined) as Record<string, unknown> | undefined), [perfil.dados])
   const visiveis = useMemo(() => aplicar(pecas.dados ?? [], f), [pecas.dados, f])
   // peças que o agente está escrevendo agora (ajuste de uma ou várias de uma vez)
   const ocupadas = new Set(emAndamento.flatMap((t) => [String(t.pedido.peca_id ?? ''), ...((t.pedido.peca_ids as string[] | undefined) ?? [])]))
@@ -44,6 +46,7 @@ export default function AgenteMarketing() {
   const modoAtual: ModoPlano = f.periodo
 
   return (
+    <RedesAtivas.Provider value={redes}>
     <div className="pagina larga mk">
       <div className="migalha"><Link to="/agentes" className="link">← Todos os agentes</Link></div>
       <header className="mk-topo">
@@ -92,5 +95,6 @@ export default function AgenteMarketing() {
         aoCriarCampanha={() => setCampanhaAberta(true)} aoPronto={(id) => { setNova(null); recarregar(); if (id) { setAberta(id); setAba('producao') } }} />
       <NovaCampanha aberto={campanhaAberta} aoFechar={() => setCampanhaAberta(false)} aoCriar={(id) => { perfil.recarregar(); mudar({ campanha: id }); setCampanhaAberta(false) }} />
     </div>
+    </RedesAtivas.Provider>
   )
 }

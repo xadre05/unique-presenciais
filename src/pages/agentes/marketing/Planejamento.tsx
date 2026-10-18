@@ -9,7 +9,7 @@ import type { Peca } from '../comum'
 import { moverPara, mudarPeca, ehIdeia, type Etapa } from './etapas'
 import { instrucaoNovoDia, pedirAjuste } from './ajuste'
 import { Calendario, QuadroEtapas } from './Quadros'
-import { BarraFiltros, BarraPeriodo } from './BarraFiltros'
+import { BarraFiltros, BarraPeriodo, CabecalhoAba, TrocaVisao } from './BarraFiltros'
 import { NOME_PERIODO, intervaloDe, type Filtros } from './filtros'
 import { pedirTrabalho, type Campanha } from './useMarketing'
 import type { Plano } from './planos'
@@ -54,9 +54,11 @@ export function Planejamento(pr: Props) {
 
   return (
     <section className="mk-plano">
-      <div className="mk-titulo-aba"><h2>Planejamento editorial</h2><p className="muted">Organize as peças e acompanhe cada etapa da produção.</p></div>
-      <BarraPeriodo f={f} mudar={pr.mudar} />
-      <BarraFiltros f={f} mudar={pr.mudar} campanhas={pr.campanhas} aoCriarCampanha={pr.aoCriarCampanha} />
+      <CabecalhoAba titulo="Planejamento editorial" sub="Organize as peças e acompanhe cada etapa da produção.">
+        <TrocaVisao visao={f.visao} mudar={(visao) => pr.mudar({ visao })} />
+      </CabecalhoAba>
+      <BarraPeriodo periodo={f.periodo} data={f.data} ate={f.ate} mudar={(c) => pr.mudar(c as Partial<Filtros>)} nota="Filtros alteram apenas a visualização." />
+      <BarraFiltros f={f} mudar={pr.mudar} campanhas={pr.campanhas} planos={pr.planos} aoCriarCampanha={pr.aoCriarCampanha} />
       <div className="mk-contagem"><span className="pequeno muted">{pr.pecas.length} {pr.pecas.length === 1 ? 'peça' : 'peças'} {NOME_PERIODO[f.periodo]}</span>
         {!!ideias.length && <button className="btn btn-contorno-ouro btn-mini" onClick={gerarIdeias}><Icone nome="floco" tam={14} /> Gerar rascunhos das {Math.min(40, ideias.length)} ideias</button>}</div>
 

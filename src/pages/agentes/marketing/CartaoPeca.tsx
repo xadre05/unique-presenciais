@@ -1,7 +1,8 @@
 // Cartão pequeno de uma peça (quadro e calendário). Clica para abrir na Produção; arrasta para mudar de etapa ou de dia.
 import { Icone } from '../../../components/Icone'
 import { dataLonga, type Peca } from '../comum'
-import { rotuloPeca } from './redes'
+import { redeDe, rotuloPeca } from './redes'
+import { LogoRede } from './LogoRede'
 import { COR_TIPO, ETAPA, etapaDe, tamanho } from './etapas'
 
 const ICONE_TIPO: Record<string, string> = { post: 'imagem', carrossel: 'quadro', reels: 'video', stories: 'celular', video: 'video' }
@@ -14,7 +15,7 @@ export function CartaoPeca({ peca, aoAbrir, modo, trabalhando }: { peca: Peca; a
       type="button" draggable className={`mk-cartao${trabalhando ? ' trabalhando' : ''}`} style={{ ['--cor-tipo' as string]: COR_TIPO[peca.tipo] ?? '#888' }}
       onClick={aoAbrir} onDragStart={(ev) => { ev.dataTransfer.setData('text/peca', peca.id); ev.dataTransfer.effectAllowed = 'move' }}
     >
-      <span className="mk-cartao-tipo"><Icone nome={ICONE_TIPO[peca.tipo] ?? 'documento'} tam={14} />{rotuloPeca(peca)}{tamanho(peca) && <i>· {tamanho(peca)}</i>}</span>
+      <span className="mk-cartao-tipo">{peca.conteudo.livre ? <Icone nome={ICONE_TIPO[peca.tipo] ?? 'documento'} tam={14} /> : <LogoRede rede={redeDe(peca)} tam={13} />}{rotuloPeca(peca)}{tamanho(peca) && <i>· {tamanho(peca)}</i>}</span>
       <b className="mk-cartao-titulo">{peca.titulo}</b>
       {peca.conteudo.proposta && etapa === 'ideia' && <span className="mk-cartao-linha mk-agente-escrevendo">Proposta do agente</span>}
       {modo === 'quadro'

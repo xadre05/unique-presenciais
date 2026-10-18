@@ -6,7 +6,7 @@ import { supabase } from '../../../lib/supabase'
 import { Campo, Erro, Modal } from '../../../components/ui'
 import { Icone } from '../../../components/Icone'
 import { AnexosPedido, type Anexo } from '../AnexosPedido'
-import { DURACOES, LISTA_REDES, REDES, ehVideo, nomeFormato, type Formato, type Rede } from './redes'
+import { DURACOES, REDES, useRedes, ehVideo, nomeFormato, type Formato, type Rede } from './redes'
 import { OBJETIVOS, PUBLICOS } from './textos'
 import { EMPRESA, criarTrabalho, pedirTrabalho, type Campanha } from './useMarketing'
 
@@ -19,6 +19,7 @@ const VAZIA: Proposta = { rede: '', tipo: '', titulo: '', abordagem: '', objetiv
 type Props = { aberto: boolean; aoFechar: () => void; dataInicial: string; campanhas: Campanha[]; campanhaPadrao: string; aoCriarCampanha: () => void; aoPronto: (pecaId?: string) => void }
 
 export function NovaPecaIA({ aberto, aoFechar, dataInicial, campanhas, campanhaPadrao, aoCriarCampanha, aoPronto }: Props) {
+  const redes = useRedes()
   const [msgs, setMsgs] = useState<Msg[]>([ABERTURA])
   const [texto, setTexto] = useState('')
   const [p, setP] = useState<Proposta>(VAZIA)
@@ -126,7 +127,7 @@ export function NovaPecaIA({ aberto, aoFechar, dataInicial, campanhas, campanhaP
             <h4><Icone nome="documento" tam={20} /> Proposta da peça</h4>
             <dl className="mk-detalhes">
               <dt>Canal</dt><dd><select value={p.rede} onChange={(e) => { const r = e.target.value as Rede | ''; mudar({ rede: r, tipo: r ? (REDES[r].formatos.includes(p.tipo as Formato) ? p.tipo : REDES[r].formatos[0]) : '' }) }}>
-                <option value="">O agente escolhe</option>{LISTA_REDES.map((r) => <option key={r} value={r}>{REDES[r].nome}</option>)}</select></dd>
+                <option value="">O agente escolhe</option>{redes.map((r) => <option key={r} value={r}>{REDES[r].nome}</option>)}</select></dd>
               <dt>Formato</dt><dd><select value={p.tipo} disabled={!p.rede} onChange={(e) => mudar({ tipo: e.target.value as Formato, duracao: '' })}>
                 {!p.rede ? <option value="">O agente escolhe</option> : REDES[p.rede].formatos.map((f) => <option key={f} value={f}>{nomeFormato(f, p.rede as Rede)}</option>)}</select></dd>
               <dt>Título sugerido</dt><dd><input value={p.titulo} onChange={(e) => mudar({ titulo: e.target.value })} placeholder="O agente sugere na conversa" /></dd>

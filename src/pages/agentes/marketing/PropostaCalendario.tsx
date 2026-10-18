@@ -5,11 +5,13 @@ import { Erro } from '../../../components/ui'
 import { Icone } from '../../../components/Icone'
 import type { Peca } from '../comum'
 import { mudarPeca } from './etapas'
-import { LISTA_REDES, REDES, nomeFormato, redeDe, type Rede } from './redes'
+import { REDES, nomeFormato, redeDe, useRedes, type Rede } from './redes'
+import { LogoRede } from './LogoRede'
 
 const semana = (iso: string) => new Date(iso + 'T12:00:00').toLocaleDateString('pt-BR', { weekday: 'short' }).replace('.', '')
 
 function Linha({ p, aoMudar }: { p: Peca; aoMudar: () => void }) {
+  const ativas = useRedes()
   const [editando, setEditando] = useState(false)
   const [titulo, setTitulo] = useState(p.titulo)
   const [angulo, setAngulo] = useState(p.conteudo.objetivo ?? '')
@@ -20,7 +22,7 @@ function Linha({ p, aoMudar }: { p: Peca; aoMudar: () => void }) {
     <div className={`mk-prop-linha${editando ? ' editando' : ''}`} style={{ ['--cor-rede' as string]: REDES[rede].cor }}>
       <div className="mk-prop-resumo">
         <span className="mk-prop-data"><b>{p.dia ? `${p.dia.slice(8, 10)}/${p.dia.slice(5, 7)}` : '—'}</b><small>{p.dia ? semana(p.dia) : ''}</small></span>
-        <span className="mk-prop-canal"><i />{REDES[rede].nome}<small>{nomeFormato(p.tipo, rede)}</small></span>
+        <span className="mk-prop-canal"><LogoRede rede={rede} />{REDES[rede].nome}<small>{nomeFormato(p.tipo, rede)}</small></span>
         <span className="mk-prop-titulo">{p.titulo}{p.conteudo.objetivo && <small>{p.conteudo.objetivo}</small>}</span>
         <button type="button" className="btn btn-mini" onClick={() => setEditando(!editando)}><Icone nome="documento" tam={14} /> {editando ? 'Fechar' : 'Editar'}</button>
       </div>
@@ -28,7 +30,7 @@ function Linha({ p, aoMudar }: { p: Peca; aoMudar: () => void }) {
         <div className="mk-prop-editar">
           <label>Data<input type="date" value={p.dia ?? ''} onChange={(e) => gravar({ dia: e.target.value || null })} /></label>
           <label>Canal e formato<select value={`${rede}|${p.tipo}`} onChange={(e) => { const [r, t] = e.target.value.split('|'); gravar({ tipo: t, conteudo: { ...p.conteudo, rede: r } }) }}>
-            {LISTA_REDES.flatMap((r: Rede) => REDES[r].formatos.map((f) => <option key={`${r}|${f}`} value={`${r}|${f}`}>{REDES[r].nome} · {nomeFormato(f, r)}</option>))}</select></label>
+            {[...new Set([...ativas, redeDe(p)])].flatMap((r: Rede) => REDES[r].formatos.map((f) => <option key={`${r}|${f}`} value={`${r}|${f}`}>{REDES[r].nome} · {nomeFormato(f, r)}</option>))}</select></label>
           <label className="largo">Título<input value={titulo} onChange={(e) => setTitulo(e.target.value)} onBlur={() => titulo !== p.titulo && gravar({ titulo })} /></label>
           <label className="largo">Abordagem<input value={angulo} onChange={(e) => setAngulo(e.target.value)} onBlur={() => angulo !== (p.conteudo.objetivo ?? '') && gravar({ conteudo: { ...p.conteudo, objetivo: angulo } })} /></label>
           <button type="button" className="btn btn-mini" onClick={() => gravar({ status: 'descartada' })}><Icone nome="fechar" tam={14} /> Tirar do plano</button>

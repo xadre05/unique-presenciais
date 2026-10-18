@@ -8,7 +8,8 @@ import { Erro, InputNumero } from '../../../components/ui'
 import { Icone } from '../../../components/Icone'
 import { segundaDe, somaDias, type Peca } from '../comum'
 import { mudarPeca } from './etapas'
-import { LISTA_REDES, REDES, nomeFormato, type Formato, type Rede } from './redes'
+import { REDES, nomeFormato, useRedes, type Formato, type Rede } from './redes'
+import { LogoRede } from './LogoRede'
 import { OBJETIVOS, PUBLICOS } from './textos'
 import { marcarPlano, nomePadrao, salvarPlano, type Briefing, type Plano } from './planos'
 import { EMPRESA, criarTrabalho, pedirTrabalho, type Campanha } from './useMarketing'
@@ -17,7 +18,7 @@ import { PropostaCalendario } from './PropostaCalendario'
 type Modo = 'dia' | 'semana' | 'mes' | 'periodo'
 const MODOS: { id: Modo; nome: string }[] = [{ id: 'dia', nome: 'Dia' }, { id: 'semana', nome: 'Semana' }, { id: 'mes', nome: 'Mês' }, { id: 'periodo', nome: 'Período' }]
 const NOME_DIA = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb']
-const FORMATOS_PADRAO: Record<Rede, Formato[]> = { instagram: ['carrossel', 'reels', 'stories'], youtube: ['video', 'reels'], tiktok: ['reels'], facebook: ['post'], linkedin: ['post'] }
+const FORMATOS_PADRAO: Record<Rede, Formato[]> = { instagram: ['carrossel', 'reels', 'stories'], youtube: ['video', 'reels'], tiktok: ['reels'], facebook: ['post'], linkedin: ['post'], pinterest: ['post'], threads: ['post'] }
 
 function intervalo(modo: Modo, data: string, ate: string) {
   if (modo === 'dia') return { inicio: data, fim: data }
@@ -31,6 +32,7 @@ const dm = (iso: string) => `${iso.slice(8, 10)}/${iso.slice(5, 7)}`
 type Props = { planoInicial: Plano | null; modoInicial: Modo; dataInicial: string; campanhas: Campanha[]; campanhaPadrao: string; aoCriarCampanha: () => void; aoVoltar: () => void; aoMudou: () => void }
 
 export function PaginaPlanejar(pr: Props) {
+  const redes = useRedes()
   const b = pr.planoInicial?.briefing
   const [plano, setPlano] = useState<Plano | null>(pr.planoInicial)
   const [modo, setModo] = useState<Modo>((b?.modo as Modo) ?? pr.modoInicial)
@@ -39,7 +41,7 @@ export function PaginaPlanejar(pr: Props) {
   const [objetivo, setObjetivo] = useState(b?.objetivo ?? OBJETIVOS[0])
   const [publico, setPublico] = useState(b?.publico ?? PUBLICOS[0])
   const [campanha, setCampanha] = useState(b?.campanha ?? pr.campanhaPadrao)
-  const [canais, setCanais] = useState<{ rede: Rede; formatos: Formato[] }[]>((b?.canais as { rede: Rede; formatos: Formato[] }[]) ?? [{ rede: 'instagram', formatos: FORMATOS_PADRAO.instagram }, { rede: 'youtube', formatos: FORMATOS_PADRAO.youtube }, { rede: 'tiktok', formatos: FORMATOS_PADRAO.tiktok }])
+  const [canais, setCanais] = useState<{ rede: Rede; formatos: Formato[] }[]>((b?.canais as { rede: Rede; formatos: Formato[] }[]) ?? redes.slice(0, 3).map((r) => ({ rede: r, formatos: FORMATOS_PADRAO[r] })))
   const [total, setTotal] = useState(b?.total ?? 6)
   const [diasSemana, setDiasSemana] = useState(b?.diasSemana ?? [1, 2, 3, 4, 5, 6, 0])
   const [orientacao, setOrientacao] = useState(b?.orientacao ?? '')
@@ -126,13 +128,13 @@ export function PaginaPlanejar(pr: Props) {
             <dt>Objetivo do conteúdo</dt><dd><select value={objetivo} onChange={(e) => setObjetivo(e.target.value)}>{OBJETIVOS.map((o) => <option key={o}>{o}</option>)}</select></dd>
             <dt>Público-alvo</dt><dd><select value={publico} onChange={(e) => setPublico(e.target.value)}>{PUBLICOS.map((o) => <option key={o}>{o}</option>)}</select></dd>
             <dt>Campanha <small>(opcional)</small></dt><dd><select value={campanha} onChange={(e) => (e.target.value === '__nova' ? pr.aoCriarCampanha() : setCampanha(e.target.value))}><option value="">Sem campanha</option>{pr.campanhas.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}<option value="__nova">+ Nova campanha…</option></select></dd>
-            <dt>Canais</dt><dd><div className="mk-chips">{LISTA_REDES.map((r) => <button key={r} type="button" className={`mk-chip mk-chip-rede${canais.some((c) => c.rede === r) ? ' ativo' : ''}`} style={{ ['--cor-rede' as string]: REDES[r].cor }} onClick={() => alternarCanal(r)}><i />{REDES[r].nome}{canais.some((c) => c.rede === r) && ' ×'}</button>)}</div></dd>
+            <dt>Canais</dt><dd><div className="mk-chips">{redes.map((r) => <button key={r} type="button" className={`mk-chip mk-chip-rede${canais.some((c) => c.rede === r) ? ' ativo' : ''}`} style={{ ['--cor-rede' as string]: REDES[r].cor }} onClick={() => alternarCanal(r)}><LogoRede rede={r} tam={15} />{REDES[r].nome}{canais.some((c) => c.rede === r) && ' ×'}</button>)}</div></dd>
             <dt>Volume total</dt><dd><InputNumero valor={total} min={1} max={40} sufixo="peças" onChange={(v) => setTotal(v ?? 1)} /></dd>
           </dl>
           <button type="button" className={`mk-secao-cab mk-opcionais${distribuicao ? ' aberta' : ''}`} onClick={() => setDistribuicao(!distribuicao)}><Icone nome="agenda" tam={18} /><b>Distribuição e disponibilidade</b><Icone nome="seta" tam={16} /></button>
           {distribuicao && (
             <div className="mk-form mk-distribuicao">
-              {canais.map((c) => <div key={c.rede} className="mk-dias-semana"><b style={{ color: REDES[c.rede].cor }}>{REDES[c.rede].nome}:</b>{REDES[c.rede].formatos.map((f) => <button key={f} type="button" className={`mk-chip mini${c.formatos.includes(f) ? ' ativo' : ''}`} onClick={() => alternarFormato(c.rede, f)}>{nomeFormato(f, c.rede)}</button>)}</div>)}
+              {canais.map((c) => <div key={c.rede} className="mk-dias-semana"><b style={{ color: REDES[c.rede].cor }}><LogoRede rede={c.rede} tam={15} /> {REDES[c.rede].nome}:</b>{REDES[c.rede].formatos.map((f) => <button key={f} type="button" className={`mk-chip mini${c.formatos.includes(f) ? ' ativo' : ''}`} onClick={() => alternarFormato(c.rede, f)}>{nomeFormato(f, c.rede)}</button>)}</div>)}
               {modo !== 'dia' && <div className="mk-dias-semana"><span className="muted pequeno">Dias em que vocês postam:</span>{[1, 2, 3, 4, 5, 6, 0].map((d) => <button key={d} type="button" className={`mk-chip mini${diasSemana.includes(d) ? ' ativo' : ''}`} onClick={() => setDiasSemana((x) => (x.includes(d) ? x.filter((y) => y !== d) : [...x, d]))}>{NOME_DIA[d]}</button>)}</div>}
               <span className="pequeno muted">{datas.length} {datas.length === 1 ? 'data disponível' : 'datas disponíveis'}.</span>
             </div>

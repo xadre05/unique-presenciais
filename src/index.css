@@ -1777,3 +1777,38 @@ a.sala-agente:hover { border-color: var(--ouro); transform: translateY(-2px); }
   .mk-prop-cab { display: none; }
   .mk-direcao { grid-template-columns: 1fr; }
 }
+
+/* ===== barras padronizadas do Agente de Marketing (Planejamento e Produção usam as mesmas) ===== */
+.mk-titulo-aba { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.mk-titulo-acoes { display: flex; gap: 10px; }
+.mk-periodo { display: flex; flex-direction: column; align-items: stretch; gap: 10px; padding: 12px 14px; }
+.mk-periodo-cab { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.mk-periodo-cab .mk-nota-filtro { margin-left: 0; }
+.mk-periodo-linha { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+.mk-periodo-linha .mk-visoes button { padding: 9px 16px; }
+.mk-navega { display: flex; align-items: center; gap: 8px; flex: 1 1 440px; min-width: 0; max-width: 580px; }
+.mk-navega-rotulo { flex: 1; min-width: 0; display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 40px; padding: 0 12px; border: 1px solid var(--borda); border-radius: 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 600; }
+.mk-navega input[type=date] { flex: 1; min-width: 0; }
+.mk-filtros { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)) minmax(210px, 1.4fr); gap: 10px; align-items: stretch; }
+.mk-filtros .select-icone { min-width: 0; }
+.mk-filtros .select-icone select { flex: 1; width: 100%; min-width: 0; }
+.mk-filtros .mk-busca { margin-left: 0; min-width: 0; }
+.mk-filtros .mk-multi { display: block; padding: 0; }
+.mk-filtros .mk-multi summary { display: flex; align-items: center; justify-content: space-between; gap: 6px; min-width: 0; padding: 12px; overflow: hidden; }
+.mk-logos { display: inline-flex; align-items: center; gap: 6px; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.mk-logo-rede { flex-shrink: 0; display: inline-block; vertical-align: middle; }
+.mk-logo-selo { display: inline-grid; place-items: center; flex-shrink: 0; border-radius: 4px; color: #fff; font-weight: 700; line-height: 1; }
+.mk-multi-lista label .mk-logo-rede, .mk-tab-canal .mk-logo-rede, .mk-prop-canal .mk-logo-rede { margin-right: 2px; }
+.mk-tab-canal, .mk-prop-canal { display: inline-flex; align-items: center; gap: 6px; }
+.mk-chip-rede { display: inline-flex; align-items: center; gap: 6px; }
+@media (max-width: 1150px) { .mk-filtros { grid-template-columns: repeat(3, minmax(0, 1fr)); } .mk-filtros .mk-busca { grid-column: 1 / -1; } }
+@media (max-width: 640px) { .mk-filtros { grid-template-columns: 1fr 1fr; } .mk-navega { flex-basis: 100%; } .mk-titulo-acoes { width: 100%; } }
+
+/* Base da marca → Redes sociais */
+.mk-redes-cad { display: flex; flex-direction: column; gap: 8px; }
+.mk-rede-linha { display: grid; grid-template-columns: 46px minmax(170px, 1fr) minmax(200px, 1.2fr) auto; gap: 14px; align-items: center; padding: 10px 14px; border: 1px solid var(--borda); border-radius: 12px; background: var(--painel); }
+.mk-rede-linha:not(.ativa) { opacity: .65; }
+.mk-rede-linha.ativa { border-color: color-mix(in srgb, var(--ouro) 35%, var(--borda)); }
+.mk-rede-logo { width: 46px; height: 46px; display: grid; place-items: center; border-radius: 12px; background: var(--painel-2); }
+.mk-rede-info { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+@media (max-width: 720px) { .mk-rede-linha { grid-template-columns: 46px 1fr auto; } .mk-rede-linha input { grid-column: 1 / -1; } }

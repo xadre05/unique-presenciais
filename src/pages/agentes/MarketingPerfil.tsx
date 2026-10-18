@@ -13,7 +13,6 @@ const CAMPOS: { k: keyof PerfilMarketing; rotulo: string; dica: string; linhas: 
   { k: 'tom', rotulo: 'Tom de voz', dica: 'Como a marca fala', linhas: 2 },
   { k: 'evitar', rotulo: 'Nunca fazer', dica: 'Palavras e promessas proibidas', linhas: 2 },
   { k: 'conselho', rotulo: 'Regras do conselho', dica: 'CFO, CFM, CRBM: o que a publicidade não pode ter', linhas: 2 },
-  { k: 'instagram', rotulo: 'Instagram (opcional)', dica: 'Ex.: @suaclinica', linhas: 1 },
   { k: 'materiais', rotulo: 'Ofertas e materiais (fonte da verdade)', dica: 'Cole aqui o texto da página de vendas (ex.: Black), preços, formas de pagamento, bônus, datas e perguntas frequentes. O agente usa isso e não inventa nada fora daqui.', linhas: 12 },
 ]
 
