@@ -155,3 +155,12 @@ Capa, thumbnail e legenda são materiais dentro da peça, não peças separadas.
   - as peças aprovadas.
 - Preços, condições e bônus só vêm de **Base da marca → Ofertas e materiais**.
 - Imagem: o Claude não gera imagem. Essa parte vai ser do Agente de Arte, pela API de imagem (recomendação: OpenAI GPT Image).
+
+## Inteligências artificiais e Pessoas da marca (18/10/2026)
+
+- **Configurações → Inteligências artificiais:** uma chave por empresa e por IA (Claude/Anthropic, ChatGPT/OpenAI, Gemini/Google, Grok/xAI). A chave fica cifrada no servidor; a tela só mostra o final (••••a1b2). Trocar = colar a nova por cima.
+- **Qual IA faz cada trabalho:** Texto e Imagem, cada um com "Automático" ou uma IA escolhida. Automático: texto → Claude; imagem → GPT Image (põe pessoas reais a partir de fotos e escreve na arte), depois Gemini e Grok, conforme as chaves cadastradas.
+- **No Clinical**, a ideia é a clínica não colar chave: usa a chave da plataforma e paga em créditos. A estrutura por empresa já serve para os dois casos.
+- **Base da marca → Pessoas da marca:** quem pode aparecer nas artes (cada empresa cadastra os seus). Fotos só depois de marcar a autorização de uso de imagem. Na peça, Direção visual → "Quem aparece nesta arte?".
+- Antes e depois: só fotos reais, com autorização do paciente; a IA não inventa nem altera resultado.
+- Banco: `agentes_chaves`, `agentes_config.ias`, `marca_pessoas`, funções `agentes_salvar_chave_ia` e `agentes_ler_chave_ia` (esta só para a função dos agentes).
