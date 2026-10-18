@@ -1,6 +1,7 @@
 // Planejar conteúdos (página): à esquerda a direção do planejamento (período, objetivo, público, campanha, canais,
 // volume, distribuição e orientação); à direita a proposta de calendário do agente para revisar e aprovar.
 // Ver docs/agentes/REGRAS_AGENTE_MARKETING.md (regra 5: planejar e produzir são passos separados).
+import { Voltar } from '../../../components/Voltar'
 import { useEffect, useState } from 'react'
 import { supabase } from '../../../lib/supabase'
 import { useConsulta } from '../../../lib/dados'
@@ -114,7 +115,7 @@ export function PaginaPlanejar(pr: Props) {
 
   return (
     <div className="mk-pagina-planejar">
-      <button className="link pequeno" onClick={pr.aoVoltar}>← Voltar ao planejamento</button>
+      <Voltar aoClicar={pr.aoVoltar} texto="Voltar ao planejamento" />
       <div className="mk-titulo-aba"><h2>Planejar conteúdos{plano ? `: ${plano.nome}` : ''}</h2><p className="muted">Defina o objetivo e revise a distribuição antes de produzir.</p></div>
       <div className="mk-planejar-grade">
         <section className="mk-painel">

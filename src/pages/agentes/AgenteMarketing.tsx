@@ -1,8 +1,9 @@
 // Agente de Marketing: Planejamento (período livre, quadro e calendário), Produção (lista de peças e editor por peça)
 // e Configurar agente. Duas entradas: "Nova peça com IA" (um conteúdo) e "Planejar conteúdos" (um conjunto, com
 // proposta do agente para revisar). Regras em docs/agentes/REGRAS_AGENTE_MARKETING.md.
+import { Voltar } from '../../components/Voltar'
 import { useEffect, useMemo, useState } from 'react'
-import { Link, useLocation } from 'react-router-dom'
+import { useLocation } from 'react-router-dom'
 import { Icone } from '../../components/Icone'
 import { ConfigAgente } from './ConfigAgente'
 import type { Peca } from './comum'
@@ -49,9 +50,9 @@ export default function AgenteMarketing() {
   return (
     <RedesAtivas.Provider value={redes}>
     <div className="pagina larga mk">
-      <div className="migalha"><Link to="/agentes" className="link">← Todos os agentes</Link></div>
+      <div className="migalha"><Voltar para="/agentes" texto="Sala dos agentes" /></div>
       <header className="mk-topo">
-        <span className={`mk-avatar-pop${ocupado ? ' trabalhando' : ''}`}><span className="mk-avatar-fundo" /><img src="/agentes/marketing-busto.webp?v=1" alt="" /></span>
+        <span className={`mk-avatar-pop${ocupado ? ' trabalhando' : ''}`}><span className="mk-avatar-fundo" /><img src="/agentes/marketing-busto.webp?v=2" alt="" /></span>
         <div className="mk-topo-txt">
           <h1>Agente de Marketing</h1>
           <p className="muted">Conteúdo e campanhas para os seus canais. Nada é publicado sozinho.</p>

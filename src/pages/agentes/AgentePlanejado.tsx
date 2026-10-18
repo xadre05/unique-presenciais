@@ -1,4 +1,5 @@
 // Página de um agente que ainda está sendo construído: quem é e o que vai fazer.
+import { Voltar } from '../../components/Voltar'
 import { Link, useParams } from 'react-router-dom'
 import { Vazio } from '../../components/ui'
 import { Retrato } from './Retrato'
@@ -10,7 +11,7 @@ export default function AgentePlanejado() {
   if (!a) return <div className="pagina"><Vazio>Agente não encontrado. <Link to="/agentes" className="link">Voltar para a sala</Link></Vazio></div>
   return (
     <div className="pagina">
-      <div className="migalha"><Link to="/agentes" className="link">← Sala dos agentes</Link></div>
+      <div className="migalha"><Voltar para="/agentes" texto="Sala dos agentes" /></div>
       <header className="agente-topo" style={{ ['--cor-agente' as string]: a.cor }}>
         <Retrato agente={a.id} estado="parado" alto={300} />
         <div>

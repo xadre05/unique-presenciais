@@ -1,6 +1,7 @@
 // Página de uma peça na Produção: o mesmo editor para peça avulsa ou do plano. Conteúdo à esquerda
 // (título, legenda, roteiro, direção visual e gravação, versões), detalhes à direita. A peça pode ser
 // escrita pelo agente ou por você mesmo.
+import { Voltar } from '../../../components/Voltar'
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { msgErro } from '../../../lib/dados'
@@ -61,8 +62,7 @@ export function PaginaPeca({ peca, trabalhos, campanhas, planos, aoVoltar, aoMud
   return (
     <div className="mk-pagina-peca">
       <div className="mk-principal">
-        <nav className="mk-trilha pequeno"><button className="link" onClick={aoVoltar}>Produção</button> / <span>{peca.titulo}</span></nav>
-        <button className="link pequeno" onClick={aoVoltar}>← Todas as peças</button>
+        <Voltar aoClicar={aoVoltar} texto="Todas as peças" />
         <h2 className="mk-peca-titulo">{peca.titulo}</h2>
         <div className="mk-chips-peca">
           <span className="mk-chip-info">{peca.conteudo.livre ? 'Canal a definir' : rotuloPeca(peca)}</span>

@@ -2011,3 +2011,10 @@ a.sala-agente:hover { border-color: var(--ouro); transform: translateY(-2px); }
 .mk-avatar-pop.trabalhando .mk-avatar-fundo { animation: mk-gira 3s linear infinite; }
 @media (prefers-reduced-motion: reduce) { .mk-avatar-pop.trabalhando .mk-avatar-fundo { animation: none; } }
 @media (max-width: 640px) { .mk-avatar-pop { --d: 68px; } }
+
+/* botão de voltar */
+.voltar { display: inline-flex; align-items: center; gap: 10px; padding: 0; border: 0; background: none; color: var(--muted); font: inherit; font-size: .9rem; text-decoration: none; cursor: pointer; }
+.voltar-seta { width: 30px; height: 30px; display: grid; place-items: center; border: 1px solid var(--borda); border-radius: 9px; background: var(--painel); color: var(--texto); transition: border-color .15s, color .15s; }
+.voltar:hover { color: var(--texto); }
+.voltar:hover .voltar-seta { border-color: var(--ouro); color: var(--ouro-forte); }
+.voltar:focus-visible .voltar-seta { outline: 2px solid var(--ouro); outline-offset: 2px; }
