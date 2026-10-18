@@ -60,6 +60,35 @@ Fixadas pelo Alexandre em 18/10/2026. Qualquer mudança nas telas ou na função
 - **Cartão:** tem o logo do canal, o formato, o título, a data ou horário e a situação.
 - **Menu ⋯ do cartão:** abrir a peça, mover para outra etapa ou tirar do planejamento.
 
+## Detalhe da peça (modelo do GPT, 18/10/2026)
+
+- **Topo:** trilha "Produção / Detalhe da peça", voltar para **Todas as peças**, avatar do agente, título (lápis para editar), selos (canal, formato · quantidade, planejamento, situação), situação do salvamento ("Salvo agora") e menu ⋯ (copiar, voltar para revisão, descartar).
+- **Régua de etapas:** Texto/Roteiro → etapa do meio → Revisão final. A etapa do meio depende do formato: Arte (imagem, carrossel, stories), Gravação e edição (Reels/Shorts, vídeo longo), Capa (live, artigo), Diagramação (PDF). E-mail, mensagem e texto/enquete não têm etapa do meio.
+- **Aprovações separadas:** "Aprovar texto" não aprova a arte nem publica. Depois vem "Aprovar arte" (só quando todos os arquivos foram enviados, ou com "Foi feita fora do sistema?"), "Concluir gravação" nos vídeos, "Aprovar peça" e "Marcar como publicada". Mudar o texto depois de aprovado devolve para revisão.
+- **Abas por formato** (configuração em `src/pages/agentes/marketing/peca/editor.ts`):
+
+| Formato | Abas |
+|---|---|
+| Carrossel | Lâminas · Legenda · Direção visual · Versões |
+| Imagem | Texto da arte · Legenda · Direção visual · Versões |
+| Reels / Shorts / vídeo curto | Roteiro (cenas) · Legenda · Gravação e capa · Versões |
+| Vídeo longo | Roteiro (blocos) · Título e descrição · Gravação e thumbnail · Versões |
+| Live | Pauta · Divulgação · Transmissão e capa · Versões |
+| Stories | Telas · Direção visual · Versões |
+| Texto / enquete | Texto · Enquete · Imagem (opcional) · Versões |
+| Artigo | Artigo · Estrutura · Capa · Versões |
+| E-mail | E-mail (assunto, prévia, corpo, botão) · Variações de assunto · Versões |
+| Mensagem | Mensagem · Variações · Versões |
+| Material PDF | Páginas · Apresentação · Diagramação · Versões |
+
+- **Itens** (lâminas, cenas, telas, páginas…): lista à esquerda (arrastar para mudar a ordem, "+ Adicionar") e o item escolhido à direita, com título, texto de apoio (com limite de caracteres) e orientação. No banco, cada item é a primeira linha (título) + quebra de linha + texto; as orientações ficam em `orientacoes`.
+- **Ajuste pela IA em cada aba**, com "Aplicar ajuste em" (só este item, todos os itens, legenda completa, só a chamada, só as hashtags, direção visual, peça inteira) e "Sugerir como preferência do agente" (desmarcado por padrão).
+- **Direção visual:** estilo, proporção, paleta de cores (editável), orientação para a arte (geral ou de um item), referências visuais e a prévia com "Enviar arquivo" e "N de M artes prontas". "Gerar arte" fica desligado até o Agente de Arte entrar.
+- **Arquivos** vão para o armazenamento privado, na pasta `agentes/pecas/<id>`.
+- **Salvamento automático** 1,5 s depois da última mudança. Cada sessão de edição vira **uma versão** (as mudanças seguidas atualizam a mesma versão); cada escrita ou ajuste do agente também vira uma versão.
+- **Versões:** histórico com filtro por parte da peça, comparação campo a campo (vermelho = antes, verde = depois) e "Restaurar versão N", que cria uma versão nova, mantém o histórico e devolve o conteúdo para revisão. Guarda as últimas 20.
+- **Coluna da direita:** Detalhes da peça (leitura; "Editar detalhes" abre os campos) e um cartão que muda com a aba: Arquivos do item e Resumo, Revisão da arte, ou Versão selecionada.
+
 ## Canais
 
 - **Primeira fase:** Instagram, YouTube e TikTok.

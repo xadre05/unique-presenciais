@@ -34,14 +34,17 @@ export function separarItem(s: string, cfg: ConfigItem, orientacao = ''): Item {
   const quebra = s.indexOf('\n')
   if (quebra >= 0) return { titulo: s.slice(0, quebra).trim(), texto: s.slice(quebra + 1).trim(), orientacao }
   // texto antigo numa linha só: tira o "Lâmina 1 (capa):" do começo e usa a primeira frase como título
+  const prefixo = s.match(PREFIXO_ITEM)
   const limpo = s.replace(PREFIXO_ITEM, '').trim()
+  // cena e bloco de vídeo: o tempo entre parênteses vira o título ("0–3s")
+  if (prefixo?.[2] && /\d\s*(s|seg|min|:)/i.test(prefixo[2])) return { titulo: prefixo[2].slice(1, -1).trim(), texto: limpo, orientacao }
   const max = cfg.maxTitulo ?? 90
   if (limpo.length <= max) return { titulo: limpo.replace(/[.;]$/, ''), texto: '', orientacao }
-  const fim = limpo.search(/[.!?:]\s/)
+  const fim = limpo.search(/(?<!\b(?:Dra?|Sra?|Prof|Profa|etc|ex))[.!?:]\s/)
   if (fim > 0 && fim < max) return { titulo: limpo.slice(0, limpo[fim] === '.' || limpo[fim] === ':' ? fim : fim + 1).trim(), texto: limpo.slice(fim + 1).trim(), orientacao }
   return { titulo: '', texto: limpo, orientacao }
 }
-const PREFIXO_ITEM = /^(l[âa]mina|tela|cena|p[áa]gina|bloco|se[çc][ãa]o)\s*\d+\s*(\([^)]*\))?\s*[:\-–—.]\s*/i
+const PREFIXO_ITEM = /^(l[âa]mina|tela|cena|p[áa]gina|bloco|se[çc][ãa]o)\s*\d+\s*(\([^)]*\))?\s*[:,\-–—.]\s*/i
 export function juntarItem(i: Item, cfg: ConfigItem) {
   if (!cfg.titulo) return i.texto
   if (!cfg.texto) return i.titulo
