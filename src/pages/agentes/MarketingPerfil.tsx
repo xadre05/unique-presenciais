@@ -23,7 +23,7 @@ export function MarketingPerfil({ empresaId, perfil, aoSalvar }: { empresaId: st
   const [ok, setOk] = useState(false)
   const salvar = async () => {
     setErro(null); setOk(false)
-    const limpo = Object.fromEntries(Object.entries(f).map(([k, v]) => [k, typeof v === 'string' ? v.trim() : v]).filter(([, v]) => v !== '' && v != null))
+    const limpo = Object.fromEntries(Object.entries(f).filter(([k]) => CAMPOS.some((c) => c.k === k)).map(([k, v]) => [k, typeof v === 'string' ? v.trim() : v]).filter(([, v]) => v !== '' && v != null))
     // mantém a configuração do agente (modelo, limite, instruções) que mora no mesmo perfil
     const { data: atual } = await supabase.from('agentes_empresa').select('perfil').eq('empresa_id', empresaId).eq('agente_id', 'marketing').maybeSingle()
     const base = Object.fromEntries(Object.entries((atual?.perfil ?? {}) as Record<string, unknown>).filter(([k]) => !CAMPOS.some((c) => c.k === k)))

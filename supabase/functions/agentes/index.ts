@@ -59,7 +59,23 @@ const PROPS_PECA = FERRAMENTA.input_schema.properties.pecas.items
 const FERRAMENTA_AJUSTE = {
   name: 'entregar_peca',
   description: 'Entrega a peça ajustada, completa, para a equipe aprovar.',
-  input_schema: { ...PROPS_PECA, required: ['tipo', 'titulo', 'objetivo'] },
+  input_schema: {
+    ...PROPS_PECA,
+    properties: { ...PROPS_PECA.properties, aprendizado: { type: 'string', description: 'Se o pedido de ajuste mostra um gosto que vale para as PRÓXIMAS peças (ex.: "prefere legendas curtas, até 5 linhas", "gosta de emoji no começo"), escreva em uma frase curta. Se foi algo só desta peça, deixe vazio.' } },
+    required: ['tipo', 'titulo', 'objetivo'],
+  },
+}
+
+// memória do agente: o que ele aprendeu com a equipe (ajustes, descartes e o que foi escrito à mão)
+async function lembrar(db: SupabaseClient, empresa: string, agente: string, frase: string) {
+  const f = frase.trim()
+  if (!f) return
+  const { data } = await db.from('agentes_empresa').select('perfil').eq('empresa_id', empresa).eq('agente_id', agente).maybeSingle()
+  const perfil = (data?.perfil ?? {}) as Record<string, unknown>
+  const memoria = (Array.isArray(perfil.memoria) ? perfil.memoria : []) as { texto: string; em: string; origem: string }[]
+  if (memoria.some((m) => m.texto.toLowerCase() === f.toLowerCase())) return
+  const nova = [...memoria, { texto: f, em: new Date().toISOString(), origem: 'ajuste' }].slice(-40)
+  await db.from('agentes_empresa').update({ perfil: { ...perfil, memoria: nova } }).eq('empresa_id', empresa).eq('agente_id', agente)
 }
 
 async function contexto(db: SupabaseClient) {
@@ -76,7 +92,9 @@ async function contexto(db: SupabaseClient) {
   return linhas.join('\n\n')
 }
 
-function pedidoMarketing(perfil: Record<string, string>, pedido: Record<string, unknown>, ctx: string) {
+type Exemplo = { tipo: string; titulo: string; conteudo: { legenda?: string; roteiro?: string[] } }
+function pedidoMarketing(perfil: Record<string, string>, pedido: Record<string, unknown>, ctx: string, exemplos: Exemplo[] = []) {
+  const memoria = (Array.isArray((perfil as Record<string, unknown>).memoria) ? (perfil as Record<string, unknown>).memoria : []) as { texto: string }[]
   const inicio = String(pedido.semana_inicio)
   const fim = new Date(new Date(inicio + 'T12:00:00Z').getTime() + 6 * 86400000).toISOString().slice(0, 10)
   const dias = Number(pedido.stories ?? 3), telas = Number(pedido.stories_telas ?? 5)
@@ -100,6 +118,8 @@ function pedidoMarketing(perfil: Record<string, string>, pedido: Record<string, 
     perfil.instagram ? `PERFIL NO INSTAGRAM: ${perfil.instagram}` : '',
     perfil.instrucoes ? `\nINSTRUÇÕES DA EQUIPE PARA ESTE AGENTE (siga sempre): ${perfil.instrucoes}` : '',
     perfil.materiais ? `\nOFERTAS E MATERIAIS DA EMPRESA (fonte da verdade: preços, condições, bônus e datas só podem vir daqui):\n${perfil.materiais}` : '',
+    memoria.length ? `\nO QUE VOCÊ JÁ APRENDEU COM ESTA EQUIPE (gostos e recusas; siga sempre):\n${memoria.map((m) => `- ${m.texto}`).join('\n')}` : '',
+    exemplos.length ? `\nPEÇAS QUE A EQUIPE APROVOU (use como referência de estilo, sem repetir o conteúdo):\n${exemplos.map((e) => `[${e.tipo}] ${e.titulo}\n${(e.conteudo.legenda ?? (e.conteudo.roteiro ?? []).join(' / ')).slice(0, 700)}`).join('\n---\n')}` : '',
   ].filter(Boolean).join('\n')
   const usuario = [
     `Monte a semana de ${inicio} a ${fim}: ${qtd}. Espalhe pelos dias (não precisa ter peça todo dia).`,
@@ -161,13 +181,15 @@ async function ajustar(db: SupabaseClient, t: Trabalho, perfil: Record<string, s
   const atual = { tipo: peca.tipo, dia: peca.dia, titulo: peca.titulo, ...peca.conteudo }
   const usuario = `Esta é uma peça que você preparou:\n${JSON.stringify(atual, null, 2)}\n\nPedido de ajuste da equipe: ${String(t.pedido.instrucao ?? '')}\n\nReescreva a peça inteira já com o ajuste (mantenha o que não foi pedido para mudar) e entregue OBRIGATORIAMENTE chamando a ferramenta entregar_peca.`
   const { entrega: p, entrada, saida } = await chamarClaude(chave, modelo, sistema, usuario, FERRAMENTA_AJUSTE)
+  const aprendizado = String((p as Record<string, unknown>).aprendizado ?? '')
+  if (aprendizado) await lembrar(db, t.empresa_id, t.agente_id, aprendizado)
   const { anterior: _a, ...semHistorico } = (peca.conteudo ?? {}) as Record<string, unknown>
   await db.from('agentes_pecas').update({
     titulo: p.titulo || peca.titulo, status: 'rascunho', atualizado_em: new Date().toISOString(),
     conteudo: { objetivo: p.objetivo, legenda: p.legenda, roteiro: p.roteiro, texto_arte: p.texto_arte, cta: p.cta, hashtags: p.hashtags, observacao: p.observacao, prompt_imagem: p.prompt_imagem, anterior: semHistorico },
   }).eq('id', peca.id)
   await db.from('agentes_trabalhos').update({
-    status: 'pronto', resumo: `Ajuste: ${String(t.pedido.instrucao ?? '').slice(0, 200)}`, modelo, tokens_entrada: entrada, tokens_saida: saida,
+    status: 'pronto', resumo: `Ajuste: ${String(t.pedido.instrucao ?? '').slice(0, 200)}${aprendizado ? ` · Aprendeu: ${aprendizado}` : ''}`, modelo, tokens_entrada: entrada, tokens_saida: saida,
     custo_usd: custo(modelo, entrada, saida), terminado_em: new Date().toISOString(),
   }).eq('id', t.id)
 }
@@ -195,6 +217,7 @@ async function executar(db: SupabaseClient, t: Trabalho) {
     // posts/reels e stories em dois pedidos ao mesmo tempo: sai na metade do tempo
     const perfil = (perfilAg.perfil ?? {}) as Record<string, string>
     const ctx = await contexto(db)
+    const { data: exemplos } = await db.from('agentes_pecas').select('tipo,titulo,conteudo').eq('empresa_id', t.empresa_id).eq('agente_id', t.agente_id).in('status', ['aprovada', 'postada']).order('atualizado_em', { ascending: false }).limit(3)
     const pedidos = [
       { ...t.pedido, stories: 0 },
       { ...t.pedido, posts: 0, reels: 0 },
@@ -202,7 +225,7 @@ async function executar(db: SupabaseClient, t: Trabalho) {
     // stories são textos curtos e muitos: vão no modelo econômico (cerca de 20x mais barato); posts e reels no modelo escolhido
     const modeloDe = (pd: Record<string, unknown>) => (Number(pd.posts ?? 0) + Number(pd.reels ?? 0) === 0 && pa.stories_economico !== false ? 'claude-haiku-5-5' : modelo)
     const anexos = (Array.isArray(t.pedido.anexos) ? t.pedido.anexos : []) as Anexo[]
-    const respostas = await Promise.all(pedidos.map(async (pd) => { const { sistema, usuario } = pedidoMarketing(perfil, pd, ctx); const m = modeloDe(pd); return { ...(await chamarClaude(String(chave), m, sistema, comAnexos(usuario, anexos))), modelo: m } }))
+    const respostas = await Promise.all(pedidos.map(async (pd) => { const { sistema, usuario } = pedidoMarketing(perfil, pd, ctx, (exemplos ?? []) as Exemplo[]); const m = modeloDe(pd); return { ...(await chamarClaude(String(chave), m, sistema, comAnexos(usuario, anexos))), modelo: m } }))
     const entrega = { resumo: respostas.map((r) => r.entrega.resumo).filter(Boolean)[0] ?? null, pecas: respostas.flatMap((r) => r.entrega.pecas ?? []) }
     const entrada = respostas.reduce((s, r) => s + r.entrada, 0), saida = respostas.reduce((s, r) => s + r.saida, 0)
     const custoTotal = Math.round(respostas.reduce((s, r) => s + custo(r.modelo, r.entrada, r.saida), 0) * 10000) / 10000

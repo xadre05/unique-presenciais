@@ -1,6 +1,5 @@
-// Sala dos agentes: os especialistas (corpo inteiro), números do momento, abas Academy/Clinical,
+// Sala dos agentes: os especialistas (corpo inteiro), números do momento (só os agentes da Unique/Academy),
 // e embaixo a fila de aprovações e a base da marca.
-import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import { useConsulta } from '../../lib/dados'
@@ -11,8 +10,6 @@ import { Retrato } from './Retrato'
 import { useSala, type AgenteNaSala } from './useSala'
 import { TIPO_PECA, usd, visualDe } from './comum'
 import type { PerfilMarketing } from './MarketingPerfil'
-
-const ABAS = [{ id: 'todos', nome: 'Todos' }, { id: 'academy', nome: 'Academy' }, { id: 'clinical', nome: 'Clinical' }] as const
 
 function situacao(a: AgenteNaSala, temChave: boolean): { txt: string; tom: string } {
   if (!a.disponivel) return { txt: 'Em breve', tom: 'neutro' }
@@ -53,12 +50,11 @@ function CartaoAgente({ a, temChave }: { a: AgenteNaSala; temChave: boolean }) {
 
 export default function Sala() {
   const { agentes, cfg, erro } = useSala()
-  const [aba, setAba] = useState<(typeof ABAS)[number]['id']>('todos')
   const fila = useConsulta<{ id: string; titulo: string; tipo: string; agente_id: string }[]>(() => supabase.from('agentes_pecas').select('id,titulo,tipo,agente_id').eq('empresa_id', EMPRESA_UNIQUE).eq('status', 'rascunho').order('dia').limit(5))
   const perfil = useConsulta<{ perfil: PerfilMarketing } | null>(() => supabase.from('agentes_empresa').select('perfil').eq('empresa_id', EMPRESA_UNIQUE).eq('agente_id', 'marketing').maybeSingle())
 
   const temChave = !!cfg?.chave_em
-  const visiveis = agentes.filter((a) => aba === 'todos' || a.escopo === aba || a.escopo === 'ambos')
+  const visiveis = agentes
   const ativos = agentes.filter((a) => a.disponivel && a.ativo).length
   const emAprovacao = agentes.reduce((s, a) => s + (a.dados?.aguardando ?? 0), 0)
   const emExecucao = agentes.filter((a) => a.estado === 'trabalhando').length
@@ -84,9 +80,6 @@ export default function Sala() {
       )}
       <Erro msg={erro} />
 
-      <div className="sala-abas">{ABAS.map((x) => (
-        <button key={x.id} className={aba === x.id ? 'ativa' : ''} onClick={() => setAba(x.id)}>{x.nome}{x.id === 'todos' && <span>{agentes.length}</span>}</button>
-      ))}</div>
 
       <div className="sala-grade">{visiveis.map((a) => <CartaoAgente key={a.id} a={a} temChave={temChave} />)}</div>
 

@@ -6,6 +6,7 @@ import { msgErro } from '../../lib/dados'
 import { dataBR } from '../../lib/format'
 import { Badge, Erro } from '../../components/ui'
 import { TIPO_PECA, textoDaPeca, type Peca } from './comum'
+import { lembrar } from './memoria'
 
 const STATUS: Record<Peca['status'], { rotulo: string; tom: string }> = {
   rascunho: { rotulo: 'Esperando aprovação', tom: 'alerta' },
@@ -55,6 +56,7 @@ export function PecaCartao({ peca, aoMudar }: { peca: Peca; aoMudar: () => void 
   const [pedindo, setPedindo] = useState(false)
   const [copiado, setCopiado] = useState(false)
   const [copiadoImg, setCopiadoImg] = useState(false)
+  const [motivo, setMotivo] = useState<string | null>(null)
   const [erro, setErro] = useState<string | null>(null)
   const { ajustando, erroAjuste, pedir } = usePedirAjuste(peca, aoMudar)
   useEffect(() => { setLegenda(c.legenda ?? ''); setRoteiro((c.roteiro ?? []).join('\n')) }, [c.legenda, c.roteiro])
@@ -68,6 +70,14 @@ export function PecaCartao({ peca, aoMudar }: { peca: Peca; aoMudar: () => void 
   const linhas = roteiro.split('\n').map((l) => l.trim()).filter(Boolean)
   const salvar = async () => { await atualizar({ conteudo: { ...c, legenda, roteiro: linhas } }); setEditando(false) }
   const decidir = (status: Peca['status']) => supabase.auth.getUser().then(({ data }) => atualizar({ status, decidido_por: data.user?.id ?? null }))
+  const MOTIVOS = ['Texto longo demais', 'Faltou emoji', 'Emoji demais', 'Tom muito vendedor', 'Tom muito técnico', 'Não é o nosso assunto']
+  const descartar = async (razao: string) => {
+    if (razao.trim()) {
+      const { data } = await supabase.from('agentes_pecas').select('empresa_id,agente_id').eq('id', peca.id).single()
+      if (data) await lembrar(data.empresa_id, data.agente_id, `Evitar: ${razao.trim()} (recusou "${peca.titulo.slice(0, 60)}")`, 'descarte')
+    }
+    setMotivo(null); await decidir('descartada')
+  }
   const enviarAjuste = async () => { if (!instrucao.trim()) return; await pedir(instrucao.trim()); setInstrucao(''); setPedindo(false) }
 
   return (
@@ -103,6 +113,18 @@ export function PecaCartao({ peca, aoMudar }: { peca: Peca; aoMudar: () => void 
           <button className="btn btn-mini" onClick={() => setPedindo(false)}>Cancelar</button>
         </div>
       )}
+      {motivo !== null && (
+        <div className="peca-motivo">
+          <span className="pequeno">Por que descartar? <span className="muted">O agente aprende e evita da próxima vez.</span></span>
+          <div className="peca-motivo-chips">{MOTIVOS.map((m) => <button key={m} type="button" className="btn btn-mini" onClick={() => descartar(m)}>{m}</button>)}</div>
+          <div className="peca-ajuste">
+            <input autoFocus value={motivo} onChange={(e) => setMotivo(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && descartar(motivo)} placeholder="Ou escreva o motivo…" />
+            <button className="btn btn-ouro btn-mini" onClick={() => descartar(motivo)}>Descartar</button>
+            <button className="btn btn-mini" onClick={() => descartar('')}>Sem motivo</button>
+            <button className="btn btn-mini" onClick={() => setMotivo(null)}>Cancelar</button>
+          </div>
+        </div>
+      )}
       <Erro msg={erro ?? erroAjuste} />
       <footer className="peca-acoes">
         <button className="btn btn-contorno btn-mini" onClick={async () => { await copiar(textoDaPeca(peca)); setCopiado(true); setTimeout(() => setCopiado(false), 1800) }}>{copiado ? 'Copiado ✓' : 'Copiar tudo'}</button>
@@ -112,7 +134,7 @@ export function PecaCartao({ peca, aoMudar }: { peca: Peca; aoMudar: () => void 
         <span className="peca-espaco" />
         {peca.status !== 'aprovada' && peca.status !== 'postada' && <button className="btn btn-ouro btn-mini" onClick={() => decidir('aprovada')}>Aprovar</button>}
         {peca.status === 'aprovada' && <button className="btn btn-contorno btn-mini" onClick={() => decidir('postada')}>Marcar como postada</button>}
-        {peca.status !== 'descartada' && peca.status !== 'postada' && <button className="btn btn-mini" onClick={() => decidir('descartada')}>Descartar</button>}
+        {peca.status !== 'descartada' && peca.status !== 'postada' && <button className="btn btn-mini" onClick={() => setMotivo('')}>Descartar</button>}
         {peca.status === 'descartada' && <button className="btn btn-mini" onClick={() => decidir('rascunho')}>Voltar para análise</button>}
       </footer>
     </article>
