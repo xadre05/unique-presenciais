@@ -349,18 +349,19 @@ function OfertasDoProduto({ produto, ofertas, ligacoes, cursos, aoMudar }: { pro
     <div className="ofertas-produto">
       <Erro msg={erro} />
       <table className="tabela compacta">
-        <thead><tr><th>Oferta</th><th>Código</th><th className="num">Valor</th><th>Curso presencial</th></tr></thead>
+        <thead><tr><th>Oferta</th><th>Código</th><th className="num">Valor</th><th>Dá baixa nas parcelas de</th></tr></thead>
         <tbody>
           {ofertas.map((o) => (
             <tr key={o.hotmart_oferta} className={o.ativo ? '' : 'linha-arquivada'}>
               <td>{o.titulo}{!o.ativo && <span className="muted pequeno"> · desativada</span>}</td>
               <td className="pequeno muted">{o.hotmart_oferta}</td>
               <td className="num">{o.valor ? brl(o.valor) : '—'}</td>
-              <td><select value={cursoDa(o.hotmart_oferta)} onChange={(e) => ligar(o.hotmart_oferta, e.target.value)}><option value="">— (online)</option>{cursos.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}</select></td>
+              <td><select value={cursoDa(o.hotmart_oferta)} onChange={(e) => ligar(o.hotmart_oferta, e.target.value)}><option value="">— nenhum curso (só online)</option>{cursos.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}</select></td>
             </tr>
           ))}
         </tbody>
       </table>
+      <p className="muted pequeno">Ligar a oferta a um curso <b>não muda o acesso à plataforma</b> (isso é a Hotmart que dá). Só faz o pagamento de quem tem matrícula nesse curso dar baixa sozinho na parcela. Oferta que junta online e presencial (plataforma + curso presencial): ligue ao curso se a venda vira matrícula com parcelas aqui.</p>
     </div>
   )
 }

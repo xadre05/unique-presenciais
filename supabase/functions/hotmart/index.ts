@@ -39,7 +39,11 @@ async function paginas(url: string, tk: string, extra: Record<string, string> = 
   return itens
 }
 
-const FORMAS: Record<string, string> = { PAY_IN_FULL: 'Pagamento único (Pix, boleto ou cartão)', SUBSCRIPTION: 'Assinatura', SMART_INSTALLMENT: 'Parcelado Hotmart', INSTALLMENT: 'Parcelado' }
+const FORMAS: Record<string, string> = {
+  PAY_IN_FULL: 'Pagamento único (Pix, boleto ou cartão)', UNIQUE_PAYMENT: 'Pagamento único (cartão em até 12x, Pix ou boleto)',
+  SMART_INSTALLMENT: 'Parcelamento Hotmart (mês a mês)', HOTMART_INSTALLMENTS_UNIQUE_LINK: 'Parcelamento Hotmart (mês a mês no boleto, Pix ou cartão)',
+  SUBSCRIPTION: 'Assinatura', INSTALLMENT: 'Parcelado',
+}
 const quando = (ms: unknown) => (typeof ms === 'number' && ms > 0 ? new Date(ms).toISOString() : null)
 
 // lista de produtos da conta (para ligar cada produto ao curso presencial)
@@ -60,20 +64,24 @@ async function ofertas(db: SupabaseClient, integ: Integ, tk: string) {
   for (const p of escolhidos ?? []) {
     if (p.status === 'DELETED') continue
     const ofs = await paginas(`${API}/products/api/v1/products/${p.ucode}/offers`, tk)
+    // curso ligado por oferta (Integrações → Ofertas) vale mais que o curso do produto inteiro
+    const { data: ligadas } = await db.from('hotmart_ofertas_cursos').select('oferta_codigo,curso_id').in('oferta_codigo', ofs.map((o) => String(o.code)))
+    const cursoDaOferta = new Map((ligadas ?? []).map((l) => [l.oferta_codigo as string, l.curso_id as string | null]))
     const codigos: string[] = []
     for (const o of ofs) {
       codigos.push(String(o.code))
       const reg: Record<string, unknown> = {
         titulo: String(o.name || '').trim() || `${p.nome}${o.is_main_offer ? ' — oferta principal' : ''}`,
-        curso_id: p.curso_id, tipo: 'hotmart', endereco: String(o.direct_offer_link_for_creator ?? ''),
+        curso_id: cursoDaOferta.has(String(o.code)) ? cursoDaOferta.get(String(o.code)) : p.curso_id, tipo: 'hotmart', endereco: String(o.direct_offer_link_for_creator ?? ''),
         valor: o.price?.value ?? null, condicao: FORMAS[String(o.payment_mode)] ?? String(o.payment_mode ?? ''),
         observacao: String(o.description || '').trim() || null, origem: 'hotmart', hotmart_oferta: String(o.code),
         hotmart_produto_id: p.id, forma_hotmart: o.payment_mode, sincronizado_em: agora, ativo: true, ordem: o.is_main_offer ? 1 : 20,
       }
       const { data: existe } = await db.from('links_pagamento').select('id').eq('hotmart_oferta', String(o.code)).maybeSingle()
       if (existe) {
-        delete reg.titulo; delete reg.observacao
-        if (!p.curso_id) delete reg.curso_id
+        // mantém o que foi ajustado no sistema: nome, observação, ordem e se está ativo (desativar à mão não volta sozinho)
+        delete reg.titulo; delete reg.observacao; delete reg.ordem; delete reg.ativo
+        if (!cursoDaOferta.has(String(o.code)) && !p.curso_id) delete reg.curso_id
         await db.from('links_pagamento').update(reg).eq('id', existe.id); atualizados++
       } else { await db.from('links_pagamento').insert(reg); novos++ }
     }
