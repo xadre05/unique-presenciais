@@ -39,7 +39,7 @@ export function NovaPeca({ aberto, aoFechar, campanhas, campanhaPadrao, diaPadra
 
   return (
     <Modal titulo="Nova peça" aberto={aberto} onFechar={aoFechar}>
-      <div className="form-grade">
+      <div className="mk-form">
         <Campo rotulo="Formato">
           <div className="mk-chips">{(Object.keys(TIPO_PECA) as Tipo[]).map((t) => <button key={t} type="button" className={`mk-chip${tipo === t ? ' ativo' : ''}`} onClick={() => setTipo(t)}>{TIPO_PECA[t]}</button>)}</div>
         </Campo>

@@ -53,7 +53,7 @@ export function Planejar({ aberto, aoFechar, inicioPadrao, campanhas, campanhaPa
 
   return (
     <Modal titulo="Planejar conteúdo" aberto={aberto} onFechar={aoFechar} largo>
-      <div className="form-grade">
+      <div className="mk-form">
         <div className="mk-plan-topo">
           <Campo rotulo="Começa em"><input type="date" value={inicio} onChange={(e) => remontar(e.target.value, dias)} /></Campo>
           <Campo rotulo="Quantos dias"><InputNumero valor={dias} min={1} max={14} onChange={(v) => remontar(inicio, v ?? 1)} /></Campo>

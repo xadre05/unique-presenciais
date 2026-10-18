@@ -39,7 +39,7 @@ export function NovaCampanha({ aberto, aoFechar, aoCriar }: { aberto: boolean; a
   }
   return (
     <Modal titulo="Nova campanha" aberto={aberto} onFechar={aoFechar}>
-      <div className="form-grade">
+      <div className="mk-form">
         {!!grupos.dados?.length && (
           <p className="pequeno muted">Usar uma campanha que já está nos Links: {grupos.dados.map((g) => (
             <button key={g.nome} type="button" className="link" onClick={() => setF((x) => ({ ...x, nome: g.nome, descricao: x.descricao || (g.descricao ?? '') }))}>{g.nome}</button>
