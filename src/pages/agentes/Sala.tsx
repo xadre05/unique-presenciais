@@ -38,7 +38,7 @@ function CartaoAgente({ a, temChave }: { a: AgenteNaSala; temChave: boolean }) {
   const destino = a.disponivel && !temChave ? '/agentes/central' : `/agentes/${a.id}`
   return (
     <Link to={destino} className={`sala-card est-${a.estado}`} style={{ ['--cor-agente' as string]: a.cor }}>
-      <div className="sala-card-foto"><Retrato agente={a.id} estado={a.estado} alto={250} /></div>
+      <div className="sala-card-foto"><Retrato agente={a.id} estado={a.estado} alto={250} aguardando={a.dados?.aguardando} /></div>
       <div className="sala-card-info">
         <span className="sala-card-icone"><Icone nome={a.icone} tam={24} /></span>
         <b className="sala-card-nome">{a.nome}</b>
