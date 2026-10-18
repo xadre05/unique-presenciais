@@ -3,7 +3,7 @@ import { supabase } from '../../../lib/supabase'
 import type { Peca, Trabalho } from '../comum'
 import { EMPRESA } from './useMarketing'
 
-export async function pedirAjuste(peca: Peca, instrucao: string, opcoes: { lembrar?: boolean; tipo_novo?: string } = {}) {
+export async function pedirAjuste(peca: Peca, instrucao: string, opcoes: { lembrar?: boolean; tipo_novo?: string; nota?: string } = {}) {
   const { data, error } = await supabase.from('agentes_trabalhos').insert({
     empresa_id: EMPRESA, agente_id: 'marketing', tipo: 'ajuste', pedido: { peca_id: peca.id, instrucao, ...opcoes },
   }).select('id').single()

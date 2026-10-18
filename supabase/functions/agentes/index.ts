@@ -27,16 +27,16 @@ const TIPOS = ['post', 'carrossel', 'reels', 'stories', 'video', 'live', 'texto'
 // como preencher os campos em cada formato (as telas mostram os mesmos campos com estes nomes)
 const GUIA_FORMATO: Record<string, string> = {
   post: 'Imagem: roteiro = linhas do texto que vai na arte; legenda pronta; prompt_imagem descreve a arte.',
-  carrossel: 'Carrossel: roteiro = texto de cada lâmina (uma por item); legenda pronta; prompt_imagem descreve o visual das lâminas.',
-  reels: 'Vídeo curto vertical: roteiro = cenas em ordem (fala + o que aparece na tela); legenda pronta; texto_arte = texto da capa.',
-  stories: 'Stories: roteiro = cada tela em ordem, com a interação (enquete, caixinha, link) quando fizer sentido.',
-  video: 'Vídeo longo: titulo = título buscável; roteiro = blocos com tempo aproximado; legenda = descrição com capítulos; texto_arte = texto da thumbnail.',
-  live: 'Live: titulo = tema da live; roteiro = pauta em blocos com tempo, incluindo 3 a 5 perguntas para puxar o público e o momento da chamada; legenda = texto de divulgação da live (data e horário se houver); observacao = orientações da transmissão.',
+  carrossel: 'Carrossel: roteiro = uma lâmina por item (primeira linha = título da lâmina, até 100 caracteres; depois uma quebra de linha e o texto de apoio, até 300); a primeira lâmina é a capa; legenda pronta; prompt_imagem descreve o visual das lâminas.',
+  reels: 'Vídeo curto vertical: roteiro = cenas em ordem (primeira linha = tempo ou nome da cena, ex.: "0–3 s · Gancho"; depois uma quebra de linha com a fala e o que aparece na tela); legenda pronta; texto_arte = texto da capa.',
+  stories: 'Stories: roteiro = cada tela em ordem (primeira linha = texto em destaque; depois uma quebra de linha com o texto de apoio e a interação — enquete, caixinha, link — quando fizer sentido).',
+  video: 'Vídeo longo: titulo = título buscável; roteiro = blocos em ordem (primeira linha = tempo aproximado e tema do bloco; depois uma quebra de linha com o conteúdo); legenda = descrição com capítulos; texto_arte = texto da thumbnail.',
+  live: 'Live: titulo = tema da live; roteiro = pauta em blocos (primeira linha = tempo e nome do bloco; depois uma quebra de linha com o que falar), incluindo 3 a 5 perguntas para puxar o público e o momento da chamada; legenda = texto de divulgação da live (data e horário se houver); observacao = orientações da transmissão.',
   texto: 'Texto / enquete: legenda = texto da publicação (termina com uma pergunta); roteiro = opções da enquete (2 a 4), ou vazio se não for enquete.',
-  artigo: 'Artigo: titulo = título do artigo; roteiro = intertítulos (estrutura); legenda = artigo completo, com intertítulos e parágrafos curtos; prompt_imagem = capa. Sem hashtags.',
+  artigo: 'Artigo: titulo = título do artigo; roteiro = estrutura (primeira linha = intertítulo; depois uma quebra de linha com o resumo da seção); legenda = artigo completo, com intertítulos e parágrafos curtos; prompt_imagem = capa. Sem hashtags.',
   email: 'E-mail: titulo = assunto (até 50 caracteres); texto_arte = prévia (até 90 caracteres); legenda = corpo do e-mail, curto e escaneável; cta = texto do botão; roteiro = 2 ou 3 outros assuntos para testar. Sem hashtags.',
   mensagem: 'Mensagem de WhatsApp: legenda = a mensagem, curta, pessoal, com no máximo 1 link e sem cara de spam; roteiro = 2 ou 3 variações da mesma mensagem; cta = a ação esperada. Sem hashtags.',
-  pdf: 'Material PDF: titulo = título do material; roteiro = conteúdo de cada página (uma por item); legenda = texto de apresentação para enviar junto; observacao = orientação de diagramação (tamanho, hierarquia, cores da marca); prompt_imagem = capa. Sem hashtags.',
+  pdf: 'Material PDF: titulo = título do material; roteiro = uma página por item (primeira linha = título da página; depois uma quebra de linha com o conteúdo); a primeira é a capa; legenda = texto de apresentação para enviar junto; observacao = orientação de diagramação (tamanho, hierarquia, cores da marca); prompt_imagem = capa. Sem hashtags.',
 }
 const guiaFormatos = (tipos: string[]) => [...new Set(tipos)].map((t) => GUIA_FORMATO[t]).filter(Boolean).map((g) => `- ${g}`).join('\n')
 // como escrever em cada rede e o nome de cada formato nela ("reels" = vídeo curto vertical; "video" = vídeo longo)
@@ -75,6 +75,24 @@ const listaCanais = (redes: string[]) => redes.map((r) => `${REDES[r].nome} (red
 const redeDo = (x: unknown) => (typeof x === 'string' && REDES[x] ? x : 'instagram')
 type DiaPlano = { dia: string; post?: number; carrossel?: number; reels?: number; stories?: number; video?: number }
 type Campanha = { id: string; nome: string; descricao?: string; inicio?: string; fim?: string }
+// versões da peça: cada escrita do agente vira uma versão (a tela mostra o histórico, compara e restaura)
+type Versao = { n: number; em: string | null; por: string; origem: string; nota: string; aprovada?: boolean; dados: Record<string, unknown> }
+const CAMPOS_VERSAO = ['objetivo', 'legenda', 'roteiro', 'orientacoes', 'cta', 'hashtags', 'texto_arte', 'prompt_imagem', 'observacao', 'visual', 'artes']
+function fotoVersao(titulo: string, tipo: string, c: Record<string, unknown>) {
+  const d: Record<string, unknown> = { titulo, tipo }
+  for (const k of CAMPOS_VERSAO) { const v = c[k]; if (v !== undefined && v !== null && v !== '' && !(Array.isArray(v) && !v.length)) d[k] = v }
+  return d
+}
+function comVersao(antes: { titulo: string; tipo: string; conteudo: Record<string, unknown> } | null, depois: { titulo: string; tipo: string; conteudo: Record<string, unknown> }, origem: string, nota: string) {
+  const c = antes?.conteudo ?? {}
+  const lista = (Array.isArray(c.versoes) ? c.versoes : []) as Versao[]
+  // peça de antes do histórico: o que ela tinha vira a v1
+  if (!lista.length && antes && c.etapa !== 'ideia' && (c.legenda || (Array.isArray(c.roteiro) && c.roteiro.length))) lista.push({ n: 1, em: null, por: 'Agente de Marketing', origem: 'ia', nota: 'Versão anterior', dados: fotoVersao(antes.titulo, antes.tipo, c) })
+  const n = (lista.at(-1)?.n ?? 0) + 1
+  return [...lista, { n, em: new Date().toISOString(), por: 'Agente de Marketing', origem, nota, dados: fotoVersao(depois.titulo, depois.tipo, depois.conteudo) }].slice(-20)
+}
+const primeiraVersao = (titulo: string, tipo: string, conteudo: Record<string, unknown>) => ({ ...conteudo, versoes: comVersao(null, { titulo, tipo, conteudo }, 'ia', 'Primeira proposta') })
+
 // o que fica guardado da peça (sem perder campanha e arte quando o agente reescreve)
 const conteudoDe = (p: Peca, extra: Record<string, unknown> = {}) => ({ rede: 'instagram', objetivo: p.objetivo, legenda: p.legenda, roteiro: p.roteiro, texto_arte: p.texto_arte, cta: p.cta, hashtags: p.hashtags, observacao: p.observacao, prompt_imagem: p.prompt_imagem, horario: p.horario, pendencia: p.pendencia || undefined, ...extra })
 
@@ -95,7 +113,7 @@ const FERRAMENTA = {
             titulo: { type: 'string', description: 'Nome curto da peça para a equipe reconhecer' },
             objetivo: { type: 'string', description: 'Para que serve: atrair, educar, gerar desejo, vender, prova social…' },
             legenda: { type: 'string', description: 'Legenda pronta para colar (com quebras de linha). Stories podem não ter.' },
-            roteiro: { type: 'array', items: { type: 'string' }, description: 'Vídeo curto: cenas/falas em ordem. Vídeo longo: blocos com tempo aproximado. Carrossel: texto de cada lâmina. Stories: cada tela em ordem.' },
+            roteiro: { type: 'array', items: { type: 'string' }, description: 'Itens em ordem: cenas (vídeo curto), blocos (vídeo longo, live), lâminas (carrossel), telas (stories), páginas (PDF). Em cada item: primeira linha = título curto do item; depois uma quebra de linha e o texto.' },
             texto_arte: { type: 'string', description: 'Texto curto que vai escrito na arte/capa' },
             cta: { type: 'string', description: 'Chamada para ação' },
             hashtags: { type: 'array', items: { type: 'string' } },
@@ -272,7 +290,7 @@ async function ajustar(db: SupabaseClient, t: Trabalho, perfil: Record<string, s
   if (!peca) throw new Error('Peça não encontrada.')
   const { sistema } = pedidoMarketing(perfil, { semana_inicio: peca.dia ?? new Date().toISOString().slice(0, 10), rede: (peca.conteudo ?? {}).rede }, '')
   const tipoPedido = TIPOS.includes(String(t.pedido.tipo_novo ?? '')) ? String(t.pedido.tipo_novo) : peca.tipo
-  const { anterior: _x, arte: _y, ...semExtras } = (peca.conteudo ?? {}) as Record<string, unknown>
+  const { anterior: _x, arte: _y, versoes: _v, artes: _w, aprovado_texto: _t, producao_ok: _p, ...semExtras } = (peca.conteudo ?? {}) as Record<string, unknown>
   const atual = { tipo: tipoPedido, dia: peca.dia, titulo: peca.titulo, ...semExtras }
   const lembrarIsso = t.pedido.lembrar
   const sobreMemoria = lembrarIsso === true
@@ -285,13 +303,16 @@ async function ajustar(db: SupabaseClient, t: Trabalho, perfil: Record<string, s
   const sugerido = String((p as Record<string, unknown>).aprendizado ?? '').trim()
   const aprendizado = lembrarIsso === false ? '' : sugerido || (lembrarIsso === true ? String(t.pedido.instrucao ?? '').trim() : '')
   if (aprendizado) await lembrar(db, t.empresa_id, t.agente_id, aprendizado)
-  const { anterior: _a, ...semHistorico } = (peca.conteudo ?? {}) as Record<string, unknown>
+  // o que não é texto fica (direção visual, artes, orientações dos itens, horário…); o texto aprovado volta para revisão
+  const { anterior: _a, etapa: _e, versoes: _v2, aprovado_texto: _t2, producao_ok: _p2, livre: _l, proposta: _pr, ...guardar } = (peca.conteudo ?? {}) as Record<string, unknown>
   const tipoNovo = TIPOS.includes(String(t.pedido.tipo_novo ?? '')) ? String(t.pedido.tipo_novo) : peca.tipo
-  // peça que era só ideia não guarda "versão anterior" vazia
-  const anterior = semHistorico.etapa === 'ideia' ? undefined : semHistorico
+  const titulo = p.titulo || peca.titulo
+  const novo = { ...guardar, ...conteudoDe(p, { rede: redeDo(guardar.rede), campanha: guardar.campanha, plano: guardar.plano, briefing: guardar.briefing, horario: p.horario || guardar.horario }) }
+  const nota = String(t.pedido.nota ?? '').trim() || `Ajuste com IA: ${String(t.pedido.instrucao ?? '').slice(0, 120)}`
   await db.from('agentes_pecas').update({
-    titulo: p.titulo || peca.titulo, tipo: tipoNovo, status: 'rascunho', atualizado_em: new Date().toISOString(),
-    conteudo: conteudoDe(p, { rede: redeDo(semHistorico.rede), campanha: semHistorico.campanha, plano: semHistorico.plano, briefing: semHistorico.briefing, arte: semHistorico.arte, anterior }),
+    titulo, tipo: tipoNovo, status: 'rascunho', atualizado_em: new Date().toISOString(),
+    // "anterior" segue para a tela antiga (produção) mostrar a versão de antes; a tela nova usa "versoes"
+    conteudo: { ...novo, anterior: _e === 'ideia' ? undefined : guardar, versoes: comVersao(peca, { titulo, tipo: tipoNovo, conteudo: novo }, 'ajuste_ia', nota) },
   }).eq('id', peca.id)
   await db.from('agentes_trabalhos').update({
     pedido: { ...t.pedido, aprendizado: aprendizado || null },
@@ -396,7 +417,7 @@ async function escrever(db: SupabaseClient, t: Trabalho, perfil: Record<string, 
         const rede = livre && e.rede && REDES[e.rede] ? e.rede : redeDo(p.conteudo.rede)
         return db.from('agentes_pecas').update({
           titulo: e.titulo || p.titulo, tipo, status: 'rascunho', atualizado_em: new Date().toISOString(),
-          conteudo: conteudoDe(e, { rede, campanha: p.conteudo.campanha, plano: p.conteudo.plano, briefing: p.conteudo.briefing }),
+          conteudo: primeiraVersao(e.titulo || p.titulo, tipo, conteudoDe(e, { rede, campanha: p.conteudo.campanha, plano: p.conteudo.plano, briefing: p.conteudo.briefing, visual: p.conteudo.visual })),
         }).eq('id', p.id)
       }))
     }
@@ -599,7 +620,7 @@ async function executar(db: SupabaseClient, t: Trabalho) {
     const pecas = entrega.pecas.map((p, i) => ({
       trabalho_id: t.id, empresa_id: t.empresa_id, agente_id: t.agente_id, tipo: p.tipo, dia: /^\d{4}-\d{2}-\d{2}$/.test(p.dia) ? p.dia : null,
       titulo: p.titulo || `Peça ${i + 1}`, ordem: i,
-      conteudo: conteudoDe(p, { rede: redeDo(t.pedido.rede), campanha: campanhaId }),
+      conteudo: primeiraVersao(p.titulo || `Peça ${i + 1}`, p.tipo, conteudoDe(p, { rede: redeDo(t.pedido.rede), campanha: campanhaId })),
     }))
     if (pecas.length) { const { error } = await db.from('agentes_pecas').insert(pecas); if (error) throw new Error(error.message) }
     await db.from('agentes_trabalhos').update({

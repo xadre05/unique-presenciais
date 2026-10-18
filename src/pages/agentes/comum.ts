@@ -15,6 +15,7 @@ export type Peca = {
   conteudo: {
     objetivo?: string; legenda?: string; roteiro?: string[]; texto_arte?: string; cta?: string; hashtags?: string[]; observacao?: string; prompt_imagem?: string
     horario?: string; pendencia?: string; etapa?: 'ideia' | 'producao'; campanha?: string; rede?: string; plano?: string; livre?: boolean; proposta?: boolean; briefing?: Record<string, unknown>; anterior?: Record<string, unknown>
+    orientacoes?: string[]; visual?: unknown; artes?: unknown[]; versoes?: unknown[]; aprovado_texto?: unknown; producao_ok?: unknown
   }
 }
 export type Config = { empresa_id: string; modelo: string; limite_mes_usd: number | null; chave_em: string | null }

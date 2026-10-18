@@ -46,10 +46,20 @@ export default function AgenteMarketing() {
   const recarregar = () => { trabalhos.recarregar(); pecas.recarregar(); todas.recarregar(); perfil.recarregar() }
   const custoMes = (trabalhos.dados ?? []).reduce((s, t) => s + Number(t.custo_usd ?? 0), 0)
   const modoAtual: ModoPlano = f.periodo
+  // com uma peça aberta, o topo vira o da peça (título, selos e régua) e as abas vão logo abaixo dele
+  const detalhe = aba === 'producao' && !!pecaAberta
+  const abasTopo = (
+    <nav className="mk-abas-topo">
+      <button className={aba === 'planejamento' || aba === 'planejar' ? 'ativa' : ''} onClick={() => setAba('planejamento')}>Planejamento</button>
+      <button className={aba === 'producao' ? 'ativa' : ''} onClick={() => { setAba('producao'); setAberta(null) }}>Produção{aguardando ? <span className="mk-conta">{aguardando}</span> : null}</button>
+      <button className={aba === 'config' ? 'ativa' : ''} onClick={() => setAba('config')}>Configurar agente</button>
+    </nav>
+  )
 
   return (
     <RedesAtivas.Provider value={redes}>
     <div className="pagina larga mk">
+      {!detalhe && <>
       <div className="migalha"><Voltar para="/agentes" texto="Sala dos agentes" /></div>
       <header className="mk-topo">
         <span className={`mk-avatar-pronto${ocupado ? ' trabalhando' : ''}`}><img src="/agentes/marketing-avatar.webp?v=1" alt="" /></span>
@@ -63,13 +73,9 @@ export default function AgenteMarketing() {
           <button className="btn btn-contorno-ouro btn-grande" onClick={() => { setPlanejar({ modo: modoAtual, data: f.periodo === 'dia' ? f.data : inicio, revisar: null }); setAba('planejar') }}><Icone nome="agenda" /> Planejar conteúdos</button>
         </div>
       </header>
-      <nav className="mk-abas-topo">
-        <button className={aba === 'planejamento' || aba === 'planejar' ? 'ativa' : ''} onClick={() => setAba('planejamento')}>Planejamento</button>
-        <button className={aba === 'producao' ? 'ativa' : ''} onClick={() => { setAba('producao'); setAberta(null) }}>Produção{aguardando ? <span className="mk-conta">{aguardando}</span> : null}</button>
-        <button className={aba === 'config' ? 'ativa' : ''} onClick={() => setAba('config')}>Configurar agente</button>
-      </nav>
-
-      {ocupado && <div className="progresso"><div className="indeterminado" /><span>O agente está trabalhando (uma peça leva uns 20 segundos; um plano, até 2 minutos). Pode sair da tela: o trabalho continua.</span></div>}
+      </>}
+      {!detalhe && abasTopo}
+      {ocupado && !detalhe && <div className="progresso"><div className="indeterminado" /><span>O agente está trabalhando (uma peça leva uns 20 segundos; um plano, até 2 minutos). Pode sair da tela: o trabalho continua.</span></div>}
       {erro && <div className="erro agente-erro"><span>{erro.erro}</span></div>}
 
       {aba === 'planejamento' && (
@@ -83,7 +89,7 @@ export default function AgenteMarketing() {
       )}
       {aba === 'producao' && (
         <Producao pecas={todas.dados ?? []} carregando={todas.carregando && !todas.dados} aberta={pecaAberta} aoAbrir={(p) => setAberta(p.id)} aoFecharPeca={() => setAberta(null)}
-          trabalhos={trabalhos.dados ?? []} aoMudar={recarregar} campanhas={campanhas} planos={planos} f={fp} mudar={(c) => setFp((x) => ({ ...x, ...c }))} />
+          trabalhos={trabalhos.dados ?? []} aoMudar={recarregar} campanhas={campanhas} planos={planos} abasTopo={abasTopo} f={fp} mudar={(c) => setFp((x) => ({ ...x, ...c }))} />
       )}
       {aba === 'config' && (
         <section className="mk-plano">

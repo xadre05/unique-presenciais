@@ -1,7 +1,7 @@
 // Produção de conteúdo: a lista de todas as peças (avulsas ou de um plano), com filtros e páginas, e o editor de cada peça.
 // Cada linha mostra o formato (ícone), o canal (logo), a data e a situação; capa, legenda e roteiro são materiais
 // dentro da peça, não linhas separadas.
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
 import { msgErro } from '../../../lib/dados'
 import { Erro } from '../../../components/ui'
 import { Icone } from '../../../components/Icone'
@@ -22,7 +22,7 @@ const dataBR = (iso: string | null) => (iso ? iso.split('-').reverse().join('/')
 
 type Props = {
   pecas: Peca[]; carregando: boolean; aberta: Peca | null; aoAbrir: (p: Peca) => void; aoFecharPeca: () => void; trabalhos: Trabalho[]; aoMudar: () => void
-  campanhas: Campanha[]; planos: Plano[]; f: FiltrosProducao; mudar: (c: Partial<FiltrosProducao>) => void
+  campanhas: Campanha[]; planos: Plano[]; f: FiltrosProducao; mudar: (c: Partial<FiltrosProducao>) => void; abasTopo?: ReactNode
 }
 
 function Linha({ p, planos, aoAbrir, aoMover, aoTirar }: { p: Peca; planos: Plano[]; aoAbrir: () => void; aoMover: (e: Etapa) => void; aoTirar: () => void }) {
@@ -87,6 +87,6 @@ function Lista(pr: Props) {
 }
 
 export function Producao(pr: Props) {
-  if (pr.aberta) return <PaginaPeca peca={pr.aberta} trabalhos={pr.trabalhos} campanhas={pr.campanhas} planos={pr.planos} aoVoltar={pr.aoFecharPeca} aoMudar={pr.aoMudar} />
+  if (pr.aberta) return <PaginaPeca peca={pr.aberta} trabalhos={pr.trabalhos} campanhas={pr.campanhas} planos={pr.planos} aoVoltar={pr.aoFecharPeca} aoMudar={pr.aoMudar} abasTopo={pr.abasTopo} />
   return <Lista {...pr} />
 }

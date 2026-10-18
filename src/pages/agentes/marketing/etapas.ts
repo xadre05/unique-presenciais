@@ -3,6 +3,7 @@
 import { supabase } from '../../../lib/supabase'
 import type { Peca } from '../comum'
 import { FORMATO, infoFormato } from './formatos'
+import { configDe } from './peca/editor'
 
 export type Etapa = 'ideia' | 'producao' | 'revisao' | 'pronto' | 'publicado'
 
@@ -23,6 +24,12 @@ export function nomeSituacao(p: Peca) {
   if (e === 'descartada') return 'Fora do planejamento'
   const material = infoFormato(p.tipo).material
   if (e === 'ideia') return p.conteudo.proposta ? 'Proposta do agente' : 'Ideia salva'
+  // texto aprovado: falta a etapa do meio (arte, gravação, capa) ou a revisão final
+  const c = p.conteudo as { aprovado_texto?: unknown; producao_ok?: unknown }
+  if (c.aprovado_texto && (e === 'producao' || e === 'revisao')) {
+    const e2 = configDe(p.tipo).etapa2
+    return e2 && !c.producao_ok ? e2.pendente : 'Revisão final pendente'
+  }
   if (e === 'producao') return `${material} em elaboração`
   if (e === 'revisao') return `${material} em revisão`
   return e === 'pronto' ? 'Aprovado' : 'Publicado'
