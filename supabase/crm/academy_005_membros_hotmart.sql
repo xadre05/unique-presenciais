@@ -17,3 +17,8 @@ create policy hotmart_membros_admin on hotmart_membros for select using ((select
 -- 068: crm_proximos_envios — com ritmo até 60/hora já sai uma mensagem por vez; agora o intervalo varia
 -- entre ~85% e ~130% do intervalo do ritmo:
 --   make_interval(secs => (3600.0 / k.ritmo_por_hora) * (0.85 + random() * 0.45) - 20)
+
+-- 069: hotmart_ofertas_cursos.curso_id aceita vazio (oferta desligada = venda do online).
+-- 17/10: produto "Unique HOF Academy" (3562773) voltou a ficar sem curso (mistura online e presencial);
+-- ligadas por oferta: Black Mini Residência (54utqf4b, q5zciiqf), Valor especial aluna Mini Residência (5vf26zpc)
+-- → Mini Residência Unique; Black Unique Codes (9r0jcoeg, dvyijwes) → Unique Codes Experience.

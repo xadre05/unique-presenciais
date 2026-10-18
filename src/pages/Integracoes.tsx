@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { Fragment, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { msgErro, useCadastros, useConsulta } from '../lib/dados'
@@ -329,9 +329,48 @@ function Ignorar({ p, onFechar, onSalvo }: { p: Pag; onFechar: () => void; onSal
   )
 }
 
+type OfertaHotmart = { hotmart_oferta: string; titulo: string; valor: number | null; ativo: boolean; hotmart_produto_id: number }
+type OfertaCurso = { oferta_codigo: string; curso_id: string | null; produto_id: number | null }
+
+// Ofertas de um produto, cada uma ligada (ou não) a um curso presencial. É assim que se separa
+// o que é venda do online do que é venda do presencial dentro do mesmo produto (ex.: Black).
+function OfertasDoProduto({ produto, ofertas, ligacoes, cursos, aoMudar }: { produto: Produto; ofertas: OfertaHotmart[]; ligacoes: OfertaCurso[]; cursos: { id: string; nome: string }[]; aoMudar: () => void }) {
+  const [erro, setErro] = useState<string | null>(null)
+  const cursoDa = (codigo: string) => ligacoes.find((l) => l.oferta_codigo === codigo)?.curso_id ?? ''
+  const ligar = async (codigo: string, curso: string) => {
+    setErro(null)
+    const { error } = await supabase.from('hotmart_ofertas_cursos').upsert({ oferta_codigo: codigo, curso_id: curso || null, produto_id: produto.id }, { onConflict: 'oferta_codigo' })
+    if (error) return setErro(msgErro(error))
+    await supabase.from('links_pagamento').update({ curso_id: curso || null }).eq('hotmart_oferta', codigo)
+    aoMudar()
+  }
+  if (!ofertas.length) return <p className="muted pequeno">As ofertas deste produto ainda não vieram da Hotmart. Elas chegam na próxima busca automática (de hora em hora).</p>
+  return (
+    <div className="ofertas-produto">
+      <Erro msg={erro} />
+      <table className="tabela compacta">
+        <thead><tr><th>Oferta</th><th>Código</th><th className="num">Valor</th><th>Curso presencial</th></tr></thead>
+        <tbody>
+          {ofertas.map((o) => (
+            <tr key={o.hotmart_oferta} className={o.ativo ? '' : 'linha-arquivada'}>
+              <td>{o.titulo}{!o.ativo && <span className="muted pequeno"> · desativada</span>}</td>
+              <td className="pequeno muted">{o.hotmart_oferta}</td>
+              <td className="num">{o.valor ? brl(o.valor) : '—'}</td>
+              <td><select value={cursoDa(o.hotmart_oferta)} onChange={(e) => ligar(o.hotmart_oferta, e.target.value)}><option value="">— (online)</option>{cursos.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}</select></td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )
+}
+
 function ProdutosHotmart({ integs }: { integs: Integ[] }) {
   const cad = useCadastros()
   const produtos = useConsulta<Produto[]>(() => supabase.from('hotmart_produtos').select('*').order('nome'))
+  const ofertas = useConsulta<OfertaHotmart[]>(() => supabase.from('links_pagamento').select('hotmart_oferta,titulo,valor,ativo,hotmart_produto_id').eq('origem', 'hotmart').order('ativo', { ascending: false }).order('titulo'))
+  const ligacoes = useConsulta<OfertaCurso[]>(() => supabase.from('hotmart_ofertas_cursos').select('oferta_codigo,curso_id,produto_id'))
+  const [aberto, setAberto] = useState<number | null>(null)
   const [todos, setTodos] = useState(false)
   const ps = (produtos.dados ?? []).filter((p) => p.status !== 'DELETED')
   if (!ps.length) return null
@@ -343,20 +382,28 @@ function ProdutosHotmart({ integs }: { integs: Integ[] }) {
         <h2><Icone nome="livro" className="ouro" /> Produtos da Hotmart e cursos</h2>
         <label className="check pequeno"><input type="checkbox" checked={todos} onChange={(e) => setTodos(e.target.checked)} /> Mostrar também os inativos</label>
       </div>
-      <p className="muted pequeno">Ligue ao curso só o produto que é <b>só do presencial</b> (ex.: “Comunidade de Harmonização Facial”, usado na Mini Residência). Se o produto mistura online e presencial (ex.: “Unique HOF Academy”), não ligue o produto: marque “Trazer ofertas” e, em Links de pagamento, ligue ao curso só a <b>oferta</b> do presencial. Pagamento de produto ou oferta sem curso é tratado como venda do online.</p>
+      <p className="muted pequeno">Ligue ao curso só o produto que é <b>só do presencial</b>. Se o produto mistura online e presencial (ex.: “Unique HOF Academy”, com a oferta da Black), deixe o produto como online e clique em <b>Ofertas</b> para ligar ao curso só a <b>oferta</b> do presencial. Pagamento sem curso é tratado como venda do online.</p>
       <div className="tabela-wrap">
         <table className="tabela compacta">
-          <thead><tr><th>Produto na Hotmart</th><th>Conta</th><th>Situação</th><th>Curso no sistema</th><th>Trazer ofertas</th></tr></thead>
+          <thead><tr><th>Produto na Hotmart</th><th>Conta</th><th>Situação</th><th>Curso no sistema</th><th>Trazer ofertas</th><th>Ofertas</th></tr></thead>
           <tbody>
-            {visiveis.map((p) => (
-              <tr key={p.id}>
+            {visiveis.map((p) => {
+              const doProduto = (ofertas.dados ?? []).filter((o) => o.hotmart_produto_id === p.id)
+              const ligadas = doProduto.filter((o) => (ligacoes.dados ?? []).some((l) => l.oferta_codigo === o.hotmart_oferta && l.curso_id)).length
+              const variasOfertas = doProduto.filter((o) => o.ativo).length > 1
+              return (<Fragment key={p.id}>
+              <tr>
                 <td className="forte">{p.nome}<div className="muted pequeno">#{p.id}</div></td>
                 <td className="pequeno">{integs.find((x) => x.id === p.integracao_id)?.nome.replace('Hotmart — ', '') ?? '—'}</td>
                 <td>{p.status === 'ACTIVE' ? <Badge tom="ok">Ativo</Badge> : <Badge>{p.status ?? '—'}</Badge>}</td>
-                <td><select value={p.curso_id ?? ''} onChange={(e) => atualizar(p.id, { curso_id: e.target.value || null })}><option value="">— (online)</option>{cad.cursos.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}</select></td>
+                <td><select value={p.curso_id ?? ''} onChange={(e) => atualizar(p.id, { curso_id: e.target.value || null })}><option value="">— (online)</option>{cad.cursos.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}</select>
+                  {p.curso_id && variasOfertas && <div className="erro-txt pequeno">Este produto tem várias ofertas: ligado assim, <b>toda</b> venda dele conta como presencial. Prefira ligar pela oferta.</div>}</td>
                 <td><input type="checkbox" checked={p.mostrar || !!p.curso_id} disabled={!!p.curso_id} onChange={(e) => atualizar(p.id, { mostrar: e.target.checked })} /></td>
+                <td>{(p.mostrar || p.curso_id) ? <button className="link pequeno" onClick={() => setAberto(aberto === p.id ? null : p.id)}>{doProduto.length} oferta(s){ligadas ? ` · ${ligadas} no presencial` : ''} {aberto === p.id ? '▴' : '▾'}</button> : <span className="muted pequeno">—</span>}</td>
               </tr>
-            ))}
+              {aberto === p.id && <tr><td colSpan={6}><OfertasDoProduto produto={p} ofertas={doProduto} ligacoes={ligacoes.dados ?? []} cursos={cad.cursos} aoMudar={() => { ligacoes.recarregar(); ofertas.recarregar() }} /></td></tr>}
+              </Fragment>)
+            })}
           </tbody>
         </table>
       </div>
