@@ -102,13 +102,13 @@ export function NovaPecaIA({ aberto, aoFechar, dataInicial, campanhas, campanhaP
             <div className="mk-msgs">
               {msgs.map((m, i) => (
                 <div key={i} className={`mk-msg ${m.de}`}>
-                  <span className="mk-msg-foto">{m.de === 'agente' ? <img src="/agentes/marketing-rosto.webp" alt="" /> : <Icone nome="usuario" tam={18} />}</span>
+                  <span className="mk-msg-foto">{m.de === 'agente' ? <img src="/agentes/marketing-rosto.webp?v=2" alt="" /> : <Icone nome="usuario" tam={18} />}</span>
                   <div><p>{m.texto}<small>{m.hora}</small></p>
                     {m.de === 'agente' && !!m.opcoes?.length && i === msgs.length - 1 && <div className="mk-msg-opcoes">{m.opcoes.map((o) => <button key={o} type="button" className="mk-chip" onClick={() => falar(o)}>{o}</button>)}</div>}
                   </div>
                 </div>
               ))}
-              {pensando && <div className="mk-msg agente"><span className="mk-msg-foto"><img src="/agentes/marketing-rosto.webp" alt="" /></span><div><p className="mk-digitando"><i /><i /><i /></p></div></div>}
+              {pensando && <div className="mk-msg agente"><span className="mk-msg-foto"><img src="/agentes/marketing-rosto.webp?v=2" alt="" /></span><div><p className="mk-digitando"><i /><i /><i /></p></div></div>}
               <div ref={fim} />
             </div>
             <div className="mk-msg-entrada">
