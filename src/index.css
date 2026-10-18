@@ -1996,3 +1996,7 @@ a.sala-agente:hover { border-color: var(--ouro); transform: translateY(-2px); }
 .mk-rede-logo { border: 0; cursor: pointer; }
 .mk-rede-linha input:not([type=checkbox]) { min-width: 0; }
 @media (max-width: 820px) { .mk-redes-rapido { grid-template-columns: auto 1fr; } .mk-redes-rapido > label, .mk-redes-rapido > button { grid-column: 1 / -1; } }
+.mk-pop-painel { text-align: left; align-items: stretch; }
+.mk-pop-painel header, .mk-pop-frase { align-items: flex-start; }
+.mk-pop-botao > svg { transform: rotate(90deg); color: var(--muted); flex-shrink: 0; transition: transform .15s; }
+.mk-pop-botao.aberto > svg { transform: rotate(-90deg); }
