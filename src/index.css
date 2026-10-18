@@ -1926,3 +1926,6 @@ a.sala-agente:hover { border-color: var(--ouro); transform: translateY(-2px); }
 .mk-coluna header b { white-space: nowrap; font-size: 1rem; }
 .mk-coluna-corpo { padding: 0 8px 10px; }
 .mk-coluna-vazia { justify-content: flex-start; padding-top: 70px; }
+.mk-calendario { grid-template-columns: repeat(7, minmax(118px, 1fr)); gap: 8px; }
+.mk-calendario .mk-coluna-corpo { padding: 0 6px 8px; }
+.mk-dia header { padding: 10px 8px; }
