@@ -2310,3 +2310,4 @@ a.sala-agente:hover { border-color: var(--ouro); transform: translateY(-2px); }
 .pp-pessoas button { padding: 7px 14px; border-radius: 999px; border: 1px solid var(--borda); background: var(--painel-2); color: var(--texto); font: inherit; font-size: .88rem; cursor: pointer; }
 .pp-pessoas button.ativo { border-color: var(--ouro); background: var(--ouro-fundo); color: var(--ouro-forte); font-weight: 600; }
 @media (max-width: 860px) { .ia-quem-linha, .pessoa-topo { grid-template-columns: 1fr; } }
+.pp-ajustar-arte { display: flex; flex-direction: column; gap: 8px; padding-top: 10px; border-top: 1px solid var(--borda); }

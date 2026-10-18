@@ -6,7 +6,7 @@ import type { Peca } from '../../comum'
 import { configDe, type ConfigItem } from './editor'
 
 export type Item = { titulo: string; texto: string; orientacao: string }
-export type Arte = { arquivo?: string; nome?: string; orientacao?: string }
+export type Arte = { arquivo?: string; nome?: string; orientacao?: string; gerada?: boolean }
 export type Cor = { nome: string; hex: string }
 export type Referencia = { caminho: string; nome: string }
 // antes e depois: só fotos reais, com a autorização do paciente confirmada por quem enviou
@@ -19,7 +19,7 @@ export type Foto = {
   titulo: string; tipo: string; objetivo?: string; legenda?: string; roteiro?: string[]; orientacoes?: string[]; cta?: string; hashtags?: string[]
   texto_arte?: string; prompt_imagem?: string; observacao?: string; visual?: Visual; artes?: Arte[]
 }
-export type Origem = 'ia' | 'ajuste_ia' | 'manual' | 'restaurada' | 'atual'
+export type Origem = 'ia' | 'ajuste_ia' | 'arte_ia' | 'manual' | 'restaurada' | 'atual'
 export type Versao = { n: number; em: string | null; por: string; origem: Origem; nota: string; aprovada?: boolean; dados: Foto }
 export type Aprovacao = { em: string; por: string }
 type Conteudo = Peca['conteudo'] & { orientacoes?: string[]; visual?: Visual; artes?: Arte[]; versoes?: Versao[]; aprovado_texto?: Aprovacao; producao_ok?: Aprovacao }

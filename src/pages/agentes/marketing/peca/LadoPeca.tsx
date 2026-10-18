@@ -34,7 +34,7 @@ function ArquivosItem({ peca, r, mudar, atual }: Pick<Props, 'peca' | 'r' | 'mud
       {arte.arquivo ? <Miniatura caminho={arte.arquivo} nome={arte.nome} proporcao={r.visual.proporcao} /> : <p className="muted pequeno">Nenhum arquivo para a {minusc(singular)} {i + 1}.</p>}
       <div className="pp-botoes-lado">
         <BotaoEnviar pasta={pastaDa(peca.id)} texto="Enviar arte pronta" aoEnviar={(c, n) => guardar(c, n)} />
-        <BotaoCriarArte texto="Criar arte" classe="btn btn-contorno" />
+        <BotaoCriarArte item={i} texto={arte.arquivo ? "Gerar outra" : "Criar arte"} classe="btn btn-contorno" />
       </div>
       {arte.arquivo && <button className="link pequeno" onClick={() => guardar(undefined, undefined)}>Tirar arquivo</button>}
     </section>

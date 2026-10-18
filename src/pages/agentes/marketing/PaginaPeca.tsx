@@ -22,6 +22,7 @@ import { AbaDirecao } from './peca/AbaDirecao'
 import { AbaVersoes } from './peca/AbaVersoes'
 import { LadoPeca } from './peca/LadoPeca'
 import { RodapePeca } from './peca/RodapePeca'
+import { ArteContexto, useArte } from './peca/AvisoArte'
 
 const MOTIVOS = ['Texto longo demais', 'Faltou emoji', 'Emoji demais', 'Tom muito vendedor', 'Tom muito técnico', 'Não é o nosso assunto']
 type Briefing = { objetivo?: string; publico?: string; duracao?: string; telas?: number; orientacao?: string }
@@ -69,9 +70,11 @@ export function PaginaPeca({ peca, trabalhos, campanhas, planos, aoVoltar, aoMud
     setMotivo(null); await ed.acoes.descartar(); aoVoltar()
   }
   const comum = { peca, r, mudar, rodando, ultimo, antes: ed.salvarSeFaltar, aoPedir: aoMudar }
+  const arte = useArte(peca, trabalhos, ed.salvarSeFaltar, aoMudar)
   const nomeAba = (id: AbaId) => cfg.abas.find((a) => a.id === id)?.nome ?? ''
 
   return (
+    <ArteContexto.Provider value={arte}>
     <div className="pp">
       <CabecalhoPeca peca={peca} titulo={r.titulo} mudarTitulo={(t) => mudar({ titulo: t })} planos={planos} estado={ed.estado} salvoEm={ed.salvoEm} ocupado={!!rodando}
         aoVoltar={aoVoltar} aoVoltarRevisao={ed.acoes.voltarRevisao} aoDescartar={() => setMotivo('')} />
@@ -115,5 +118,6 @@ export function PaginaPeca({ peca, trabalhos, campanhas, planos, aoVoltar, aoMud
       {!ideia && <RodapePeca peca={peca} r={r} aba={abaAtiva} estado={ed.estado} salvar={ed.salvar} acoes={ed.acoes} ocupado={!!rodando}
         versao={versoes.find((v) => v.n === sel)} atual={versoes.at(-1)} aoVoltarEdicao={() => setAba(cfg.abas[0].id)} />}
     </div>
+    </ArteContexto.Provider>
   )
 }

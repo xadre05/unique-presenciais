@@ -181,7 +181,8 @@ function perfisRedes(perfil: Record<string, unknown>) {
 type Exemplo = { tipo: string; titulo: string; conteudo: { legenda?: string; roteiro?: string[] } }
 // o que o agente sabe da empresa (Base da marca, instruções, ofertas, memória e peças aprovadas): vale para todo pedido
 function blocoEmpresa(perfil: Record<string, string>, exemplos: Exemplo[]) {
-  const memoria = (Array.isArray((perfil as Record<string, unknown>).memoria) ? (perfil as Record<string, unknown>).memoria : []) as { texto: string }[]
+  // gostos de arte ("Arte: …") ficam só para o Agente de Arte
+  const memoria = ((Array.isArray((perfil as Record<string, unknown>).memoria) ? (perfil as Record<string, unknown>).memoria : []) as { texto: string }[]).filter((m) => !m.texto.startsWith('Arte:'))
   return [
     'Respeite sempre as regras abaixo, em especial o que é proibido. Não invente números, depoimentos, preços ou datas que não estejam no contexto.',
     '',
@@ -587,9 +588,154 @@ async function prepararAgente(db: SupabaseClient, empresa: string, agente: strin
   return { chave: String(chave), pa, perfilAg, modelo }
 }
 
+// ===== Agente de Arte: gera ou ajusta a arte de uma peça (ou de uma lâmina) com a IA de imagem da OpenAI =====
+// Junta o texto da lâmina, a Direção visual, as Pessoas da marca escolhidas (fotos como referência do rosto),
+// as fotos reais de antes e depois (autorizadas) e as referências. A arte gerada entra nos arquivos da peça e vira versão.
+const MODELO_IMAGEM = 'gpt-image-2'
+const TAM_ARTE: Record<string, string> = { '4:5': '1024x1280', '9:16': '1008x1792', '16:9': '1792x1008', '1:1': '1024x1024', '2:3': '1024x1536', 'A4': '1056x1488' }
+const tamSeguro = (p: string) => (['9:16', '2:3', '4:5', 'A4'].includes(p) ? '1024x1536' : p === '16:9' ? '1536x1024' : '1024x1024')
+// preço aproximado do gpt-image (US$ por milhão de tokens): entrada 8, saída 30
+const custoImagem = (ent: number, sai: number) => Math.round(((ent * 8 + sai * 30) / 1_000_000) * 10000) / 10000
+
+async function prepararArte(db: SupabaseClient, empresa: string) {
+  const [{ data: cfg }, { data: perfilAg }, { data: chave }, { data: gastos }] = await Promise.all([
+    db.from('agentes_config').select('limite_mes_usd').eq('empresa_id', empresa).maybeSingle(),
+    db.from('agentes_empresa').select('perfil,ativo').eq('empresa_id', empresa).eq('agente_id', 'marketing').maybeSingle(),
+    db.rpc('agentes_ler_chave_ia', { p_empresa: empresa, p_provedor: 'openai' }),
+    db.from('agentes_trabalhos').select('custo_usd').eq('empresa_id', empresa).gte('criado_em', new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString()),
+  ])
+  if (!chave) throw new Error('Falta cadastrar a chave da OpenAI em Agentes → Configurações.')
+  if (!perfilAg?.ativo) throw new Error('Este agente está desligado. Ligue em Configurar agente.')
+  const gastoMes = (gastos ?? []).reduce((s, g) => s + Number(g.custo_usd ?? 0), 0)
+  if (cfg?.limite_mes_usd != null && gastoMes >= Number(cfg.limite_mes_usd)) throw new Error(`Limite do mês da empresa atingido (US$ ${Number(cfg.limite_mes_usd).toFixed(2)}). Aumente em Configurações.`)
+  return { chave: String(chave), pa: (perfilAg.perfil ?? {}) as Record<string, unknown> }
+}
+
+type Ref = { caminho: string; nome?: string }
+async function baixarImagem(db: SupabaseClient, caminho: string) {
+  const { data } = await db.storage.from('arquivos').download(caminho)
+  if (!data) return null
+  const tipo = /\.jpe?g$/i.test(caminho) ? 'image/jpeg' : /\.webp$/i.test(caminho) ? 'image/webp' : 'image/png'
+  return new Blob([await data.arrayBuffer()], { type: tipo })
+}
+
+async function chamarImagem(chave: string, prompt: string, tamanho: string, imagens: Blob[]) {
+  const pedir = (size: string) => {
+    if (!imagens.length) {
+      return fetch('https://api.openai.com/v1/images/generations', {
+        method: 'POST', headers: { Authorization: `Bearer ${chave}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ model: MODELO_IMAGEM, prompt, size, quality: 'medium', n: 1 }),
+      })
+    }
+    const f = new FormData()
+    f.append('model', MODELO_IMAGEM); f.append('prompt', prompt); f.append('size', size); f.append('quality', 'medium')
+    imagens.forEach((b, i) => f.append('image[]', b, `imagem-${i + 1}.${b.type === 'image/jpeg' ? 'jpg' : b.type === 'image/webp' ? 'webp' : 'png'}`))
+    return fetch('https://api.openai.com/v1/images/edits', { method: 'POST', headers: { Authorization: `Bearer ${chave}` }, body: f })
+  }
+  let r = await pedir(tamanho)
+  let corpo = await r.json().catch(() => ({}))
+  // tamanho sob medida recusado: tenta o tamanho padrão mais próximo
+  if (!r.ok && r.status === 400 && /size/i.test(String(corpo?.error?.message ?? ''))) {
+    r = await pedir(tamSeguro(Object.entries(TAM_ARTE).find(([, v]) => v === tamanho)?.[0] ?? '1:1'))
+    corpo = await r.json().catch(() => ({}))
+  }
+  if (!r.ok) {
+    const msg = String(corpo?.error?.message ?? `erro ${r.status}`)
+    if (r.status === 401) throw new Error('A OpenAI recusou a chave. Confira a chave em Agentes → Configurações.')
+    if (/verif/i.test(msg)) throw new Error('A OpenAI pede para verificar a organização antes de gerar imagem: platform.openai.com → Settings → Organization → Verify.')
+    if (/billing|quota|credit/i.test(msg)) throw new Error('A conta da OpenAI está sem crédito. Coloque crédito em platform.openai.com → Settings → Billing.')
+    if (/safety|moderation|policy/i.test(msg)) throw new Error('A OpenAI recusou este pedido de imagem pelas regras dela. Mude a orientação e tente de novo.')
+    throw new Error(`A IA de imagem respondeu ${r.status}: ${msg}`)
+  }
+  const b64 = corpo?.data?.[0]?.b64_json
+  if (!b64) throw new Error('A IA de imagem não devolveu a arte. Tente de novo.')
+  const uso = corpo.usage ?? {}
+  return { bytes: Uint8Array.from(atob(b64), (c) => c.charCodeAt(0)), entrada: Number(uso.input_tokens ?? 0), saida: Number(uso.output_tokens ?? 0) }
+}
+
+async function gerarArte(db: SupabaseClient, t: Trabalho) {
+  const { chave, pa } = await prepararArte(db, t.empresa_id)
+  const { data: peca } = await db.from('agentes_pecas').select('*').eq('id', String(t.pedido.peca_id)).eq('empresa_id', t.empresa_id).maybeSingle()
+  if (!peca) throw new Error('Peça não encontrada.')
+  const c = (peca.conteudo ?? {}) as Record<string, unknown>
+  const v = (c.visual ?? {}) as { estilo?: string; proporcao?: string; paleta?: { nome: string; hex: string }[]; referencias?: Ref[]; antesDepois?: Ref[]; autorizado?: boolean; pessoas?: string[] }
+  const roteiro = (Array.isArray(c.roteiro) ? c.roteiro : []) as string[]
+  const orientacoes = (Array.isArray(c.orientacoes) ? c.orientacoes : []) as string[]
+  const artes = (Array.isArray(c.artes) ? [...c.artes] : []) as { arquivo?: string; nome?: string; orientacao?: string; gerada?: boolean }[]
+  const item = typeof t.pedido.item === 'number' ? Number(t.pedido.item) : null
+  const idx = item ?? 0
+  const ajuste = String(t.pedido.ajuste ?? '').trim()
+  const proporcao = v.proporcao || '4:5'
+  const rede = REDES[redeDo(c.rede)]
+  const nomeFormato = rede.nomes[peca.tipo] ?? peca.tipo
+
+  // imagens enviadas junto (a ordem vira "imagem 1, 2…" no pedido)
+  const imagens: Blob[] = [], quais: string[] = []
+  const juntar = async (caminho: string | undefined, papel: string) => {
+    if (!caminho || imagens.length >= 12) return
+    const b = await baixarImagem(db, caminho)
+    if (b) { imagens.push(b); quais.push(`imagem ${imagens.length}: ${papel}`) }
+  }
+  if (ajuste && artes[idx]?.arquivo) await juntar(artes[idx].arquivo, 'a ARTE ATUAL, que deve ser ajustada')
+  const ids = (v.pessoas ?? []).slice(0, 3)
+  const { data: pessoas } = ids.length ? await db.from('marca_pessoas').select('id,nome,papel,fotos,autorizado').in('id', ids).eq('empresa_id', t.empresa_id) : { data: [] }
+  const nomesPessoas: string[] = []
+  for (const p of (pessoas ?? []).filter((p) => p.autorizado)) {
+    nomesPessoas.push(`${p.nome}${p.papel ? ` (${p.papel})` : ''}`)
+    for (const f of ((p.fotos ?? []) as Ref[]).slice(0, 3)) await juntar(f.caminho, `foto de ${p.nome}, para manter o MESMO ROSTO`)
+  }
+  if (v.autorizado) for (const f of (v.antesDepois ?? []).slice(0, 4)) await juntar(f.caminho, 'foto REAL de antes/depois de paciente (autorizada): use como está, sem alterar o resultado')
+  if (!ajuste && item !== null && item > 0 && artes[0]?.arquivo) await juntar(artes[0].arquivo, 'a CAPA deste mesmo carrossel: siga o mesmo estilo, fontes, cores e diagramação')
+  for (const f of (v.referencias ?? []).slice(0, 3)) await juntar(f.caminho, 'referência de estilo (inspire-se, sem copiar texto, marca ou pessoas)')
+
+  const [tituloItem, ...restoItem] = (item !== null ? roteiro[item] ?? '' : '').split('\n')
+  const textoArte = item !== null
+    ? [tituloItem?.trim() && `Título: "${tituloItem.trim()}"`, restoItem.join(' ').trim() && `Texto de apoio (curto, menor): "${restoItem.join(' ').trim().slice(0, 300)}"`].filter(Boolean).join('\n')
+    : [c.texto_arte && `Título: "${c.texto_arte}"`, peca.tipo === 'post' && roteiro.length && `Texto de apoio (curto, menor): "${roteiro.join(' ').slice(0, 300)}"`].filter(Boolean).join('\n')
+  const memoria = ((Array.isArray(pa.memoria) ? pa.memoria : []) as { texto: string }[]).filter((m) => m.texto.startsWith('Arte:')).map((m) => `- ${m.texto.replace(/^Arte:\s*/, '')}`)
+  const qualPeca = item !== null ? `${item === 0 ? 'a CAPA' : `a lâmina ${item + 1}`} de ${roteiro.length} de um ${nomeFormato} do ${rede.nome}` : `a arte de um ${nomeFormato} do ${rede.nome}`
+  const prompt = [
+    `Crie ${qualPeca} para a empresa ${String(pa.empresa ?? '')} (${String(pa.o_que_vende ?? '').slice(0, 200)}). Público: ${String(pa.publico ?? '').slice(0, 200)}.`,
+    `Proporção ${proporcao}. Estilo: ${v.estilo || 'editorial premium'}. Paleta da marca: ${(v.paleta ?? []).map((x) => `${x.nome} ${x.hex}`).join(', ') || 'preto e dourado'}.`,
+    textoArte ? `TEXTO NA ARTE, em português do Brasil, escrito EXATAMENTE assim (com acentos, sem erros, sem inventar outras palavras):\n${textoArte}\nTipografia elegante, legível no celular, com bom contraste e margens seguras.` : 'Sem texto na arte.',
+    c.prompt_imagem ? `Orientação da peça: ${String(c.prompt_imagem).slice(0, 1200)}` : '',
+    item !== null && (artes[item]?.orientacao || orientacoes[item]) ? `Orientação desta lâmina: ${[artes[item]?.orientacao, orientacoes[item]].filter(Boolean).join(' · ')}` : '',
+    nomesPessoas.length ? `Na arte aparece: ${nomesPessoas.join(', ')}. Mantenha o rosto idêntico ao das fotos enviadas; roupa, pose e cenário podem seguir a orientação.` : 'Não coloque pessoas reconhecíveis, a não ser que a orientação peça; nunca invente o rosto de um paciente.',
+    'Nunca crie nem altere fotos de resultado de paciente; antes e depois só com as fotos reais enviadas, sem modificar.',
+    quais.length ? `IMAGENS ENVIADAS:\n${quais.join('\n')}` : '',
+    memoria.length ? `GOSTOS DA EQUIPE (siga sempre):\n${memoria.join('\n')}` : '',
+    pa.evitar ? `Nunca: ${String(pa.evitar).slice(0, 300)}` : '',
+    ajuste ? `AJUSTE PEDIDO PELA EQUIPE na arte atual (imagem 1): ${ajuste}. Mude só o que foi pedido e mantenha o resto igual.` : '',
+  ].filter(Boolean).join('\n\n')
+
+  const { bytes, entrada, saida } = await chamarImagem(chave, prompt, TAM_ARTE[proporcao] ?? '1024x1024', imagens)
+  const caminho = `agentes/pecas/${peca.id}/arte-${idx + 1}-${Date.now()}.png`
+  const { error: eUp } = await db.storage.from('arquivos').upload(caminho, bytes, { contentType: 'image/png', upsert: false })
+  if (eUp) throw new Error('Não consegui guardar a arte gerada: ' + eUp.message)
+  if (ajuste && t.pedido.lembrar === true) await lembrar(db, t.empresa_id, t.agente_id, `Arte: ${ajuste}`)
+  // lê a peça de novo: a equipe pode ter mexido no texto enquanto a arte era criada; só a arte muda
+  const { data: fresca } = await db.from('agentes_pecas').select('titulo,tipo,conteudo').eq('id', peca.id).maybeSingle()
+  const c2 = (fresca?.conteudo ?? c) as Record<string, unknown>
+  const artes2 = (Array.isArray(c2.artes) ? [...c2.artes] : []) as typeof artes
+  while (artes2.length <= idx) artes2.push({})
+  artes2[idx] = { ...artes2[idx], arquivo: caminho, nome: `${item !== null ? `Lâmina ${idx + 1}` : 'Arte'} (IA)`, gerada: true }
+  const { versoes: _v, anterior: _a, ...resto } = c2
+  const novo = { ...resto, artes: artes2 }
+  const nota = ajuste ? `Arte ajustada: ${ajuste.slice(0, 100)}` : `Arte ${item !== null ? `da lâmina ${idx + 1}` : 'da peça'} gerada pela IA`
+  await db.from('agentes_pecas').update({
+    atualizado_em: new Date().toISOString(),
+    conteudo: { ...novo, versoes: comVersao({ ...peca, ...(fresca ?? {}), conteudo: c2 }, { titulo: fresca?.titulo ?? peca.titulo, tipo: fresca?.tipo ?? peca.tipo, conteudo: novo }, 'arte_ia', nota) },
+  }).eq('id', peca.id)
+  await db.from('agentes_trabalhos').update({
+    status: 'pronto', resumo: nota, modelo: MODELO_IMAGEM, tokens_entrada: entrada, tokens_saida: saida,
+    custo_usd: custoImagem(entrada, saida), terminado_em: new Date().toISOString(),
+  }).eq('id', t.id)
+}
+
 async function executar(db: SupabaseClient, t: Trabalho) {
   try {
     if (t.tipo === 'ideia') return await guardarIdeias(db, t)
+    if (t.tipo === 'arte') return await gerarArte(db, t)
     const { chave, pa, perfilAg, modelo } = await prepararAgente(db, t.empresa_id, t.agente_id)
     if (t.agente_id !== 'marketing' || !['semana', 'ajuste', 'ideia', 'escrever', 'propor_plano'].includes(t.tipo)) throw new Error('Trabalho que este agente ainda não sabe fazer.')
     if (t.tipo === 'ajuste') return await ajustar(db, t, (perfilAg.perfil ?? {}) as Record<string, string>, String(chave), modelo)

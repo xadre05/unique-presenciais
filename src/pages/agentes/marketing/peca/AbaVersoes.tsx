@@ -6,7 +6,7 @@ import { configDe } from './editor'
 import { diferencas, type Grupo } from './diferencas'
 import type { Versao } from './modelo'
 
-export const ORIGEM: Record<Versao['origem'], string> = { ia: 'Gerada pela IA', ajuste_ia: 'Ajuste com IA', manual: 'Editada pela equipe', restaurada: 'Restaurada', atual: 'Antes do histórico' }
+export const ORIGEM: Record<Versao['origem'], string> = { ia: 'Gerada pela IA', ajuste_ia: 'Ajuste com IA', arte_ia: 'Arte gerada pela IA', manual: 'Editada pela equipe', restaurada: 'Restaurada', atual: 'Antes do histórico' }
 export const seloDe = (v: Versao) => (v.aprovada ? 'Texto aprovado' : v.n === 1 && v.origem === 'ia' ? 'Rascunho inicial' : ORIGEM[v.origem])
 
 export function quando(iso: string | null) {

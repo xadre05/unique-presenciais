@@ -19,7 +19,7 @@ export const instrucaoNovoFormato = (tipo: string) =>
 
 // trabalho de ajuste desta peça: o que está rodando agora e o último que terminou
 export function ajustesDa(peca: Peca | null, trabalhos: Trabalho[]) {
-  const daPeca = peca ? trabalhos.filter((t) => (t.tipo === 'ajuste' && t.pedido.peca_id === peca.id) || (t.tipo === 'escrever' && ((t.pedido.peca_ids as string[] | undefined) ?? []).includes(peca.id))) : []
+  const daPeca = peca ? trabalhos.filter((t) => ((t.tipo === 'ajuste' || t.tipo === 'arte') && t.pedido.peca_id === peca.id) || (t.tipo === 'escrever' && ((t.pedido.peca_ids as string[] | undefined) ?? []).includes(peca.id))) : []
   return {
     rodando: daPeca.find((t) => t.status === 'na_fila' || t.status === 'trabalhando') ?? null,
     ultimo: daPeca.find((t) => t.status === 'pronto' || t.status === 'erro') ?? null,
