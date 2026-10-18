@@ -1781,7 +1781,7 @@ a.sala-agente:hover { border-color: var(--ouro); transform: translateY(-2px); }
 /* ===== barras padronizadas do Agente de Marketing (Planejamento e Produção usam as mesmas) ===== */
 .mk-titulo-aba { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
 .mk-titulo-acoes { display: flex; gap: 10px; }
-.mk-periodo { display: flex; flex-direction: column; align-items: stretch; gap: 10px; padding: 12px 14px; }
+.mk-periodo { display: grid; gap: 10px; padding: 12px 14px; }
 .mk-periodo-cab { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
 .mk-periodo-cab .mk-nota-filtro { margin-left: 0; }
 .mk-periodo-linha { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
@@ -1812,3 +1812,5 @@ a.sala-agente:hover { border-color: var(--ouro); transform: translateY(-2px); }
 .mk-rede-logo { width: 46px; height: 46px; display: grid; place-items: center; border-radius: 12px; background: var(--painel-2); }
 .mk-rede-info { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 @media (max-width: 720px) { .mk-rede-linha { grid-template-columns: 46px 1fr auto; } .mk-rede-linha input { grid-column: 1 / -1; } }
+
+.mk-rede-linha .interruptor { min-width: 118px; justify-content: center; }
