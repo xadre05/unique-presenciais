@@ -41,6 +41,13 @@ export default function AgenteMarketing() {
     setEscolhido(data.id); setEnviando(false); trabalhos.recarregar()
   }
 
+  const apagarErro = async () => {
+    if (!atual) return
+    const { error } = await supabase.from('agentes_trabalhos').delete().eq('id', atual.id).eq('status', 'erro')
+    if (error) return setErro(msgErro(error))
+    setEscolhido(null); trabalhos.recarregar()
+  }
+
   const estado = trabalhando ? 'trabalhando' : atual?.status === 'erro' ? 'erro' : (pecas.dados ?? []).some((p) => p.status === 'rascunho') ? 'esperando' : 'parado'
   const porDia = new Map<string, Peca[]>()
   for (const p of pecas.dados ?? []) { const k = p.dia ?? 'sem dia'; porDia.set(k, [...(porDia.get(k) ?? []), p]) }
@@ -81,7 +88,7 @@ export default function AgenteMarketing() {
         </div>
         {!atual && <Vazio>Nenhuma semana ainda. Peça a primeira acima.</Vazio>}
         {ocupado(atual) && <div className="progresso"><div className="indeterminado" /><span>O agente está montando a semana (leva de 30 segundos a 2 minutos). Pode sair da tela: o trabalho continua.</span></div>}
-        {atual?.status === 'erro' && <div className="erro">{atual.erro}</div>}
+        {atual?.status === 'erro' && <div className="erro agente-erro"><span>{atual.erro}</span><button className="btn btn-mini" onClick={apagarErro}>Apagar este aviso</button></div>}
         {atual?.status === 'pronto' && (<>
           {atual.resumo && <p className="nota">{atual.resumo}</p>}
           <p className="muted pequeno">{(pecas.dados ?? []).length} peça(s) · custo {usd(atual.custo_usd)} · {((atual.tokens_entrada ?? 0) + (atual.tokens_saida ?? 0)).toLocaleString('pt-BR')} tokens</p>

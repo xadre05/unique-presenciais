@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { Link, NavLink, Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../auth'
-import { Badge, Marca, Vazio } from '../../components/ui'
+import { Badge, Marca } from '../../components/ui'
 import { Icone } from '../../components/Icone'
 import { TrocaArea } from '../../components/TrocaArea'
 import { useBaseCRM } from '../../crm/tipos'
@@ -46,15 +46,6 @@ function ResumoUnique({ contatoId }: { contatoId: string }) {
   )
 }
 
-function AgenteIA() {
-  return (
-    <div className="pagina estreita">
-      <h1>Agente IA</h1>
-      <Vazio>O Agente de Atendimento agora mora na área <Link to="/agentes" className="link">Agentes</Link>, junto com os outros agentes de IA. Ele vai fazer o primeiro contato com o lead novo aqui nas Conversas, responder dúvidas sobre os cursos e passar para a vendedora quando a pessoa quiser comprar. Entra quando o WhatsApp estiver ligado.</Vazio>
-    </div>
-  )
-}
-
 export default function AreaAtendimento() {
   const { perfil, isAdmin } = useAuth()
   const base = useBaseCRM(EMPRESA_UNIQUE)
@@ -76,7 +67,6 @@ export default function AreaAtendimento() {
     {isAdmin && <NavLink to="/atendimento/contatos"><Icone nome="contatos" /> Contatos</NavLink>}
     {isAdmin && <NavLink to="/atendimento/captura"><Icone nome="importar" /> Captura de leads</NavLink>}
     {isAdmin && <NavLink to="/atendimento/disparos"><Icone nome="sacola" /> Disparos</NavLink>}
-    {isAdmin && <NavLink to="/atendimento/ia"><Icone nome="info" /> Agente IA</NavLink>}
     {isAdmin && <NavLink to="/atendimento/config"><Icone nome="equipe" /> Configurações</NavLink>}
   </>)
   return (
@@ -120,7 +110,7 @@ export default function AreaAtendimento() {
           {isAdmin && <Route path="contatos" element={<Contatos />} />}
           {isAdmin && <Route path="disparos" element={<div className="pagina"><header className="pagina-topo"><div><h1>Disparos</h1><p className="muted">Mensagem para muitos contatos pelo número da empresa, no ritmo seguro de cada número. Para criar um, filtre em <Link to="/atendimento/contatos" className="link">Contatos</Link> e clique em “Disparar”.</p></div></header><Disparos empresaId={EMPRESA_UNIQUE} base={base} /></div>} />}
           {isAdmin && <Route path="captura" element={<Captura empresaId={EMPRESA_UNIQUE} base={base} />} />}
-          {isAdmin && <Route path="ia" element={<AgenteIA />} />}
+          <Route path="ia" element={<Navigate to="/agentes" replace />} />
           {isAdmin && <Route path="config" element={<div className="pagina"><h1>Configurações do atendimento</h1><ConfigAtendimento empresaId={EMPRESA_UNIQUE} base={base} /></div>} />}
           <Route path="*" element={<Navigate to="/atendimento" replace />} />
         </Routes>
