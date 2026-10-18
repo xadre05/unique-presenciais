@@ -1,4 +1,4 @@
-// Dados do Agente de Marketing para uma semana: peças (de qualquer pedido), trabalhos em andamento,
+// Dados do Agente de Marketing para um período (um dia ou uma semana): peças (de qualquer pedido), trabalhos em andamento,
 // último erro e campanhas. Enquanto o agente trabalha, confere a cada 4 segundos.
 import { useEffect } from 'react'
 import { supabase } from '../../../lib/supabase'
@@ -9,10 +9,10 @@ import { somaDias, type Peca, type Trabalho } from '../comum'
 export const EMPRESA = EMPRESA_UNIQUE
 export type Campanha = { id: string; nome: string; descricao?: string; inicio?: string; fim?: string }
 
-export function useMarketing(inicio: string) {
-  const fim = somaDias(inicio, 6)
+export function useMarketing(inicio: string, dias = 7) {
+  const fim = somaDias(inicio, dias - 1)
   const pecas = useConsulta<Peca[]>(() => supabase.from('agentes_pecas').select('*').eq('empresa_id', EMPRESA).eq('agente_id', 'marketing')
-    .or(`and(dia.gte.${inicio},dia.lte.${fim}),dia.is.null`).neq('status', 'descartada').order('dia').order('ordem'), [inicio])
+    .or(`and(dia.gte.${inicio},dia.lte.${fim}),dia.is.null`).neq('status', 'descartada').order('dia').order('ordem'), [inicio, dias])
   const trabalhos = useConsulta<Trabalho[]>(() => supabase.from('agentes_trabalhos').select('*').eq('empresa_id', EMPRESA).eq('agente_id', 'marketing')
     .order('criado_em', { ascending: false }).limit(8))
   const perfil = useConsulta<{ perfil: Record<string, unknown>; ativo: boolean } | null>(() => supabase.from('agentes_empresa').select('perfil,ativo').eq('empresa_id', EMPRESA).eq('agente_id', 'marketing').maybeSingle())

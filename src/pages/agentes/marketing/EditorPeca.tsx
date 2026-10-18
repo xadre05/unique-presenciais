@@ -5,7 +5,8 @@ import { Link } from 'react-router-dom'
 import { msgErro } from '../../../lib/dados'
 import { Badge, Erro } from '../../../components/ui'
 import { Icone } from '../../../components/Icone'
-import { TIPO_PECA, textoDaPeca, type Peca, type Trabalho } from '../comum'
+import { textoDaPeca, type Peca, type Trabalho } from '../comum'
+import { REDES, nomeFormato, redeDe, rotuloPeca } from './redes'
 import { lembrar } from '../memoria'
 import { ETAPA, ehIdeia, etapaDe, moverPara, mudarPeca } from './etapas'
 import { instrucaoEscrever, instrucaoNovoFormato, pedirAjuste } from './ajuste'
@@ -44,16 +45,16 @@ export function EditorPeca({ peca, rodando, ultimo, aoMudar }: { peca: Peca; rod
     <div className="mk-editor">
       <header className="mk-editor-topo">
         <div><h2>{peca.titulo}</h2>
-          <span className="muted">{TIPO_PECA[peca.tipo]}{r.roteiro.length ? ` · ${r.roteiro.length} ${plural.toLowerCase()}` : ''}</span></div>
+          <span className="muted">{rotuloPeca(peca)}{r.roteiro.length ? ` · ${r.roteiro.length} ${plural.toLowerCase()}` : ''}</span></div>
         {etapa !== 'descartada' && <Badge tom={etapa === 'pronto' ? 'ok' : etapa === 'publicado' ? 'info' : 'alerta'}>{ETAPA[etapa].nome}</Badge>}
       </header>
       <div className="mk-editor-campos">
-        <label>Formato<select value={tipoNovo ?? peca.tipo} disabled={!!rodando} onChange={(e) => setTipoNovo(e.target.value === peca.tipo ? null : e.target.value)}>{Object.entries(TIPO_PECA).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></label>
+        <label>Formato<select value={tipoNovo ?? peca.tipo} disabled={!!rodando} onChange={(e) => setTipoNovo(e.target.value === peca.tipo ? null : e.target.value)}>{REDES[redeDe(peca)].formatos.map((k) => <option key={k} value={k}>{nomeFormato(k, redeDe(peca))}</option>)}</select></label>
         <label>Dia<input type="date" value={peca.dia ?? ''} onChange={(e) => gravar({ dia: e.target.value || null })} /></label>
         <label>Horário<input type="time" value={peca.conteudo.horario ?? ''} onChange={(e) => gravar({ conteudo: { ...peca.conteudo, horario: e.target.value } })} /></label>
       </div>
       {tipoNovo && (
-        <div className="mk-aviso mk-aviso-info"><span>Mudar para {TIPO_PECA[tipoNovo]}: o agente reescreve a peça no novo formato.</span>
+        <div className="mk-aviso mk-aviso-info"><span>Mudar para {nomeFormato(tipoNovo, redeDe(peca))}: o agente reescreve a peça no novo formato.</span>
           <button className="btn btn-ouro btn-mini" onClick={() => agente(instrucaoNovoFormato(tipoNovo), { tipo_novo: tipoNovo })}>Pedir ao agente</button><button className="btn btn-mini" onClick={() => setTipoNovo(null)}>Cancelar</button></div>
       )}
 

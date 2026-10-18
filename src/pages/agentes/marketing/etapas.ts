@@ -14,7 +14,7 @@ export const ETAPAS: { id: Etapa; nome: string; icone: string; cor: string }[] =
 ]
 export const ETAPA: Record<Etapa, (typeof ETAPAS)[number]> = Object.fromEntries(ETAPAS.map((e) => [e.id, e])) as Record<Etapa, (typeof ETAPAS)[number]>
 
-export const COR_TIPO: Record<string, string> = { post: '#d9a24b', carrossel: '#a46ee6', reels: '#e5534b', stories: '#2fb3a0' }
+export const COR_TIPO: Record<string, string> = { post: '#d9a24b', carrossel: '#a46ee6', reels: '#e5534b', stories: '#2fb3a0', video: '#e07b39' }
 
 export function etapaDe(p: Peca): Etapa | 'descartada' {
   if (p.status === 'descartada') return 'descartada'
@@ -44,5 +44,5 @@ export function mudarPeca(id: string, campos: Record<string, unknown>) {
 export function tamanho(p: Peca) {
   const n = p.conteudo.roteiro?.length ?? 0
   if (!n) return ''
-  return p.tipo === 'stories' ? `${n} telas` : p.tipo === 'carrossel' ? `${n} lâminas` : p.tipo === 'reels' ? `${n} cenas` : ''
+  return p.tipo === 'stories' ? `${n} telas` : p.tipo === 'carrossel' ? `${n} lâminas` : p.tipo === 'reels' ? `${n} cenas` : p.tipo === 'video' ? `${n} blocos` : ''
 }

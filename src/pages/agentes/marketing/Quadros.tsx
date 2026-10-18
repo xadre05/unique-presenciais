@@ -43,18 +43,18 @@ export function QuadroEtapas({ pecas, aoAbrir, ocupadas, aoMover, aoNova }: Comu
   )
 }
 
-export function Calendario({ inicio, pecas, aoAbrir, ocupadas, aoMudarDia }: Comum & { inicio: string; aoMudarDia: (p: Peca, dia: string) => void }) {
-  const dias = Array.from({ length: 7 }, (_, i) => somaDias(inicio, i))
+export function Calendario({ inicio, quantos = 7, pecas, aoAbrir, ocupadas, aoMudarDia, aoAbrirDia }: Comum & { inicio: string; quantos?: number; aoMudarDia: (p: Peca, dia: string) => void; aoAbrirDia?: (dia: string) => void }) {
+  const dias = Array.from({ length: quantos }, (_, i) => somaDias(inicio, i))
   const semDia = pecas.filter((p) => !p.dia)
   return (
     <>
-      <div className="mk-calendario">
+      <div className={`mk-calendario${quantos === 1 ? ' um-dia' : ''}`}>
         {dias.map((d) => {
           const doDia = pecas.filter((p) => p.dia === d).sort((a, b) => (a.conteudo.horario ?? '99').localeCompare(b.conteudo.horario ?? '99'))
           const data = new Date(d + 'T12:00:00')
           return (
             <Coluna key={d} classe="mk-dia" aoSoltar={(id) => { const p = pecas.find((x) => x.id === id); if (p && p.dia !== d) aoMudarDia(p, d) }}
-              cabeca={<><b>{data.toLocaleDateString('pt-BR', { weekday: 'long' }).replace('-feira', '')}</b><span>{data.toLocaleDateString('pt-BR', { day: 'numeric', month: 'long' })}</span></>}>
+              cabeca={<button type="button" className="mk-dia-cab" title={aoAbrirDia ? 'Ver só este dia' : undefined} onClick={() => aoAbrirDia?.(d)}><b>{data.toLocaleDateString('pt-BR', { weekday: 'long' }).replace('-feira', '')}</b><span>{data.toLocaleDateString('pt-BR', { day: 'numeric', month: 'long' })}</span></button>}>
               {doDia.map((p) => <CartaoPeca key={p.id} peca={p} modo="calendario" aoAbrir={() => aoAbrir(p)} trabalhando={ocupadas.has(p.id)} />)}
             </Coluna>
           )

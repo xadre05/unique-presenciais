@@ -8,7 +8,7 @@ export const rascunhoDe = (c: Peca['conteudo']): Rascunho => ({
   objetivo: c.objetivo ?? '', roteiro: c.roteiro ?? [], legenda: c.legenda ?? '', cta: c.cta ?? '', hashtags: (c.hashtags ?? []).join(' '),
   texto_arte: c.texto_arte ?? '', prompt_imagem: c.prompt_imagem ?? '', observacao: c.observacao ?? '',
 })
-export const NOME_ITEM: Record<string, [string, string]> = { carrossel: ['Lâminas', 'Lâmina'], stories: ['Telas', 'Tela'], reels: ['Cenas', 'Cena'], post: ['Texto da arte', 'Linha'] }
+export const NOME_ITEM: Record<string, [string, string]> = { carrossel: ['Lâminas', 'Lâmina'], stories: ['Telas', 'Tela'], reels: ['Cenas', 'Cena'], post: ['Texto da arte', 'Linha'], video: ['Blocos do roteiro', 'Bloco'] }
 
 async function copiar(texto: string) { try { await navigator.clipboard.writeText(texto) } catch { /* sem permissão: ignora */ } }
 

@@ -1,6 +1,6 @@
 // Agentes de IA (núcleo). Recebe o id de um trabalho "na fila", responde na hora e faz o trabalho em segundo plano:
 // chama o Claude com o perfil da empresa e o contexto do sistema, grava as peças para aprovação e o custo.
-// Hoje: agente de Marketing → conteúdo do Instagram (plano dia a dia, peça avulsa, ideias, ajustes). Nada é publicado: só vira rascunho para aprovar.
+// Hoje: agente de Marketing → conteúdo para as redes (Instagram, TikTok, YouTube, Facebook, LinkedIn): plano dia a dia, peça avulsa, ideias, ajustes. Nada é publicado: só vira rascunho para aprovar.
 import { createClient, type SupabaseClient } from 'npm:@supabase/supabase-js@2.45.4'
 
 const cors = {
@@ -22,15 +22,29 @@ const custo = (modelo: string, ent: number, sai: number) => {
 
 type Trabalho = { id: string; empresa_id: string; agente_id: string; tipo: string; status: string; pedido: Record<string, unknown> }
 type Peca = { tipo: string; dia: string; titulo: string; objetivo?: string; legenda?: string; roteiro?: string[]; texto_arte?: string; cta?: string; hashtags?: string[]; observacao?: string; prompt_imagem?: string; horario?: string; pendencia?: string }
-const TIPOS = ['post', 'carrossel', 'reels', 'stories']
-type DiaPlano = { dia: string; post?: number; carrossel?: number; reels?: number; stories?: number }
+const TIPOS = ['post', 'carrossel', 'reels', 'stories', 'video']
+// como escrever em cada rede e o nome de cada formato nela ("reels" = vídeo curto vertical; "video" = vídeo longo)
+const REDES: Record<string, { nome: string; guia: string; nomes: Record<string, string> }> = {
+  instagram: { nome: 'Instagram', nomes: { post: 'post', carrossel: 'carrossel', reels: 'reels', stories: 'stories' },
+    guia: 'Ganchos fortes nos 3 primeiros segundos dos reels, legendas com quebra de linha, chamadas para ação claras, até 8 hashtags.' },
+  tiktok: { nome: 'TikTok', nomes: { reels: 'vídeo do TikTok (vertical, 15 a 60 s)', carrossel: 'carrossel de fotos do TikTok' },
+    guia: 'Linguagem nativa do TikTok: gancho no 1º segundo, ritmo rápido, fala direta para a câmera, texto na tela curto, legenda curta com 3 a 5 hashtags, nada com cara de anúncio.' },
+  youtube: { nome: 'YouTube', nomes: { reels: 'YouTube Shorts (vertical, até 60 s)', video: 'vídeo longo do YouTube (horizontal, 6 a 15 min)' },
+    guia: 'Shorts: gancho no 1º segundo e fechamento que leve ao canal. Vídeo longo: título que as pessoas buscam (até 60 caracteres) no campo titulo, roteiro em blocos com tempo aproximado (abertura, conteúdo, chamada), descrição com capítulos na legenda, e o prompt_imagem descreve a capa (thumbnail) com rosto expressivo e até 4 palavras.' },
+  facebook: { nome: 'Facebook', nomes: { post: 'post', reels: 'reels do Facebook', stories: 'stories' },
+    guia: 'Público um pouco mais velho: texto pode ser um pouco mais longo e explicativo, tom acolhedor, poucas hashtags (até 3).' },
+  linkedin: { nome: 'LinkedIn', nomes: { post: 'post', carrossel: 'carrossel em PDF', reels: 'vídeo curto' },
+    guia: 'Tom profissional e de autoridade: bastidores da escola, mercado de HOF, carreira e gestão de consultório. Sem gírias, emojis com moderação, até 3 hashtags.' },
+}
+const redeDo = (x: unknown) => (typeof x === 'string' && REDES[x] ? x : 'instagram')
+type DiaPlano = { dia: string; post?: number; carrossel?: number; reels?: number; stories?: number; video?: number }
 type Campanha = { id: string; nome: string; descricao?: string; inicio?: string; fim?: string }
 // o que fica guardado da peça (sem perder campanha e arte quando o agente reescreve)
-const conteudoDe = (p: Peca, extra: Record<string, unknown> = {}) => ({ objetivo: p.objetivo, legenda: p.legenda, roteiro: p.roteiro, texto_arte: p.texto_arte, cta: p.cta, hashtags: p.hashtags, observacao: p.observacao, prompt_imagem: p.prompt_imagem, horario: p.horario, pendencia: p.pendencia || undefined, ...extra })
+const conteudoDe = (p: Peca, extra: Record<string, unknown> = {}) => ({ rede: 'instagram', objetivo: p.objetivo, legenda: p.legenda, roteiro: p.roteiro, texto_arte: p.texto_arte, cta: p.cta, hashtags: p.hashtags, observacao: p.observacao, prompt_imagem: p.prompt_imagem, horario: p.horario, pendencia: p.pendencia || undefined, ...extra })
 
 const FERRAMENTA = {
   name: 'entregar_semana',
-  description: 'Entrega a semana de conteúdo do Instagram, peça por peça, para a equipe aprovar.',
+  description: 'Entrega o conteúdo pedido para a rede social, peça por peça, para a equipe aprovar.',
   input_schema: {
     type: 'object',
     properties: {
@@ -40,17 +54,17 @@ const FERRAMENTA = {
         items: {
           type: 'object',
           properties: {
-            tipo: { type: 'string', enum: ['post', 'carrossel', 'reels', 'stories'] },
+            tipo: { type: 'string', enum: ['post', 'carrossel', 'reels', 'stories', 'video'], description: 'reels = vídeo curto vertical (Reels, TikTok, Shorts); video = vídeo longo do YouTube' },
             dia: { type: 'string', description: 'Data AAAA-MM-DD dentro da semana pedida' },
             titulo: { type: 'string', description: 'Nome curto da peça para a equipe reconhecer' },
             objetivo: { type: 'string', description: 'Para que serve: atrair, educar, gerar desejo, vender, prova social…' },
             legenda: { type: 'string', description: 'Legenda pronta para colar (com quebras de linha). Stories podem não ter.' },
-            roteiro: { type: 'array', items: { type: 'string' }, description: 'Reels: cenas/falas em ordem. Carrossel: texto de cada lâmina. Stories: cada tela em ordem.' },
+            roteiro: { type: 'array', items: { type: 'string' }, description: 'Vídeo curto: cenas/falas em ordem. Vídeo longo: blocos com tempo aproximado. Carrossel: texto de cada lâmina. Stories: cada tela em ordem.' },
             texto_arte: { type: 'string', description: 'Texto curto que vai escrito na arte/capa' },
             cta: { type: 'string', description: 'Chamada para ação' },
             hashtags: { type: 'array', items: { type: 'string' } },
             observacao: { type: 'string', description: 'Dica de gravação, imagem ou cuidado com as regras do conselho' },
-            prompt_imagem: { type: 'string', description: 'Para post e carrossel: pedido pronto para colar no ChatGPT e gerar a arte (cena, enquadramento, luz, cores da marca preto e dourado, texto que vai na arte). Nunca pedir rosto de paciente nem antes e depois.' },
+            prompt_imagem: { type: 'string', description: 'Para post e carrossel (e a capa do vídeo longo): pedido pronto para colar no ChatGPT e gerar a arte (cena, enquadramento, luz, cores da marca preto e dourado, texto que vai na arte). Nunca pedir rosto de paciente nem antes e depois.' },
             horario: { type: 'string', description: 'Horário sugerido para postar, HH:MM (ex.: 09:00, 12:00, 18:00)' },
             pendencia: { type: 'string', description: 'Só se a peça depende de algo que NÃO está nos materiais/contexto e a equipe precisa confirmar (ex.: qual bônus vale, data de encerramento). Diga em uma frase o que confirmar. Se não há dúvida, deixe vazio.' },
           },
@@ -112,21 +126,23 @@ function pedidoMarketing(perfil: Record<string, string>, pedido: Record<string, 
     Number(pedido.reels ?? 2) > 0 && `${pedido.reels ?? 2} reels`,
     dias > 0 && `stories em ${dias} dia(s)${dias >= nDias && nDias > 1 ? ' (todos os dias)' : ''}, cada dia com uma sequência de ${telas} telas (o roteiro de cada stories tem exatamente ${telas} itens, um por tela)`,
   ].filter(Boolean)
+  const rede = REDES[redeDo(pedido.rede)]
+  const nomeDe = (tipo: string) => `${rede.nomes[tipo] ?? tipo} (tipo "${tipo}")`
   const plano = (Array.isArray(pedido.plano) ? pedido.plano : []) as DiaPlano[]
   const campanha = (pedido.campanha ?? null) as Campanha | null
   const linhasPlano = plano.map((d) => {
     const itens = [
-      d.post ? `${d.post} post` : '', d.carrossel ? `${d.carrossel} carrossel` : '', d.reels ? `${d.reels} reels` : '',
-      d.stories ? `${d.stories} sequência(s) de stories com exatamente ${telas} telas cada` : '',
+      d.post ? `${d.post} ${nomeDe('post')}` : '', d.carrossel ? `${d.carrossel} ${nomeDe('carrossel')}` : '', d.reels ? `${d.reels} ${nomeDe('reels')}` : '',
+      d.video ? `${d.video} ${nomeDe('video')}` : '', d.stories ? `${d.stories} sequência(s) de stories com exatamente ${telas} telas cada (tipo "stories")` : '',
     ].filter(Boolean)
     return itens.length ? `- ${d.dia}: ${itens.join(', ')}` : ''
   }).filter(Boolean)
   const avulsa = pedido.modo === 'peca'
-  const nomes: Record<string, string> = { post: 'post', carrossel: 'carrossel', reels: 'reels', stories: `sequência de stories com exatamente ${telas} telas` }
+  const nomes: Record<string, string> = { ...rede.nomes, stories: `sequência de stories com exatamente ${telas} telas` }
   const qtd = avulsa ? `1 ${nomes[String(pedido.tipo_peca)] ?? 'post'} (tipo "${String(pedido.tipo_peca ?? 'post')}")` : partes.join(' e ')
   const sistema = [
-    'Você é o Agente de Marketing de uma empresa brasileira. Escreve em português do Brasil, pronto para colar no Instagram.',
-    'Você prepara o conteúdo (peças avulsas, alguns dias ou a semana); a equipe aprova antes de publicar. Seja concreto: ganchos fortes nos 3 primeiros segundos dos reels, legendas com quebra de linha, chamadas para ação claras.',
+    `Você é o Agente de Marketing de uma empresa brasileira. Escreve em português do Brasil, pronto para colar no ${rede.nome}.`,
+    `Você prepara o conteúdo (peças avulsas, alguns dias ou a semana); a equipe aprova antes de publicar. Seja concreto. REDE DESTE PEDIDO: ${rede.nome}. ${rede.guia}`,
     'Respeite sempre as regras abaixo, em especial o que é proibido. Não invente números, depoimentos, preços ou datas que não estejam no contexto.',
     '',
     `EMPRESA: ${perfil.empresa ?? ''}`,
@@ -201,7 +217,7 @@ async function chamarClaude(chave: string, modelo: string, sistema: string, usua
 async function ajustar(db: SupabaseClient, t: Trabalho, perfil: Record<string, string>, chave: string, modelo: string) {
   const { data: peca } = await db.from('agentes_pecas').select('*').eq('id', String(t.pedido.peca_id)).eq('empresa_id', t.empresa_id).maybeSingle()
   if (!peca) throw new Error('Peça não encontrada.')
-  const { sistema } = pedidoMarketing(perfil, { semana_inicio: peca.dia ?? new Date().toISOString().slice(0, 10) }, '')
+  const { sistema } = pedidoMarketing(perfil, { semana_inicio: peca.dia ?? new Date().toISOString().slice(0, 10), rede: (peca.conteudo ?? {}).rede }, '')
   const tipoPedido = TIPOS.includes(String(t.pedido.tipo_novo ?? '')) ? String(t.pedido.tipo_novo) : peca.tipo
   const { anterior: _x, arte: _y, ...semExtras } = (peca.conteudo ?? {}) as Record<string, unknown>
   const atual = { tipo: tipoPedido, dia: peca.dia, titulo: peca.titulo, ...semExtras }
@@ -221,7 +237,7 @@ async function ajustar(db: SupabaseClient, t: Trabalho, perfil: Record<string, s
   const anterior = semHistorico.etapa === 'ideia' ? undefined : semHistorico
   await db.from('agentes_pecas').update({
     titulo: p.titulo || peca.titulo, tipo: tipoNovo, status: 'rascunho', atualizado_em: new Date().toISOString(),
-    conteudo: conteudoDe(p, { campanha: semHistorico.campanha, arte: semHistorico.arte, anterior }),
+    conteudo: conteudoDe(p, { rede: redeDo(semHistorico.rede), campanha: semHistorico.campanha, arte: semHistorico.arte, anterior }),
   }).eq('id', peca.id)
   await db.from('agentes_trabalhos').update({
     pedido: { ...t.pedido, aprendizado: aprendizado || null },
@@ -232,10 +248,10 @@ async function ajustar(db: SupabaseClient, t: Trabalho, perfil: Record<string, s
 
 // ideias que a equipe anotou (sem IA, sem custo): viram cartões na coluna Ideias para o agente escrever depois
 async function guardarIdeias(db: SupabaseClient, t: Trabalho) {
-  const lista = (Array.isArray(t.pedido.pecas) ? t.pedido.pecas : []) as { tipo: string; dia?: string; titulo: string; tema?: string; campanha?: string }[]
+  const lista = (Array.isArray(t.pedido.pecas) ? t.pedido.pecas : []) as { tipo: string; rede?: string; dia?: string; titulo: string; tema?: string; campanha?: string }[]
   const pecas = lista.filter((x) => TIPOS.includes(x.tipo) && x.titulo?.trim()).map((x, i) => ({
     trabalho_id: t.id, empresa_id: t.empresa_id, agente_id: t.agente_id, tipo: x.tipo, dia: /^\d{4}-\d{2}-\d{2}$/.test(x.dia ?? '') ? x.dia : null,
-    titulo: x.titulo.trim(), ordem: i, conteudo: { etapa: 'ideia', objetivo: x.tema?.trim() || undefined, campanha: x.campanha || undefined },
+    titulo: x.titulo.trim(), ordem: i, conteudo: { etapa: 'ideia', rede: redeDo(x.rede), objetivo: x.tema?.trim() || undefined, campanha: x.campanha || undefined },
   }))
   if (pecas.length) { const { error } = await db.from('agentes_pecas').insert(pecas); if (error) throw new Error(error.message) }
   await db.from('agentes_trabalhos').update({ status: 'pronto', resumo: `${pecas.length} ideia(s) anotada(s)`, custo_usd: 0, terminado_em: new Date().toISOString() }).eq('id', t.id)
@@ -270,7 +286,7 @@ async function executar(db: SupabaseClient, t: Trabalho) {
     const soma = (ds: DiaPlano[], k: keyof DiaPlano) => ds.reduce((s, d) => s + Number(d[k] ?? 0), 0)
     const pedidos = (plano.length
       ? [
-        { ...t.pedido, plano: plano.map((d) => ({ ...d, stories: 0 })), posts: soma(plano, 'post') + soma(plano, 'carrossel'), reels: soma(plano, 'reels'), stories: 0 },
+        { ...t.pedido, plano: plano.map((d) => ({ ...d, stories: 0 })), posts: soma(plano, 'post') + soma(plano, 'carrossel') + soma(plano, 'video'), reels: soma(plano, 'reels'), stories: 0 },
         { ...t.pedido, plano: plano.map((d) => ({ dia: d.dia, stories: d.stories ?? 0 })), posts: 0, reels: 0, stories: soma(plano, 'stories') },
       ]
       : [{ ...t.pedido, stories: 0 }, { ...t.pedido, posts: 0, reels: 0 }]
@@ -286,7 +302,7 @@ async function executar(db: SupabaseClient, t: Trabalho) {
     const pecas = entrega.pecas.map((p, i) => ({
       trabalho_id: t.id, empresa_id: t.empresa_id, agente_id: t.agente_id, tipo: p.tipo, dia: /^\d{4}-\d{2}-\d{2}$/.test(p.dia) ? p.dia : null,
       titulo: p.titulo || `Peça ${i + 1}`, ordem: i,
-      conteudo: conteudoDe(p, { campanha: campanhaId }),
+      conteudo: conteudoDe(p, { rede: redeDo(t.pedido.rede), campanha: campanhaId }),
     }))
     if (pecas.length) { const { error } = await db.from('agentes_pecas').insert(pecas); if (error) throw new Error(error.message) }
     await db.from('agentes_trabalhos').update({

@@ -2,10 +2,12 @@
 import { useState } from 'react'
 import { Icone } from '../../../components/Icone'
 import { Vazio } from '../../../components/ui'
-import { TIPO_PECA, dataLonga, type Peca, type Trabalho } from '../comum'
+import { dataLonga, type Peca, type Trabalho } from '../comum'
+import { rotuloPeca } from './redes'
 import { COR_TIPO, ETAPA, ETAPAS, etapaDe, ehIdeia } from './etapas'
 import { ajustesDa } from './ajuste'
 import { EditorPeca } from './EditorPeca'
+import type { Campanha } from './useMarketing'
 
 function ListaPecas({ pecas, aberta, aoAbrir }: { pecas: Peca[]; aberta: string | null; aoAbrir: (p: Peca) => void }) {
   const [busca, setBusca] = useState('')
@@ -21,7 +23,7 @@ function ListaPecas({ pecas, aberta, aoAbrir }: { pecas: Peca[]; aberta: string 
         const e = etapaDe(p)
         return (
           <button key={p.id} className={`mk-lista-item${aberta === p.id ? ' aberta' : ''}`} style={{ ['--cor-tipo' as string]: COR_TIPO[p.tipo] ?? '#888' }} onClick={() => aoAbrir(p)}>
-            <span className="mk-cartao-tipo">{TIPO_PECA[p.tipo]}</span>
+            <span className="mk-cartao-tipo">{rotuloPeca(p)}</span>
             <b>{p.titulo}</b>
             <span className="mk-cartao-linha">{p.dia ? dataLonga(p.dia) : 'sem dia'}</span>
             {e !== 'descartada' && <span className="mk-ponto" style={{ ['--cor-etapa' as string]: ETAPA[e].cor }}>{ETAPA[e].nome}</span>}
@@ -43,10 +45,10 @@ function LadoArte({ peca }: { peca: Peca }) {
   return (
     <aside className="mk-arte">
       <h3>Prévia da arte <span className="mk-etq">Não gerada</span></h3>
-      <div className={`mk-arte-quadro${peca.tipo === 'stories' || peca.tipo === 'reels' ? ' vertical' : ''}`}>
+      <div className={`mk-arte-quadro${peca.tipo === 'stories' || peca.tipo === 'reels' ? ' vertical' : peca.tipo === 'video' ? ' deitado' : ''}`}>
         <Icone nome={visual ? 'imagem' : 'video'} tam={40} />
         <span>{visual ? 'Sua arte aparecerá aqui' : 'Reels e stories você grava'}</span>
-        <small>{peca.tipo === 'post' || peca.tipo === 'carrossel' ? '1080 × 1350 · Instagram' : '1080 × 1920 · vertical'}</small>
+        <small>{peca.tipo === 'post' || peca.tipo === 'carrossel' ? '1080 × 1350' : peca.tipo === 'video' ? '1920 × 1080 · capa (thumbnail) 1280 × 720' : '1080 × 1920 · vertical'}</small>
       </div>
       {visual && <button className="btn btn-contorno-ouro" disabled title="Falta ligar a IA de imagem em Configurações"><Icone nome="imagem" /> Gerar prévia</button>}
       <p className="pequeno muted">{visual ? 'A geração de imagem entra quando a chave da IA de imagem estiver em Configurações. Até lá, use o pedido da imagem (aba Direção visual).' : 'Em breve: subir o vídeo gravado para o sistema legendar e cortar.'}</p>
@@ -56,14 +58,25 @@ function LadoArte({ peca }: { peca: Peca }) {
   )
 }
 
-export function Producao({ pecas, aberta, aoAbrir, trabalhos, aoMudar }: { pecas: Peca[]; aberta: Peca | null; aoAbrir: (p: Peca) => void; trabalhos: Trabalho[]; aoMudar: () => void }) {
+export function Producao({ pecas, aberta, aoAbrir, trabalhos, aoMudar, aoVoltar, campanhas }: {
+  pecas: Peca[]; aberta: Peca | null; aoAbrir: (p: Peca) => void; trabalhos: Trabalho[]; aoMudar: () => void; aoVoltar: () => void; campanhas: Campanha[]
+}) {
   const { rodando, ultimo } = ajustesDa(aberta, trabalhos)
-  return (
+  const etapa = aberta ? etapaDe(aberta) : null
+  const campanha = campanhas.find((c) => c.id === aberta?.conteudo.campanha)
+  return (<>
+    <div className="mk-titulo-aba"><h2>Produção de conteúdo</h2><p className="muted">Edite o roteiro, gere a arte e revise a peça.</p></div>
+    <div className="mk-prod-barra">
+      <button className="btn btn-mini" onClick={aoVoltar}><Icone nome="esquerda" tam={16} /> Voltar ao planejamento</button>
+      {aberta && <><span className="mk-sep" /><span className="muted pequeno">Campanha</span><b>{campanha?.nome ?? 'Sem campanha'}</b>
+        <span className="mk-sep" /><Icone nome="agenda" tam={16} /><span>{aberta.dia ? dataLonga(aberta.dia) : 'sem dia'}</span>
+        {etapa && etapa !== 'descartada' && <span className="mk-prod-st mk-ponto" style={{ ['--cor-etapa' as string]: ETAPA[etapa].cor }}>{ETAPA[etapa].nome}</span>}</>}
+    </div>
     <section className="mk-producao">
       <ListaPecas pecas={pecas} aberta={aberta?.id ?? null} aoAbrir={aoAbrir} />
       {aberta
         ? <><EditorPeca key={aberta.id} peca={aberta} rodando={rodando} ultimo={ultimo} aoMudar={aoMudar} /><LadoArte peca={aberta} /></>
         : <div className="mk-editor"><Vazio>Escolha uma peça à esquerda para editar, pedir ajuste ao agente e aprovar.</Vazio></div>}
     </section>
-  )
+  </>)
 }

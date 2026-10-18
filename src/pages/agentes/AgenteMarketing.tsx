@@ -6,7 +6,7 @@ import { Icone } from '../../components/Icone'
 import { ConfigAgente } from './ConfigAgente'
 import { hojeISO, segundaDe, usd, type Peca } from './comum'
 import { useMarketing, EMPRESA } from './marketing/useMarketing'
-import { Planejamento } from './marketing/Planejamento'
+import { Planejamento, type Periodo } from './marketing/Planejamento'
 import { Producao } from './marketing/Producao'
 import { Planejar } from './marketing/Planejar'
 import { NovaPeca } from './marketing/NovaPeca'
@@ -18,6 +18,7 @@ type Aba = 'planejamento' | 'producao' | 'config'
 export default function AgenteMarketing() {
   const local = useLocation()
   const [aba, setAba] = useState<Aba>(new URLSearchParams(local.search).get('aba') === 'config' ? 'config' : 'planejamento')
+  const [periodo, setPeriodo] = useState<Periodo>('semana')
   const [inicio, setInicio] = useState(() => segundaDe(hojeISO()))
   const [campanha, setCampanha] = useState(TODAS)
   const [aberta, setAberta] = useState<string | null>(null)
@@ -25,7 +26,7 @@ export default function AgenteMarketing() {
   // de onde a "Nova campanha" foi aberta, para voltar para lá depois de criar
   const [voltarPara, setVoltarPara] = useState<'planejar' | 'nova' | null>(null)
   const criarCampanhaDe = (origem: 'planejar' | 'nova' | null) => { setVoltarPara(origem); setModal('campanha') }
-  const { pecas, trabalhos, perfil, campanhas, emAndamento, ocupado, erro } = useMarketing(inicio)
+  const { pecas, trabalhos, perfil, campanhas, emAndamento, ocupado, erro } = useMarketing(inicio, periodo === 'dia' ? 1 : 7)
   useEffect(() => { if (new URLSearchParams(local.search).get('modo') === 'peca') setModal('nova') }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const daCampanha = useMemo(() => (pecas.dados ?? []).filter((p) => !campanha || p.conteudo.campanha === campanha), [pecas.dados, campanha])
@@ -58,11 +59,11 @@ export default function AgenteMarketing() {
       {erro && <div className="erro agente-erro"><span>{erro.erro}</span></div>}
 
       {aba === 'planejamento' && (
-        <Planejamento inicio={inicio} aoMudarSemana={setInicio} pecas={daCampanha} recarregar={pecas.recarregar} ocupadas={ocupadas}
+        <Planejamento periodo={periodo} aoMudarPeriodo={(p, d) => { setPeriodo(p); setInicio(d) }} inicio={inicio} aoMudarSemana={setInicio} pecas={daCampanha} recarregar={pecas.recarregar} ocupadas={ocupadas}
           campanhas={campanhas} campanha={campanha} aoMudarCampanha={setCampanha} aoCriarCampanha={() => criarCampanhaDe(null)}
           aoAbrir={abrir} aoPlanejar={() => setModal('planejar')} aoNova={() => setModal('nova')} />
       )}
-      {aba === 'producao' && <Producao pecas={daCampanha} aberta={pecaAberta} aoAbrir={(p) => setAberta(p.id)} trabalhos={trabalhos.dados ?? []} aoMudar={() => { pecas.recarregar(); trabalhos.recarregar() }} />}
+      {aba === 'producao' && <Producao pecas={daCampanha} aberta={pecaAberta} aoAbrir={(p) => setAberta(p.id)} trabalhos={trabalhos.dados ?? []} aoMudar={() => { pecas.recarregar(); trabalhos.recarregar() }} aoVoltar={() => setAba('planejamento')} campanhas={campanhas} />}
       {aba === 'config' && (
         <section className="bloco">
           <h2>Configurar o Agente de Marketing</h2>
@@ -71,8 +72,8 @@ export default function AgenteMarketing() {
         </section>
       )}
 
-      <Planejar aberto={modal === 'planejar'} aoFechar={() => setModal(null)} inicioPadrao={inicio} campanhas={campanhas} campanhaPadrao={campanha} aoPedir={depoisDoPedido} aoCriarCampanha={() => criarCampanhaDe('planejar')} />
-      <NovaPeca aberto={modal === 'nova'} aoFechar={() => setModal(null)} campanhas={campanhas} campanhaPadrao={campanha} aoPedir={depoisDoPedido} aoCriarCampanha={() => criarCampanhaDe('nova')} />
+      <Planejar aberto={modal === 'planejar'} aoFechar={() => setModal(null)} inicioPadrao={inicio} diasPadrao={periodo === 'dia' ? 1 : 7} campanhas={campanhas} campanhaPadrao={campanha} aoPedir={depoisDoPedido} aoCriarCampanha={() => criarCampanhaDe('planejar')} />
+      <NovaPeca aberto={modal === 'nova'} aoFechar={() => setModal(null)} diaPadrao={periodo === 'dia' ? inicio : undefined} campanhas={campanhas} campanhaPadrao={campanha} aoPedir={depoisDoPedido} aoCriarCampanha={() => criarCampanhaDe('nova')} />
       <NovaCampanha aberto={modal === 'campanha'} aoFechar={() => setModal(voltarPara)} aoCriar={(id) => { perfil.recarregar(); setCampanha(id); setModal(voltarPara) }} />
     </div>
   )

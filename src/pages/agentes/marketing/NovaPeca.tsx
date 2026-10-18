@@ -2,15 +2,15 @@
 // ou já sair escrita pelo agente.
 import { useEffect, useState } from 'react'
 import { Campo, Erro, InputNumero, Modal } from '../../../components/ui'
-import { TIPO_PECA, hojeISO } from '../comum'
+import { hojeISO } from '../comum'
+import { LISTA_REDES, REDES, nomeFormato, type Formato, type Rede } from './redes'
 import { pedirTrabalho, type Campanha } from './useMarketing'
-
-type Tipo = 'post' | 'carrossel' | 'reels' | 'stories'
 
 export function NovaPeca({ aberto, aoFechar, campanhas, campanhaPadrao, diaPadrao, aoPedir, aoCriarCampanha }: {
   aberto: boolean; aoFechar: () => void; campanhas: Campanha[]; campanhaPadrao: string; diaPadrao?: string; aoPedir: () => void; aoCriarCampanha: () => void
 }) {
-  const [tipo, setTipo] = useState<Tipo>('reels')
+  const [rede, setRede] = useState<Rede>('instagram')
+  const [tipo, setTipo] = useState<Formato>('reels')
   const [dia, setDia] = useState(diaPadrao ?? hojeISO())
   const [titulo, setTitulo] = useState('')
   const [tema, setTema] = useState('')
@@ -19,6 +19,7 @@ export function NovaPeca({ aberto, aoFechar, campanhas, campanhaPadrao, diaPadra
   const [erro, setErro] = useState<string | null>(null)
   const [enviando, setEnviando] = useState(false)
   useEffect(() => { if (aberto) { setCampanha(campanhaPadrao); setErro(null) } }, [aberto, campanhaPadrao]) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { if (aberto && diaPadrao) setDia(diaPadrao) }, [aberto, diaPadrao]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const enviar = async (soIdeia: boolean) => {
     setErro(null)
@@ -26,10 +27,10 @@ export function NovaPeca({ aberto, aoFechar, campanhas, campanhaPadrao, diaPadra
     setEnviando(true)
     const c = campanhas.find((x) => x.id === campanha) ?? null
     const msg = soIdeia
-      ? await pedirTrabalho('ideia', { pecas: [{ tipo, dia, titulo: titulo.trim(), tema: tema.trim(), campanha: c?.id }] })
+      ? await pedirTrabalho('ideia', { pecas: [{ tipo, rede, dia, titulo: titulo.trim(), tema: tema.trim(), campanha: c?.id }] })
       : await pedirTrabalho('semana', {
-        modo: 'peca', tipo_peca: tipo, semana_inicio: dia, dias: 1, stories_telas: telas, campanha: c,
-        posts: tipo === 'post' || tipo === 'carrossel' ? 1 : 0, reels: tipo === 'reels' ? 1 : 0, stories: tipo === 'stories' ? 1 : 0,
+        modo: 'peca', rede, tipo_peca: tipo, semana_inicio: dia, dias: 1, stories_telas: telas, campanha: c,
+        posts: tipo === 'post' || tipo === 'carrossel' || tipo === 'video' ? 1 : 0, reels: tipo === 'reels' ? 1 : 0, stories: tipo === 'stories' ? 1 : 0,
         foco: [titulo.trim(), tema.trim()].filter(Boolean).join(' — ') || null,
       })
     setEnviando(false)
@@ -40,8 +41,11 @@ export function NovaPeca({ aberto, aoFechar, campanhas, campanhaPadrao, diaPadra
   return (
     <Modal titulo="Nova peça" aberto={aberto} onFechar={aoFechar}>
       <div className="mk-form">
+        <Campo rotulo="Rede">
+          <div className="mk-chips">{LISTA_REDES.map((r) => <button key={r} type="button" className={`mk-chip${rede === r ? ' ativo' : ''}`} onClick={() => { setRede(r); if (!REDES[r].formatos.includes(tipo)) setTipo(REDES[r].formatos[0]) }}>{REDES[r].nome}</button>)}</div>
+        </Campo>
         <Campo rotulo="Formato">
-          <div className="mk-chips">{(Object.keys(TIPO_PECA) as Tipo[]).map((t) => <button key={t} type="button" className={`mk-chip${tipo === t ? ' ativo' : ''}`} onClick={() => setTipo(t)}>{TIPO_PECA[t]}</button>)}</div>
+          <div className="mk-chips">{REDES[rede].formatos.map((t) => <button key={t} type="button" className={`mk-chip${tipo === t ? ' ativo' : ''}`} onClick={() => setTipo(t)}>{nomeFormato(t, rede)}</button>)}</div>
         </Campo>
         <div className="form-duas">
           <Campo rotulo="Dia"><input type="date" value={dia} onChange={(e) => setDia(e.target.value)} /></Campo>
