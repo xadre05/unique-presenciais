@@ -68,7 +68,7 @@ export default function Sala() {
     <div className="pagina larga sala">
       <header className="sala-topo">
         <div><h1>Sala dos agentes</h1><p>Sua equipe de inteligência, com a identidade da Unique.</p></div>
-        <Link to="/agentes/marca" className="btn btn-contorno-ouro"><Icone nome="livro" /> Central da marca</Link>
+        <Link to="/agentes/marca" className="btn btn-contorno-ouro"><Icone nome="livro" /> Base da marca</Link>
       </header>
 
       <div className="sala-kpis">

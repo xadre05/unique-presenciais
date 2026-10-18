@@ -1334,3 +1334,43 @@ a.sala-agente:hover { border-color: var(--ouro); transform: translateY(-2px); }
 .sala-ponto.ok::before { background: #7fcf96; }
 @media (max-width: 1300px) { .sala-grade { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 720px) { .sala-grade { grid-template-columns: 1fr; } .sala-kpis { grid-template-columns: 1fr 1fr; } .sala-kpis > div:nth-child(3) { border-left: 0; } .sala-topo h1 { font-size: 2rem; } }
+
+/* ── Agentes v3: área de trabalho em lista suspensa, grupos no menu, quadro da semana ── */
+.troca-area-v2 { position: relative; margin: 4px 0 14px; }
+.troca-rotulo { display: block; font-size: .68rem; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); margin: 0 0 6px 2px; }
+.troca-botao { width: 100%; display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--borda); background: var(--painel-2); color: var(--texto); font: inherit; cursor: pointer; }
+.troca-botao span { flex: 1; text-align: left; font-weight: 600; }
+.troca-botao > svg:first-child { color: var(--ouro); }
+.troca-botao > svg:last-child { transform: rotate(90deg); transition: transform .15s; color: var(--muted); }
+.troca-botao.aberta > svg:last-child { transform: rotate(-90deg); }
+.troca-lista { position: absolute; z-index: 40; left: 0; right: 0; top: calc(100% + 4px); background: var(--painel); border: 1px solid var(--borda); border-radius: 10px; padding: 4px; box-shadow: 0 10px 30px rgba(0,0,0,.45); }
+.troca-lista a { display: flex; align-items: center; gap: 10px; padding: 9px 10px; border-radius: 8px; color: var(--texto); text-decoration: none; }
+.troca-lista a:hover, .troca-lista a.ativa { background: var(--ouro-fundo); color: var(--ouro-forte); }
+.nav-grupo { display: block; font-size: .68rem; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); margin: 14px 0 4px 12px; }
+.nav-grupo:first-child { margin-top: 2px; }
+.agente-abas { display: flex; gap: 6px; margin-top: 10px; }
+.agente-abas button { padding: 7px 18px; border-radius: 9px; border: 1px solid var(--borda); background: var(--painel); color: var(--texto); font: inherit; cursor: pointer; }
+.agente-abas button.ativa { background: linear-gradient(180deg, var(--ouro-forte), var(--ouro)); color: #1a1407; border-color: var(--ouro); font-weight: 600; }
+.semana-resumo { display: flex; flex-wrap: wrap; gap: 8px 18px; align-items: center; margin: 6px 0 12px; font-size: .9rem; color: var(--muted); }
+.semana-resumo b { color: var(--texto); font-size: 1.05rem; }
+.semana-resumo .tom-alerta b { color: #e0b44f; } .semana-resumo .tom-ok b { color: #7fcf96; }
+.semana-legenda { margin-left: auto; display: flex; gap: 10px; }
+.semana-legenda i { font-style: normal; font-size: .78rem; display: inline-flex; align-items: center; gap: 5px; }
+.semana-legenda i::before { content: ''; width: 9px; height: 9px; border-radius: 3px; background: var(--cor-tipo); }
+.semana-quadro { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(150px, 1fr); gap: 8px; overflow-x: auto; padding-bottom: 6px; }
+.semana-dia { display: flex; flex-direction: column; gap: 6px; background: var(--painel-2); border: 1px solid var(--borda); border-radius: 12px; padding: 8px; min-height: 160px; }
+.semana-dia header { display: flex; justify-content: space-between; align-items: baseline; text-transform: capitalize; padding: 0 2px 4px; border-bottom: 1px solid var(--borda); }
+.semana-dia header span { color: var(--muted); font-size: .8rem; }
+.semana-peca { --cor-tipo: #888; text-align: left; display: flex; flex-direction: column; gap: 3px; padding: 8px 9px; border-radius: 9px; border: 1px solid var(--borda); border-left: 4px solid var(--cor-tipo); background: var(--painel); color: var(--texto); font: inherit; cursor: pointer; }
+.semana-peca:hover, .semana-peca.aberta { border-color: var(--cor-tipo); box-shadow: 0 0 0 1px var(--cor-tipo); }
+.semana-tipo { font-size: .7rem; letter-spacing: .06em; text-transform: uppercase; color: var(--cor-tipo); font-weight: 700; }
+.semana-titulo { font-size: .84rem; line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.semana-st { font-size: .72rem; color: #e0b44f; }
+.semana-peca.st-aprovada .semana-st { color: #7fcf96; } .semana-peca.st-postada .semana-st { color: var(--muted); } .semana-peca.st-descartada { opacity: .5; }
+.semana-vazio { color: var(--muted); text-align: center; margin-top: 10px; }
+.semana-aberta { margin-top: 14px; }
+.semana-dica { margin-top: 10px; }
+.peca-imagem { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; justify-content: space-between; padding: 8px 10px; border: 1px dashed var(--borda); border-radius: 10px; font-size: .85rem; }
+.tarefas-grade { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; }
+.tarefa-agente { display: flex; align-items: center; gap: 12px; padding: 10px; border: 1px solid color-mix(in srgb, var(--cor-agente) 50%, transparent); border-radius: 12px; }
+.tarefa-agente > div:last-child { display: flex; flex-direction: column; gap: 8px; align-items: flex-start; }

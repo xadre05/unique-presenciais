@@ -54,6 +54,7 @@ export function PecaCartao({ peca, aoMudar }: { peca: Peca; aoMudar: () => void 
   const [instrucao, setInstrucao] = useState('')
   const [pedindo, setPedindo] = useState(false)
   const [copiado, setCopiado] = useState(false)
+  const [copiadoImg, setCopiadoImg] = useState(false)
   const [erro, setErro] = useState<string | null>(null)
   const { ajustando, erroAjuste, pedir } = usePedirAjuste(peca, aoMudar)
   useEffect(() => { setLegenda(c.legenda ?? ''); setRoteiro((c.roteiro ?? []).join('\n')) }, [c.legenda, c.roteiro])
@@ -88,6 +89,12 @@ export function PecaCartao({ peca, aoMudar }: { peca: Peca; aoMudar: () => void 
       {c.cta && <p className="pequeno"><b>Chamada:</b> {c.cta}</p>}
       {!!c.hashtags?.length && <p className="muted pequeno">{c.hashtags.map((h) => (h.startsWith('#') ? h : `#${h}`)).join(' ')}</p>}
       {c.observacao && <p className="nota pequeno">{c.observacao}</p>}
+      {c.prompt_imagem && (
+        <div className="peca-imagem">
+          <span><b>Imagem:</b> copie e cole no ChatGPT para gerar a arte.</span>
+          <button className="btn btn-contorno btn-mini" onClick={async () => { await copiar(c.prompt_imagem!); setCopiadoImg(true); setTimeout(() => setCopiadoImg(false), 1800) }}>{copiadoImg ? 'Copiado ✓' : 'Copiar pedido da imagem'}</button>
+        </div>
+      )}
       {ajustando && <div className="progresso"><div className="indeterminado" /><span>O agente está ajustando esta peça…</span></div>}
       {pedindo && !ajustando && (
         <div className="peca-ajuste">

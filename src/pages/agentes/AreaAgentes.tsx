@@ -13,6 +13,7 @@ import AgentePlanejado from './AgentePlanejado'
 import Aprovacoes from './Aprovacoes'
 import Historico from './Historico'
 import CentralMarca from './CentralMarca'
+import Tarefas from './Tarefas'
 
 export default function AreaAgentes() {
   const { perfil, isAdmin } = useAuth()
@@ -34,10 +35,13 @@ export default function AreaAgentes() {
         <Marca sub="Agentes" />
         <TrocaArea ativa="agentes" />
         <nav>
-          <NavLink to="/agentes" end><Icone nome="equipe" /> Sala dos agentes</NavLink>
+          <span className="nav-grupo">Operação</span>
+          <NavLink to="/agentes" end><Icone nome="equipe" /> Visão geral</NavLink>
+          <NavLink to="/agentes/tarefas"><Icone nome="check" /> Tarefas</NavLink>
           <NavLink to="/agentes/aprovacoes"><Icone nome="documento" /> Aprovações</NavLink>
           <NavLink to="/agentes/historico"><Icone nome="historico" /> Histórico</NavLink>
-          <NavLink to="/agentes/marca"><Icone nome="livro" /> Central da marca</NavLink>
+          <span className="nav-grupo">Gestão</span>
+          <NavLink to="/agentes/marca"><Icone nome="livro" /> Base da marca</NavLink>
           <NavLink to="/agentes/central"><Icone nome="atualizar" /> Configurações</NavLink>
         </nav>
         <div className="lateral-rodape">
@@ -63,6 +67,7 @@ export default function AreaAgentes() {
           <Route path="aprovacoes" element={<Aprovacoes />} />
           <Route path="historico" element={<Historico />} />
           <Route path="marca" element={<CentralMarca />} />
+          <Route path="tarefas" element={<Tarefas />} />
           <Route path=":id" element={<AgentePlanejado />} />
           <Route path="*" element={<Navigate to="/agentes" replace />} />
         </Routes>

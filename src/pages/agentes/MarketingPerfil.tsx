@@ -22,8 +22,11 @@ export function MarketingPerfil({ empresaId, perfil, aoSalvar }: { empresaId: st
   const [ok, setOk] = useState(false)
   const salvar = async () => {
     setErro(null); setOk(false)
-    const limpo = Object.fromEntries(Object.entries(f).map(([k, v]) => [k, (v ?? '').trim()]).filter(([, v]) => v))
-    const { error } = await supabase.from('agentes_empresa').upsert({ empresa_id: empresaId, agente_id: 'marketing', perfil: limpo, atualizado_em: new Date().toISOString() }, { onConflict: 'empresa_id,agente_id' })
+    const limpo = Object.fromEntries(Object.entries(f).map(([k, v]) => [k, typeof v === 'string' ? v.trim() : v]).filter(([, v]) => v !== '' && v != null))
+    // mantém a configuração do agente (modelo, limite, instruções) que mora no mesmo perfil
+    const { data: atual } = await supabase.from('agentes_empresa').select('perfil').eq('empresa_id', empresaId).eq('agente_id', 'marketing').maybeSingle()
+    const base = Object.fromEntries(Object.entries((atual?.perfil ?? {}) as Record<string, unknown>).filter(([k]) => !CAMPOS.some((c) => c.k === k)))
+    const { error } = await supabase.from('agentes_empresa').upsert({ empresa_id: empresaId, agente_id: 'marketing', perfil: { ...base, ...limpo }, atualizado_em: new Date().toISOString() }, { onConflict: 'empresa_id,agente_id' })
     if (error) return setErro(msgErro(error))
     setOk(true); aoSalvar()
   }
@@ -37,7 +40,7 @@ export function MarketingPerfil({ empresaId, perfil, aoSalvar }: { empresaId: st
         </Campo>
       ))}
       <Erro msg={erro} />
-      <div className="modal-acoes">{ok && <span className="ok-txt pequeno">Salvo ✓</span>}<button className="btn btn-ouro" onClick={salvar}>Salvar o que o agente sabe</button></div>
+      <div className="modal-acoes">{ok && <span className="ok-txt pequeno">Salvo ✓</span>}<button className="btn btn-ouro" onClick={salvar}>Salvar a base da marca</button></div>
     </div>
   )
 }

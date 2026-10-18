@@ -11,7 +11,7 @@ export type Trabalho = {
 }
 export type Peca = {
   id: string; trabalho_id: string; tipo: string; dia: string | null; titulo: string; status: 'rascunho' | 'aprovada' | 'descartada' | 'postada'; ordem: number
-  conteudo: { objetivo?: string; legenda?: string; roteiro?: string[]; texto_arte?: string; cta?: string; hashtags?: string[]; observacao?: string }
+  conteudo: { objetivo?: string; legenda?: string; roteiro?: string[]; texto_arte?: string; cta?: string; hashtags?: string[]; observacao?: string; prompt_imagem?: string }
 }
 export type Config = { empresa_id: string; modelo: string; limite_mes_usd: number | null; chave_em: string | null }
 

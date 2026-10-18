@@ -21,7 +21,7 @@ const custo = (modelo: string, ent: number, sai: number) => {
 }
 
 type Trabalho = { id: string; empresa_id: string; agente_id: string; tipo: string; status: string; pedido: Record<string, unknown> }
-type Peca = { tipo: string; dia: string; titulo: string; objetivo?: string; legenda?: string; roteiro?: string[]; texto_arte?: string; cta?: string; hashtags?: string[]; observacao?: string }
+type Peca = { tipo: string; dia: string; titulo: string; objetivo?: string; legenda?: string; roteiro?: string[]; texto_arte?: string; cta?: string; hashtags?: string[]; observacao?: string; prompt_imagem?: string }
 
 const FERRAMENTA = {
   name: 'entregar_semana',
@@ -45,6 +45,7 @@ const FERRAMENTA = {
             cta: { type: 'string', description: 'Chamada para ação' },
             hashtags: { type: 'array', items: { type: 'string' } },
             observacao: { type: 'string', description: 'Dica de gravação, imagem ou cuidado com as regras do conselho' },
+            prompt_imagem: { type: 'string', description: 'Para post e carrossel: pedido pronto para colar no ChatGPT e gerar a arte (cena, enquadramento, luz, cores da marca preto e dourado, texto que vai na arte). Nunca pedir rosto de paciente nem antes e depois.' },
           },
           required: ['tipo', 'dia', 'titulo', 'objetivo'],
         },
@@ -97,6 +98,7 @@ function pedidoMarketing(perfil: Record<string, string>, pedido: Record<string, 
     `NUNCA FAZER: ${perfil.evitar ?? ''}`,
     `REGRAS DO CONSELHO: ${perfil.conselho ?? ''}`,
     perfil.instagram ? `PERFIL NO INSTAGRAM: ${perfil.instagram}` : '',
+    perfil.instrucoes ? `\nINSTRUÇÕES DA EQUIPE PARA ESTE AGENTE (siga sempre): ${perfil.instrucoes}` : '',
   ].filter(Boolean).join('\n')
   const usuario = [
     `Monte a semana de ${inicio} a ${fim}: ${qtd}. Espalhe pelos dias (não precisa ter peça todo dia).`,
@@ -121,7 +123,7 @@ async function chamarClaude(chave: string, modelo: string, sistema: string, usua
   const corpo = await r.json().catch(() => ({}))
   if (!r.ok) {
     const msg = corpo?.error?.message ?? `erro ${r.status}`
-    if (r.status === 401) throw new Error('A Anthropic recusou a chave. Confira a chave na Central de agentes.')
+    if (r.status === 401) throw new Error('A Anthropic recusou a chave. Confira a chave em Agentes → Configurações.')
     if (r.status === 400 && /credit|balance/i.test(msg)) throw new Error('A conta da Anthropic está sem crédito. Coloque crédito em console.anthropic.com → Billing.')
     throw new Error(`Claude respondeu ${r.status}: ${msg}`)
   }
@@ -149,7 +151,7 @@ async function ajustar(db: SupabaseClient, t: Trabalho, perfil: Record<string, s
   const { anterior: _a, ...semHistorico } = (peca.conteudo ?? {}) as Record<string, unknown>
   await db.from('agentes_pecas').update({
     titulo: p.titulo || peca.titulo, status: 'rascunho', atualizado_em: new Date().toISOString(),
-    conteudo: { objetivo: p.objetivo, legenda: p.legenda, roteiro: p.roteiro, texto_arte: p.texto_arte, cta: p.cta, hashtags: p.hashtags, observacao: p.observacao, anterior: semHistorico },
+    conteudo: { objetivo: p.objetivo, legenda: p.legenda, roteiro: p.roteiro, texto_arte: p.texto_arte, cta: p.cta, hashtags: p.hashtags, observacao: p.observacao, prompt_imagem: p.prompt_imagem, anterior: semHistorico },
   }).eq('id', peca.id)
   await db.from('agentes_trabalhos').update({
     status: 'pronto', resumo: `Ajuste: ${String(t.pedido.instrucao ?? '').slice(0, 200)}`, modelo, tokens_entrada: entrada, tokens_saida: saida,
@@ -163,13 +165,17 @@ async function executar(db: SupabaseClient, t: Trabalho) {
       db.from('agentes_config').select('modelo,limite_mes_usd').eq('empresa_id', t.empresa_id).maybeSingle(),
       db.from('agentes_empresa').select('perfil,ativo').eq('empresa_id', t.empresa_id).eq('agente_id', t.agente_id).maybeSingle(),
       db.rpc('agentes_ler_chave', { p_empresa: t.empresa_id }),
-      db.from('agentes_trabalhos').select('custo_usd').eq('empresa_id', t.empresa_id).gte('criado_em', new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString()),
+      db.from('agentes_trabalhos').select('custo_usd,agente_id').eq('empresa_id', t.empresa_id).gte('criado_em', new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString()),
     ])
-    if (!chave) throw new Error('Falta cadastrar a chave do Claude na Central de agentes.')
-    if (!perfilAg?.ativo) throw new Error('Este agente está desligado na Central de agentes.')
+    if (!chave) throw new Error('Falta cadastrar a chave do Claude em Agentes → Configurações.')
+    if (!perfilAg?.ativo) throw new Error('Este agente está desligado. Ligue em Configurar agente.')
     const gastoMes = (gastos ?? []).reduce((s, g) => s + Number(g.custo_usd ?? 0), 0)
-    if (cfg?.limite_mes_usd != null && gastoMes >= Number(cfg.limite_mes_usd)) throw new Error(`Limite do mês atingido (US$ ${Number(cfg.limite_mes_usd).toFixed(2)}). Aumente na Central de agentes.`)
-    const modelo = cfg?.modelo ?? 'claude-sonnet-5-5'
+    if (cfg?.limite_mes_usd != null && gastoMes >= Number(cfg.limite_mes_usd)) throw new Error(`Limite do mês da empresa atingido (US$ ${Number(cfg.limite_mes_usd).toFixed(2)}). Aumente em Configurações.`)
+    // configuração própria do agente (modelo, limite e instruções), guardada no perfil dele
+    const pa = (perfilAg.perfil ?? {}) as Record<string, unknown>
+    const gastoAgente = (gastos ?? []).filter((g) => g.agente_id === t.agente_id).reduce((s, g) => s + Number(g.custo_usd ?? 0), 0)
+    if (pa.limite_mes_usd != null && pa.limite_mes_usd !== '' && gastoAgente >= Number(pa.limite_mes_usd)) throw new Error(`Limite do mês deste agente atingido (US$ ${Number(pa.limite_mes_usd).toFixed(2)}). Aumente em Configurar agente.`)
+    const modelo = (typeof pa.modelo === 'string' && PRECO[pa.modelo] ? pa.modelo : null) ?? cfg?.modelo ?? 'claude-sonnet-5-5'
     if (t.agente_id !== 'marketing' || !['semana', 'ajuste'].includes(t.tipo)) throw new Error('Trabalho que este agente ainda não sabe fazer.')
     if (t.tipo === 'ajuste') return await ajustar(db, t, (perfilAg.perfil ?? {}) as Record<string, string>, String(chave), modelo)
 
@@ -180,18 +186,21 @@ async function executar(db: SupabaseClient, t: Trabalho) {
       { ...t.pedido, stories: 0 },
       { ...t.pedido, posts: 0, reels: 0 },
     ].filter((pd) => Number(pd.posts ?? 0) + Number(pd.reels ?? 0) + Number(pd.stories ?? 0) > 0)
-    const respostas = await Promise.all(pedidos.map((pd) => { const { sistema, usuario } = pedidoMarketing(perfil, pd, ctx); return chamarClaude(String(chave), modelo, sistema, usuario) }))
+    // stories são textos curtos e muitos: vão no modelo econômico (cerca de 20x mais barato); posts e reels no modelo escolhido
+    const modeloDe = (pd: Record<string, unknown>) => (Number(pd.posts ?? 0) + Number(pd.reels ?? 0) === 0 && pa.stories_economico !== false ? 'claude-haiku-5-5' : modelo)
+    const respostas = await Promise.all(pedidos.map(async (pd) => { const { sistema, usuario } = pedidoMarketing(perfil, pd, ctx); const m = modeloDe(pd); return { ...(await chamarClaude(String(chave), m, sistema, usuario)), modelo: m } }))
     const entrega = { resumo: respostas.map((r) => r.entrega.resumo).filter(Boolean)[0] ?? null, pecas: respostas.flatMap((r) => r.entrega.pecas ?? []) }
     const entrada = respostas.reduce((s, r) => s + r.entrada, 0), saida = respostas.reduce((s, r) => s + r.saida, 0)
+    const custoTotal = Math.round(respostas.reduce((s, r) => s + custo(r.modelo, r.entrada, r.saida), 0) * 10000) / 10000
     const pecas = entrega.pecas.map((p, i) => ({
       trabalho_id: t.id, empresa_id: t.empresa_id, agente_id: t.agente_id, tipo: p.tipo, dia: /^\d{4}-\d{2}-\d{2}$/.test(p.dia) ? p.dia : null,
       titulo: p.titulo || `Peça ${i + 1}`, ordem: i,
-      conteudo: { objetivo: p.objetivo, legenda: p.legenda, roteiro: p.roteiro, texto_arte: p.texto_arte, cta: p.cta, hashtags: p.hashtags, observacao: p.observacao },
+      conteudo: { objetivo: p.objetivo, legenda: p.legenda, roteiro: p.roteiro, texto_arte: p.texto_arte, cta: p.cta, hashtags: p.hashtags, observacao: p.observacao, prompt_imagem: p.prompt_imagem },
     }))
     if (pecas.length) { const { error } = await db.from('agentes_pecas').insert(pecas); if (error) throw new Error(error.message) }
     await db.from('agentes_trabalhos').update({
-      status: 'pronto', resumo: entrega.resumo ?? null, modelo, tokens_entrada: entrada, tokens_saida: saida,
-      custo_usd: custo(modelo, entrada, saida), terminado_em: new Date().toISOString(),
+      status: 'pronto', resumo: entrega.resumo ?? null, modelo: [...new Set(respostas.map((r) => r.modelo))].join(' + '), tokens_entrada: entrada, tokens_saida: saida,
+      custo_usd: custoTotal, terminado_em: new Date().toISOString(),
     }).eq('id', t.id)
   } catch (e) {
     await db.from('agentes_trabalhos').update({ status: 'erro', erro: (e as Error).message, terminado_em: new Date().toISOString() }).eq('id', t.id)
