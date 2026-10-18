@@ -1,82 +1,77 @@
-// Produção de conteúdo: à esquerda as peças da semana, no meio o editor, à direita a prévia da arte e as etapas.
-import { useState } from 'react'
+// Produção de conteúdo: a lista de todas as peças (avulsas ou de um plano), com filtros, e o editor de cada peça.
 import { Icone } from '../../../components/Icone'
-import { Vazio } from '../../../components/ui'
-import { dataLonga, type Peca, type Trabalho } from '../comum'
-import { rotuloPeca } from './redes'
-import { COR_TIPO, ETAPA, ETAPAS, etapaDe, ehIdeia } from './etapas'
-import { ajustesDa } from './ajuste'
-import { EditorPeca } from './EditorPeca'
+import type { Peca, Trabalho } from '../comum'
+import { ETAPA, ETAPAS, etapaDe } from './etapas'
+import { LISTA_REDES, REDES, nomeFormato, redeDe } from './redes'
+import { andar, aplicarProducao, filtrosIniciais, rotuloPeriodo, type FiltrosProducao } from './filtros'
+import { PaginaPeca } from './PaginaPeca'
 import type { Campanha } from './useMarketing'
+import type { Plano } from './planos'
 
-function ListaPecas({ pecas, aberta, aoAbrir }: { pecas: Peca[]; aberta: string | null; aoAbrir: (p: Peca) => void }) {
-  const [busca, setBusca] = useState('')
-  const [filtro, setFiltro] = useState('')
-  const termo = busca.trim().toLowerCase()
-  const lista = pecas.filter((p) => (!filtro || etapaDe(p) === filtro) && (!termo || p.titulo.toLowerCase().includes(termo)))
-  return (
-    <aside className="mk-lista">
-      <h3>Peças da semana</h3>
-      <label className="select-icone"><Icone nome="busca" /><input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Buscar peça…" /></label>
-      <label className="select-icone"><Icone nome="filtro" /><select value={filtro} onChange={(e) => setFiltro(e.target.value)}><option value="">Todas as etapas</option>{ETAPAS.map((e) => <option key={e.id} value={e.id}>{e.nome}</option>)}</select></label>
-      <div className="mk-lista-itens">{lista.map((p) => {
-        const e = etapaDe(p)
-        return (
-          <button key={p.id} className={`mk-lista-item${aberta === p.id ? ' aberta' : ''}`} style={{ ['--cor-tipo' as string]: COR_TIPO[p.tipo] ?? '#888' }} onClick={() => aoAbrir(p)}>
-            <span className="mk-cartao-tipo">{rotuloPeca(p)}</span>
-            <b>{p.titulo}</b>
-            <span className="mk-cartao-linha">{p.dia ? dataLonga(p.dia) : 'sem dia'}</span>
-            {e !== 'descartada' && <span className="mk-ponto" style={{ ['--cor-etapa' as string]: ETAPA[e].cor }}>{ETAPA[e].nome}</span>}
-          </button>
-        )
-      })}{!lista.length && <span className="muted pequeno">Nenhuma peça.</span>}</div>
-    </aside>
-  )
+const PERIODOS: { id: FiltrosProducao['periodo']; nome: string }[] = [{ id: 'todos', nome: 'Todos' }, { id: 'dia', nome: 'Dia' }, { id: 'semana', nome: 'Semana' }, { id: 'mes', nome: 'Mês' }, { id: 'periodo', nome: 'Período' }]
+const dataBR = (iso: string | null) => (iso ? iso.split('-').reverse().join('/') : 'Sem data')
+
+type Props = {
+  pecas: Peca[]; carregando: boolean; aberta: Peca | null; aoAbrir: (p: Peca) => void; aoFecharPeca: () => void; trabalhos: Trabalho[]; aoMudar: () => void
+  campanhas: Campanha[]; planos: Plano[]; f: FiltrosProducao; mudar: (c: Partial<FiltrosProducao>) => void
 }
 
-function LadoArte({ peca }: { peca: Peca }) {
-  const visual = peca.tipo === 'post' || peca.tipo === 'carrossel'
-  const etapa = etapaDe(peca)
-  const passos = [
-    { nome: 'Roteiro', sub: 'Estrutura e mensagens', st: ehIdeia(peca) ? 'Ideia' : etapa === 'revisao' || etapa === 'producao' ? 'Em revisão' : 'Aprovado' },
-    { nome: visual ? 'Arte' : 'Gravação', sub: visual ? 'Imagem da peça' : 'Você grava seguindo o roteiro', st: visual ? 'Não gerada' : etapa === 'publicado' ? 'Feita' : 'A gravar' },
-    { nome: 'Revisão final', sub: 'Aprovar e postar', st: etapa === 'publicado' ? 'Postada' : etapa === 'pronto' ? 'Aprovada' : 'Pendente' },
-  ]
+function Periodo({ f, mudar }: Pick<Props, 'f' | 'mudar'>) {
+  const comoPlanejamento = { ...filtrosIniciais(), periodo: f.periodo === 'todos' ? 'semana' as const : f.periodo, data: f.data, ate: f.ate }
   return (
-    <aside className="mk-arte">
-      <h3>Prévia da arte <span className="mk-etq">Não gerada</span></h3>
-      <div className={`mk-arte-quadro${peca.tipo === 'stories' || peca.tipo === 'reels' ? ' vertical' : peca.tipo === 'video' ? ' deitado' : ''}`}>
-        <Icone nome={visual ? 'imagem' : 'video'} tam={40} />
-        <span>{visual ? 'Sua arte aparecerá aqui' : 'Reels e stories você grava'}</span>
-        <small>{peca.tipo === 'post' || peca.tipo === 'carrossel' ? '1080 × 1350' : peca.tipo === 'video' ? '1920 × 1080 · capa (thumbnail) 1280 × 720' : '1080 × 1920 · vertical'}</small>
-      </div>
-      {visual && <button className="btn btn-contorno-ouro" disabled title="Falta ligar a IA de imagem em Configurações"><Icone nome="imagem" /> Gerar prévia</button>}
-      <p className="pequeno muted">{visual ? 'A geração de imagem entra quando a chave da IA de imagem estiver em Configurações. Até lá, use o pedido da imagem (aba Direção visual).' : 'Em breve: subir o vídeo gravado para o sistema legendar e cortar.'}</p>
-      <h3>Etapas de produção</h3>
-      <ol className="mk-etapas">{passos.map((p) => <li key={p.nome}><b>{p.nome}</b><span className="muted pequeno">{p.sub}</span><i>{p.st}</i></li>)}</ol>
-    </aside>
-  )
-}
-
-export function Producao({ pecas, aberta, aoAbrir, trabalhos, aoMudar, aoVoltar, campanhas }: {
-  pecas: Peca[]; aberta: Peca | null; aoAbrir: (p: Peca) => void; trabalhos: Trabalho[]; aoMudar: () => void; aoVoltar: () => void; campanhas: Campanha[]
-}) {
-  const { rodando, ultimo } = ajustesDa(aberta, trabalhos)
-  const etapa = aberta ? etapaDe(aberta) : null
-  const campanha = campanhas.find((c) => c.id === aberta?.conteudo.campanha)
-  return (<>
-    <div className="mk-titulo-aba"><h2>Produção de conteúdo</h2><p className="muted">Edite o roteiro, gere a arte e revise a peça.</p></div>
-    <div className="mk-prod-barra">
-      <button className="btn btn-mini" onClick={aoVoltar}><Icone nome="esquerda" tam={16} /> Voltar ao planejamento</button>
-      {aberta && <><span className="mk-sep" /><span className="muted pequeno">Campanha</span><b>{campanha?.nome ?? 'Sem campanha'}</b>
-        <span className="mk-sep" /><Icone nome="agenda" tam={16} /><span>{aberta.dia ? dataLonga(aberta.dia) : 'sem dia'}</span>
-        {etapa && etapa !== 'descartada' && <span className="mk-prod-st mk-ponto" style={{ ['--cor-etapa' as string]: ETAPA[etapa].cor }}>{ETAPA[etapa].nome}</span>}</>}
+    <div className="mk-barra mk-barra-2">
+      <div className="mk-visoes">{PERIODOS.map((p) => <button key={p.id} className={f.periodo === p.id ? 'ativa' : ''} onClick={() => mudar({ periodo: p.id })}>{p.nome}</button>)}</div>
+      {f.periodo === 'periodo' && <div className="mk-semana"><input type="date" value={f.data} onChange={(e) => mudar({ data: e.target.value })} /><span className="muted">até</span><input type="date" value={f.ate} min={f.data} onChange={(e) => mudar({ ate: e.target.value })} /></div>}
+      {f.periodo !== 'todos' && f.periodo !== 'periodo' && (
+        <div className="mk-semana">
+          <button className="btn btn-quadrado" aria-label="Anterior" onClick={() => mudar({ data: andar(comoPlanejamento, -1) })}><Icone nome="esquerda" /></button>
+          <b>{rotuloPeriodo(comoPlanejamento)}</b>
+          <button className="btn btn-quadrado" aria-label="Próximo" onClick={() => mudar({ data: andar(comoPlanejamento, 1) })}><Icone nome="seta_dir" /></button>
+        </div>
+      )}
+      <span className="muted pequeno mk-nota-filtro"><Icone nome="info" tam={14} /> O período filtra a lista; cada peça é produzida individualmente.</span>
     </div>
-    <section className="mk-producao">
-      <ListaPecas pecas={pecas} aberta={aberta?.id ?? null} aoAbrir={aoAbrir} />
-      {aberta
-        ? <><EditorPeca key={aberta.id} peca={aberta} rodando={rodando} ultimo={ultimo} aoMudar={aoMudar} /><LadoArte peca={aberta} /></>
-        : <div className="mk-editor"><Vazio>Escolha uma peça à esquerda para editar, pedir ajuste ao agente e aprovar.</Vazio></div>}
+  )
+}
+
+export function Producao(pr: Props) {
+  const { f, mudar } = pr
+  if (pr.aberta) return <PaginaPeca peca={pr.aberta} trabalhos={pr.trabalhos} campanhas={pr.campanhas} planos={pr.planos} aoVoltar={pr.aoFecharPeca} aoMudar={pr.aoMudar} />
+  const lista = aplicarProducao(pr.pecas, f).sort((a, b) => (a.dia ?? '9999').localeCompare(b.dia ?? '9999'))
+  const vinculo = (p: Peca) => pr.planos.find((x) => x.id === p.conteudo.plano)?.nome ?? 'Avulsa'
+  const campanha = (p: Peca) => pr.campanhas.find((x) => x.id === p.conteudo.campanha)?.nome
+  return (
+    <section className="mk-plano">
+      <div className="mk-titulo-aba"><h2>Produção de conteúdo</h2><p className="muted">Abra uma peça para escrever, revisar ou finalizar.</p></div>
+      <Periodo f={f} mudar={mudar} />
+      <div className="mk-barra mk-barra-2">
+        <label className="select-icone"><select value={f.campanha} onChange={(e) => mudar({ campanha: e.target.value })}><option value="">Todas as campanhas</option>{pr.campanhas.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}</select></label>
+        <label className="select-icone"><select value={f.plano} onChange={(e) => mudar({ plano: e.target.value })}><option value="">Todos os planejamentos</option><option value="avulsa">Peças avulsas</option>{pr.planos.map((p) => <option key={p.id} value={p.id}>{p.nome}</option>)}</select></label>
+        <label className="select-icone"><select value={f.canal} onChange={(e) => mudar({ canal: e.target.value })}><option value="">Todos os canais</option>{LISTA_REDES.map((r) => <option key={r} value={r}>{REDES[r].nome}</option>)}</select></label>
+        <label className="select-icone"><select value={f.situacao} onChange={(e) => mudar({ situacao: e.target.value })}><option value="">Todas as situações</option>{ETAPAS.map((e) => <option key={e.id} value={e.id}>{e.nome}</option>)}</select></label>
+        <label className="select-icone mk-busca"><Icone nome="busca" /><input value={f.busca} onChange={(e) => mudar({ busca: e.target.value })} placeholder="Buscar peça…" /></label>
+      </div>
+      <h3 className="mk-lista-titulo">Peças <span className="muted pequeno">{lista.length} {lista.length === 1 ? 'resultado' : 'resultados'}</span></h3>
+      <div className="mk-tabela-caixa">
+        <table className="tabela mk-tabela">
+          <thead><tr><th>Peça</th><th>Canal e formato</th><th>Data planejada</th><th>Vínculo</th><th>Situação</th><th /></tr></thead>
+          <tbody>{lista.map((p) => {
+            const e = etapaDe(p), r = redeDe(p)
+            return (
+              <tr key={p.id} onClick={() => pr.aoAbrir(p)}>
+                <td><span className="mk-tab-peca"><Icone nome="documento" tam={16} /><b>{p.titulo}</b></span></td>
+                <td>{p.conteudo.livre ? <span className="muted">A definir</span> : <span className="mk-tab-canal"><i style={{ background: REDES[r].cor }} />{REDES[r].nome} <span className="muted">· {nomeFormato(p.tipo, r)}</span></span>}</td>
+                <td className="pequeno">{dataBR(p.dia)}</td>
+                <td><span className="mk-chip-info">{vinculo(p)}</span>{campanha(p) && <span className="mk-chip-info camp">{campanha(p)}</span>}</td>
+                <td>{e !== 'descartada' && <span className="mk-ponto" style={{ ['--cor-etapa' as string]: ETAPA[e].cor }}>{ETAPA[e].nome}</span>}</td>
+                <td><button className="btn btn-contorno-ouro btn-mini" onClick={(ev) => { ev.stopPropagation(); pr.aoAbrir(p) }}>Abrir peça ›</button></td>
+              </tr>
+            )
+          })}</tbody>
+        </table>
+        {!pr.carregando && !lista.length && <p className="muted mk-vazio">Nenhuma peça com esses filtros.</p>}
+      </div>
+      <div className="mk-convite"><span className="mk-convite-icone"><Icone nome="ideia" tam={22} /></span><span><b>Peça avulsa ou de um planejamento: o editor é o mesmo.</b><br /><span className="muted pequeno">Dia, semana, mês e período são filtros opcionais.</span></span></div>
     </section>
-  </>)
+  )
 }

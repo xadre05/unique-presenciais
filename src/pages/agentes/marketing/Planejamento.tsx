@@ -12,18 +12,21 @@ import { Calendario, QuadroEtapas } from './Quadros'
 import { BarraFiltros, BarraPeriodo } from './BarraFiltros'
 import { NOME_PERIODO, intervaloDe, type Filtros } from './filtros'
 import { pedirTrabalho, type Campanha } from './useMarketing'
-import type { ModoCriar } from './CriarConteudo'
+import type { Plano } from './planos'
 
-const CONVITE: Record<Filtros['periodo'], { pergunta: string; botao: string; modo: ModoCriar }> = {
+export type ModoPlano = 'dia' | 'semana' | 'mes' | 'periodo'
+
+const CONVITE: Record<Filtros['periodo'], { pergunta: string; botao: string; modo: ModoPlano }> = {
   dia: { pergunta: 'Planejar conteúdo para este dia?', botao: 'Planejar este dia', modo: 'dia' },
   semana: { pergunta: 'Planejar conteúdo para esta semana?', botao: 'Planejar esta semana', modo: 'semana' },
-  mes: { pergunta: 'Planejar uma semana deste mês?', botao: 'Planejar uma semana', modo: 'semana' },
+  mes: { pergunta: 'Planejar conteúdo para este mês?', botao: 'Planejar este mês', modo: 'mes' },
   periodo: { pergunta: 'Planejar conteúdo para este período?', botao: 'Planejar o período', modo: 'periodo' },
 }
 
 type Props = {
   f: Filtros; mudar: (c: Partial<Filtros>) => void; pecas: Peca[]; recarregar: () => void; ocupadas: Set<string>
-  campanhas: Campanha[]; aoCriarCampanha: () => void; aoAbrir: (p: Peca) => void; aoCriar: (modo: ModoCriar, data: string) => void; aoPedido: () => void
+  campanhas: Campanha[]; aoCriarCampanha: () => void; aoAbrir: (p: Peca) => void; aoNovaPeca: (data?: string) => void; aoPlanejar: (modo: ModoPlano, data: string) => void
+  planos: Plano[]; aoRevisarPlano: (p: Plano) => void; aoPedido: () => void
 }
 
 export function Planejamento(pr: Props) {
@@ -66,17 +69,21 @@ export function Planejamento(pr: Props) {
         <div className="mk-aviso mk-aviso-info"><Icone nome="agenda" tam={20} /><span>"{movida.peca.titulo}" mudou de dia. Se o texto fala da data, o agente pode ajustar.</span>
           <button className="btn btn-ouro btn-mini" onClick={ajustarDia}>Pedir ao agente para ajustar</button><button className="btn btn-mini" onClick={() => setMovida(null)}>Deixar assim</button></div>
       )}
+      {pr.planos.filter((p) => p.status !== 'aprovado').map((p) => (
+        <div key={p.id} className="mk-aviso mk-aviso-info"><Icone nome="agenda" tam={20} /><span><b>{p.nome}</b>: {p.status === 'proposta' ? 'proposta do agente aguardando sua revisão.' : 'briefing salvo, ainda sem proposta.'}</span>
+          <button className="btn btn-ouro btn-mini" onClick={() => pr.aoRevisarPlano(p)}>{p.status === 'proposta' ? 'Revisar e aprovar' : 'Continuar'}</button></div>
+      ))}
       <Erro msg={erro} />
 
       {f.visao === 'quadro'
-        ? <QuadroEtapas pecas={pr.pecas} aoAbrir={pr.aoAbrir} ocupadas={pr.ocupadas} aoMover={mover} aoNova={() => pr.aoCriar('peca', f.periodo === 'dia' ? f.data : inicio)} />
+        ? <QuadroEtapas pecas={pr.pecas} aoAbrir={pr.aoAbrir} ocupadas={pr.ocupadas} aoMover={mover} aoNova={() => pr.aoNovaPeca(f.periodo === 'dia' ? f.data : undefined)} />
         : <Calendario inicio={inicio} quantos={dias} pecas={pr.pecas} aoAbrir={pr.aoAbrir} ocupadas={pr.ocupadas} aoMudarDia={mudarDia}
-            aoAbrirDia={f.periodo === 'dia' ? undefined : (d) => pr.mudar({ periodo: 'dia', data: d })} />}
+            aoAbrirDia={f.periodo === 'dia' ? undefined : (d) => pr.mudar({ periodo: 'dia', data: d })} aoCriarNoDia={(d) => pr.aoNovaPeca(d)} />}
 
       <div className="mk-convite">
         <span className="mk-convite-icone"><Icone nome="agenda" tam={22} /></span>
-        <span><b>{convite.pergunta}</b><br /><span className="muted pequeno">Escolha os canais e os formatos. Você pode só salvar o planejamento ou já pedir os rascunhos.</span></span>
-        <button className="btn btn-contorno-ouro" onClick={() => pr.aoCriar(convite.modo, f.periodo === 'mes' ? inicio : f.data)}><Icone nome="agenda" /> {convite.botao}</button>
+        <span><b>{convite.pergunta}</b><br /><span className="muted pequeno">O agente propõe temas, formatos e datas; você revisa e aprova antes de produzir. Nada é publicado sozinho.</span></span>
+        <button className="btn btn-contorno-ouro" onClick={() => pr.aoPlanejar(convite.modo, f.periodo === 'mes' ? inicio : f.data)}><Icone nome="agenda" /> {convite.botao}</button>
       </div>
       <p className="pequeno muted mk-rodape">Arraste os cartões: no Quadro muda a etapa (Pronto = aprovada, Publicado = postada); no Calendário muda o dia. Nada é publicado sozinho.</p>
     </section>

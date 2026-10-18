@@ -27,4 +27,4 @@ export const ehVideo = (f: string) => f === 'reels' || f === 'video'
 
 export const redeDe = (p: Pick<Peca, 'conteudo'>): Rede => { const r = p.conteudo.rede as Rede | undefined; return r && REDES[r] ? r : 'instagram' }
 export const nomeFormato = (tipo: string, rede: Rede = 'instagram') => REDES[rede].nomes?.[tipo as Formato] ?? NOME_PADRAO[tipo as Formato] ?? tipo
-export const rotuloPeca = (p: Pick<Peca, 'tipo' | 'conteudo'>) => { const r = redeDe(p); return `${REDES[r].nome} · ${nomeFormato(p.tipo, r)}` }
+export const rotuloPeca = (p: Pick<Peca, 'tipo' | 'conteudo'>) => { if (p.conteudo.livre) return 'Canal a definir'; const r = redeDe(p); return `${REDES[r].nome} · ${nomeFormato(p.tipo, r)}` }

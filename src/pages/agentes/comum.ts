@@ -13,7 +13,7 @@ export type Peca = {
   id: string; trabalho_id: string; tipo: string; dia: string | null; titulo: string; status: 'rascunho' | 'aprovada' | 'descartada' | 'postada'; ordem: number; atualizado_em: string
   conteudo: {
     objetivo?: string; legenda?: string; roteiro?: string[]; texto_arte?: string; cta?: string; hashtags?: string[]; observacao?: string; prompt_imagem?: string
-    horario?: string; pendencia?: string; etapa?: 'ideia' | 'producao'; campanha?: string; rede?: string; anterior?: Record<string, unknown>
+    horario?: string; pendencia?: string; etapa?: 'ideia' | 'producao'; campanha?: string; rede?: string; plano?: string; livre?: boolean; proposta?: boolean; briefing?: Record<string, unknown>; anterior?: Record<string, unknown>
   }
 }
 export type Config = { empresa_id: string; modelo: string; limite_mes_usd: number | null; chave_em: string | null }
@@ -84,6 +84,8 @@ export function rotuloTrabalho(t: Pick<Trabalho, 'tipo' | 'pedido'>) {
   const p = t.pedido
   if (t.tipo === 'ajuste') return 'Ajuste de peça'
   if (t.tipo === 'ideia') return `Planejamento salvo · ${Array.isArray(p.pecas) ? p.pecas.length : 0} ideia(s)`
+  if (t.tipo === 'conversa') return 'Conversa (nova peça)'
+  if (t.tipo === 'propor_plano') return `Proposta de plano${p.ajuste ? ' (ajuste)' : ''}`
   if (t.tipo === 'escrever') return `Rascunhos · ${Array.isArray(p.novas) ? p.novas.length : Array.isArray(p.peca_ids) ? p.peca_ids.length : 0} peça(s)`
   const inicio = String(p.semana_inicio ?? '')
   if (!inicio) return 'Conteúdo'

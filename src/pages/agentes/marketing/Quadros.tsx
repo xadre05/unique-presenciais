@@ -43,19 +43,31 @@ export function QuadroEtapas({ pecas, aoAbrir, ocupadas, aoMover, aoNova }: Comu
   )
 }
 
-export function Calendario({ inicio, quantos = 7, pecas, aoAbrir, ocupadas, aoMudarDia, aoAbrirDia }: Comum & { inicio: string; quantos?: number; aoMudarDia: (p: Peca, dia: string) => void; aoAbrirDia?: (dia: string) => void }) {
+export function Calendario({ inicio, quantos = 7, pecas, aoAbrir, ocupadas, aoMudarDia, aoAbrirDia, aoCriarNoDia }: Comum & {
+  inicio: string; quantos?: number; aoMudarDia: (p: Peca, dia: string) => void; aoAbrirDia?: (dia: string) => void; aoCriarNoDia: (dia: string) => void
+}) {
   const dias = Array.from({ length: quantos }, (_, i) => somaDias(inicio, i))
+  // mês e período: espaços vazios antes do 1º dia, para cada coluna ser sempre o mesmo dia da semana
+  const vazios = quantos > 7 ? (new Date(inicio + 'T12:00:00').getDay() + 6) % 7 : 0
   const semDia = pecas.filter((p) => !p.dia)
   return (
     <>
-      <div className={`mk-calendario${quantos === 1 ? ' um-dia' : ''}`} style={{ ['--dias' as string]: quantos }}>
+      <div className={`mk-calendario${quantos === 1 ? ' um-dia' : ''}${quantos > 7 ? ' mes' : ''}`} style={{ ['--dias' as string]: quantos }}>
+        {Array.from({ length: vazios }, (_, i) => <div key={`v${i}`} className="mk-dia-vazio" />)}
         {dias.map((d) => {
           const doDia = pecas.filter((p) => p.dia === d).sort((a, b) => (a.conteudo.horario ?? '99').localeCompare(b.conteudo.horario ?? '99'))
           const data = new Date(d + 'T12:00:00')
+          const semana = data.toLocaleDateString('pt-BR', { weekday: 'long' })
           return (
             <Coluna key={d} classe="mk-dia" aoSoltar={(id) => { const p = pecas.find((x) => x.id === id); if (p && p.dia !== d) aoMudarDia(p, d) }}
-              cabeca={<button type="button" className="mk-dia-cab" title={aoAbrirDia ? 'Ver só este dia' : undefined} onClick={() => aoAbrirDia?.(d)}><b>{data.toLocaleDateString('pt-BR', { weekday: 'long' }).replace('-feira', '')}</b><span>{data.toLocaleDateString('pt-BR', { day: 'numeric', month: 'long' })}</span></button>}>
+              cabeca={<>
+                <button type="button" className="mk-dia-cab" title={aoAbrirDia ? 'Ver só este dia' : undefined} onClick={() => aoAbrirDia?.(d)}>
+                  <b>{quantos > 7 ? semana.slice(0, 3) : semana.charAt(0).toUpperCase() + semana.slice(1)}</b><span>{data.toLocaleDateString('pt-BR', { day: 'numeric', month: 'long' })}</span>
+                </button>
+                <button type="button" className="mk-mais" title="Criar neste dia" onClick={() => aoCriarNoDia(d)}><Icone nome="mais" tam={16} /></button>
+              </>}>
               {doDia.map((p) => <CartaoPeca key={p.id} peca={p} modo="calendario" aoAbrir={() => aoAbrir(p)} trabalhando={ocupadas.has(p.id)} />)}
+              {!doDia.length && quantos <= 7 && <button type="button" className="mk-criar-dia" onClick={() => aoCriarNoDia(d)}><Icone nome="mais" tam={22} /><span>Criar neste dia</span></button>}
             </Coluna>
           )
         })}

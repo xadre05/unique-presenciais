@@ -16,6 +16,7 @@ export function CartaoPeca({ peca, aoAbrir, modo, trabalhando }: { peca: Peca; a
     >
       <span className="mk-cartao-tipo"><Icone nome={ICONE_TIPO[peca.tipo] ?? 'documento'} tam={14} />{rotuloPeca(peca)}{tamanho(peca) && <i>· {tamanho(peca)}</i>}</span>
       <b className="mk-cartao-titulo">{peca.titulo}</b>
+      {peca.conteudo.proposta && etapa === 'ideia' && <span className="mk-cartao-linha mk-agente-escrevendo">Proposta do agente</span>}
       {modo === 'quadro'
         ? peca.dia && <span className="mk-cartao-linha"><Icone nome="agenda" tam={14} />{dataLonga(peca.dia)}{peca.conteudo.horario ? ` · ${peca.conteudo.horario}` : ''}</span>
         : <span className="mk-cartao-linha"><Icone nome="relogio" tam={14} />{peca.conteudo.horario || 'sem horário'}</span>}

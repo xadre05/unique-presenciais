@@ -16,12 +16,13 @@ export const filtrosIniciais = (): Filtros => ({
 const ultimoDoMes = (iso: string) => { const d = new Date(iso + 'T12:00:00'); return new Date(d.getFullYear(), d.getMonth() + 1, 0, 12).toISOString().slice(0, 10) }
 const diasEntre = (a: string, b: string) => Math.round((new Date(b + 'T12:00:00').getTime() - new Date(a + 'T12:00:00').getTime()) / 86400000) + 1
 
-// intervalo que a tela mostra: no mês, começa na segunda da 1ª semana para o calendário fechar em semanas
+// intervalo que a tela mostra (e que a busca de peças usa)
 export function intervaloDe(f: Filtros): { inicio: string; dias: number } {
   if (f.periodo === 'dia') return { inicio: f.data, dias: 1 }
   if (f.periodo === 'semana') return { inicio: segundaDe(f.data), dias: 7 }
-  if (f.periodo === 'mes') { const primeiro = f.data.slice(0, 8) + '01'; const ini = segundaDe(primeiro); const n = diasEntre(ini, ultimoDoMes(primeiro)); return { inicio: ini, dias: Math.ceil(n / 7) * 7 } }
-  return { inicio: f.data, dias: Math.max(1, Math.min(62, diasEntre(f.data, f.ate))) }
+  // mês fechado: só do dia 1 ao último dia daquele mês
+  if (f.periodo === 'mes') { const primeiro = f.data.slice(0, 8) + '01'; return { inicio: primeiro, dias: diasEntre(primeiro, ultimoDoMes(primeiro)) } }
+  return { inicio: f.data, dias: Math.max(1, Math.min(92, diasEntre(f.data, f.ate))) }
 }
 
 export function andar(f: Filtros, sentido: 1 | -1): string {
@@ -42,7 +43,8 @@ export function rotuloPeriodo(f: Filtros) {
 
 export function aplicar(pecas: Peca[], f: Filtros) {
   const termo = f.busca.trim().toLowerCase()
-  return pecas.filter((p) => (!f.campanha || p.conteudo.campanha === f.campanha)
+  // propostas de plano ainda não aprovadas não aparecem no quadro nem no calendário
+  return pecas.filter((p) => !p.conteudo.proposta && (!f.campanha || p.conteudo.campanha === f.campanha)
     && (!f.canais.length || f.canais.includes(redeDe(p)))
     && (!f.formato || p.tipo === f.formato)
     && (!f.situacao || etapaDe(p) === f.situacao)
@@ -50,3 +52,22 @@ export function aplicar(pecas: Peca[], f: Filtros) {
 }
 
 export const NOME_PERIODO: Record<Periodo, string> = { dia: 'neste dia', semana: 'nesta semana', mes: 'neste mês', periodo: 'neste período' }
+
+// filtros da lista da Produção (separados do Planejamento: aqui o padrão é ver todas as peças)
+export type FiltrosProducao = { periodo: 'todos' | Periodo; data: string; ate: string; campanha: string; plano: string; canal: string; situacao: string; busca: string }
+export const filtrosProducaoIniciais = (): FiltrosProducao => ({ periodo: 'todos', data: hojeISO(), ate: somaDias(hojeISO(), 13), campanha: '', plano: '', canal: '', situacao: '', busca: '' })
+
+export function aplicarProducao(pecas: Peca[], f: FiltrosProducao) {
+  let lista = pecas.filter((p) => !p.conteudo.proposta)
+  if (f.periodo !== 'todos') {
+    const { inicio, dias } = intervaloDe({ ...filtrosIniciais(), periodo: f.periodo, data: f.data, ate: f.ate })
+    const fim = somaDias(inicio, dias - 1)
+    lista = lista.filter((p) => p.dia && p.dia >= inicio && p.dia <= fim)
+  }
+  const termo = f.busca.trim().toLowerCase()
+  return lista.filter((p) => (!f.campanha || p.conteudo.campanha === f.campanha)
+    && (!f.plano || (f.plano === 'avulsa' ? !p.conteudo.plano : p.conteudo.plano === f.plano))
+    && (!f.canal || redeDe(p) === f.canal)
+    && (!f.situacao || etapaDe(p) === f.situacao)
+    && (!termo || p.titulo.toLowerCase().includes(termo)))
+}

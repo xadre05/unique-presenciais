@@ -21,7 +21,7 @@ const custo = (modelo: string, ent: number, sai: number) => {
 }
 
 type Trabalho = { id: string; empresa_id: string; agente_id: string; tipo: string; status: string; pedido: Record<string, unknown> }
-type Peca = { ref?: number; tipo: string; dia: string; titulo: string; objetivo?: string; legenda?: string; roteiro?: string[]; texto_arte?: string; cta?: string; hashtags?: string[]; observacao?: string; prompt_imagem?: string; horario?: string; pendencia?: string }
+type Peca = { ref?: number; rede?: string; tipo: string; dia: string; titulo: string; objetivo?: string; legenda?: string; roteiro?: string[]; texto_arte?: string; cta?: string; hashtags?: string[]; observacao?: string; prompt_imagem?: string; horario?: string; pendencia?: string }
 const TIPOS = ['post', 'carrossel', 'reels', 'stories', 'video']
 // como escrever em cada rede e o nome de cada formato nela ("reels" = vídeo curto vertical; "video" = vídeo longo)
 const REDES: Record<string, { nome: string; guia: string; nomes: Record<string, string> }> = {
@@ -65,6 +65,7 @@ const FERRAMENTA = {
             hashtags: { type: 'array', items: { type: 'string' } },
             observacao: { type: 'string', description: 'Dica de gravação, imagem ou cuidado com as regras do conselho' },
             prompt_imagem: { type: 'string', description: 'Para post e carrossel (e a capa do vídeo longo): pedido pronto para colar no ChatGPT e gerar a arte (cena, enquadramento, luz, cores da marca preto e dourado, texto que vai na arte). Nunca pedir rosto de paciente nem antes e depois.' },
+            rede: { type: 'string', enum: ['instagram', 'youtube', 'tiktok'], description: 'Só quando o item pede para você escolher o canal: o canal escolhido' },
             ref: { type: 'integer', description: 'Quando a lista pedida é numerada: o número do item que esta peça atende' },
             horario: { type: 'string', description: 'Horário sugerido para postar, HH:MM (ex.: 09:00, 12:00, 18:00)' },
             pendencia: { type: 'string', description: 'Só se a peça depende de algo que NÃO está nos materiais/contexto e a equipe precisa confirmar (ex.: qual bônus vale, data de encerramento). Diga em uma frase o que confirmar. Se não há dúvida, deixe vazio.' },
@@ -189,7 +190,8 @@ function comAnexos(usuario: string, anexos: Anexo[]) {
   ]
 }
 
-async function chamarClaude(chave: string, modelo: string, sistema: string, usuario: string | unknown[], ferramenta: typeof FERRAMENTA | typeof FERRAMENTA_AJUSTE = FERRAMENTA) {
+type Ferramenta = { name: string; description: string; input_schema: Record<string, unknown> }
+async function chamarClaude(chave: string, modelo: string, sistema: string, usuario: string | unknown[], ferramenta: Ferramenta = FERRAMENTA) {
   const r = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: { 'x-api-key': chave, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
@@ -217,7 +219,7 @@ async function chamarClaude(chave: string, modelo: string, sistema: string, usua
     try { if (ini >= 0 && fim > ini) entrega = JSON.parse(texto.slice(ini, fim + 1)) } catch { /* segue para o erro */ }
   }
   if (!entrega) throw new Error('O Claude não entregou no formato esperado. Tente de novo.')
-  return { entrega: entrega as { resumo: string; pecas: Peca[] } & Peca, entrada: Number(uso.input_tokens ?? 0), saida: Number(uso.output_tokens ?? 0) }
+  return { entrega: entrega as { resumo: string; pecas: Peca[]; itens?: ItemPlano[] } & Peca, entrada: Number(uso.input_tokens ?? 0), saida: Number(uso.output_tokens ?? 0) }
 }
 
 // ajuste de uma peça já feita: a equipe pede ("mais 3 telas", "mais curta", "fala da turma de março") e o agente reescreve
@@ -244,7 +246,7 @@ async function ajustar(db: SupabaseClient, t: Trabalho, perfil: Record<string, s
   const anterior = semHistorico.etapa === 'ideia' ? undefined : semHistorico
   await db.from('agentes_pecas').update({
     titulo: p.titulo || peca.titulo, tipo: tipoNovo, status: 'rascunho', atualizado_em: new Date().toISOString(),
-    conteudo: conteudoDe(p, { rede: redeDo(semHistorico.rede), campanha: semHistorico.campanha, arte: semHistorico.arte, anterior }),
+    conteudo: conteudoDe(p, { rede: redeDo(semHistorico.rede), campanha: semHistorico.campanha, plano: semHistorico.plano, briefing: semHistorico.briefing, arte: semHistorico.arte, anterior }),
   }).eq('id', peca.id)
   await db.from('agentes_trabalhos').update({
     pedido: { ...t.pedido, aprendizado: aprendizado || null },
@@ -255,10 +257,10 @@ async function ajustar(db: SupabaseClient, t: Trabalho, perfil: Record<string, s
 
 // ideias que a equipe anotou (sem IA, sem custo): viram cartões na coluna Ideias para o agente escrever depois
 async function guardarIdeias(db: SupabaseClient, t: Trabalho) {
-  const lista = (Array.isArray(t.pedido.pecas) ? t.pedido.pecas : []) as { tipo: string; rede?: string; dia?: string; titulo: string; tema?: string; campanha?: string; briefing?: Briefing }[]
-  const pecas = lista.filter((x) => TIPOS.includes(x.tipo) && x.titulo?.trim()).map((x, i) => ({
-    trabalho_id: t.id, empresa_id: t.empresa_id, agente_id: t.agente_id, tipo: x.tipo, dia: /^\d{4}-\d{2}-\d{2}$/.test(x.dia ?? '') ? x.dia : null,
-    titulo: x.titulo.trim(), ordem: i, conteudo: { etapa: 'ideia', rede: redeDo(x.rede), objetivo: x.tema?.trim() || undefined, campanha: x.campanha || undefined, briefing: x.briefing },
+  const lista = (Array.isArray(t.pedido.pecas) ? t.pedido.pecas : []) as { tipo: string; rede?: string; dia?: string; titulo: string; tema?: string; campanha?: string; plano?: string; proposta?: boolean; briefing?: Briefing }[]
+  const pecas = lista.filter((x) => (TIPOS.includes(x.tipo) || x.tipo === 'auto') && x.titulo?.trim()).map((x, i) => ({
+    trabalho_id: t.id, empresa_id: t.empresa_id, agente_id: t.agente_id, tipo: x.tipo === 'auto' ? 'post' : x.tipo, dia: /^\d{4}-\d{2}-\d{2}$/.test(x.dia ?? '') ? x.dia : null,
+    titulo: x.titulo.trim(), ordem: i, conteudo: { etapa: 'ideia', livre: x.tipo === 'auto' || undefined, proposta: x.proposta === true || undefined, rede: redeDo(x.rede), objetivo: x.tema?.trim() || undefined, campanha: x.campanha || undefined, plano: x.plano || undefined, briefing: x.briefing },
   }))
   if (pecas.length) { const { error } = await db.from('agentes_pecas').insert(pecas); if (error) throw new Error(error.message) }
   await db.from('agentes_trabalhos').update({ status: 'pronto', resumo: `${pecas.length} ideia(s) anotada(s)`, custo_usd: 0, terminado_em: new Date().toISOString() }).eq('id', t.id)
@@ -269,13 +271,15 @@ type PecaBanco = { id: string; tipo: string; dia: string | null; titulo: string;
 type Briefing = { objetivo?: string; publico?: string; telas?: number; duracao?: string; orientacao?: string }
 
 function pedidoEscrever(perfil: Record<string, unknown>, pecas: PecaBanco[], pedido: Record<string, unknown>, ctx: string, exemplos: Exemplo[]) {
-  const redes = [...new Set(pecas.map((p) => redeDo(p.conteudo.rede)))]
+  const redes = pecas.some((p) => p.conteudo.livre === true) ? ['instagram', 'youtube', 'tiktok'] : [...new Set(pecas.map((p) => redeDo(p.conteudo.rede)))]
   const campanhas = (Array.isArray(perfil.campanhas) ? perfil.campanhas : []) as Campanha[]
   const itens = pecas.map((p, i) => {
     const r = REDES[redeDo(p.conteudo.rede)], b = (p.conteudo.briefing ?? {}) as Briefing
     const camp = campanhas.find((c) => c.id === p.conteudo.campanha)
+    const livre = p.conteudo.livre === true
     const partes = [
-      p.dia ?? 'sem dia', r.nome, `${r.nomes[p.tipo] ?? p.tipo} (tipo "${p.tipo}")`,
+      p.dia ?? 'sem dia',
+      livre ? 'canal e formato: ESCOLHA o mais indicado para a mensagem entre Instagram (post, carrossel, reels, stories), YouTube (video = vídeo longo, reels = Shorts) e TikTok (reels = vídeo curto, carrossel) e informe em "rede" e "tipo"' : `${r.nome} · ${r.nomes[p.tipo] ?? p.tipo} (tipo "${p.tipo}")`,
       b.telas ? `exatamente ${b.telas} telas` : '', b.duracao ? `duração ${b.duracao}` : '',
       b.objetivo ? `objetivo: ${b.objetivo}` : '', b.publico ? `público: ${b.publico}` : '',
       camp ? `campanha: ${camp.nome}` : 'sem campanha (pode ser educativo ou de relacionamento, sem empurrar oferta)',
@@ -305,11 +309,11 @@ function pedidoEscrever(perfil: Record<string, unknown>, pecas: PecaBanco[], ped
 
 async function escrever(db: SupabaseClient, t: Trabalho, perfil: Record<string, unknown>, chave: string, modelo: string, economico: boolean) {
   let ids = (Array.isArray(t.pedido.peca_ids) ? t.pedido.peca_ids : []) as string[]
-  const novas = (Array.isArray(t.pedido.novas) ? t.pedido.novas : []) as { tipo: string; rede?: string; dia?: string; titulo: string; tema?: string; campanha?: string; briefing?: Briefing }[]
+  const novas = (Array.isArray(t.pedido.novas) ? t.pedido.novas : []) as { tipo: string; rede?: string; dia?: string; titulo: string; tema?: string; campanha?: string; plano?: string; briefing?: Briefing }[]
   if (novas.length) {
-    const linhas = novas.filter((x) => TIPOS.includes(x.tipo)).slice(0, 40).map((x, i) => ({
-      trabalho_id: t.id, empresa_id: t.empresa_id, agente_id: t.agente_id, tipo: x.tipo, dia: /^\d{4}-\d{2}-\d{2}$/.test(x.dia ?? '') ? x.dia : null, titulo: (x.titulo || 'Peça').trim(), ordem: i,
-      conteudo: { etapa: 'producao', rede: redeDo(x.rede), objetivo: x.tema?.trim() || undefined, campanha: x.campanha || undefined, briefing: x.briefing },
+    const linhas = novas.filter((x) => TIPOS.includes(x.tipo) || x.tipo === 'auto').slice(0, 40).map((x, i) => ({
+      trabalho_id: t.id, empresa_id: t.empresa_id, agente_id: t.agente_id, tipo: x.tipo === 'auto' ? 'post' : x.tipo, dia: /^\d{4}-\d{2}-\d{2}$/.test(x.dia ?? '') ? x.dia : null, titulo: (x.titulo || 'Peça').trim(), ordem: i,
+      conteudo: { etapa: 'producao', livre: x.tipo === 'auto' || undefined, rede: redeDo(x.rede), objetivo: x.tema?.trim() || undefined, campanha: x.campanha || undefined, plano: x.plano || undefined, briefing: x.briefing },
     }))
     const { data, error } = await db.from('agentes_pecas').insert(linhas).select('id')
     if (error) throw new Error(error.message)
@@ -340,9 +344,12 @@ async function escrever(db: SupabaseClient, t: Trabalho, perfil: Record<string, 
         const e = entregues.find((x) => Number(x.ref) === i + 1) ?? (entregues.every((x) => !x.ref) ? entregues[i] : undefined)
         if (!e) return db.from('agentes_pecas').update({ conteudo: { ...p.conteudo, etapa: 'ideia' } }).eq('id', p.id)
         escritas++
+        const livre = p.conteudo.livre === true
+        const tipo = livre && TIPOS.includes(String(e.tipo)) ? String(e.tipo) : p.tipo
+        const rede = livre && e.rede && REDES[e.rede] ? e.rede : redeDo(p.conteudo.rede)
         return db.from('agentes_pecas').update({
-          titulo: e.titulo || p.titulo, status: 'rascunho', atualizado_em: new Date().toISOString(),
-          conteudo: conteudoDe(e, { rede: redeDo(p.conteudo.rede), campanha: p.conteudo.campanha, briefing: p.conteudo.briefing }),
+          titulo: e.titulo || p.titulo, tipo, status: 'rascunho', atualizado_em: new Date().toISOString(),
+          conteudo: conteudoDe(e, { rede, campanha: p.conteudo.campanha, plano: p.conteudo.plano, briefing: p.conteudo.briefing }),
         }).eq('id', p.id)
       }))
     }
@@ -359,27 +366,166 @@ async function escrever(db: SupabaseClient, t: Trabalho, perfil: Record<string, 
   }
 }
 
+// ===== propor plano: o agente propõe temas, formatos e datas (sem escrever). A equipe revisa antes de produzir =====
+type ItemPlano = { dia: string; rede: string; tipo: string; titulo: string; angulo?: string; horario?: string }
+const FERRAMENTA_PLANO = {
+  name: 'propor_calendario',
+  description: 'Propõe o calendário de conteúdo (temas, canais, formatos e datas) para a equipe revisar antes de escrever.',
+  input_schema: {
+    type: 'object',
+    properties: {
+      resumo: { type: 'string', description: 'Duas frases: a linha do plano e por quê.' },
+      itens: {
+        type: 'array',
+        items: {
+          type: 'object',
+          properties: {
+            dia: { type: 'string', description: 'AAAA-MM-DD, somente entre as datas disponíveis' },
+            rede: { type: 'string', enum: ['instagram', 'youtube', 'tiktok'] },
+            tipo: { type: 'string', enum: TIPOS, description: 'reels = vídeo curto vertical (Reels, TikTok, Shorts); video = vídeo longo do YouTube' },
+            titulo: { type: 'string', description: 'Título curto da peça' },
+            angulo: { type: 'string', description: 'Em uma frase: a abordagem da peça (o que ela diz e para quê)' },
+            horario: { type: 'string', description: 'Horário sugerido, HH:MM' },
+          },
+          required: ['dia', 'rede', 'tipo', 'titulo', 'angulo'],
+        },
+      },
+    },
+    required: ['resumo', 'itens'],
+  },
+}
+type CanalPlano = { rede: string; formatos: string[]; quantidade: number }
+
+// texto de uma página de referência (link enviado pela equipe), sem HTML, curto
+async function lerPagina(link: string) {
+  try {
+    const r = await fetch(link, { signal: AbortSignal.timeout(8000), headers: { 'user-agent': 'Mozilla/5.0 (agente de marketing)' } })
+    const html = await r.text()
+    return html.replace(/<script[\s\S]*?<\/script>|<style[\s\S]*?<\/style>/gi, ' ').replace(/<[^>]+>/g, ' ').replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 6000)
+  } catch { return '' }
+}
+
+async function proporPlano(db: SupabaseClient, t: Trabalho, perfil: Record<string, unknown>, chave: string, modelo: string) {
+  const pd = t.pedido
+  const plano = (pd.plano ?? {}) as { id?: string; nome?: string }
+  const datas = (Array.isArray(pd.datas) ? pd.datas : []) as string[]
+  const canais = ((Array.isArray(pd.canais) ? pd.canais : []) as CanalPlano[]).filter((c) => REDES[c.rede] && c.formatos?.length)
+  const total = Number(pd.total ?? 0)
+  const anteriores = (Array.isArray(pd.anteriores) ? pd.anteriores : []) as ItemPlano[]
+  const referencia = typeof pd.link === 'string' && /^https?:\/\//.test(pd.link) ? await lerPagina(pd.link) : ''
+  if (!plano.id || !datas.length || !canais.length) throw new Error('Faltam datas ou canais no planejamento.')
+  const campanha = (pd.campanha ?? null) as Campanha | null
+  const unidade = pd.unidade === 'dia' ? 'dia' : 'semana'
+  const sistema = [
+    'Você é o Agente de Marketing de uma empresa brasileira. Agora você monta só a PROPOSTA de calendário editorial: temas, canais, formatos e datas. Não escreva roteiros nem legendas ainda; a equipe vai revisar a proposta antes.',
+    `COMO É CADA CANAL:\n${canais.map((c) => `- ${REDES[c.rede].nome}: ${REDES[c.rede].guia}`).join('\n')}`,
+    ...blocoEmpresa(perfil as Record<string, string>, []),
+  ].filter(Boolean).join('\n')
+  const usuario = [
+    `Datas disponíveis (use só estas): ${datas.join(', ')}.`,
+    total ? `Monte exatamente ${total} peça(s) no total, distribuídas entre os canais abaixo.` : '',
+    `Canais e formatos permitidos:\n${canais.map((c) => `- ${REDES[c.rede].nome} (rede "${c.rede}")${total ? '' : `: até ${c.quantidade} peça(s) por ${unidade}`}; formatos: ${c.formatos.map((f) => `${REDES[c.rede].nomes[f] ?? f} (tipo "${f}")`).join(', ')}`).join('\n')}`,
+    referencia ? `Página de referência enviada pela equipe (use o conteúdo como base, sem copiar):\n${referencia}` : '',
+    anteriores.length ? `Esta é a proposta atual:\n${anteriores.map((i) => `- ${i.dia} · ${i.rede} · ${i.tipo} · ${i.titulo}${i.angulo ? ` — ${i.angulo}` : ''}`).join('\n')}\n\nAJUSTE PEDIDO PELA EQUIPE: ${pd.ajuste ?? ''}\nRefaça a proposta inteira já com o ajuste, mantendo o que não foi pedido para mudar.` : '',
+    pd.objetivo ? `Objetivo: ${pd.objetivo}` : '', pd.publico ? `Público: ${pd.publico}` : '',
+    pd.tema ? `Tema ou orientação da equipe: ${pd.tema}` : 'Tema livre: equilibre atrair, educar, relacionar e vender.',
+    campanha ? `Campanha: ${campanha.nome}${campanha.inicio ? ` (de ${campanha.inicio}${campanha.fim ? ` a ${campanha.fim}` : ''})` : ''}. ${campanha.descricao ?? ''}` : 'Sem campanha: o plano pode ser educativo e de relacionamento, sem empurrar oferta.',
+    'Distribua bem pelas datas, varie formatos e assuntos e crie uma sequência que faça sentido (um conteúdo prepara o outro). Uma mesma ideia pode aparecer em canais diferentes no mesmo dia, adaptada.',
+    'Entregue OBRIGATORIAMENTE chamando a ferramenta propor_calendario. Não escreva nada fora da ferramenta.',
+  ].filter(Boolean).join('\n\n')
+  const ctx = await contexto(db)
+  const { entrega, entrada, saida } = await chamarClaude(chave, modelo, sistema, `${usuario}\n\nInformações atuais do sistema:\n${ctx}`, FERRAMENTA_PLANO)
+  const permitidos = new Map(canais.map((c) => [c.rede, c.formatos]))
+  const itens = (entrega.itens ?? []).filter((i) => datas.includes(i.dia) && permitidos.get(i.rede)?.includes(i.tipo)).slice(0, total || 60)
+  if (!itens.length) throw new Error('O agente não conseguiu montar a proposta. Tente de novo.')
+  const briefing = { objetivo: pd.objetivo || undefined, publico: pd.publico || undefined, orientacao: pd.orientacao || undefined }
+  const { data, error } = await db.from('agentes_pecas').insert(itens.map((i, n) => ({
+    trabalho_id: t.id, empresa_id: t.empresa_id, agente_id: t.agente_id, tipo: i.tipo, dia: i.dia, titulo: (i.titulo || 'Peça').trim(), ordem: n,
+    conteudo: { etapa: 'ideia', proposta: true, rede: i.rede, objetivo: i.angulo, horario: i.horario, plano: plano.id, campanha: campanha?.id, briefing },
+  }))).select('id')
+  if (error) throw new Error(error.message)
+  const substituir = (Array.isArray(pd.substituir) ? pd.substituir : []) as string[]
+  if (substituir.length) await db.from('agentes_pecas').update({ status: 'descartada' }).in('id', substituir).eq('empresa_id', t.empresa_id)
+  await db.from('agentes_trabalhos').update({
+    pedido: { ...pd, peca_ids: (data ?? []).map((d) => d.id) }, status: 'pronto', resumo: entrega.resumo ?? `${itens.length} peças propostas`,
+    modelo, tokens_entrada: entrada, tokens_saida: saida, custo_usd: custo(modelo, entrada, saida), terminado_em: new Date().toISOString(),
+  }).eq('id', t.id)
+}
+
+// ===== conversa da Nova peça com IA: resposta na hora (não vira trabalho na fila), com a proposta da peça atualizada =====
+const FERRAMENTA_CONVERSA = {
+  name: 'responder',
+  description: 'Responde à equipe na conversa e atualiza a proposta da peça.',
+  input_schema: {
+    type: 'object',
+    properties: {
+      resposta: { type: 'string', description: 'Sua fala na conversa: curta (até 3 frases), útil, em português do Brasil. Pode fazer UMA pergunta por vez.' },
+      opcoes: { type: 'array', items: { type: 'string' }, description: 'Até 3 respostas rápidas que a equipe pode clicar (ex.: "Vídeo", "Carrossel", "Sugira o formato")' },
+      proposta: {
+        type: 'object',
+        properties: {
+          rede: { type: 'string', enum: ['instagram', 'youtube', 'tiktok'] },
+          tipo: { type: 'string', enum: TIPOS },
+          titulo: { type: 'string', description: 'Título sugerido para a peça' },
+          abordagem: { type: 'string', description: 'Em 1 ou 2 frases: o que a peça diz, o gancho e a chamada' },
+          objetivo: { type: 'string' }, publico: { type: 'string' },
+          duracao: { type: 'string', description: 'Só para vídeo: duração sugerida' },
+        },
+      },
+    },
+    required: ['resposta', 'proposta'],
+  },
+}
+type Mensagem = { de: 'equipe' | 'agente'; texto: string }
+
+async function conversar(db: SupabaseClient, empresa: string, corpo: { mensagens?: Mensagem[]; proposta?: Record<string, unknown> }) {
+  const { chave, pa, modelo } = await prepararAgente(db, empresa, 'marketing')
+  const mensagens = (corpo.mensagens ?? []).filter((m) => m.texto?.trim()).slice(-16)
+  if (!mensagens.length || mensagens[mensagens.length - 1].de !== 'equipe') throw new Error('Escreva sua mensagem.')
+  const sistema = [
+    'Você é o Agente de Marketing de uma empresa brasileira e está conversando com a equipe para definir UMA peça de conteúdo antes de escrevê-la.',
+    'Ajude a definir a abordagem, o canal e o formato (Instagram: post, carrossel, reels, stories; YouTube: video = vídeo longo, reels = Shorts; TikTok: reels = vídeo curto, carrossel). Respeite o que a equipe já escolheu.',
+    'Seja breve e prático. Quando faltar informação importante, pergunte uma coisa de cada vez e ofereça opções rápidas. Sempre devolva a proposta atualizada.',
+    `Proposta atual (pode estar vazia): ${JSON.stringify(corpo.proposta ?? {})}`,
+    ...blocoEmpresa(pa as Record<string, string>, []),
+  ].filter(Boolean).join('\n')
+  const historico = mensagens.map((m) => `${m.de === 'equipe' ? 'EQUIPE' : 'AGENTE'}: ${m.texto}`).join('\n')
+  const usuario = `Conversa até agora:\n${historico}\n\nResponda à última mensagem da equipe chamando OBRIGATORIAMENTE a ferramenta responder.`
+  const { entrega, entrada, saida } = await chamarClaude(chave, modelo, sistema, usuario, FERRAMENTA_CONVERSA)
+  const e = entrega as unknown as { resposta?: string; opcoes?: string[]; proposta?: Record<string, unknown> }
+  // registra o custo como um trabalho já pronto (aparece no Histórico e conta no limite do mês)
+  await db.from('agentes_trabalhos').insert({ empresa_id: empresa, agente_id: 'marketing', tipo: 'conversa', status: 'pronto', pedido: { ultima: mensagens[mensagens.length - 1].texto.slice(0, 300) }, resumo: (e.resposta ?? '').slice(0, 200), modelo, tokens_entrada: entrada, tokens_saida: saida, custo_usd: custo(modelo, entrada, saida), terminado_em: new Date().toISOString() })
+  return { resposta: e.resposta ?? '', opcoes: (e.opcoes ?? []).slice(0, 3), proposta: e.proposta ?? {} }
+}
+
+// chave, agente ligado, limites do mês (empresa e agente) e o modelo a usar
+async function prepararAgente(db: SupabaseClient, empresa: string, agente: string) {
+  const [{ data: cfg }, { data: perfilAg }, { data: chave }, { data: gastos }] = await Promise.all([
+    db.from('agentes_config').select('modelo,limite_mes_usd').eq('empresa_id', empresa).maybeSingle(),
+    db.from('agentes_empresa').select('perfil,ativo').eq('empresa_id', empresa).eq('agente_id', agente).maybeSingle(),
+    db.rpc('agentes_ler_chave', { p_empresa: empresa }),
+    db.from('agentes_trabalhos').select('custo_usd,agente_id').eq('empresa_id', empresa).gte('criado_em', new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString()),
+  ])
+  if (!chave) throw new Error('Falta cadastrar a chave do Claude em Agentes → Configurações.')
+  if (!perfilAg?.ativo) throw new Error('Este agente está desligado. Ligue em Configurar agente.')
+  const gastoMes = (gastos ?? []).reduce((s, g) => s + Number(g.custo_usd ?? 0), 0)
+  if (cfg?.limite_mes_usd != null && gastoMes >= Number(cfg.limite_mes_usd)) throw new Error(`Limite do mês da empresa atingido (US$ ${Number(cfg.limite_mes_usd).toFixed(2)}). Aumente em Configurações.`)
+  // configuração própria do agente (modelo, limite e instruções), guardada no perfil dele
+  const pa = (perfilAg.perfil ?? {}) as Record<string, unknown>
+  const gastoAgente = (gastos ?? []).filter((g) => g.agente_id === agente).reduce((s, g) => s + Number(g.custo_usd ?? 0), 0)
+  if (pa.limite_mes_usd != null && pa.limite_mes_usd !== '' && gastoAgente >= Number(pa.limite_mes_usd)) throw new Error(`Limite do mês deste agente atingido (US$ ${Number(pa.limite_mes_usd).toFixed(2)}). Aumente em Configurar agente.`)
+  const modelo = (typeof pa.modelo === 'string' && PRECO[pa.modelo] ? pa.modelo : null) ?? cfg?.modelo ?? 'claude-sonnet-5-5'
+  return { chave: String(chave), pa, perfilAg, modelo }
+}
+
 async function executar(db: SupabaseClient, t: Trabalho) {
   try {
-    const [{ data: cfg }, { data: perfilAg }, { data: chave }, { data: gastos }] = await Promise.all([
-      db.from('agentes_config').select('modelo,limite_mes_usd').eq('empresa_id', t.empresa_id).maybeSingle(),
-      db.from('agentes_empresa').select('perfil,ativo').eq('empresa_id', t.empresa_id).eq('agente_id', t.agente_id).maybeSingle(),
-      db.rpc('agentes_ler_chave', { p_empresa: t.empresa_id }),
-      db.from('agentes_trabalhos').select('custo_usd,agente_id').eq('empresa_id', t.empresa_id).gte('criado_em', new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString()),
-    ])
     if (t.tipo === 'ideia') return await guardarIdeias(db, t)
-    if (!chave) throw new Error('Falta cadastrar a chave do Claude em Agentes → Configurações.')
-    if (!perfilAg?.ativo) throw new Error('Este agente está desligado. Ligue em Configurar agente.')
-    const gastoMes = (gastos ?? []).reduce((s, g) => s + Number(g.custo_usd ?? 0), 0)
-    if (cfg?.limite_mes_usd != null && gastoMes >= Number(cfg.limite_mes_usd)) throw new Error(`Limite do mês da empresa atingido (US$ ${Number(cfg.limite_mes_usd).toFixed(2)}). Aumente em Configurações.`)
-    // configuração própria do agente (modelo, limite e instruções), guardada no perfil dele
-    const pa = (perfilAg.perfil ?? {}) as Record<string, unknown>
-    const gastoAgente = (gastos ?? []).filter((g) => g.agente_id === t.agente_id).reduce((s, g) => s + Number(g.custo_usd ?? 0), 0)
-    if (pa.limite_mes_usd != null && pa.limite_mes_usd !== '' && gastoAgente >= Number(pa.limite_mes_usd)) throw new Error(`Limite do mês deste agente atingido (US$ ${Number(pa.limite_mes_usd).toFixed(2)}). Aumente em Configurar agente.`)
-    const modelo = (typeof pa.modelo === 'string' && PRECO[pa.modelo] ? pa.modelo : null) ?? cfg?.modelo ?? 'claude-sonnet-5-5'
-    if (t.agente_id !== 'marketing' || !['semana', 'ajuste', 'ideia', 'escrever'].includes(t.tipo)) throw new Error('Trabalho que este agente ainda não sabe fazer.')
+    const { chave, pa, perfilAg, modelo } = await prepararAgente(db, t.empresa_id, t.agente_id)
+    if (t.agente_id !== 'marketing' || !['semana', 'ajuste', 'ideia', 'escrever', 'propor_plano'].includes(t.tipo)) throw new Error('Trabalho que este agente ainda não sabe fazer.')
     if (t.tipo === 'ajuste') return await ajustar(db, t, (perfilAg.perfil ?? {}) as Record<string, string>, String(chave), modelo)
     if (t.tipo === 'escrever') return await escrever(db, t, pa, String(chave), modelo, pa.stories_economico !== false)
+    if (t.tipo === 'propor_plano') return await proporPlano(db, t, pa, String(chave), modelo)
 
     // posts/reels e stories em dois pedidos ao mesmo tempo: sai na metade do tempo
     const perfil = (perfilAg.perfil ?? {}) as Record<string, string>
@@ -428,7 +574,11 @@ Deno.serve(async (req) => {
   if (admin !== true) return json({ erro: 'Só o administrador pode acionar os agentes.' }, 403)
   const db = createClient(url, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!)
 
-  const { trabalho } = await req.json().catch(() => ({}))
+  const corpo = await req.json().catch(() => ({}))
+  if (corpo.conversa) {
+    try { return json(await conversar(db, String(corpo.empresa ?? ''), corpo.conversa)) } catch (e) { return json({ erro: (e as Error).message }) }
+  }
+  const { trabalho } = corpo
   const { data: t } = await db.from('agentes_trabalhos').select('*').eq('id', String(trabalho ?? '')).maybeSingle()
   if (!t) return json({ erro: 'Trabalho não encontrado.' }, 404)
   if (t.status !== 'na_fila') return json({ ok: true, status: t.status })

@@ -15,6 +15,22 @@ Fixadas pelo Alexandre em 18/10/2026. Qualquer mudança nas telas ou na função
    - "Gerar rascunhos" pede os textos ao agente.
 6. **Filtros preservados.** Período, canal, campanha, formato, situação e busca continuam selecionados ao alternar entre Quadro e Calendário, e ao ir para a Produção e voltar.
 
+## Duas entradas, um editor (18/10/2026)
+
+| | Nova peça com IA | Planejar conteúdos |
+|---|---|---|
+| Para quê | Desenvolver **um** conteúdo | Organizar **um conjunto** |
+| Começa com | Uma conversa: "O que você quer comunicar?" | Direção: período, objetivo, público, campanha, canais, volume, dias |
+| O agente devolve | A proposta de uma peça (canal, formato, título, abordagem) | Um calendário editorial proposto (temas, canais, formatos, datas) |
+| Próximo passo | "Salvar ideia" ou "Confirmar e criar roteiro" | Revisar, editar, ajustar com a IA e "Aprovar plano" → as peças vão para Ideias |
+
+- As duas chegam ao **mesmo editor por peça**, na Produção.
+- A proposta do plano fica escondida do quadro e do calendário até ser aprovada.
+- Os roteiros são escritos depois: uma, algumas ou todas as peças.
+- **Funciona sem IA:** cada peça tem o botão "Escrever eu mesmo". A equipe pode planejar e escrever tudo à mão; o agente é ajuda, não obrigação.
+- **Mês fechado:** o filtro "Mês" mostra só os dias daquele mês (outubro = 1 a 31).
+- Calendário: o "+" de cada dia cria uma peça naquela data.
+
 ## Canais
 
 - **Primeira fase:** Instagram, YouTube e TikTok.
