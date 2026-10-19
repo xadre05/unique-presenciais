@@ -1,12 +1,12 @@
-// Começo da Reunião de pauta: "O que vamos planejar?" (algo para hoje, próximos dias, semana, mês ou campanha),
-// as reuniões recentes para continuar e, para quem não quer usar o agente, anotar uma ideia à mão.
+// Começo do planejamento: "O que vamos planejar?" (algo para hoje, próximos dias, semana, mês ou campanha) e a campanha.
+// Depois, dois caminhos: conversar com o agente (reunião de pauta) ou dizer direto o que vai ser postado.
 import { useState } from 'react'
 import { Erro } from '../../../../components/ui'
 import { Icone } from '../../../../components/Icone'
 import { hojeISO, segundaDe } from '../../comum'
 import type { Campanha } from '../useMarketing'
 import { periodoDe, tituloDe, type Escopo, type Reuniao, type TipoEscopo } from './dados'
-import { AnotarIdeia } from './AnotarIdeia'
+import { DecidirDireto } from './DecidirDireto'
 
 const OPCOES: { tipo: TipoEscopo; nome: string; sub: string; icone: string }[] = [
   { tipo: 'dia', nome: 'Algo para hoje', sub: 'Uma novidade, um assunto do mercado, um stories de última hora. Conversa curta, de 1 a 3 peças.', icone: 'relogio' },
@@ -20,7 +20,7 @@ const STATUS: Record<Reuniao['status'], string> = { aberta: 'Em conversa', plano
 
 type Props = {
   tipoInicial: TipoEscopo; dataInicial: string; campanhas: Campanha[]; recentes: Reuniao[]
-  aoComecar: (escopo: Escopo, titulo: string) => Promise<void>; aoContinuar: (id: string) => void; aoAnotou: () => void; aoCriarCampanha: () => void
+  aoComecar: (escopo: Escopo, titulo: string) => Promise<void>; aoContinuar: (id: string) => void; aoGuardou: () => void; aoEscreveu: (ids: string[]) => void; aoCriarCampanha: () => void
 }
 
 export function EscolhaEscopo(pr: Props) {
@@ -32,6 +32,7 @@ export function EscolhaEscopo(pr: Props) {
   const [comecando, setComecando] = useState(false)
   const [erro, setErro] = useState<string | null>(null)
   const [verTodas, setVerTodas] = useState(false)
+  const [direto, setDireto] = useState(false)
   const camp = pr.campanhas.find((c) => c.id === campanha)
 
   const escolher = (t: TipoEscopo) => {
@@ -59,9 +60,10 @@ export function EscolhaEscopo(pr: Props) {
   const lista = verTodas ? pr.recentes : pr.recentes.slice(0, 4)
 
   return (
-    <div className="reu-escolha">
+    <div className={`reu-escolha${pr.recentes.length ? '' : ' sozinha'}`}>
+      <div className="reu-col">
       <section className="mk-painel">
-        <header className="mk-painel-cab"><span className="mk-convite-icone"><Icone nome="mensagem" tam={22} /></span><div><h3>O que vamos planejar?</h3><span className="muted pequeno">O agente abre a reunião com o que levantou: o que já saiu, o que está planejado, campanhas e datas. Vocês decidem juntos e só depois ele monta o plano.</span></div></header>
+        <header className="mk-painel-cab"><span className="mk-convite-icone"><Icone nome="mensagem" tam={22} /></span><div><h3>O que vamos planejar?</h3><span className="muted pequeno">Escolha o período e a campanha. Depois você decide: conversar com o agente antes, ou dizer direto o que quer postar.</span></div></header>
         <div className="reu-opcoes" role="radiogroup">
           {OPCOES.map((o) => (
             <button key={o.tipo} type="button" role="radio" aria-checked={tipo === o.tipo} className={`reu-opcao${tipo === o.tipo ? ' ativa' : ''}`} onClick={() => escolher(o.tipo)}>
@@ -82,19 +84,31 @@ export function EscolhaEscopo(pr: Props) {
           {(tipo === 'dias' || tipo === 'campanha') && <label>Fim<input type="date" value={periodo.fim} min={periodo.inicio} onChange={(e) => valida(e.target.value) && setPeriodo({ ...periodo, fim: e.target.value })} /></label>}
           <span className="muted pequeno reu-periodo-txt">Período: {dmy(periodo.inicio)}{periodo.fim !== periodo.inicio ? ` a ${dmy(periodo.fim)}` : ''}{camp ? ` · as peças usam a oferta e as regras de ${camp.nome}` : ''}</span>
         </div>
-        <label className="mk-rotulo">Quer adiantar o assunto? <small className="muted">(opcional)</small></label>
-        <textarea rows={2} maxLength={600} value={texto} onChange={(e) => setTexto(e.target.value)} placeholder="Ex.: saiu uma notícia sobre a regulamentação da HOF e quero falar disso hoje" />
-        <Erro msg={erro} />
-        <footer className="mk-criar-rodape">
-          <span className="mk-criar-resumo"><Icone nome="info" tam={18} /><span className="pequeno muted">Cada mensagem da reunião custa alguns centavos. O plano só é montado quando você clicar em "Montar o plano".</span></span>
-          <button className="btn btn-ouro" disabled={comecando} onClick={comecar}><Icone nome="mensagem" tam={16} /> {comecando ? 'Abrindo a reunião…' : 'Começar a reunião'}</button>
-        </footer>
+        {!direto && <>
+          <div className="reu-caminhos">
+            <div className="reu-caminho">
+              <b><Icone nome="lista" tam={18} /> Já sei o que quero postar</b>
+              <span className="muted pequeno">Você diz cada peça (canal, formato, dia e sobre o quê) e o agente escreve. Sem conversa.</span>
+              <button type="button" className="btn btn-ouro" onClick={() => setDireto(true)}>Dizer o que postar</button>
+            </div>
+            <div className="reu-caminho">
+              <b><Icone nome="mensagem" tam={18} /> Conversar com o agente antes</b>
+              <span className="muted pequeno">Ele chega com o que levantou (o que saiu, o que funcionou, campanhas e datas) e vocês decidem juntos. Cada mensagem custa alguns centavos.</span>
+              <label className="mk-rotulo">Já tem um assunto em mente? <small className="muted">(opcional; a conversa começa por ele)</small></label>
+              <textarea rows={2} maxLength={600} value={texto} onChange={(e) => setTexto(e.target.value)} placeholder="Ex.: saiu uma notícia sobre a regulamentação da HOF e quero falar disso hoje" />
+              <button type="button" className="btn btn-contorno-ouro" disabled={comecando} onClick={comecar}>{comecando ? 'Abrindo a conversa…' : 'Começar a conversa'}</button>
+            </div>
+          </div>
+          <Erro msg={erro} />
+        </>}
       </section>
+      {direto && <DecidirDireto inicio={periodo.inicio} fim={periodo.fim} campanha={camp} aoEscreveu={pr.aoEscreveu} aoGuardou={pr.aoGuardou} aoVoltar={() => setDireto(false)} />}
+      </div>
 
       <aside className="reu-lado">
         {pr.recentes.length > 0 && (
           <section className="mk-painel">
-            <h4 className="reu-lado-titulo"><Icone nome="historico" tam={18} /> Reuniões anteriores</h4>
+            <h4 className="reu-lado-titulo"><Icone nome="historico" tam={18} /> Conversas anteriores</h4>
             <ul className="reu-recentes">
               {lista.map((r) => (
                 <li key={r.id}><button type="button" onClick={() => pr.aoContinuar(r.id)}>
@@ -107,7 +121,6 @@ export function EscolhaEscopo(pr: Props) {
             {pr.recentes.length > 4 && <button type="button" className="btn btn-mini" onClick={() => setVerTodas(!verTodas)}>{verTodas ? 'Ver menos' : `Ver todas (${pr.recentes.length})`}</button>}
           </section>
         )}
-        <AnotarIdeia dataInicial={periodo.inicio} aoAnotou={pr.aoAnotou} />
       </aside>
     </div>
   )

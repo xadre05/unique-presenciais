@@ -2469,3 +2469,16 @@ a.sala-agente:hover { border-color: var(--ouro); transform: translateY(-2px); }
 .ref-ficha dd { margin: 2px 0 0; }
 .ref-ficha ol { margin: 0; padding-left: 18px; }
 @media (max-width: 640px) { .ref-cartao { grid-template-columns: 64px 1fr; } .ref-capa .pp-mini, .ref-sem-capa { width: 64px; height: 84px; } }
+
+/* Planejar: dois caminhos (direto ou conversa) */
+.reu-caminhos { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.reu-caminho { display: flex; flex-direction: column; gap: 8px; padding: 14px; border: 1px solid var(--borda); border-radius: 12px; background: var(--painel-2); }
+.reu-caminho b { display: flex; align-items: center; gap: 8px; }
+.reu-caminho .btn { align-self: flex-start; margin-top: auto; }
+.reu-direto-lista { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 8px; }
+.reu-direto-lista li { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.reu-direto-lista select, .reu-direto-lista input[type="date"] { width: auto; }
+.reu-direto-tema { flex: 1 1 260px; min-width: 0; }
+.reu-direto .mk-criar-rodape { justify-content: space-between; }
+@media (max-width: 760px) { .reu-caminhos { grid-template-columns: 1fr; } }
+.reu-escolha.sozinha { grid-template-columns: minmax(0, 1fr); max-width: 980px; }

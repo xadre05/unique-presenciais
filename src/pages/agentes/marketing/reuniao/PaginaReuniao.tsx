@@ -39,8 +39,8 @@ export function PaginaReuniao(pr: Props) {
   const r = useReuniao({ reuniaoId: pr.reuniaoId, campanhas: pr.campanhas, planos: pr.planos, aoMudou: pr.aoMudou })
   const reu = r.reuniao
   const escrever = async () => { const ids = await r.escreverAgora(); if (ids) pr.aoIrProducao(ids.length === 1 ? ids[0] : undefined) }
-  const passos = [{ texto: 'Agente de Marketing', aoClicar: pr.aoVoltar }, { texto: 'Reunião de pauta', aoClicar: reu ? r.novaReuniao : undefined }, ...(reu ? [{ texto: reu.titulo }] : [])]
-  const sub = !reu ? 'Escolha o que planejar. O agente chega com o que levantou e vocês decidem juntos.'
+  const passos = [{ texto: 'Agente de Marketing', aoClicar: pr.aoVoltar }, { texto: 'Planejar', aoClicar: reu ? r.novaReuniao : undefined }, ...(reu ? [{ texto: reu.titulo }] : [])]
+  const sub = !reu ? 'Escolha o período. Depois converse com o agente ou diga direto o que quer postar.'
     : r.conversando ? 'Converse com o agente. A ata ao lado mostra o que já foi combinado.'
       : 'Revise a proposta de calendário que saiu da reunião e aprove.'
 
@@ -48,9 +48,10 @@ export function PaginaReuniao(pr: Props) {
   return (
     <div className="mk-pagina-planejar reu">
       <Caminho passos={passos} />
-      <div className="mk-titulo-aba"><h2>{reu ? `Reunião de pauta: ${reu.titulo}` : 'Reunião de pauta'}</h2><p className="muted">{sub}</p></div>
+      <div className="mk-titulo-aba"><h2>{reu ? `Conversa de pauta: ${reu.titulo}` : 'Planejar'}</h2><p className="muted">{sub}</p></div>
       {!reu && <EscolhaEscopo tipoInicial={pr.tipoInicial} dataInicial={pr.dataInicial} campanhas={pr.campanhas} recentes={recentes.dados ?? []}
-        aoComecar={async (e, t) => { await r.comecar(e, t); recentes.recarregar() }} aoContinuar={pr.aoAbrirReuniao} aoAnotou={() => { pr.aoMudou(); pr.aoVoltar() }} aoCriarCampanha={pr.aoCriarCampanha} />}
+        aoComecar={async (e, t) => { await r.comecar(e, t); recentes.recarregar() }} aoContinuar={pr.aoAbrirReuniao} aoGuardou={() => { pr.aoMudou(); pr.aoVoltar() }}
+        aoEscreveu={(ids) => { pr.aoMudou(); pr.aoIrProducao(ids.length === 1 ? ids[0] : undefined) }} aoCriarCampanha={pr.aoCriarCampanha} />}
       {reu && r.conversando && (
         <div className="reu-grade">
           <div className="reu-col">

@@ -344,10 +344,11 @@ async function ajustar(db: SupabaseClient, t: Trabalho, perfil: Record<string, s
 
 // ideias que a equipe anotou (sem IA, sem custo): viram cartões na coluna Ideias para o agente escrever depois
 async function guardarIdeias(db: SupabaseClient, t: Trabalho) {
-  const lista = (Array.isArray(t.pedido.pecas) ? t.pedido.pecas : []) as { tipo: string; rede?: string; dia?: string; titulo: string; tema?: string; campanha?: string; plano?: string; proposta?: boolean; briefing?: Briefing }[]
+  // lote: marca as peças criadas juntas no "Já sei o que quero postar" (a tela pede os textos logo depois)
+  const lista = (Array.isArray(t.pedido.pecas) ? t.pedido.pecas : []) as { tipo: string; rede?: string; dia?: string; titulo: string; tema?: string; campanha?: string; plano?: string; proposta?: boolean; briefing?: Briefing; lote?: string }[]
   const pecas = lista.filter((x) => (TIPOS.includes(x.tipo) || x.tipo === 'auto') && x.titulo?.trim()).map((x, i) => ({
     trabalho_id: t.id, empresa_id: t.empresa_id, agente_id: t.agente_id, tipo: x.tipo === 'auto' ? 'post' : x.tipo, dia: /^\d{4}-\d{2}-\d{2}$/.test(x.dia ?? '') ? x.dia : null,
-    titulo: x.titulo.trim(), ordem: i, conteudo: { etapa: 'ideia', livre: x.tipo === 'auto' || undefined, proposta: x.proposta === true || undefined, rede: redeDo(x.rede), objetivo: x.tema?.trim() || undefined, campanha: x.campanha || undefined, plano: x.plano || undefined, briefing: x.briefing },
+    titulo: x.titulo.trim(), ordem: i, conteudo: { etapa: 'ideia', livre: x.tipo === 'auto' || undefined, proposta: x.proposta === true || undefined, rede: redeDo(x.rede), objetivo: x.tema?.trim() || undefined, campanha: x.campanha || undefined, plano: x.plano || undefined, briefing: x.briefing, lote: x.lote || undefined },
   }))
   if (pecas.length) { const { error } = await db.from('agentes_pecas').insert(pecas); if (error) throw new Error(error.message) }
   await db.from('agentes_trabalhos').update({ status: 'pronto', resumo: `${pecas.length} ideia(s) anotada(s)`, custo_usd: 0, terminado_em: new Date().toISOString() }).eq('id', t.id)
