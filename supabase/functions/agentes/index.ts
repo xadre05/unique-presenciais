@@ -193,12 +193,28 @@ function blocoEmpresa(perfil: Record<string, string>, exemplos: Exemplo[]) {
     `NUNCA FAZER: ${perfil.evitar ?? ''}`,
     `REGRAS DO CONSELHO: ${perfil.conselho ?? ''}`,
     perfisRedes(perfil as Record<string, unknown>),
+    perfil.voz ? `\nCOMO A MARCA FALA (perfil de voz aprovado pela equipe; escreva assim): ${perfil.voz}` : '',
     perfil.instrucoes ? `\nINSTRUÇÕES DA EQUIPE PARA ESTE AGENTE (siga sempre): ${perfil.instrucoes}` : '',
     perfil.materiais ? `\nOFERTAS E MATERIAIS DA EMPRESA (fonte da verdade: preços, condições, bônus e datas só podem vir daqui):\n${perfil.materiais}` : '',
     memoria.length ? `\nO QUE VOCÊ JÁ APRENDEU COM ESTA EQUIPE (gostos e recusas; siga sempre):\n${memoria.map((m) => `- ${m.texto}`).join('\n')}` : '',
     exemplos.length ? `\nPEÇAS QUE A EQUIPE APROVOU (use como referência de estilo, sem repetir o conteúdo):\n${exemplos.map((e) => `[${e.tipo}] ${e.titulo}\n${(e.conteudo.legenda ?? (e.conteudo.roteiro ?? []).join(' / ')).slice(0, 700)}`).join('\n---\n')}` : '',
   ]
 }
+// Biblioteca da marca: trechos sobre o assunto do pedido (busca por texto). Vão no pedido com a fonte de cada um.
+type TrechoMarca = { fonte_titulo: string; conteudo: string }
+async function conhecimento(db: SupabaseClient, empresa: string, consulta: string, limite = 6) {
+  const q = consulta.replace(/\s+/g, ' ').trim().slice(0, 600)
+  if (!q) return { bloco: '', fontes: [] as string[] }
+  const { data } = await db.rpc('marca_buscar', { p_empresa: empresa, p_consulta: q, p_limite: limite })
+  const usados: TrechoMarca[] = []
+  let total = 0
+  for (const t of (data ?? []) as TrechoMarca[]) { if (total + t.conteudo.length > 8000) break; usados.push(t); total += t.conteudo.length }
+  if (!usados.length) return { bloco: '', fontes: [] as string[] }
+  const bloco = `CONHECIMENTO DA MARCA (trechos da biblioteca da empresa sobre este assunto). Use para falar com precisão, com as ideias, os termos e o jeito de ensinar da marca; não copie frases longas e não afirme nada técnico que não esteja aqui ou no contexto:\n${usados.map((t) => `[Fonte: ${t.fonte_titulo}]\n${t.conteudo}`).join('\n---\n')}`
+  return { bloco, fontes: [...new Set(usados.map((t) => t.fonte_titulo))] }
+}
+const comBloco = (bloco: string, texto: string) => (bloco ? `${bloco}\n\n${texto}` : texto)
+
 function pedidoMarketing(perfil: Record<string, string>, pedido: Record<string, unknown>, ctx: string, exemplos: Exemplo[] = []) {
   const inicio = String(pedido.semana_inicio)
   const nDias = Math.min(14, Math.max(1, Number(pedido.dias ?? 7)))
@@ -291,7 +307,7 @@ async function ajustar(db: SupabaseClient, t: Trabalho, perfil: Record<string, s
   if (!peca) throw new Error('Peça não encontrada.')
   const { sistema } = pedidoMarketing(perfil, { semana_inicio: peca.dia ?? new Date().toISOString().slice(0, 10), rede: (peca.conteudo ?? {}).rede }, '')
   const tipoPedido = TIPOS.includes(String(t.pedido.tipo_novo ?? '')) ? String(t.pedido.tipo_novo) : peca.tipo
-  const { anterior: _x, arte: _y, versoes: _v, artes: _w, aprovado_texto: _t, producao_ok: _p, ...semExtras } = (peca.conteudo ?? {}) as Record<string, unknown>
+  const { anterior: _x, arte: _y, versoes: _v, artes: _w, aprovado_texto: _t, producao_ok: _p, fontes: _f, ...semExtras } = (peca.conteudo ?? {}) as Record<string, unknown>
   const atual = { tipo: tipoPedido, dia: peca.dia, titulo: peca.titulo, ...semExtras }
   const lembrarIsso = t.pedido.lembrar
   const sobreMemoria = lembrarIsso === true
@@ -299,7 +315,8 @@ async function ajustar(db: SupabaseClient, t: Trabalho, perfil: Record<string, s
     : lembrarIsso === false ? '\n\nEste ajuste vale só para esta peça: deixe "aprendizado" vazio.' : ''
   const guia = GUIA_FORMATO[tipoPedido] ? `\n\nCOMO PREENCHER ESTE FORMATO: ${GUIA_FORMATO[tipoPedido]}` : ''
   const usuario = `Esta é uma peça que você preparou:\n${JSON.stringify(atual, null, 2)}\n\nPedido de ajuste da equipe: ${String(t.pedido.instrucao ?? '')}${sobreMemoria}\n\nReescreva a peça inteira já com o ajuste (mantenha o que não foi pedido para mudar) e entregue OBRIGATORIAMENTE chamando a ferramenta entregar_peca.${guia}`
-  const { entrega: p, entrada, saida } = await chamarClaude(chave, modelo, sistema, usuario, FERRAMENTA_AJUSTE)
+  const kn = await conhecimento(db, t.empresa_id, `${peca.titulo} ${String((peca.conteudo ?? {}).objetivo ?? '')} ${String(t.pedido.instrucao ?? '')}`)
+  const { entrega: p, entrada, saida } = await chamarClaude(chave, modelo, sistema, comBloco(kn.bloco, usuario), FERRAMENTA_AJUSTE)
   // marcado "lembrar": guarda sempre (se o agente não resumir, guarda o próprio pedido); desmarcado: nunca guarda
   const sugerido = String((p as Record<string, unknown>).aprendizado ?? '').trim()
   const aprendizado = lembrarIsso === false ? '' : sugerido || (lembrarIsso === true ? String(t.pedido.instrucao ?? '').trim() : '')
@@ -308,7 +325,7 @@ async function ajustar(db: SupabaseClient, t: Trabalho, perfil: Record<string, s
   const { anterior: _a, etapa: _e, versoes: _v2, aprovado_texto: _t2, producao_ok: _p2, livre: _l, proposta: _pr, ...guardar } = (peca.conteudo ?? {}) as Record<string, unknown>
   const tipoNovo = TIPOS.includes(String(t.pedido.tipo_novo ?? '')) ? String(t.pedido.tipo_novo) : peca.tipo
   const titulo = p.titulo || peca.titulo
-  const novo = { ...guardar, ...conteudoDe(p, { rede: redeDo(guardar.rede), campanha: guardar.campanha, plano: guardar.plano, briefing: guardar.briefing, horario: p.horario || guardar.horario }) }
+  const novo = { ...guardar, ...conteudoDe(p, { rede: redeDo(guardar.rede), campanha: guardar.campanha, plano: guardar.plano, briefing: guardar.briefing, horario: p.horario || guardar.horario, fontes: kn.fontes.length ? kn.fontes : guardar.fontes }) }
   const nota = String(t.pedido.nota ?? '').trim() || `Ajuste com IA: ${String(t.pedido.instrucao ?? '').slice(0, 120)}`
   await db.from('agentes_pecas').update({
     titulo, tipo: tipoNovo, status: 'rascunho', atualizado_em: new Date().toISOString(),
@@ -404,7 +421,9 @@ async function escrever(db: SupabaseClient, t: Trabalho, perfil: Record<string, 
     const respostas = await Promise.all(grupos.map(async (g) => {
       const m = g[0].tipo === 'stories' && economico ? 'claude-haiku-5-5' : modelo
       const { sistema, usuario } = pedidoEscrever(perfil, g, t.pedido, ctx, (exemplos ?? []) as Exemplo[])
-      return { grupo: g, modelo: m, ...(await chamarClaude(chave, m, sistema, comAnexos(usuario, anexos))) }
+      const nomesCamp = (Array.isArray(perfil.campanhas) ? perfil.campanhas as Campanha[] : []).filter((c) => g.some((p) => p.conteudo.campanha === c.id)).map((c) => c.nome)
+      const kn = await conhecimento(db, t.empresa_id, [t.pedido.tema, ...nomesCamp, ...g.map((p) => `${p.titulo} ${p.conteudo.objetivo ?? ''}`)].filter(Boolean).join(' '), g.length > 3 ? 10 : 6)
+      return { grupo: g, modelo: m, fontes: kn.fontes, ...(await chamarClaude(chave, m, sistema, comAnexos(comBloco(kn.bloco, usuario), anexos))) }
     }))
     let escritas = 0
     for (const r of respostas) {
@@ -418,7 +437,7 @@ async function escrever(db: SupabaseClient, t: Trabalho, perfil: Record<string, 
         const rede = livre && e.rede && REDES[e.rede] ? e.rede : redeDo(p.conteudo.rede)
         return db.from('agentes_pecas').update({
           titulo: e.titulo || p.titulo, tipo, status: 'rascunho', atualizado_em: new Date().toISOString(),
-          conteudo: primeiraVersao(e.titulo || p.titulo, tipo, conteudoDe(e, { rede, campanha: p.conteudo.campanha, plano: p.conteudo.plano, briefing: p.conteudo.briefing, visual: p.conteudo.visual })),
+          conteudo: primeiraVersao(e.titulo || p.titulo, tipo, conteudoDe(e, { rede, campanha: p.conteudo.campanha, plano: p.conteudo.plano, briefing: p.conteudo.briefing, visual: p.conteudo.visual, fontes: r.fontes.length ? r.fontes : undefined })),
         }).eq('id', p.id)
       }))
     }
@@ -504,7 +523,8 @@ async function proporPlano(db: SupabaseClient, t: Trabalho, perfil: Record<strin
     'Entregue OBRIGATORIAMENTE chamando a ferramenta propor_calendario. Não escreva nada fora da ferramenta.',
   ].filter(Boolean).join('\n\n')
   const ctx = await contexto(db)
-  const { entrega, entrada, saida } = await chamarClaude(chave, modelo, sistema, `${usuario}\n\nInformações atuais do sistema:\n${ctx}`, FERRAMENTA_PLANO)
+  const kn = await conhecimento(db, t.empresa_id, [pd.tema, pd.objetivo, pd.publico, campanha?.nome, campanha?.descricao, plano.nome].filter(Boolean).join(' '), 10)
+  const { entrega, entrada, saida } = await chamarClaude(chave, modelo, sistema, comBloco(kn.bloco, `${usuario}\n\nInformações atuais do sistema:\n${ctx}`), FERRAMENTA_PLANO)
   const permitidos = new Map(canais.map((c) => [c.rede, c.formatos]))
   const itens = (entrega.itens ?? []).filter((i) => datas.includes(i.dia) && permitidos.get(i.rede)?.includes(i.tipo)).slice(0, total || 60)
   if (!itens.length) throw new Error('O agente não conseguiu montar a proposta. Tente de novo.')
@@ -560,12 +580,47 @@ async function conversar(db: SupabaseClient, empresa: string, corpo: { mensagens
     ...blocoEmpresa(pa as Record<string, string>, []),
   ].filter(Boolean).join('\n')
   const historico = mensagens.map((m) => `${m.de === 'equipe' ? 'EQUIPE' : 'AGENTE'}: ${m.texto}`).join('\n')
-  const usuario = `Conversa até agora:\n${historico}\n\nResponda à última mensagem da equipe chamando OBRIGATORIAMENTE a ferramenta responder.`
+  const kn = await conhecimento(db, empresa, [...mensagens.filter((m) => m.de === 'equipe').slice(-3).map((m) => m.texto), String((corpo.proposta ?? {}).titulo ?? '')].join(' '), 4)
+  const usuario = comBloco(kn.bloco, `Conversa até agora:\n${historico}\n\nResponda à última mensagem da equipe chamando OBRIGATORIAMENTE a ferramenta responder.`)
   const { entrega, entrada, saida } = await chamarClaude(chave, modelo, sistema, usuario, FERRAMENTA_CONVERSA)
   const e = entrega as unknown as { resposta?: string; opcoes?: string[]; proposta?: Record<string, unknown> }
   // registra o custo como um trabalho já pronto (aparece no Histórico e conta no limite do mês)
   await db.from('agentes_trabalhos').insert({ empresa_id: empresa, agente_id: 'marketing', tipo: 'conversa', status: 'pronto', pedido: { ultima: mensagens[mensagens.length - 1].texto.slice(0, 300) }, resumo: (e.resposta ?? '').slice(0, 200), modelo, tokens_entrada: entrada, tokens_saida: saida, custo_usd: custo(modelo, entrada, saida), terminado_em: new Date().toISOString() })
   return { resposta: e.resposta ?? '', opcoes: (e.opcoes ?? []).slice(0, 3), proposta: e.proposta ?? {} }
+}
+
+// ===== perfil de voz: o agente lê amostras da biblioteca e descreve como a marca fala. A equipe revisa e salva =====
+const FERRAMENTA_VOZ = {
+  name: 'entregar_perfil_voz',
+  description: 'Entrega o perfil de voz da marca, para a equipe revisar.',
+  input_schema: {
+    type: 'object',
+    properties: {
+      perfil: { type: 'string', description: 'Perfil de voz em português do Brasil, em tópicos curtos, com estas partes: 1) Como explica (estrutura, exemplos, comparações que usa); 2) Termos e nomes próprios da marca (protocolos, técnicas, métodos) — liste os que aparecem; 3) Expressões e bordões que se repetem; 4) Posicionamento (no que acredita, o que critica no mercado); 5) Tom com o público (iniciante x experiente); 6) O que evitar para não soar diferente da marca. Só o que aparece nos trechos; nada inventado. Máximo 2.500 caracteres.' },
+    },
+    required: ['perfil'],
+  },
+}
+
+async function gerarVoz(db: SupabaseClient, empresa: string) {
+  const { chave, pa, modelo } = await prepararAgente(db, empresa, 'marketing')
+  const { data: fontes } = await db.from('marca_fontes').select('id,titulo').eq('empresa_id', empresa).eq('ativo', true).eq('status', 'pronta').limit(60)
+  if (!fontes?.length) throw new Error('A biblioteca está vazia. Envie apostilas, roteiros ou textos da marca antes de gerar o perfil de voz.')
+  // amostra espalhada: os primeiros trechos de cada fonte, até ~60 mil caracteres
+  const porFonte = Math.max(2, Math.floor(40 / fontes.length))
+  const amostras: string[] = []
+  let total = 0
+  for (const f of fontes) {
+    const { data: tr } = await db.from('marca_trechos').select('conteudo').eq('fonte_id', f.id).order('ordem').limit(porFonte)
+    for (const t of tr ?? []) { if (total > 60000) break; amostras.push(`[${f.titulo}]\n${t.conteudo}`); total += t.conteudo.length }
+  }
+  const sistema = ['Você analisa materiais de uma empresa brasileira para descrever como a marca fala e ensina, para outro redator escrever igual.', ...blocoEmpresa(pa as Record<string, string>, [])].join('\n')
+  const usuario = `Trechos dos materiais da marca:\n\n${amostras.join('\n---\n')}\n\nDescreva o perfil de voz chamando OBRIGATORIAMENTE a ferramenta entregar_perfil_voz.`
+  const { entrega, entrada, saida } = await chamarClaude(chave, modelo, sistema, usuario, FERRAMENTA_VOZ)
+  const perfil = String((entrega as unknown as { perfil?: string }).perfil ?? '').trim()
+  await db.from('agentes_trabalhos').insert({ empresa_id: empresa, agente_id: 'marketing', tipo: 'voz', status: 'pronto', pedido: { fontes: fontes.length }, resumo: 'Perfil de voz gerado a partir da biblioteca', modelo, tokens_entrada: entrada, tokens_saida: saida, custo_usd: custo(modelo, entrada, saida), terminado_em: new Date().toISOString() })
+  if (!perfil) throw new Error('O agente não conseguiu montar o perfil. Tente de novo.')
+  return { perfil }
 }
 
 // chave, agente ligado, limites do mês (empresa e agente) e o modelo a usar
@@ -787,7 +842,8 @@ async function executar(db: SupabaseClient, t: Trabalho) {
     const modeloDe = (pd: Record<string, unknown>) => (Number(pd.posts ?? 0) + Number(pd.reels ?? 0) === 0 && pa.stories_economico !== false ? 'claude-haiku-5-5' : modelo)
     const campanhaId = (t.pedido.campanha as Campanha | null)?.id
     const anexos = (Array.isArray(t.pedido.anexos) ? t.pedido.anexos : []) as Anexo[]
-    const respostas = await Promise.all(pedidos.map(async (pd) => { const { sistema, usuario } = pedidoMarketing(perfil, pd, ctx, (exemplos ?? []) as Exemplo[]); const m = modeloDe(pd); return { ...(await chamarClaude(String(chave), m, sistema, comAnexos(usuario, anexos))), modelo: m } }))
+    const kn = await conhecimento(db, t.empresa_id, [t.pedido.foco, (t.pedido.campanha as Campanha | null)?.nome, (t.pedido.campanha as Campanha | null)?.descricao].filter(Boolean).join(' '), 8)
+    const respostas = await Promise.all(pedidos.map(async (pd) => { const { sistema, usuario } = pedidoMarketing(perfil, pd, ctx, (exemplos ?? []) as Exemplo[]); const m = modeloDe(pd); return { ...(await chamarClaude(String(chave), m, sistema, comAnexos(comBloco(kn.bloco, usuario), anexos))), modelo: m } }))
     const entrega = { resumo: respostas.map((r) => r.entrega.resumo).filter(Boolean)[0] ?? null, pecas: respostas.flatMap((r) => r.entrega.pecas ?? []) }
     const entrada = respostas.reduce((s, r) => s + r.entrada, 0), saida = respostas.reduce((s, r) => s + r.saida, 0)
     const custoTotal = Math.round(respostas.reduce((s, r) => s + custo(r.modelo, r.entrada, r.saida), 0) * 10000) / 10000
@@ -818,6 +874,9 @@ Deno.serve(async (req) => {
   const db = createClient(url, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!)
 
   const corpo = await req.json().catch(() => ({}))
+  if (corpo.voz) {
+    try { return json(await gerarVoz(db, String(corpo.empresa ?? ''))) } catch (e) { return json({ erro: (e as Error).message }) }
+  }
   if (corpo.conversa) {
     try { return json(await conversar(db, String(corpo.empresa ?? ''), corpo.conversa)) } catch (e) { return json({ erro: (e as Error).message }) }
   }

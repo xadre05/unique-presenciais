@@ -14,7 +14,7 @@ export type Peca = {
   id: string; trabalho_id: string; tipo: string; dia: string | null; titulo: string; status: 'rascunho' | 'aprovada' | 'descartada' | 'postada'; ordem: number; atualizado_em: string
   conteudo: {
     objetivo?: string; legenda?: string; roteiro?: string[]; texto_arte?: string; cta?: string; hashtags?: string[]; observacao?: string; prompt_imagem?: string
-    horario?: string; pendencia?: string; etapa?: 'ideia' | 'producao'; campanha?: string; rede?: string; plano?: string; livre?: boolean; proposta?: boolean; briefing?: Record<string, unknown>; anterior?: Record<string, unknown>
+    horario?: string; pendencia?: string; etapa?: 'ideia' | 'producao'; campanha?: string; rede?: string; plano?: string; livre?: boolean; proposta?: boolean; briefing?: Record<string, unknown>; anterior?: Record<string, unknown>; fontes?: string[]
     orientacoes?: string[]; visual?: unknown; artes?: unknown[]; versoes?: unknown[]; aprovado_texto?: unknown; producao_ok?: unknown
   }
 }

@@ -1,0 +1,6 @@
+-- 072 · Biblioteca da marca (aplicada em 18/10/2026, migração agentes_biblioteca_marca).
+-- O conhecimento de cada empresa (apostilas, aulas transcritas, conversas com o tutor da plataforma de cursos, textos)
+-- dividido em trechos pesquisáveis por texto (português, sem acento). O agente busca os trechos antes de escrever.
+-- Tabelas: marca_fontes (uma por arquivo/texto; "tirar" = ativo false), marca_trechos (busca tsvector via gatilho)
+-- Funções: marca_buscar(empresa, consulta, limite) — qualquer palavra, ordenado por relevância; marca_fonte_contar(fonte)
+-- RLS: só administrador. Extensão: unaccent.

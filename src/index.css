@@ -2330,3 +2330,19 @@ a.sala-agente:hover { border-color: var(--ouro); transform: translateY(-2px); }
 .orienta-exemplo p { font-size: 13px; line-height: 1.5; }
 .marca-nome { font-size: 12px; padding: 4px 8px; width: 120px; }
 .orienta-sugestoes { margin: 2px 0 4px; }
+
+/* Biblioteca da marca */
+.bib { display: flex; flex-direction: column; gap: 12px; }
+.bib-envios, .bib-fontes, .bib-achados { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.bib-envios li { font-size: 13px; display: flex; gap: 8px; flex-wrap: wrap; }
+.bib-envios li span { color: var(--muted, #9a9a9a); }
+.bib-envios li.erro span { color: var(--erro, #e5484d); }
+.bib-fonte { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border: 1px solid var(--borda, rgba(255,255,255,.1)); border-radius: 10px; }
+.bib-fonte-txt { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.bib-fonte-txt b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bib-fonte-txt small { color: var(--muted, #9a9a9a); }
+.bib-colar { display: flex; flex-direction: column; gap: 8px; }
+.bib-busca input { flex: 1; min-width: 220px; }
+.bib-achados li { border-left: 2px solid var(--ouro, #d4af37); padding: 4px 10px; }
+.bib-achados small { color: var(--ouro, #d4af37); }
+.bib-achados p { margin: 2px 0 0; font-size: 13px; line-height: 1.5; }

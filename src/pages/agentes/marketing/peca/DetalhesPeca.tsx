@@ -54,6 +54,8 @@ export function DetalhesPeca({ peca, proporcao, campanhas, planos, ocupada, ante
     ['Campanha', campanha?.nome ?? 'Sem campanha'],
     ['Planejamento', plano?.nome ?? 'Avulsa'],
     ...(c.objetivo ? [['Objetivo', c.objetivo] as [string, string]] : []),
+    // de onde o agente tirou o conteúdo (Biblioteca da marca)
+    ...(c.fontes?.length ? [['Baseado em', c.fontes.join(' · ')] as [string, string]] : []),
   ]
 
   return (
