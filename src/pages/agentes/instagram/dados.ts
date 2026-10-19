@@ -55,3 +55,31 @@ export const milhar = (n?: number) => (n == null ? '—' : n >= 10000 ? `${(n / 
 
 export const NOME_TIPO: Record<string, string> = { reels: 'Reels', carrossel: 'Carrossel', imagem: 'Imagem', video: 'Vídeo' }
 export const n = (p: PostIG, k: keyof PostIG['metricas']) => Number(p.metricas[k] ?? 0)
+
+// ===== seguidores dia a dia =====
+// seguidores: foto do total tirada na leitura (vazio nos dias antes de começar); novos: o que o Instagram informa no dia
+export type DiaSeguidores = { dia: string; seguidores: number | null; novos: number | null }
+
+export function useSeguidores(empresa: string) {
+  return useConsulta<DiaSeguidores[]>(() => supabase.from('marca_seguidores').select('dia,seguidores,novos')
+    .eq('empresa_id', empresa).eq('rede', 'instagram').order('dia', { ascending: true }).limit(3000), [empresa])
+}
+
+// crescimento entre duas datas: a última foto do total antes do início (ou a primeira dentro) contra a última dentro;
+// e a soma dos novos que o Instagram informou no intervalo
+export function crescimento(h: DiaSeguidores[], de: string, ate: string) {
+  const fotos = h.filter((x) => x.seguidores != null)
+  const inicio = fotos.filter((x) => x.dia < de).at(-1) ?? fotos.find((x) => x.dia >= de && x.dia <= ate) ?? null
+  const fim = fotos.filter((x) => x.dia >= de && x.dia <= ate).at(-1) ?? null
+  const comNovos = h.filter((x) => x.novos != null && x.dia >= de && x.dia <= ate)
+  return {
+    inicio, fim,
+    saldo: inicio && fim && inicio.dia !== fim.dia ? Number(fim.seguidores) - Number(inicio.seguidores) : null,
+    novos: comNovos.length ? comNovos.reduce((s, x) => s + Number(x.novos ?? 0), 0) : null,
+    diasComNovos: comNovos.length,
+  }
+}
+
+export const comSinal = (v: number) => `${v >= 0 ? '+' : '−'}${milhar(Math.abs(v))}`
+export const hojeBR = () => new Date(Date.now() - 3 * 3600000).toISOString().slice(0, 10)
+export const somaDias = (dia: string, dias: number) => new Date(new Date(dia + 'T12:00:00Z').getTime() + dias * 86400000).toISOString().slice(0, 10)

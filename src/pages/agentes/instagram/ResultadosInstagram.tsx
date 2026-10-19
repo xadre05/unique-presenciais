@@ -6,10 +6,11 @@ import { Link } from 'react-router-dom'
 import { Erro } from '../../../components/ui'
 import { Icone } from '../../../components/Icone'
 import { CabecalhoAba } from '../marketing/BarraFiltros'
-import { NOME_TIPO, acaoInstagram, mediana, milhar, n, useConexao, usePostsInstagram, type FiltroAnalise, type PostIG } from './dados'
+import { NOME_TIPO, acaoInstagram, mediana, milhar, n, useConexao, usePostsInstagram, useSeguidores, type FiltroAnalise, type PostIG } from './dados'
 import { AnaliseInstagram } from './AnaliseInstagram'
 import { ComparaAnos, PorFormato } from './Tabelas'
 import { ComparaPeriodos } from './ComparaPeriodos'
+import { SeguidoresInstagram } from './SeguidoresInstagram'
 
 type Ordem = 'recentes' | 'alcance' | 'salvos'
 
@@ -44,6 +45,8 @@ const filtroDe = (ano: string, tipo: string): FiltroAnalise => ({ ...(ano ? { de
 export function ResultadosInstagram({ empresa }: { empresa: string }) {
   const conexao = useConexao(empresa)
   const posts = usePostsInstagram(empresa)
+  const seguidores = useSeguidores(empresa)
+  const historico = useMemo(() => seguidores.dados ?? [], [seguidores.dados])
   const [ano, setAno] = useState('')
   const [tipo, setTipo] = useState('')
   const [fazendo, setFazendo] = useState<'analisar' | 'sincronizar' | 'historico' | null>(null)
@@ -62,7 +65,7 @@ export function ResultadosInstagram({ empresa }: { empresa: string }) {
       await acaoInstagram(empresa, acao, acao === 'analisar' ? filtro ?? filtroDe(ano, tipo) : undefined)
       if (acao === 'analisar') document.querySelector('.ig-analise')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
       if (acao === 'historico') setAviso('Buscando os posts desde 2024 com as métricas. Leva alguns minutos: volte e recarregue a página.')
-      conexao.recarregar(); posts.recarregar()
+      conexao.recarregar(); posts.recarregar(); seguidores.recarregar()
     } catch (e) { setErro((e as Error).message) }
     setFazendo(null)
   }
@@ -94,9 +97,10 @@ export function ResultadosInstagram({ empresa }: { empresa: string }) {
           <div><small>Seguidores</small><b>{milhar(c.seguidores ?? undefined)}</b></div>
           <div><small>Desde</small><b>{maisAntigo ? new Date(maisAntigo + 'T12:00:00').toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' }) : '—'}</b></div>
         </div>
+        <SeguidoresInstagram historico={historico} atual={c.seguidores} />
         {!ano && anos.length > 1 && <><h4 className="reu-subtitulo">Comparação entre os anos{tipo ? ` · ${NOME_TIPO[tipo] ?? tipo}` : ''}</h4><ComparaAnos posts={lista} /></>}
         {lista.length > 0 && <><h4 className="reu-subtitulo">Por formato{ano ? ` · ${ano}` : ''}</h4><PorFormato posts={lista} /></>}
-        {anos.length > 1 && <ComparaPeriodos key={anos.join()} posts={todos.filter((p) => !tipo || p.tipo === tipo)} anos={anos} tipo={tipo} analisando={fazendo === 'analisar'} aoAnalisar={(f) => agir('analisar', f)} />}
+        {anos.length > 1 && <ComparaPeriodos key={anos.join()} posts={todos.filter((p) => !tipo || p.tipo === tipo)} seguidores={historico} anos={anos} tipo={tipo} analisando={fazendo === 'analisar'} aoAnalisar={(f) => agir('analisar', f)} />}
         <AnaliseInstagram empresa={empresa} analise={c.analise} analisando={fazendo === 'analisar'} aoAnalisar={() => agir('analisar')} podeAnalisar={lista.length >= 5}
           rotuloFiltro={`${ano || 'todos os anos'}${tipo ? ` · ${NOME_TIPO[tipo] ?? tipo}` : ''}`} />
         <Erro msg={erro} />

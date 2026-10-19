@@ -3,7 +3,7 @@
 // agente que explique o que fez a diferença.
 import { useState } from 'react'
 import { Icone } from '../../../components/Icone'
-import { NOME_TIPO, mediana, milhar, n, type FiltroAnalise, type PostIG } from './dados'
+import { NOME_TIPO, comSinal, crescimento, mediana, milhar, n, type DiaSeguidores, type FiltroAnalise, type PostIG } from './dados'
 
 type Recorte = 'mes' | 'bimestre' | 'trimestre' | 'semestre' | 'ano' | 'livre'
 type Periodo = { nome: string; de: string; ate: string }
@@ -41,9 +41,9 @@ function numeros(posts: PostIG[], p: Periodo) {
     salvos: Math.round(soma('salvos') / Math.max(1, ps.length)), comp: Math.round(soma('compartilhamentos') / Math.max(1, ps.length)), seguidores: soma('seguidores_ganhos'), mix, melhor }
 }
 
-type Props = { posts: PostIG[]; anos: string[]; tipo: string; analisando: boolean; aoAnalisar: (f: FiltroAnalise) => void }
+type Props = { posts: PostIG[]; seguidores: DiaSeguidores[]; anos: string[]; tipo: string; analisando: boolean; aoAnalisar: (f: FiltroAnalise) => void }
 
-export function ComparaPeriodos({ posts, anos, tipo, analisando, aoAnalisar }: Props) {
+export function ComparaPeriodos({ posts, seguidores, anos, tipo, analisando, aoAnalisar }: Props) {
   const [recorte, setRecorte] = useState<Recorte>('bimestre')
   const [inicio, setInicio] = useState(1)
   const [escolhidos, setEscolhidos] = useState<string[]>(anos)
@@ -73,12 +73,14 @@ export function ComparaPeriodos({ posts, anos, tipo, analisando, aoAnalisar }: P
             <tr><td>Salvos por post</td>{linhas.map((l) => <td key={l.p.nome}>{milhar(l.salvos)}</td>)}</tr>
             <tr><td>Compartilhamentos por post</td>{linhas.map((l) => <td key={l.p.nome}>{milhar(l.comp)}</td>)}</tr>
             <tr><td>Seguidores ganhos nos posts</td>{linhas.map((l) => <td key={l.p.nome}>{milhar(l.seguidores)}</td>)}</tr>
+            <tr><td>Crescimento de seguidores</td>{linhas.map((l) => { const c = crescimento(seguidores, l.p.de, l.p.ate); return <td key={l.p.nome} className="pequeno">
+              {c.saldo != null ? <>{comSinal(c.saldo)} <small className="muted">({milhar(c.inicio?.seguidores ?? undefined)} → {milhar(c.fim?.seguidores ?? undefined)})</small></> : c.novos != null ? <>+{milhar(c.novos)} novos <small className="muted">({c.diasComNovos} dias informados)</small></> : <span className="muted">sem registro</span>}</td> })}</tr>
             <tr><td>Formatos</td>{linhas.map((l) => <td key={l.p.nome} className="pequeno">{l.mix || '—'}</td>)}</tr>
             <tr><td>Post que mais alcançou</td>{linhas.map((l) => <td key={l.p.nome} className="pequeno">{l.melhor ? <>{milhar(n(l.melhor, 'alcance'))} · {(l.melhor.legenda ?? '').replace(/\s+/g, ' ').slice(0, 70)}{l.melhor.link && <> <a href={l.melhor.link} target="_blank" rel="noreferrer" className="link">abrir</a></>}</> : '—'}</td>)}</tr>
           </tbody>
         </table></div>
       ) : <p className="muted pequeno">Escolha pelo menos um ano.</p>}
-      <p className="muted pequeno">"Seguidores ganhos nos posts" soma o que o Instagram informa por post (nem todo post informa). O total de seguidores dia a dia passa a ser guardado a partir de hoje.</p>
+      <p className="muted pequeno">"Seguidores ganhos nos posts" soma o que o Instagram informa por post (nem todo post informa). "Crescimento de seguidores" usa o registro dia a dia, que começou em outubro de 2026: períodos anteriores aparecem como "sem registro".</p>
       <div className="ia-linha"><button type="button" className="btn btn-contorno-ouro" disabled={analisando || periodos.length < 2} onClick={() => aoAnalisar({ periodos, ...(tipo ? { tipo } : {}) })}>
         <Icone nome="floco" tam={16} /> {analisando ? 'Analisando… (até 1 minuto)' : 'Pedir ao agente: o que fez a diferença?'}</button>
         {periodos.length < 2 && <span className="muted pequeno">Escolha dois anos ou mais para comparar.</span>}</div>

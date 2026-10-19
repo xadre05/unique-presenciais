@@ -118,6 +118,22 @@ async function renovarSePreciso(db: SupabaseClient, empresa: string, c: Conexao,
   return String(novo.access_token)
 }
 
+// novos seguidores de cada dia, como o Instagram informa (só os últimos 30 dias; não desconta quem deixou de seguir).
+// Grava só a coluna "novos": a foto do total, quando existe, fica como está.
+async function novosPorDia(db: SupabaseClient, empresa: string, token: string) {
+  const ate = Math.floor(Date.now() / 1000), desde = ate - 29 * 86400
+  const r = await fetch(`${GRAPH}/me/insights?metric=follower_count&period=day&since=${desde}&until=${ate}&access_token=${token}`)
+  if (!r.ok) throw new Error(`Instagram ${r.status}: ${(await r.text()).slice(0, 200)}`)
+  const d = await r.json() as { data?: { name: string; values?: { value: number; end_time: string }[] }[] }
+  const valores = d.data?.find((x) => x.name === 'follower_count')?.values ?? []
+  // end_time é o fim do dia (meia-noite do Pacífico): o valor é do dia anterior
+  const linhas = valores.filter((v) => typeof v.value === 'number' && v.end_time).map((v) => ({
+    empresa_id: empresa, rede: 'instagram', novos: v.value,
+    dia: new Date(new Date(v.end_time.slice(0, 10) + 'T12:00:00Z').getTime() - 86400000).toISOString().slice(0, 10),
+  }))
+  if (linhas.length) { const { error } = await db.from('marca_seguidores').upsert(linhas, { onConflict: 'empresa_id,rede,dia' }); if (error) throw new Error(error.message) }
+}
+
 async function sincronizar(db: SupabaseClient, empresa: string, desde = Date.now() - DIAS_POSTS * 86400000, maximo = 400) {
   const { data: c } = await db.from('marca_conexoes').select('*').eq('empresa_id', empresa).eq('rede', 'instagram').maybeSingle()
   if (!c || c.status !== 'conectado') throw new Error('O Instagram não está conectado.')
@@ -125,7 +141,11 @@ async function sincronizar(db: SupabaseClient, empresa: string, desde = Date.now
   const perfil = dadosDoPerfil(await perfilDa(token))
   await atualizar(db, empresa, perfil)
   // foto do dia dos seguidores (o Instagram não guarda o histórico; com o tempo, dá para comparar o crescimento)
-  if (perfil.seguidores != null) await db.from('marca_seguidores').upsert({ empresa_id: empresa, rede: 'instagram', dia: new Date(Date.now() - 3 * 3600000).toISOString().slice(0, 10), seguidores: perfil.seguidores })
+  if (perfil.seguidores != null) {
+    const { error } = await db.from('marca_seguidores').upsert({ empresa_id: empresa, rede: 'instagram', dia: new Date(Date.now() - 3 * 3600000).toISOString().slice(0, 10), seguidores: perfil.seguidores }, { onConflict: 'empresa_id,rede,dia' })
+    if (error) console.error('seguidores', error.message)
+  }
+  await novosPorDia(db, empresa, token).catch((e) => console.error('novos seguidores', (e as Error).message))
   const limite = desde
   const medias: Media[] = []
   let pagina: string | null = `${GRAPH}/me/media?fields=id,caption,media_type,media_product_type,permalink,timestamp,thumbnail_url,media_url,like_count,comments_count&limit=50&access_token=${token}`

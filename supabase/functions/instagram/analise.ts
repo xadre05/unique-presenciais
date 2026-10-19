@@ -41,14 +41,25 @@ function quadroAnos(lista: Post[]) {
   }).join('\n')
 }
 
+type DiaSeg = { dia: string; seguidores: number | null; novos: number | null }
+// crescimento de seguidores entre duas datas: a foto do total antes do início contra a última dentro; e os novos por dia
+function textoSeguidores(h: DiaSeg[], de: string, ate: string) {
+  const fotos = h.filter((x) => x.seguidores != null)
+  const ini = fotos.filter((x) => x.dia < de).at(-1) ?? fotos.find((x) => x.dia >= de && x.dia <= ate)
+  const fim = fotos.filter((x) => x.dia >= de && x.dia <= ate).at(-1)
+  const novos = h.filter((x) => x.novos != null && x.dia >= de && x.dia <= ate)
+  return [ini && fim && ini.dia !== fim.dia ? `total de seguidores ${ini.seguidores} (${ini.dia}) → ${fim.seguidores} (${fim.dia}), saldo ${Number(fim.seguidores) - Number(ini.seguidores)}` : '',
+    novos.length ? `novos seguidores informados pelo Instagram: ${novos.reduce((s, x) => s + Number(x.novos ?? 0), 0)} em ${novos.length} dias` : ''].filter(Boolean).join(' · ')
+}
+
 // números de cada período comparado: ritmo, alcance, salvos, compartilhamentos, seguidores ganhos e mix de formatos
-function quadroPeriodos(lista: Post[], periodos: Periodo[]) {
+function quadroPeriodos(lista: Post[], periodos: Periodo[], seg: DiaSeg[]) {
   return periodos.map((pr) => {
     const ps = lista.filter((p) => p.publicado_em.slice(0, 10) >= pr.de && p.publicado_em.slice(0, 10) <= pr.ate)
     const semanas = Math.max(1, (new Date(pr.ate).getTime() - new Date(pr.de).getTime()) / 604800000)
     const mix = [...new Set(ps.map((p) => p.tipo))].map((t) => `${t} ${Math.round((ps.filter((p) => p.tipo === t).length / Math.max(1, ps.length)) * 100)}%`).join(', ')
     const topo = [...ps].sort((a, b) => num(b, 'alcance') - num(a, 'alcance'))
-    return [`PERÍODO ${pr.nome} (${pr.de} a ${pr.ate}): ${ps.length} posts (${(ps.length / semanas).toFixed(1)} por semana) · alcance mediano ${mediana(ps.map((p) => num(p, 'alcance')))} · alcance somado ${ps.reduce((s, p) => s + num(p, 'alcance'), 0)} · salvos/post ${media(ps, 'salvos')} · compart./post ${media(ps, 'compartilhamentos')} · seguidores ganhos nos posts ${ps.reduce((s, p) => s + num(p, 'seguidores_ganhos'), 0)} · formatos: ${mix || '—'}`,
+    return [`PERÍODO ${pr.nome} (${pr.de} a ${pr.ate}): ${ps.length} posts (${(ps.length / semanas).toFixed(1)} por semana) · alcance mediano ${mediana(ps.map((p) => num(p, 'alcance')))} · alcance somado ${ps.reduce((s, p) => s + num(p, 'alcance'), 0)} · salvos/post ${media(ps, 'salvos')} · compart./post ${media(ps, 'compartilhamentos')} · seguidores ganhos nos posts ${ps.reduce((s, p) => s + num(p, 'seguidores_ganhos'), 0)} · formatos: ${mix || '—'}${textoSeguidores(seg, pr.de, pr.ate) ? ` · ${textoSeguidores(seg, pr.de, pr.ate)}` : ''}`,
       ...topo.slice(0, 8).map((p) => `  mais alcance ${linha(p).slice(2)}`), ...topo.slice(-4).map((p) => `  menos alcance ${linha(p).slice(2)}`)].join('\n')
   }).join('\n\n')
 }
@@ -69,12 +80,15 @@ export async function analisar(db: SupabaseClient, empresa: string, f: Filtro) {
   if (de) q = q.gte('publicado_em', de)
   if (ate) q = q.lte('publicado_em', ate + 'T23:59:59Z')
   if (f.tipo) q = q.eq('tipo', f.tipo)
-  const [{ data: posts }, { data: chave }, { data: cfg }, { data: ag }] = await Promise.all([
+  const [{ data: posts }, { data: chave }, { data: cfg }, { data: ag }, { data: seg }] = await Promise.all([
     q.order('publicado_em', { ascending: false }).limit(1500),
     db.rpc('agentes_ler_chave', { p_empresa: empresa }),
     db.from('agentes_config').select('modelo').eq('empresa_id', empresa).maybeSingle(),
     db.from('agentes_empresa').select('perfil').eq('empresa_id', empresa).eq('agente_id', 'marketing').maybeSingle(),
+    db.from('marca_seguidores').select('dia,seguidores,novos').eq('empresa_id', empresa).eq('rede', 'instagram').order('dia').limit(3000),
   ])
+  const historico = (seg ?? []) as DiaSeg[]
+  const segPeriodo = textoSeguidores(historico, de ?? '2000-01-01', ate ?? '2999-12-31')
   if (!chave) throw new Error('Falta cadastrar a chave do Claude em Agentes → Configurações.')
   const lista = ((posts ?? []) as Post[]).filter((p) => !periodos.length || periodos.some((pr) => p.publicado_em.slice(0, 10) >= pr.de && p.publicado_em.slice(0, 10) <= pr.ate))
   if (lista.length < 5) throw new Error('Há poucos posts neste filtro para analisar (mínimo 5).')
@@ -92,8 +106,8 @@ export async function analisar(db: SupabaseClient, empresa: string, f: Filtro) {
     'Português do Brasil, direto e prático.',
   ].filter(Boolean).join('\n')
   const usuario = [
-    periodos.length > 1 ? `COMPARAÇÃO DE PERÍODOS${f.tipo ? ` · só ${f.tipo}` : ''}:\n${quadroPeriodos(lista, periodos)}`
-      : `PERÍODO: ${f.de ?? 'início'} a ${f.ate ?? 'hoje'}${f.tipo ? ` · só ${f.tipo}` : ''} · ${lista.length} posts.`,
+    periodos.length > 1 ? `COMPARAÇÃO DE PERÍODOS${f.tipo ? ` · só ${f.tipo}` : ''}:\n${quadroPeriodos(lista, periodos, historico)}`
+      : `PERÍODO: ${f.de ?? 'início'} a ${f.ate ?? 'hoje'}${f.tipo ? ` · só ${f.tipo}` : ''} · ${lista.length} posts.${segPeriodo ? `\nSEGUIDORES NO PERÍODO: ${segPeriodo}` : ''}`,
     periodos.length > 1 ? '' : `NÚMEROS POR ANO E FORMATO:\n${quadroAnos(lista)}`,
     periodos.length > 1 ? '' : `POSTS (${escolhidos.length}${escolhidos.length < lista.length ? ` de ${lista.length}: os de mais e de menos alcance e os mais recentes` : ''}, do mais novo ao mais antigo):\n${escolhidos.map(linha).join('\n')}`,
     'Entregue OBRIGATORIAMENTE chamando a ferramenta entregar_analise.',

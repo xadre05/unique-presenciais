@@ -2636,3 +2636,8 @@ a.sala-agente:hover { border-color: var(--ouro); transform: translateY(-2px); }
 .ig-compara-filtros { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 .ig-compara-filtros input[type="date"] { width: auto; }
 .ig-compara th small { font-weight: 400; }
+/* Seguidores dia a dia (Resultados do Instagram) */
+.ig-seguidores { display: flex; flex-direction: column; gap: 10px; }
+.ig-seguidores .ig-cartoes { margin: 0; }
+.ig-seguidores .ig-cartoes small:last-child { font-size: .75rem; }
+.ig-seg-tabela { max-height: 360px; overflow-y: auto; }
