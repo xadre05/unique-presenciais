@@ -703,6 +703,8 @@ select option:checked { background-color: #6d5427; color: #fff3d9; }
   .barra-inferior a, .barra-inferior button { display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 6px 2px; color: var(--muted); font: inherit; font-size: .68rem; background: none; border: none; border-radius: 8px; }
   .barra-inferior a.active { color: var(--ouro-forte); background: rgba(201,164,92,.1); }
   .conteudo { padding-bottom: 76px; }
+  /* barra "Salvar alterações" fica acima dos atalhos de baixo, e não escondida atrás deles */
+  .bm-barra { bottom: calc(68px + env(safe-area-inset-bottom)); }
   /* páginas mais compactas */
   .pagina { padding: 16px 14px 40px; }
   .pagina-topo { gap: 12px; margin-bottom: 14px; }
