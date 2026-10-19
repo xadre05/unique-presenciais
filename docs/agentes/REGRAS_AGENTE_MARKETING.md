@@ -164,3 +164,13 @@ Capa, thumbnail e legenda são materiais dentro da peça, não peças separadas.
 - **Base da marca → Pessoas da marca:** quem pode aparecer nas artes (cada empresa cadastra os seus). Fotos só depois de marcar a autorização de uso de imagem. Na peça, Direção visual → "Quem aparece nesta arte?".
 - Antes e depois: só fotos reais, com autorização do paciente; a IA não inventa nem altera resultado.
 - Banco: `agentes_chaves`, `agentes_config.ias`, `marca_pessoas`, funções `agentes_salvar_chave_ia` e `agentes_ler_chave_ia` (esta só para a função dos agentes).
+
+## Agente de Arte: identidade visual, logo, imagens e ajuda de orientação (18/10/2026)
+- Base da marca → Identidade visual: logos (cada versão marcada "para fundo escuro" ou "para fundo claro") e até 4 referências de estilo da marca. Vão junto em toda arte. Sem logo cadastrado, a IA é proibida de inventar logotipo.
+- Na peça: "Logo nesta peça" (automático pela 1ª cor da paleta, um logo escolhido ou sem logo) e a posição (topo, rodapé, canto, onde ficar melhor).
+- "Imagens para usar na arte" (por peça, ou por lâmina/tela): entram como são; cada imagem tem um nome para a orientação citar.
+- Fotos das Pessoas da marca guiam só o rosto; roupa, cor, pose e cenário seguem a orientação.
+- O texto da arte vem da tela, sem prefixo "Lâmina 1 (capa):".
+- "Ajuda para escrever a orientação" em todos os formatos (guiasOrientacao.ts): arte, telas de stories, capa/thumbnail, gravação, cena, bloco, pauta, transmissão, página e diagramação de PDF, seção de artigo. Frases prontas e exemplo montados com as pessoas e imagens da própria peça (nada fixo de uma empresa).
+- "Pedir ajuste à IA" tem sugestões rápidas por formato (inclui e-mail, WhatsApp e texto/enquete).
+- Fotos grandes são reduzidas no navegador antes de subir (lado maior até 2048 px; limite do armazenamento 10 MB).
