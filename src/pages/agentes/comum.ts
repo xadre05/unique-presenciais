@@ -67,12 +67,6 @@ export function textoDaPeca(p: Peca) {
   ].filter(Boolean).join('\n\n')
 }
 
-export function proximaSegunda() {
-  const d = new Date(); const dia = d.getDay()
-  d.setDate(d.getDate() + ((8 - dia) % 7 || 7))
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-}
-
 const isoLocal = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 export const hojeISO = () => isoLocal(new Date())
 export function somaDias(iso: string, n: number) {
@@ -101,10 +95,9 @@ export function rotuloTrabalho(t: Pick<Trabalho, 'tipo' | 'pedido'>) {
   return `${dias === 7 ? 'Semana' : `${dias} dias`} · ${ddmm(inicio)} a ${ddmm(somaDias(inicio, dias - 1))}`
 }
 
-// segunda-feira da semana de uma data (no domingo, já mostra a semana que vem, que é a que se planeja)
-export function segundaDe(iso: string) {
-  const d = new Date(iso + 'T12:00:00'); const dia = d.getDay()
-  return somaDias(iso, dia === 0 ? 1 : 1 - dia)
+// domingo que abre a semana de uma data: a semana vai sempre de domingo a sábado
+export function inicioDaSemana(iso: string) {
+  return somaDias(iso, -new Date(iso + 'T12:00:00').getDay())
 }
 export const diaCurto = (iso: string) => new Date(iso + 'T12:00:00').toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: '2-digit' }).replace('.', '')
 export const dataLonga = (iso: string) => new Date(iso + 'T12:00:00').toLocaleDateString('pt-BR', { day: 'numeric', month: 'short', year: 'numeric' }).replace('.', '')

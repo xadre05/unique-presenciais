@@ -5,7 +5,7 @@ import { Link } from 'react-router-dom'
 import { msgErro } from '../../../lib/dados'
 import { Erro } from '../../../components/ui'
 import { Icone } from '../../../components/Icone'
-import { segundaDe, somaDias, type Peca } from '../comum'
+import { inicioDaSemana, somaDias, type Peca } from '../comum'
 import { moverPara, mudarPeca, ehIdeia, type Etapa } from './etapas'
 import { instrucaoNovoDia, pedirAjuste } from './ajuste'
 import { Calendario, QuadroEtapas } from './Quadros'
@@ -40,7 +40,7 @@ export function Planejamento(pr: Props) {
   // calendário: uma semana por vez (no mês e no período, com setas para as outras semanas)
   const fim = somaDias(inicio, dias - 1)
   const semanas: string[] = []
-  for (let m = segundaDe(inicio); m <= fim; m = somaDias(m, 7)) semanas.push(m)
+  for (let m = inicioDaSemana(inicio); m <= fim; m = somaDias(m, 7)) semanas.push(m)
   const chave = `${inicio}|${dias}`
   const [pag, setPag] = useState({ chave, n: 0 })
   const pagina = pag.chave === chave ? Math.min(pag.n, semanas.length - 1) : 0

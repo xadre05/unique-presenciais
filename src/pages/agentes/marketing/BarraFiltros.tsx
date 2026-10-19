@@ -2,7 +2,7 @@
 // mesmo lugar) e os filtros de peça com rótulo, na mesma ordem, com a busca à direita; embaixo, o resumo.
 import type { ReactNode } from 'react'
 import { Icone } from '../../../components/Icone'
-import { hojeISO, segundaDe, somaDias } from '../comum'
+import { hojeISO, inicioDaSemana, somaDias } from '../comum'
 import { ETAPAS } from './etapas'
 import { SeletorCanais, SeletorFormatos } from './SeletoresFiltro'
 import { andar, filtrosPecasVazios, rotuloPeriodo, type FiltrosPecas, type Periodo } from './filtros'
@@ -34,11 +34,11 @@ type Tela = { periodo: Periodo | 'todos'; data: string; ate: string }
 const OPCOES: { id: Periodo | 'todos'; nome: string }[] = [{ id: 'todos', nome: 'Todos' }, { id: 'dia', nome: 'Dia' }, { id: 'semana', nome: 'Semana' }, { id: 'mes', nome: 'Mês' }, { id: 'periodo', nome: 'Período' }]
 
 function LinhaPeriodo({ periodo, data, ate, mudar, comTodos }: Tela & { mudar: (c: Partial<Tela>) => void; comTodos?: boolean }) {
-  const trocar = (p: Periodo | 'todos') => mudar({ periodo: p, data: p === 'semana' ? segundaDe(data) : data })
+  const trocar = (p: Periodo | 'todos') => mudar({ periodo: p, data: p === 'semana' ? inicioDaSemana(data) : data })
   const hoje = () => {
     const h = hojeISO()
     if (periodo === 'periodo') return mudar({ data: h, ate: ate > h ? ate : somaDias(h, 13) })
-    mudar({ data: periodo === 'semana' ? segundaDe(h) : h })
+    mudar({ data: periodo === 'semana' ? inicioDaSemana(h) : h })
   }
   return (
     <div className="mk-pf-periodo">

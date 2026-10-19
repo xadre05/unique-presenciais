@@ -2,7 +2,7 @@
 // O agente responde na hora (não vira trabalho na fila); cada fala é guardada na reunião com a ata atualizada.
 import { supabase } from '../../../../lib/supabase'
 import { msgErro, useConsulta } from '../../../../lib/dados'
-import { hojeISO, segundaDe, somaDias } from '../../comum'
+import { hojeISO, inicioDaSemana, somaDias } from '../../comum'
 import { EMPRESA, type Campanha } from '../useMarketing'
 
 export type TipoEscopo = 'dia' | 'dias' | 'semana' | 'mes' | 'campanha'
@@ -23,7 +23,7 @@ export function periodoDe(tipo: TipoEscopo, data: string, campanha?: Campanha): 
   const base = data || hojeISO()
   if (tipo === 'dia') return { inicio: base, fim: base }
   if (tipo === 'dias') return { inicio: base, fim: somaDias(base, 2) }
-  if (tipo === 'semana') { const i = segundaDe(base); return { inicio: i, fim: somaDias(i, 6) } }
+  if (tipo === 'semana') { const i = inicioDaSemana(base); return { inicio: i, fim: somaDias(i, 6) } }
   if (tipo === 'mes') { const i = base.slice(0, 8) + '01'; return { inicio: i, fim: fimDoMes(i) } }
   const inicio = campanha?.inicio && campanha.inicio > hojeISO() ? campanha.inicio : hojeISO()
   return { inicio, fim: campanha?.fim && campanha.fim >= inicio ? campanha.fim : somaDias(inicio, 13) }

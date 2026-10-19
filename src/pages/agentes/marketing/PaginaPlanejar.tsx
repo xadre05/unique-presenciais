@@ -4,7 +4,7 @@
 import { useEffect, useState } from 'react'
 import { Erro, InputNumero } from '../../../components/ui'
 import { Icone } from '../../../components/Icone'
-import { segundaDe, somaDias } from '../comum'
+import { inicioDaSemana, somaDias } from '../comum'
 import { REDES, nomeFormato, useRedes, type Formato, type Rede } from './redes'
 import { LogoRede } from './LogoRede'
 import { OBJETIVOS, PUBLICOS } from './textos'
@@ -20,7 +20,7 @@ const FORMATOS_PADRAO: Record<Rede, Formato[]> = { instagram: ['carrossel', 'ree
 
 function intervalo(modo: Modo, data: string, ate: string) {
   if (modo === 'dia') return { inicio: data, fim: data }
-  if (modo === 'semana') { const i = segundaDe(data); return { inicio: i, fim: somaDias(i, 6) } }
+  if (modo === 'semana') { const i = inicioDaSemana(data); return { inicio: i, fim: somaDias(i, 6) } }
   if (modo === 'mes') { const i = data.slice(0, 8) + '01'; const d = new Date(i + 'T12:00:00'); return { inicio: i, fim: new Date(d.getFullYear(), d.getMonth() + 1, 0, 12).toISOString().slice(0, 10) } }
   return { inicio: data, fim: ate < data ? data : ate }
 }

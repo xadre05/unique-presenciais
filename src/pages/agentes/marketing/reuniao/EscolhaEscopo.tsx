@@ -4,7 +4,7 @@
 import { useState } from 'react'
 import { Erro } from '../../../../components/ui'
 import { Icone } from '../../../../components/Icone'
-import { hojeISO, segundaDe } from '../../comum'
+import { hojeISO, inicioDaSemana } from '../../comum'
 import { situacaoCampanha } from '../../campanhas/dados'
 import { useRedes } from '../redes'
 import type { Campanha } from '../useMarketing'
@@ -56,7 +56,7 @@ export function EscolhaEscopo(pr: Props) {
     const p = periodoDe('campanha', '', pr.campanhas.find((c) => c.id === id)); setPeriodo(p); setDigitado(p.inicio)
   }
   const valida = (d: string) => /^20\d\d-\d\d-\d\d$/.test(d)
-  const mudarInicio = (d: string) => valida(d) && setPeriodo(tipo === 'dia' ? { inicio: d, fim: d } : tipo === 'semana' ? periodoDe('semana', segundaDe(d)) : tipo === 'mes' ? periodoDe('mes', d) : { inicio: d, fim: periodo.fim < d ? d : periodo.fim })
+  const mudarInicio = (d: string) => valida(d) && setPeriodo(tipo === 'dia' ? { inicio: d, fim: d } : tipo === 'semana' ? periodoDe('semana', inicioDaSemana(d)) : tipo === 'mes' ? periodoDe('mes', d) : { inicio: d, fim: periodo.fim < d ? d : periodo.fim })
   const escopo = (): Escopo => ({ tipo, ...periodo, campanha: camp?.id, canais: agenteDefine ? [] : canais })
   const comecar = async () => {
     if (tipo === 'campanha' && !camp) return setErro('Escolha a campanha ou crie uma nova.')
