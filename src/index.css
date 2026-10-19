@@ -2523,3 +2523,23 @@ a.sala-agente:hover { border-color: var(--ouro); transform: translateY(-2px); }
 @media (max-width: 1100px) { .bm-grade { grid-template-columns: 1fr; } .bm-lado { position: static; } }
 @media (max-width: 700px) { .bm-duas { grid-template-columns: 1fr; } .bm-secao-resumo { display: none; } }
 .bm-logo.claro img { background: #f4efe6; }
+.bm-lado-col { display: flex; flex-direction: column; gap: 14px; position: sticky; top: 12px; min-width: 0; }
+.bm-tres { display: grid; grid-template-columns: 1fr 110px 1fr; gap: 12px; }
+.bm-produtos { display: flex; flex-direction: column; gap: 8px; }
+.bm-produto { border: 1px solid var(--borda); border-radius: 12px; background: var(--painel-2); }
+.bm-produto.fora { opacity: .65; }
+.bm-produto-cab { display: flex; align-items: center; gap: 8px; padding: 10px 12px; }
+.bm-produto-nome { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; background: none; border: 0; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.bm-produto-form { padding: 0 12px 12px; }
+.bm-dinheiro { display: flex; align-items: stretch; }
+.bm-dinheiro input { flex: 1; min-width: 0; border-top-right-radius: 0; border-bottom-right-radius: 0; }
+.bm-setas { display: flex; flex-direction: column; }
+.bm-setas button { flex: 1; padding: 0 8px; font-size: .6rem; background: var(--painel-2); border: 1px solid var(--borda); color: var(--muted); cursor: pointer; }
+.bm-setas button:first-child { border-top-right-radius: 8px; border-bottom: 0; }
+.bm-setas button:last-child { border-bottom-right-radius: 8px; }
+.bm-teste { display: flex; flex-direction: column; gap: 6px; }
+.bm-historico { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.bm-historico li { display: flex; flex-direction: column; gap: 2px; padding: 8px 0; border-top: 1px solid var(--borda); font-size: .86rem; }
+.bm-historico li:first-child { border-top: 0; }
+@media (max-width: 1100px) { .bm-lado-col { position: static; } }
+@media (max-width: 700px) { .bm-tres { grid-template-columns: 1fr; } }

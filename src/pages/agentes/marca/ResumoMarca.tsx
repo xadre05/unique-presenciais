@@ -33,7 +33,7 @@ export function ResumoMarca({ textos, perfil, pessoas }: Props) {
     ['floco', 'Campanha hoje', camp ? camp.nome : 'nenhuma'],
   ]
   return (
-    <aside className="bm-lado">
+    <>
       <section className="bm-cartao">
         <h3><Icone nome="documento" tam={20} /> Resumo para os agentes</h3>
         <dl className="bm-resumo">{linhas.map(([icone, rotulo, valor]) => (
@@ -44,6 +44,6 @@ export function ResumoMarca({ textos, perfil, pessoas }: Props) {
         {logos.length ? logos.map((l) => <Logo key={l.caminho} caminho={l.caminho} claro={l.uso === 'claro'} legenda={l.uso ? NOME_USO[l.uso] : 'Qualquer fundo'} />)
           : <p className="muted pequeno">Nenhum logo enviado. Sem logo, as artes saem sem logotipo.</p>}
       </section>
-    </aside>
+    </>
   )
 }

@@ -268,3 +268,15 @@ Capa, thumbnail e legenda são materiais dentro da peça, não peças separadas.
   cofre agentes:<empresa>:instagram_app); na venda, passa a valer o app da plataforma quando a empresa não tem um.
   Para contas de clientes, a Meta exige verificação do negócio e aprovação do app (App Review) das permissões
   instagram_business_basic e instagram_business_manage_insights; antes disso, só contas cadastradas como testadoras.
+
+## Base da marca → A marca, fase 2 (19/10/2026)
+
+- **Produtos com cadastro próprio** (perfil.produtos): nome, tipo, o que entrega, para quem, acesso, preço à vista,
+  parcelas e valor da parcela (campo em reais com setas), pagamento, link de compra, regras, "fora de venda".
+  Vão em todo pedido ao agente como fonte da verdade de preço fora das campanhas (marca.ts → blocoProdutos).
+  Turmas, datas e vagas dos presenciais continuam vindo do Comercial. "Condições gerais" (perfil.materiais) fica para
+  o que vale para todos os produtos.
+- **Diferenciais** (perfil.diferenciais) entram no bloco da empresa.
+- **Testar voz da marca**: o agente escreve um post e uma mensagem de WhatsApp com a base como está na tela (sem
+  salvar) e diz o que seguiu e o que faltou. Custo registrado como trabalho "teste_voz".
+- **Histórico**: cada "Salvar alterações" grava quem, quando e quais partes mudaram (perfil.historico_base, 30 últimas).

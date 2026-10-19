@@ -6,6 +6,7 @@
 import { createClient, type SupabaseClient } from 'npm:@supabase/supabase-js@2.45.4'
 import { blocoAta, reunir, type Dependencias } from './reuniao.ts'
 import { analisarReferencia, blocoModelos } from './referencias.ts'
+import { blocoProdutos, testarVoz } from './marca.ts'
 
 const cors = {
   'Access-Control-Allow-Origin': '*',
@@ -192,13 +193,15 @@ function blocoEmpresa(perfil: Record<string, string>, exemplos: Exemplo[]) {
     `EMPRESA: ${perfil.empresa ?? ''}`,
     `O QUE VENDE: ${perfil.o_que_vende ?? ''}`,
     `PÚBLICO: ${perfil.publico ?? ''}`,
+    perfil.diferenciais ? `DIFERENCIAIS: ${perfil.diferenciais}` : '',
     `TOM DE VOZ: ${perfil.tom ?? ''}`,
     `NUNCA FAZER: ${perfil.evitar ?? ''}`,
     `REGRAS DO CONSELHO: ${perfil.conselho ?? ''}`,
     perfisRedes(perfil as Record<string, unknown>),
     perfil.voz ? `\nCOMO A MARCA FALA (perfil de voz aprovado pela equipe; escreva assim): ${perfil.voz}` : '',
     perfil.instrucoes ? `\nINSTRUÇÕES DA EQUIPE PARA ESTE AGENTE (siga sempre): ${perfil.instrucoes}` : '',
-    perfil.materiais ? `\nOFERTAS E MATERIAIS DA EMPRESA (fonte da verdade: preços, condições, bônus e datas só podem vir daqui):\n${perfil.materiais}` : '',
+    blocoProdutos(perfil as Record<string, unknown>),
+    perfil.materiais ? `\nCONDIÇÕES GERAIS E PERGUNTAS FREQUENTES DA EMPRESA (fonte da verdade: preços, condições, bônus e datas só podem vir daqui, dos produtos ou da campanha):\n${perfil.materiais}` : '',
     memoria.length ? `\nO QUE VOCÊ JÁ APRENDEU COM ESTA EQUIPE (gostos e recusas; siga sempre):\n${memoria.map((m) => `- ${m.texto}`).join('\n')}` : '',
     exemplos.length ? `\nPEÇAS QUE A EQUIPE APROVOU (use como referência de estilo, sem repetir o conteúdo):\n${exemplos.map((e) => `[${e.tipo}] ${e.titulo}\n${(e.conteudo.legenda ?? (e.conteudo.roteiro ?? []).join(' / ')).slice(0, 700)}`).join('\n---\n')}` : '',
   ]
@@ -847,6 +850,9 @@ Deno.serve(async (req) => {
   const corpo = await req.json().catch(() => ({}))
   if (corpo.voz) {
     try { return json(await gerarVoz(db, String(corpo.empresa ?? ''))) } catch (e) { return json({ erro: (e as Error).message }) }
+  }
+  if (corpo.testeVoz) {
+    try { return json(await testarVoz(DEPENDENCIAS, db, String(corpo.empresa ?? ''), corpo.testeVoz)) } catch (e) { return json({ erro: (e as Error).message }) }
   }
   if (corpo.referencia) {
     try { return json(await analisarReferencia(DEPENDENCIAS, db, String(corpo.empresa ?? ''), String(corpo.referencia))) } catch (e) { return json({ erro: (e as Error).message }) }
