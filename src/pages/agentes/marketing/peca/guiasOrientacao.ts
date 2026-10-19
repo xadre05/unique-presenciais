@@ -154,3 +154,19 @@ const AJUSTE: Record<string, string[]> = {
   pdf: ['menos texto por página', 'mais listas e destaques'],
 }
 export const sugestoesAjuste = (tipo: string) => [...(AJUSTE[tipo] ?? []), ...AJUSTE_COMUM]
+
+// exemplo curto que aparece dentro do campo vazio de cada orientação
+const DICA: Record<Uso, string> = {
+  arte: 'Ex.: título grande no topo e a palavra principal em dourado',
+  tela: 'Ex.: foto de bastidor no fundo e enquete com 2 opções',
+  capa: 'Ex.: rosto em close à direita e até 4 palavras grandes',
+  gravacao: 'Ex.: vertical, plano médio, luz natural de frente, legenda na tela',
+  transmissao: 'Ex.: testar áudio antes e fixar o link no comentário',
+  cena: 'Ex.: close no rosto e o texto do gancho grande na tela',
+  bloco: 'Ex.: título do bloco na tela e imagens de apoio',
+  pauta: 'Ex.: ler 2 comentários e chamar para a oferta no fim',
+  pagina: 'Ex.: título grande no topo e lista com ícones',
+  diagramacao: 'Ex.: A4 vertical, cores da marca, páginas numeradas',
+  secao: 'Ex.: começar com uma pergunta e dar um exemplo prático',
+}
+export const dicaDe = (uso: Uso | null) => (uso ? DICA[uso] : undefined)

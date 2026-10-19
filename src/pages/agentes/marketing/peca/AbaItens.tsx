@@ -10,7 +10,7 @@ import { BotaoCopiar, CampoEditor } from './CampoEditor'
 import { AjusteIA, type Alcance } from './AjusteIA'
 import { ImagensParaUsar } from './ImagensArte'
 import { AjudaOrientacao } from './AjudaOrientacao'
-import { usoDoItem } from './guiasOrientacao'
+import { dicaDe, usoDoItem } from './guiasOrientacao'
 import { useNomesPessoas } from '../../PessoasMarca'
 import { EMPRESA } from '../useMarketing'
 
@@ -89,7 +89,7 @@ export function AbaItens({ peca, r, mudar, atual, setAtual, rodando, ultimo, ant
           {cfg.item.titulo && <CampoEditor id={`item-t-${i}`} rotulo={cfg.item.titulo} valor={item.titulo} mudar={(v) => mudarItem({ titulo: v.replace(/\n/g, ' ') })} max={cfg.item.maxTitulo} />}
           {cfg.item.texto && <CampoEditor id={`item-x-${i}`} rotulo={cfg.item.texto} valor={item.texto} mudar={(v) => mudarItem({ texto: v })} max={cfg.item.maxTexto} linhas={peca.tipo === 'video' || peca.tipo === 'live' ? 7 : 4} />}
           {completo && <CampoEditor id={`item-o-${i}`} rotulo={`Orientação para esta ${minusc(singular)}`} valor={item.orientacao} mudar={(v) => mudarItem({ orientacao: v })} linhas={2}
-            placeholder="Ex.: destacar o benefício principal com mais contraste" dica="Fica com a peça e vai junto quando você pede ajuste à IA." />}
+            placeholder={dicaDe(usoDoItem(peca.tipo)) ?? 'Ex.: destacar o benefício principal'} dica="Fica com a peça e vai junto quando você pede ajuste à IA." />}
           {completo && usoDoItem(peca.tipo) && <AjudaOrientacao uso={usoDoItem(peca.tipo)!} tipo={peca.tipo} valor={item.orientacao} mudar={(v) => mudarItem({ orientacao: v })}
             pessoas={nomesPessoas} imagens={porItem ? (r.artes[i]?.elementos ?? []).map((x) => x.nome) : []} />}
           {porItem && <ImagensParaUsar pecaId={peca.id} lista={r.artes[i]?.elementos ?? []} onde={`nesta ${minusc(singular)}`}
