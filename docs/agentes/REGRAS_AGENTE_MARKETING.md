@@ -255,3 +255,16 @@ Capa, thumbnail e legenda são materiais dentro da peça, não peças separadas.
 - **Configurações** em 3 abas: Inteligências artificiais (chaves, modelo, limite) · Integrações (Instagram: ID e chave
   do app, conectar, atualizar, desligar; WhatsApp em seguida) · Agentes (ligados e gasto). Conta de fora ligada ao
   sistema é integração e fica em Configurações; a Base da marca só mostra se o Instagram está ligado.
+
+## Quando os agentes forem vendidos (decisão do Alexandre, 19/10/2026)
+
+- **O cliente não vê chave de IA, modelo nem limite em dólar.** Usa a IA do sistema e paga por créditos. A aba
+  "Inteligências artificiais" de hoje vira painel do dono do sistema (Unique), fora do alcance do cliente.
+- **O cliente vê:** Integrações (liga o próprio Instagram, o próprio WhatsApp), Agentes (quais usa) e Créditos
+  (saldo, consumo, comprar mais). O custo de cada trabalho já é gravado (agentes_trabalhos.custo_usd) e vira a base
+  do desconto de créditos.
+- **Instagram para clientes: um app da Meta só, o da plataforma.** O cliente só clica em "Conectar" e entra com o
+  Instagram dele; não cria app nem cola ID e chave. Hoje o app é guardado por empresa (marca_conexoes.app_id +
+  cofre agentes:<empresa>:instagram_app); na venda, passa a valer o app da plataforma quando a empresa não tem um.
+  Para contas de clientes, a Meta exige verificação do negócio e aprovação do app (App Review) das permissões
+  instagram_business_basic e instagram_business_manage_insights; antes disso, só contas cadastradas como testadoras.
