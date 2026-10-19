@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { Erro } from '../../../components/ui'
 import { Icone } from '../../../components/Icone'
-import { ENDERECO_RETORNO, acaoInstagram, milhar, salvarApp, useConexao, type Conexao } from './dados'
+import { ENDERECO_RETORNO, acaoInstagram, milhar, podePublicar, salvarApp, useConexao, type Conexao } from './dados'
 
 const AVISO: Record<string, string> = {
   ok: 'Instagram conectado. Os posts e as métricas estão sendo importados: em alguns minutos aparecem em Agente de Marketing → Resultados.',
@@ -59,6 +59,11 @@ function Conectada({ c, empresa, aoMudar }: { c: Conexao; empresa: string; aoMud
     try { await acaoInstagram(empresa, acao); aoMudar() } catch (e) { setErro((e as Error).message) }
     setFazendo(null); setConfirmar(false)
   }
+  // conectar de novo: abre o login do Instagram para aceitar as permissões novas (publicar, comentários, mensagens)
+  const reconectar = async () => {
+    setErro(null); setFazendo('reconectar')
+    try { const { url } = await acaoInstagram<{ url: string }>(empresa, 'link'); window.location.href = url } catch (e) { setErro((e as Error).message); setFazendo(null) }
+  }
   return (
     <div className="ig-conta">
       {c.foto ? <img src={c.foto} alt="" className="ig-foto" /> : <span className="ig-foto"><Icone nome="usuario" tam={22} /></span>}
@@ -73,6 +78,10 @@ function Conectada({ c, empresa, aoMudar }: { c: Conexao; empresa: string; aoMud
           ? <><button type="button" className="btn btn-mini" disabled={!!fazendo} onClick={() => agir('desligar')}>Confirmar: desligar</button><button type="button" className="btn btn-mini" onClick={() => setConfirmar(false)}>Cancelar</button></>
           : <button type="button" className="btn btn-mini" onClick={() => setConfirmar(true)}>Desligar</button>}
       </div>
+      {!podePublicar(c) && (
+        <div className="nota pequeno ig-reconectar"><span><b>Permissões novas:</b> publicar e agendar, ler comentários e responder no Direct. O dono da conta precisa entrar de novo e aceitar (no navegador logado no Instagram da marca).</span>
+          <button type="button" className="btn btn-ouro" disabled={!!fazendo} onClick={reconectar}><Icone nome="links" tam={15} /> {fazendo === 'reconectar' ? 'Abrindo o Instagram…' : 'Conectar de novo'}</button></div>
+      )}
       <Erro msg={erro} />
     </div>
   )
@@ -93,7 +102,7 @@ export function ConexaoInstagram({ empresa }: { empresa: string }) {
   return (
     <div className="ig">
       <h4 className="reu-lado-titulo"><Icone nome="grafico" tam={18} /> Resultados do Instagram</h4>
-      <span className="muted pequeno">Com o Instagram ligado, o agente lê os posts e as métricas (alcance, salvos, compartilhamentos…), mostra o que funcionou e usa isso nas reuniões de pauta. Só leitura: nada é publicado.</span>
+      <span className="muted pequeno">Com o Instagram ligado, o agente lê os posts e as métricas (alcance, salvos, compartilhamentos…), mostra o que funcionou e usa isso nas reuniões de pauta. Publica só o que a equipe agendar na peça.</span>
       {aviso && <p className={`nota pequeno${params.get('instagram') === 'ok' ? '' : ' erro-txt'}`}>{aviso}</p>}
       {c?.status === 'conectado'
         ? <Conectada c={c} empresa={empresa} aoMudar={conexao.recarregar} />

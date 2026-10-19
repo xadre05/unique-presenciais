@@ -2781,3 +2781,5 @@ a.sala-agente:hover { border-color: var(--ouro); transform: translateY(-2px); }
 .ag-quando input[type="datetime-local"] { width: auto; }
 .ag-acoes { justify-content: flex-end; }
 .ag-acoes > span { margin-right: auto; }
+.ig-reconectar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; flex-basis: 100%; }
+.ig-reconectar > span { flex: 1 1 260px; }
