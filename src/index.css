@@ -2329,3 +2329,4 @@ a.sala-agente:hover { border-color: var(--ouro); transform: translateY(-2px); }
 .orienta-exemplo { border: 1px dashed var(--borda, rgba(255,255,255,.18)); border-radius: 10px; padding: 10px 12px; display: flex; flex-direction: column; gap: 6px; align-items: flex-start; }
 .orienta-exemplo p { font-size: 13px; line-height: 1.5; }
 .marca-nome { font-size: 12px; padding: 4px 8px; width: 120px; }
+.orienta-sugestoes { margin: 2px 0 4px; }

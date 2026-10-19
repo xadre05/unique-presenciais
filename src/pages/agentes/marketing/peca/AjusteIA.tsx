@@ -7,6 +7,8 @@ import { esquecer } from '../../memoria'
 import type { Peca, Trabalho } from '../../comum'
 import { pedirAjuste } from '../ajuste'
 import { EMPRESA } from '../useMarketing'
+import { SugestoesAjuste } from './AjudaOrientacao'
+import { sugestoesAjuste } from './guiasOrientacao'
 
 export type Alcance = { id: string; nome: string; instrucao: (pedido: string) => string }
 
@@ -47,6 +49,7 @@ export function AjusteIA({ peca, rodando, ultimo, titulo, placeholder, alcances,
       <label className="pp-rotulo" htmlFor={`ajuste-${peca.id}`}>{titulo}</label>
       <textarea id={`ajuste-${peca.id}`} rows={2} value={texto} onChange={(e) => { setTexto(e.target.value); setErro(null) }} placeholder={placeholder}
         onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); pedir() } }} />
+      <SugestoesAjuste sugestoes={sugestoesAjuste(peca.tipo)} usar={(x) => { setErro(null); setTexto((t) => (t.trim() ? `${t.trim().replace(/[;.]$/, '')}; ${x}` : x.charAt(0).toUpperCase() + x.slice(1))) }} />
       <div className="pp-ajuste-linha">
         {alcances.length > 1 && (
           <label className="pp-ajuste-alcance"><span className="muted">Aplicar ajuste em:</span>

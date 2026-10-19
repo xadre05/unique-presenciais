@@ -13,7 +13,9 @@ import { CampoEditor } from './CampoEditor'
 import { AjusteIA } from './AjusteIA'
 import { BotaoEnviar, Miniatura, pastaDa } from './arquivos'
 import { AjustarArte, BotaoCriarArte } from './AvisoArte'
-import { AjudaOrientacao, EscolhaLogo, ImagensParaUsar } from './ImagensArte'
+import { EscolhaLogo, ImagensParaUsar } from './ImagensArte'
+import { AjudaOrientacao } from './AjudaOrientacao'
+import { usoDoCampo } from './guiasOrientacao'
 
 type Props = {
   peca: Peca; r: Rascunho; mudar: (c: Partial<Rascunho>) => void; atual: number; setAtual: (i: number) => void; nomeAba: string
@@ -140,13 +142,14 @@ export function AbaDirecao({ peca, r, mudar, atual, setAtual, nomeAba, rodando, 
           ? <>
               <CampoEditor id="arte-item" rotulo={`Orientação para a arte da ${minusc(singular)} ${i + 1}`} valor={r.artes[i]?.orientacao ?? ''} mudar={orientaItem} linhas={4}
                 dica={`Só para esta ${minusc(singular)}. Troque o número na prévia ao lado.`} placeholder="Ex.: fundo escuro e o preço em dourado, com bastante respiro" />
-              <AjudaOrientacao valor={r.artes[i]?.orientacao ?? ''} mudar={orientaItem} pessoas={nomesPessoas} imagens={(r.artes[i]?.elementos ?? []).map((x) => x.nome)} />
+              <AjudaOrientacao uso={peca.tipo === 'stories' ? 'tela' : 'arte'} tipo={peca.tipo} valor={r.artes[i]?.orientacao ?? ''} mudar={orientaItem} pessoas={nomesPessoas} imagens={(r.artes[i]?.elementos ?? []).map((x) => x.nome)} />
               <ImagensParaUsar pecaId={peca.id} lista={r.artes[i]?.elementos ?? []} mudar={elementosItem} onde={`na ${minusc(singular)} ${i + 1}`} />
             </>
           : campos.map((c) => (
             <div key={c.campo}>
               <CampoEditor id={`visual-${c.campo}`} rotulo={c.rotulo} valor={valor(r, c.campo)} mudar={(x) => mudar({ [c.campo]: x })} max={c.max} linhas={c.linhas} dica={c.dica} />
-              {c.campo === 'prompt_imagem' && cfg.artes && <AjudaOrientacao valor={r.prompt_imagem} mudar={(x) => mudar({ prompt_imagem: x })} pessoas={nomesPessoas} imagens={(v.elementos ?? []).map((x) => x.nome)} />}
+              {usoDoCampo(peca.tipo, c.campo) && <AjudaOrientacao uso={usoDoCampo(peca.tipo, c.campo)!} tipo={peca.tipo} valor={valor(r, c.campo)} mudar={(x) => mudar({ [c.campo]: x })}
+                pessoas={nomesPessoas} imagens={(v.elementos ?? []).map((x) => x.nome)} />}
             </div>
           ))}
         {cfg.artes && !porItem && <ImagensParaUsar pecaId={peca.id} lista={v.elementos ?? []} mudar={(elementos) => muda({ elementos })} onde="na arte" />}
