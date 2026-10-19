@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { Campo } from '../../../components/ui'
 import { Icone } from '../../../components/Icone'
 import { CampoDinheiro } from './CampoDinheiro'
-import { NOME_TIPO, novoProduto, precoDe, type Produto, type TipoProduto } from './dados'
+import { NOME_TIPO, novoProduto, precoDe, situacaoDe, textoSituacao, type Produto, type TipoProduto } from './dados'
 
 type Props = { produtos: Produto[]; aoMudar: (p: Produto[]) => void }
 
@@ -31,7 +31,11 @@ function FormProduto({ p, aoMudar }: { p: Produto; aoMudar: (x: Partial<Produto>
         <Campo rotulo="Link de compra"><input {...texto('link')} placeholder="https://" /></Campo>
       </div>
       <Campo rotulo="Regras e perguntas frequentes" dica="Garantia, troca de data, o que não está incluído."><textarea rows={4} {...texto('regras')} /></Campo>
-      <label className="pp-check"><input type="checkbox" checked={!p.ativo} onChange={(e) => aoMudar({ ativo: !e.target.checked })} /> Fora de venda no momento (o agente não oferece)</label>
+      <div className="bm-duas">
+        <Campo rotulo="À venda a partir de" dica="Em branco: já está à venda."><input type="date" value={p.venda_inicio ?? ''} onChange={(e) => aoMudar({ venda_inicio: e.target.value || undefined })} /></Campo>
+        <Campo rotulo="À venda até" dica="Em branco: sem data para acabar. Depois desta data o agente para de oferecer sozinho."><input type="date" value={p.venda_fim ?? ''} min={p.venda_inicio} onChange={(e) => aoMudar({ venda_fim: e.target.value || undefined })} /></Campo>
+      </div>
+      <label className="pp-check"><input type="checkbox" checked={!p.ativo} onChange={(e) => aoMudar({ ativo: !e.target.checked })} /> Fora de venda agora, independente da data (o agente não oferece)</label>
     </div>
   )
 }
@@ -43,11 +47,11 @@ export function ProdutosMarca({ produtos, aoMudar }: Props) {
   return (
     <div className="bm-produtos">
       {produtos.map((p) => (
-        <div key={p.id} className={`bm-produto${p.ativo ? '' : ' fora'}`}>
+        <div key={p.id} className={`bm-produto${situacaoDe(p) === 'venda' ? '' : ' fora'}`}>
           <div className="bm-produto-cab">
             <button type="button" className="bm-produto-nome" onClick={() => setAberto(aberto === p.id ? null : p.id)}>
               <b>{p.nome.trim() || 'Produto sem nome'}</b>
-              <small className="muted">{NOME_TIPO[p.tipo]}{precoDe(p) ? ` · ${precoDe(p)}` : ''}{p.ativo ? '' : ' · fora de venda'}</small>
+              <small className="muted">{NOME_TIPO[p.tipo]}{precoDe(p) ? ` · ${precoDe(p)}` : ''} · {textoSituacao(p)}</small>
             </button>
             <button type="button" className="btn btn-mini" onClick={() => setAberto(aberto === p.id ? null : p.id)}><Icone nome="lapis" tam={13} /> {aberto === p.id ? 'Fechar' : 'Editar'}</button>
             <button type="button" className="btn btn-mini" onClick={() => aoMudar(produtos.filter((x) => x.id !== p.id))} aria-label={`Tirar ${p.nome}`}><Icone nome="lixeira" tam={13} /></button>

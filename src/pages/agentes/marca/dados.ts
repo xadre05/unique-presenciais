@@ -13,6 +13,7 @@ export const NOME_TIPO: Record<TipoProduto, string> = { online: 'Curso ou plataf
 export type Produto = {
   id: string; nome: string; tipo: TipoProduto; entrega: string; para_quem?: string; acesso?: string
   preco_vista?: number; parcelas?: number; valor_parcela?: number; pagamento?: string; link?: string; regras?: string; ativo: boolean
+  venda_inicio?: string; venda_fim?: string
 }
 export type Alteracao = { em: string; por: string; partes: string[] }
 export type Rascunho = { textos: Textos; produtos: Produto[] }
@@ -61,6 +62,25 @@ export const primeiraFrase = (s: string, max = 90) => {
 
 export type Selo = { texto: string; tom: 'ok' | 'alerta' | 'info' }
 export const seloDe = (preenchido: boolean): Selo => (preenchido ? { texto: 'Preenchido', tom: 'ok' } : { texto: 'Falta preencher', tom: 'alerta' })
+
+// situação de venda hoje: fora (desmarcado), ainda não começou, vencido (passou a data) ou à venda
+const hojeBR = () => new Date(Date.now() - 3 * 3600 * 1000).toISOString().slice(0, 10)
+export type Situacao = 'venda' | 'fora' | 'futuro' | 'vencido'
+export function situacaoDe(p: Produto): Situacao {
+  if (!p.ativo) return 'fora'
+  const hoje = hojeBR()
+  if (p.venda_inicio && p.venda_inicio > hoje) return 'futuro'
+  if (p.venda_fim && p.venda_fim < hoje) return 'vencido'
+  return 'venda'
+}
+const dm = (iso: string) => `${iso.slice(8, 10)}/${iso.slice(5, 7)}/${iso.slice(0, 4)}`
+export function textoSituacao(p: Produto) {
+  const s = situacaoDe(p)
+  if (s === 'fora') return 'fora de venda'
+  if (s === 'futuro') return `à venda a partir de ${dm(p.venda_inicio!)}`
+  if (s === 'vencido') return `venda encerrada em ${dm(p.venda_fim!)}`
+  return p.venda_fim ? `à venda até ${dm(p.venda_fim)}` : 'à venda'
+}
 
 export const reais = (v?: number) => (v == null ? '' : v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }))
 export const precoDe = (p: Produto) => [p.preco_vista != null && `${reais(p.preco_vista)} à vista`, p.parcelas && p.valor_parcela != null && `${p.parcelas}x de ${reais(p.valor_parcela)}`].filter(Boolean).join(' ou ')

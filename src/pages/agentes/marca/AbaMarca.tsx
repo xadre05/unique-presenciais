@@ -14,7 +14,7 @@ import { ResumoMarca } from './ResumoMarca'
 import { ProdutosMarca } from './ProdutosMarca'
 import { TesteVoz } from './TesteVoz'
 import { HistoricoBase } from './HistoricoBase'
-import { historicoDe, iguais, primeiraFrase, rascunhoDe, salvarRascunho, seloDe, type Produto, type Rascunho, type Textos } from './dados'
+import { historicoDe, iguais, primeiraFrase, rascunhoDe, salvarRascunho, seloDe, situacaoDe, type Produto, type Rascunho, type Textos } from './dados'
 
 type Props = { empresa: string; perfil: Record<string, unknown>; aoSalvar: () => void; aoMudarPendente: (p: boolean) => void }
 
@@ -75,7 +75,7 @@ export function AbaMarca({ empresa, perfil, aoSalvar, aoMudarPendente }: Props) 
             <Campo rotulo="Regras do conselho" dica="CFO, CFM, CRBM: o que a publicidade não pode ter."><textarea rows={6} {...campo('conselho')} /></Campo>
           </div>
         </Secao>
-        <Secao titulo="Produtos e condições" icone="sacola" selo={seloDe(r.produtos.some((p) => p.ativo && p.nome.trim()))}
+        <Secao titulo="Produtos e condições" icone="sacola" selo={seloDe(r.produtos.some((p) => situacaoDe(p) === 'venda' && p.nome.trim()))}
           resumo={r.produtos.length ? r.produtos.map((p) => p.nome || 'sem nome').join(', ') : 'Nenhum produto cadastrado'}>
           <p className="muted pequeno">O que a marca vende sempre, com preço e condições: é daqui que o agente tira valores, fora das campanhas. Turmas, datas e vagas dos cursos presenciais vêm do Comercial.</p>
           <ProdutosMarca produtos={r.produtos} aoMudar={mudarProdutos} />
