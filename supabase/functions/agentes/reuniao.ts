@@ -4,6 +4,7 @@
 // é montado quando a equipe clica em "Montar o plano" (trabalho propor_plano, com a ata junto).
 // Regras em docs/agentes/REGRAS_AGENTE_MARKETING.md (seção Reunião de pauta).
 import type { SupabaseClient } from 'npm:@supabase/supabase-js@2.45.4'
+import { pautaModelos } from './referencias.ts'
 
 type Mensagem = { de: 'equipe' | 'agente'; texto: string }
 export type Escopo = { tipo: 'dia' | 'dias' | 'semana' | 'mes' | 'campanha'; inicio: string; fim: string; campanha?: string; texto?: string }
@@ -13,7 +14,7 @@ type Ferramenta = { name: string; description: string; input_schema: Record<stri
 // o que a função principal empresta para a reunião (mesmas regras de chave, limite, marca e biblioteca)
 export type Dependencias = {
   prepararAgente: (db: SupabaseClient, empresa: string, agente: string) => Promise<{ chave: string; pa: Record<string, unknown>; modelo: string }>
-  chamarClaude: (chave: string, modelo: string, sistema: string, usuario: string, ferramenta: Ferramenta) => Promise<{ entrega: unknown; entrada: number; saida: number }>
+  chamarClaude: (chave: string, modelo: string, sistema: string, usuario: string | unknown[], ferramenta: Ferramenta) => Promise<{ entrega: unknown; entrada: number; saida: number }>
   blocoEmpresa: (perfil: Record<string, string>, exemplos: never[]) => string[]
   conhecimento: (db: SupabaseClient, empresa: string, consulta: string, limite?: number) => Promise<{ bloco: string; fontes: string[] }>
   contexto: (db: SupabaseClient) => Promise<string>
@@ -86,12 +87,13 @@ async function resultadosDaPauta(db: SupabaseClient, empresa: string) {
 }
 
 async function levantarPauta(db: SupabaseClient, d: Dependencias, empresa: string, e: Escopo, campanhas: Campanha[], reuniaoId?: string) {
-  const [pecas, resultados, agenda, fontes, anterior] = await Promise.all([
+  const [pecas, resultados, agenda, fontes, anterior, modelos] = await Promise.all([
     pecasDaPauta(db, empresa, e),
     resultadosDaPauta(db, empresa),
     d.contexto(db),
     db.from('marca_fontes').select('titulo').eq('empresa_id', empresa).eq('ativo', true).eq('status', 'pronta').order('criado_em', { ascending: false }).limit(30),
     db.from('agentes_reunioes').select('titulo,ata,criado_em').eq('empresa_id', empresa).eq('agente_id', 'marketing').eq('ativo', true).neq('status', 'aberta').neq('id', reuniaoId ?? '00000000-0000-0000-0000-000000000000').order('criado_em', { ascending: false }).limit(1).maybeSingle(),
+    pautaModelos(db, empresa),
   ])
   const ativas = campanhas.filter((c) => !c.fim || c.fim >= e.inicio)
   const ata = anterior.data?.ata as { objetivo?: string; assuntos?: { tema: string }[] } | undefined
@@ -100,6 +102,7 @@ async function levantarPauta(db: SupabaseClient, d: Dependencias, empresa: strin
     resultados,
     ativas.length ? `CAMPANHAS CADASTRADAS:\n${ativas.map((c) => `- ${c.nome}${c.inicio ? ` (de ${c.inicio}${c.fim ? ` a ${c.fim}` : ''})` : ''}: ${c.descricao ?? ''}`).join('\n')}` : 'CAMPANHAS: nenhuma cadastrada.',
     agenda ? `AGENDA E OFERTAS DO SISTEMA:\n${agenda}` : '',
+    `REFERÊNCIAS DE FORMATO:\n${modelos}`,
     fontes.data?.length ? `ASSUNTOS QUE A BIBLIOTECA DA MARCA COBRE: ${fontes.data.map((f) => f.titulo).join('; ')}` : 'BIBLIOTECA DA MARCA: vazia.',
     anterior.data ? `REUNIÃO ANTERIOR (${anterior.data.titulo}): objetivo "${ata?.objetivo ?? ''}"; assuntos: ${(ata?.assuntos ?? []).map((a) => a.tema).join('; ')}. Retome o que foi combinado e diga o que aconteceu, se a pauta mostrar.` : '',
   ].filter(Boolean).join('\n\n')
@@ -123,8 +126,10 @@ export async function reunir(d: Dependencias, db: SupabaseClient, empresa: strin
   if (!e?.inicio || !e?.fim) throw new Error('Escolha o período da reunião.')
   const { chave, pa, modelo } = await d.prepararAgente(db, empresa, 'marketing')
   const mensagens = (corpo.mensagens ?? []).filter((m) => m.texto?.trim()).slice(-24)
-  const campanhas = (Array.isArray(pa.campanhas) ? pa.campanhas : []) as Campanha[]
-  const campanha = campanhas.find((c) => c.id === e.campanha)
+  // campanha encerrada não entra na pauta (continua valendo se foi a escolhida na reunião)
+  const todas = (Array.isArray(pa.campanhas) ? pa.campanhas : []) as (Campanha & { encerrada?: boolean })[]
+  const campanha = todas.find((c) => c.id === e.campanha)
+  const campanhas = todas.filter((c) => !c.encerrada || c.id === e.campanha)
   const pauta = await levantarPauta(db, d, empresa, e, campanhas, corpo.id)
   const ultimas = mensagens.filter((m) => m.de === 'equipe').slice(-3).map((m) => m.texto)
   const kn = await d.conhecimento(db, empresa, [e.texto, campanha?.nome, campanha?.descricao, ...ultimas].filter(Boolean).join(' '), 4)

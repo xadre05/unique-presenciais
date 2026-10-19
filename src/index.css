@@ -2447,3 +2447,25 @@ a.sala-agente:hover { border-color: var(--ouro); transform: translateY(-2px); }
 .camp-txt { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
 .camp-form { padding: 12px; border: 1px solid var(--borda); border-radius: 12px; }
 .camp-form label { display: flex; flex-direction: column; gap: 4px; }
+
+/* Base da marca → Referências para modelar */
+.ref { display: flex; flex-direction: column; gap: 12px; }
+.ref .ref-nova { margin-left: auto; }
+.ref-form { display: flex; flex-direction: column; gap: 10px; padding: 14px; border: 1px solid var(--borda); border-radius: 12px; }
+.ref-form label { display: flex; flex-direction: column; gap: 4px; }
+.ref-arquivos { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.ref-escolhidos { list-style: none; margin: 0; padding: 0; width: 100%; display: flex; flex-wrap: wrap; gap: 6px; }
+.ref-escolhidos li { display: inline-flex; align-items: center; gap: 6px; padding: 3px 4px 3px 9px; border: 1px solid var(--borda); border-radius: 999px; font-size: .8rem; max-width: 100%; }
+.ref-lista { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.ref-cartao { display: grid; grid-template-columns: 92px 1fr; gap: 12px; padding: 12px; border: 1px solid var(--borda); border-radius: 12px; background: var(--painel-2); }
+.ref-capa .pp-mini { width: 92px; height: 120px; }
+.ref-sem-capa { display: grid; place-items: center; width: 92px; height: 120px; border-radius: 8px; border: 1px dashed var(--borda); color: var(--muted); }
+.ref-corpo { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.ref-corpo p { margin: 0; }
+.ref-titulo { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.ref-erro { color: var(--erro); }
+.ref-ficha { margin: 4px 0; display: grid; gap: 8px; padding: 10px 12px; border-left: 3px solid var(--ouro); background: var(--painel); border-radius: 0 8px 8px 0; }
+.ref-ficha dt { font-size: .75rem; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
+.ref-ficha dd { margin: 2px 0 0; }
+.ref-ficha ol { margin: 0; padding-left: 18px; }
+@media (max-width: 640px) { .ref-cartao { grid-template-columns: 64px 1fr; } .ref-capa .pp-mini, .ref-sem-capa { width: 64px; height: 84px; } }

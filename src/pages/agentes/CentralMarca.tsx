@@ -10,6 +10,7 @@ import { BibliotecaMarca } from './biblioteca/BibliotecaMarca'
 import { PerfilVoz } from './biblioteca/PerfilVoz'
 import { ConexaoInstagram } from './instagram/ConexaoInstagram'
 import { CampanhasMarca } from './CampanhasMarca'
+import { ReferenciasMarca } from './referencias/ReferenciasMarca'
 
 export default function CentralMarca() {
   const perfil = useConsulta<{ perfil: PerfilMarketing } | null>(() => supabase.from('agentes_empresa').select('perfil').eq('empresa_id', EMPRESA_UNIQUE).eq('agente_id', 'marketing').maybeSingle())
@@ -23,6 +24,8 @@ export default function CentralMarca() {
         {!perfil.carregando && <LogosMarca empresaId={EMPRESA_UNIQUE} perfil={(perfil.dados?.perfil ?? {}) as Record<string, unknown>} aoSalvar={perfil.recarregar} />}</section>
       <section className="bloco"><h2>Biblioteca da marca</h2><p className="muted pequeno">O conhecimento da empresa: cursos, técnicas, protocolos, como a marca ensina. É daqui que o agente tira o conteúdo das peças.</p>
         <BibliotecaMarca empresa={EMPRESA_UNIQUE} /></section>
+      <section className="bloco"><h2>Referências para modelar</h2><p className="muted pequeno">Posts, reels e textos de outras pessoas que servem de modelo de formato: concorrentes, outros nichos, quem vocês admiram, materiais comprados. O agente estuda cada um e usa a forma (gancho, estrutura, edição), nunca o conteúdo. Só esta empresa vê.</p>
+        <ReferenciasMarca empresa={EMPRESA_UNIQUE} /></section>
       <section className="bloco"><h2>Como a marca fala</h2><p className="muted pequeno">O perfil de voz vai junto em todo pedido ao agente: o jeito de explicar, os termos, as expressões e o posicionamento da marca.</p>
         {!perfil.carregando && <PerfilVoz empresaId={EMPRESA_UNIQUE} perfil={(perfil.dados?.perfil ?? {}) as Record<string, unknown>} aoSalvar={perfil.recarregar} />}</section>
       <section className="bloco"><h2>Pessoas da marca</h2><p className="muted pequeno">Quem pode aparecer nas artes criadas pela IA. As fotos servem de referência para o rosto ficar parecido; só entram com a autorização de uso de imagem.</p>

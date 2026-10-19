@@ -5,6 +5,7 @@
 // Nada é publicado: só vira rascunho para aprovar.
 import { createClient, type SupabaseClient } from 'npm:@supabase/supabase-js@2.45.4'
 import { blocoAta, reunir, type Dependencias } from './reuniao.ts'
+import { analisarReferencia, blocoModelos } from './referencias.ts'
 
 const cors = {
   'Access-Control-Allow-Origin': '*',
@@ -425,7 +426,9 @@ async function escrever(db: SupabaseClient, t: Trabalho, perfil: Record<string, 
       const { sistema, usuario } = pedidoEscrever(perfil, g, t.pedido, ctx, (exemplos ?? []) as Exemplo[])
       const nomesCamp = (Array.isArray(perfil.campanhas) ? perfil.campanhas as Campanha[] : []).filter((c) => g.some((p) => p.conteudo.campanha === c.id)).map((c) => c.nome)
       const kn = await conhecimento(db, t.empresa_id, [t.pedido.tema, ...nomesCamp, ...g.map((p) => `${p.titulo} ${p.conteudo.objetivo ?? ''}`)].filter(Boolean).join(' '), g.length > 3 ? 10 : 6)
-      return { grupo: g, modelo: m, fontes: kn.fontes, ...(await chamarClaude(chave, m, sistema, comAnexos(comBloco(kn.bloco, usuario), anexos))) }
+      // referências de formato guardadas na Base da marca (mesmo formato das peças do grupo)
+      const modelos = await blocoModelos(db, t.empresa_id, [...new Set(g.map((p) => p.tipo))])
+      return { grupo: g, modelo: m, fontes: kn.fontes, ...(await chamarClaude(chave, m, sistema, comAnexos(comBloco(kn.bloco, [modelos, usuario].filter(Boolean).join('\n\n')), anexos))) }
     }))
     let escritas = 0
     for (const r of respostas) {
@@ -843,6 +846,9 @@ Deno.serve(async (req) => {
   const corpo = await req.json().catch(() => ({}))
   if (corpo.voz) {
     try { return json(await gerarVoz(db, String(corpo.empresa ?? ''))) } catch (e) { return json({ erro: (e as Error).message }) }
+  }
+  if (corpo.referencia) {
+    try { return json(await analisarReferencia(DEPENDENCIAS, db, String(corpo.empresa ?? ''), String(corpo.referencia))) } catch (e) { return json({ erro: (e as Error).message }) }
   }
   if (corpo.reuniao) {
     try { return json(await reunir(DEPENDENCIAS, db, String(corpo.empresa ?? ''), corpo.reuniao)) } catch (e) { return json({ erro: (e as Error).message }) }
