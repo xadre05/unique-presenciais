@@ -2,7 +2,8 @@
 // Toda gravação lê o perfil atual antes, para não apagar o que outra tela salvou.
 import { supabase } from '../../lib/supabase'
 
-export type Lembranca = { texto: string; em: string; origem: 'ajuste' | 'descarte' | 'manual' }
+// resultado: aprendizado tirado dos números dos posts (análise, marco ou revisão semanal); fonte diz de qual
+export type Lembranca = { texto: string; em: string; origem: 'ajuste' | 'descarte' | 'manual' | 'resultado'; fonte?: string }
 
 export async function atualizarPerfil(empresa: string, agente: string, mudar: (p: Record<string, unknown>) => Record<string, unknown>, extra: Record<string, unknown> = {}) {
   const { data } = await supabase.from('agentes_empresa').select('perfil').eq('empresa_id', empresa).eq('agente_id', agente).maybeSingle()
@@ -12,13 +13,13 @@ export async function atualizarPerfil(empresa: string, agente: string, mudar: (p
 
 export const memoriaDe = (perfil: Record<string, unknown>) => (Array.isArray(perfil.memoria) ? perfil.memoria : []) as Lembranca[]
 
-export function lembrar(empresa: string, agente: string, texto: string, origem: Lembranca['origem']) {
+export function lembrar(empresa: string, agente: string, texto: string, origem: Lembranca['origem'], fonte?: string) {
   const t = texto.trim()
   if (!t) return Promise.resolve({ error: null })
   return atualizarPerfil(empresa, agente, (p) => {
     const m = memoriaDe(p)
     if (m.some((x) => x.texto.toLowerCase() === t.toLowerCase())) return p
-    return { ...p, memoria: [...m, { texto: t, em: new Date().toISOString(), origem }].slice(-40) }
+    return { ...p, memoria: [...m, { texto: t, em: new Date().toISOString(), origem, ...(fonte ? { fonte } : {}) }].slice(-40) }
   })
 }
 

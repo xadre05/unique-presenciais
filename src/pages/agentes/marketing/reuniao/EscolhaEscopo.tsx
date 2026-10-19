@@ -7,6 +7,8 @@ import { hojeISO, segundaDe } from '../../comum'
 import type { Campanha } from '../useMarketing'
 import { periodoDe, tituloDe, type Escopo, type Reuniao, type TipoEscopo } from './dados'
 import { DecidirDireto } from './DecidirDireto'
+import { EscolherPost } from '../../instagram/EscolherPost'
+import { EMPRESA } from '../useMarketing'
 
 const OPCOES: { tipo: TipoEscopo; nome: string; sub: string; icone: string }[] = [
   { tipo: 'dia', nome: 'Algo para hoje', sub: 'Uma novidade, um assunto do mercado, um stories de última hora. Conversa curta, de 1 a 3 peças.', icone: 'relogio' },
@@ -33,6 +35,7 @@ export function EscolhaEscopo(pr: Props) {
   const [erro, setErro] = useState<string | null>(null)
   const [verTodas, setVerTodas] = useState(false)
   const [direto, setDireto] = useState(false)
+  const [deUmPost, setDeUmPost] = useState(false)
   const camp = pr.campanhas.find((c) => c.id === campanha)
 
   const escolher = (t: TipoEscopo) => {
@@ -84,12 +87,17 @@ export function EscolhaEscopo(pr: Props) {
           {(tipo === 'dias' || tipo === 'campanha') && <label>Fim<input type="date" value={periodo.fim} min={periodo.inicio} onChange={(e) => valida(e.target.value) && setPeriodo({ ...periodo, fim: e.target.value })} /></label>}
           <span className="muted pequeno reu-periodo-txt">Período: {dmy(periodo.inicio)}{periodo.fim !== periodo.inicio ? ` a ${dmy(periodo.fim)}` : ''}{camp ? ` · as peças usam a oferta e as regras de ${camp.nome}` : ''}</span>
         </div>
-        {!direto && <>
+        {!direto && !deUmPost && <>
           <div className="reu-caminhos">
             <div className="reu-caminho">
               <b><Icone nome="lista" tam={18} /> Já sei o que quero postar</b>
               <span className="muted pequeno">Você diz cada peça (canal, formato, dia e sobre o quê) e o agente escreve. Sem conversa.</span>
               <button type="button" className="btn btn-ouro" onClick={() => setDireto(true)}>Dizer o que postar</button>
+            </div>
+            <div className="reu-caminho">
+              <b><Icone nome="trocar" tam={18} /> Partir de um post que deu resultado</b>
+              <span className="muted pequeno">Escolha um post que funcionou e diga o que mudar. O agente mantém o gancho, a estrutura e o formato e escreve a nova versão.</span>
+              <button type="button" className="btn btn-contorno-ouro" onClick={() => setDeUmPost(true)}>Escolher o post</button>
             </div>
             <div className="reu-caminho">
               <b><Icone nome="mensagem" tam={18} /> Conversar com o agente antes</b>
@@ -102,6 +110,7 @@ export function EscolhaEscopo(pr: Props) {
           <Erro msg={erro} />
         </>}
       </section>
+      {deUmPost && <EscolherPost empresa={EMPRESA} dia={periodo.inicio} campanha={camp?.id} aoCriada={(id) => pr.aoEscreveu([id])} aoVoltar={() => setDeUmPost(false)} />}
       {direto && <DecidirDireto inicio={periodo.inicio} fim={periodo.fim} campanha={camp} aoEscreveu={pr.aoEscreveu} aoGuardou={pr.aoGuardou} aoVoltar={() => setDireto(false)} />}
       </div>
 

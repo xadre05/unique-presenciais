@@ -9,25 +9,30 @@ export type Analise = {
   nao_funcionou: { padrao: string; porque: string; exemplos?: string[] }[]
   recomendacoes: string[]; aprendizados: string[]; comparacao?: string[]; filtro?: FiltroAnalise
 }
-export type FiltroAnalise = { de?: string; ate?: string; tipo?: string; periodos?: { nome: string; de: string; ate: string }[] }
+export type Origem = 'agente' | 'fora'
+export type MarcoFiltro = { nome: string; dia: string; descricao?: string | null }
+export type FiltroAnalise = { de?: string; ate?: string; tipo?: string; origem?: Origem; periodos?: { nome: string; de: string; ate: string }[]; marco?: MarcoFiltro }
 export type Conexao = {
   app_id: string | null; status: 'sem_app' | 'pronta' | 'conectado' | 'erro' | 'desligado'
   usuario: string | null; nome: string | null; foto: string | null; seguidores: number | null; publicacoes: number | null
-  token_expira_em: string | null; conectado_em: string | null; sincronizado_em: string | null; analise: Analise | null; erro: string | null
+  token_expira_em: string | null; conectado_em: string | null; sincronizado_em: string | null; erro: string | null
+  revisao_semanal: boolean
 }
 export type Metricas = { alcance?: number; visualizacoes?: number; curtidas?: number; comentarios?: number; salvos?: number; compartilhamentos?: number; interacoes?: number; visitas_perfil?: number; seguidores_ganhos?: number; tempo_medio_ms?: number }
-export type PostIG = { id: string; tipo: string; legenda: string | null; link: string | null; miniatura: string | null; publicado_em: string; metricas: Metricas }
+// origem: 'agente' = veio de uma peça do agente (ligada sozinha ou marcada à mão); vazio ou 'fora' = feito por fora
+export type PostIG = { id: string; tipo: string; legenda: string | null; link: string | null; miniatura: string | null; publicado_em: string; metricas: Metricas; origem: Origem | null; peca_id: string | null }
+export const origemDe = (p: Pick<PostIG, 'origem'>): Origem => (p.origem === 'agente' ? 'agente' : 'fora')
 
 // endereço que o Instagram chama de volta depois do login (tem de estar cadastrado no app da Meta, igualzinho)
 export const ENDERECO_RETORNO = `${SUPABASE_URL}/functions/v1/instagram`
 
 export function useConexao(empresa: string) {
-  return useConsulta<Conexao | null>(() => supabase.from('marca_conexoes').select('app_id,status,usuario,nome,foto,seguidores,publicacoes,token_expira_em,conectado_em,sincronizado_em,analise,erro')
+  return useConsulta<Conexao | null>(() => supabase.from('marca_conexoes').select('app_id,status,usuario,nome,foto,seguidores,publicacoes,token_expira_em,conectado_em,sincronizado_em,erro,revisao_semanal')
     .eq('empresa_id', empresa).eq('rede', 'instagram').maybeSingle(), [empresa])
 }
 
 export function usePostsInstagram(empresa: string) {
-  return useConsulta<PostIG[]>(() => supabase.from('marca_posts').select('id,tipo,legenda,link,miniatura,publicado_em,metricas')
+  return useConsulta<PostIG[]>(() => supabase.from('marca_posts').select('id,tipo,legenda,link,miniatura,publicado_em,metricas,origem,peca_id')
     .eq('empresa_id', empresa).eq('rede', 'instagram').order('publicado_em', { ascending: false }).limit(1500), [empresa])
 }
 
@@ -36,7 +41,7 @@ export async function salvarApp(empresa: string, appId: string, segredo: string)
   if (error) throw new Error(msgErro(error))
 }
 
-type Acao = 'link' | 'sincronizar' | 'historico' | 'analisar' | 'desligar'
+type Acao = 'link' | 'sincronizar' | 'historico' | 'analisar' | 'revisao_semanal' | 'desligar'
 export async function acaoInstagram<T = Record<string, unknown>>(empresa: string, acao: Acao, filtro?: FiltroAnalise): Promise<T> {
   // o login do Instagram volta para Configurações → Integrações, onde fica a conexão
   const voltar = `${window.location.origin}/agentes/central?aba=integracoes`
@@ -89,3 +94,9 @@ export function crescimento(h: DiaSeguidores[], de: string, ate: string) {
 export const comSinal = (v: number) => `${v >= 0 ? '+' : '−'}${milhar(Math.abs(v))}`
 export const hojeBR = () => new Date(Date.now() - 3 * 3600000).toISOString().slice(0, 10)
 export const somaDias = (dia: string, dias: number) => new Date(new Date(dia + 'T12:00:00Z').getTime() + dias * 86400000).toISOString().slice(0, 10)
+
+// marca à mão se o post foi feito pelo agente ou por fora (a ligação automática não mexe no que foi marcado à mão)
+export async function marcarOrigem(id: string, origem: Origem) {
+  const { error } = await supabase.from('marca_posts').update({ origem }).eq('id', id)
+  if (error) throw new Error(msgErro(error))
+}

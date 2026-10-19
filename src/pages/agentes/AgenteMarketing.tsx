@@ -114,7 +114,7 @@ export default function AgenteMarketing() {
         <Producao pecas={todas.dados ?? []} carregando={todas.carregando && !todas.dados} aberta={pecaAberta} aoAbrir={(p) => setAberta(p.id)} aoFecharPeca={() => setAberta(null)}
           trabalhos={trabalhos.dados ?? []} aoMudar={recarregar} campanhas={campanhas} planos={planos} abasTopo={abasTopo} f={fp} mudar={(c) => setFp((x) => ({ ...x, ...c }))} />
       )}
-      {aba === 'resultados' && <ResultadosInstagram empresa={EMPRESA} />}
+      {aba === 'resultados' && <ResultadosInstagram empresa={EMPRESA} aoAbrirPeca={(id) => { recarregar(); setAberta(id); setAba('producao') }} />}
       {aba === 'config' && (
         <section className="mk-plano">
           <CabecalhoAba titulo="Funcionamento e preferências" sub="Defina como este agente trabalha e revise o que ele deve lembrar." />

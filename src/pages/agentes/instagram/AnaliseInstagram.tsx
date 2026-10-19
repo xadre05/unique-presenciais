@@ -1,12 +1,18 @@
-// A análise do agente sobre os posts do Instagram: resumo, o que funcionou e o que não (com o porquê),
-// recomendações e aprendizados. Cada aprendizado pode ir para a memória do agente (vale em toda peça nova).
+// Análises do agente sobre os posts do Instagram: em cima, o pedido (PedirAnalise: o que analisar e um botão só);
+// embaixo, o histórico (análise do filtro, comparação de períodos, marco e revisão semanal), com a mais recente aberta.
+// Cada análise traz resumo, o que mudou, o que funcionou e o que não (com o porquê), recomendações e os aprendizados
+// para ensinar ao agente.
 import { useState } from 'react'
 import { Icone } from '../../../components/Icone'
-import { lembrar } from '../memoria'
-import { EMPRESA } from '../marketing/useMarketing'
 import type { Analise } from './dados'
+import { NOME_TIPO_ANALISE, pendentes, type AnaliseGuardada } from './analises'
+import { Aprendizados } from './Aprendizados'
+import { PedirAnalise, type OpcaoAnalise } from './PedirAnalise'
 
-type Props = { empresa: string; analise: Analise | null; analisando: boolean; podeAnalisar: boolean; aoAnalisar: () => void; rotuloFiltro: string }
+type Props = {
+  empresa: string; analises: AnaliseGuardada[]; opcoes: OpcaoAnalise[]; analisando: boolean; aoPedir: (o: OpcaoAnalise) => void
+  revisaoLigada: boolean; aoLigarRevisao: (ligada: boolean) => void; aoMudar: () => void
+}
 
 function Padroes({ titulo, itens, classe }: { titulo: string; itens: Analise['funcionou']; classe: string }) {
   if (!itens?.length) return null
@@ -17,32 +23,39 @@ function Padroes({ titulo, itens, classe }: { titulo: string; itens: Analise['fu
   )
 }
 
-const periodo = (a: Analise) => (a.filtro?.periodos?.length ? `comparação ${a.filtro.periodos.map((p) => `${p.de.slice(8, 10)}/${p.de.slice(5, 7)}–${p.ate.slice(8, 10)}/${p.ate.slice(5, 7)}/${p.nome}`).join(' x ')}` : a.filtro?.de ? a.filtro.de.slice(0, 4) : 'todos os anos') + (a.filtro?.tipo ? ` · ${a.filtro.tipo}` : '')
+const quando = (iso: string) => new Date(iso).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
+const nomeNaLista = (a: AnaliseGuardada) => {
+  const faltam = pendentes(a).length
+  return `${quando(a.criado_em)} · ${a.titulo ?? NOME_TIPO_ANALISE[a.tipo]}${faltam ? ` · ${faltam} para decidir` : ''}`
+}
 
-export function AnaliseInstagram({ empresa, analise, analisando, podeAnalisar, aoAnalisar, rotuloFiltro }: Props) {
-  const [guardados, setGuardados] = useState<string[]>([])
-  const guardar = async (t: string) => { const r = await lembrar(empresa || EMPRESA, 'marketing', t, 'manual'); if (!r.error) setGuardados((g) => [...g, t]) }
+export function AnaliseInstagram({ empresa, analises, opcoes, analisando, aoPedir, revisaoLigada, aoLigarRevisao, aoMudar }: Props) {
+  const [escolhida, setEscolhida] = useState<string | null>(null)
+  const atual = analises.find((a) => a.id === escolhida) ?? analises[0] ?? null
+  const r = atual?.resultado
   return (
     <section className="mk-painel ig-analise">
       <header className="mk-painel-cab"><span className="mk-convite-icone"><Icone nome="ideia" tam={22} /></span>
-        <div><h3>O que funcionou e por quê</h3><span className="muted pequeno">{analise ? `Análise de ${new Date(analise.em).toLocaleDateString('pt-BR')} (${periodo(analise)}), com ${analise.posts} posts e alcance mediano ${analise.mediana}.` : 'O agente compara cada post com a mediana e, com mais de um ano, compara os anos.'}</span></div>
-        <button type="button" className="btn btn-contorno-ouro" disabled={analisando || !podeAnalisar} onClick={aoAnalisar}><Icone nome="floco" tam={16} /> {analisando ? 'Analisando… (até 1 minuto)' : `Analisar: ${rotuloFiltro}`}</button>
+        <div><h3>Pedir análise ao agente</h3>
+          <span className="muted pequeno">Ele lê os números, diz o que funcionou e por quê e propõe o que ensinar a ele mesmo.</span></div>
       </header>
-      {!podeAnalisar && <p className="muted pequeno">A análise precisa de pelo menos 5 posts no filtro.</p>}
-      {analise && (<>
-        <p>{analise.resumo}</p>
-        {!!analise.comparacao?.length && <><h5 className="reu-subtitulo">O que mudou entre os períodos</h5><ul className="ig-recom">{analise.comparacao.map((x, i) => <li key={i}>{x}</li>)}</ul></>}
+      <PedirAnalise opcoes={opcoes} analisando={analisando} aoPedir={aoPedir} revisaoLigada={revisaoLigada} aoLigarRevisao={aoLigarRevisao} />
+      {analises.length > 0 && <h5 className="reu-subtitulo ig-hist-titulo">Histórico de análises</h5>}
+      {analises.length > 1 && (
+        <label className="ig-historico"><span className="muted pequeno">Abrir outra</span>
+          <span className="select-icone"><select value={atual?.id ?? ''} onChange={(e) => setEscolhida(e.target.value)}>
+            {analises.map((a) => <option key={a.id} value={a.id}>{nomeNaLista(a)}</option>)}</select></span></label>
+      )}
+      {atual && r && (<>
+        <p className="ig-titulo-analise"><span className="ig-tipo-analise">{NOME_TIPO_ANALISE[atual.tipo]}</span> <b>{atual.titulo}</b> <span className="muted pequeno">· {quando(atual.criado_em)} · {r.posts} posts · alcance mediano {r.mediana}</span></p>
+        <p>{r.resumo}</p>
+        {!!r.comparacao?.length && <><h5 className="reu-subtitulo">O que mudou entre os períodos</h5><ul className="ig-recom">{r.comparacao.map((x, i) => <li key={i}>{x}</li>)}</ul></>}
         <div className="ig-padroes-grade">
-          <Padroes titulo="Funcionou" itens={analise.funcionou} classe="bom" />
-          <Padroes titulo="Não funcionou" itens={analise.nao_funcionou} classe="ruim" />
+          <Padroes titulo="Funcionou" itens={r.funcionou} classe="bom" />
+          <Padroes titulo="Não funcionou" itens={r.nao_funcionou} classe="ruim" />
         </div>
-        {!!analise.recomendacoes?.length && <><h5 className="reu-subtitulo">Recomendações</h5><ul className="ig-recom">{analise.recomendacoes.map((r, i) => <li key={i}>{r}</li>)}</ul></>}
-        {!!analise.aprendizados?.length && <><h5 className="reu-subtitulo">Aprendizados para o agente</h5>
-          <ul className="ig-aprendizados">{analise.aprendizados.map((a) => (
-            <li key={a}><span>{a}</span>{guardados.includes(a)
-              ? <span className="muted pequeno"><Icone nome="check" tam={14} /> Na memória</span>
-              : <button type="button" className="btn btn-mini" onClick={() => guardar(a)}><Icone nome="mais" tam={13} /> Guardar na memória</button>}</li>))}</ul>
-          <span className="muted pequeno">O que vai para a memória vale em toda peça nova e aparece em Configurar agente, onde dá para tirar.</span></>}
+        {!!r.recomendacoes?.length && <><h5 className="reu-subtitulo">Recomendações</h5><ul className="ig-recom">{r.recomendacoes.map((x, i) => <li key={i}>{x}</li>)}</ul></>}
+        <Aprendizados key={atual.id} empresa={empresa} analise={atual} aoMudar={aoMudar} />
       </>)}
     </section>
   )

@@ -14,7 +14,7 @@ import { atualizarPerfil, esquecer, lembrar, memoriaDe, type Lembranca } from '.
 export type ConfigDoAgente = { modelo?: string; limite_mes_creditos?: number | null; instrucoes?: string }
 type Props = { empresaId: string; agenteId: string; ativo: boolean; perfil: Record<string, unknown>; aoSalvar: () => void }
 
-const ORIGEM: Record<Lembranca['origem'], string> = { manual: 'Você ensinou', descarte: 'De um descarte', ajuste: 'De um ajuste' }
+const ORIGEM: Record<Lembranca['origem'], string> = { manual: 'Você ensinou', descarte: 'De um descarte', ajuste: 'De um ajuste', resultado: 'Dos resultados dos posts' }
 const inicial = (ativo: boolean, perfil: Record<string, unknown>) => ({
   ligado: ativo, modelo: String(perfil.modelo ?? ''), limite: perfil.limite_mes_creditos != null ? String(perfil.limite_mes_creditos) : '',
   instrucoes: String(perfil.instrucoes ?? ''), economico: perfil.stories_economico !== false,

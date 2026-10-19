@@ -1,11 +1,14 @@
 // Instagram ligado à Base da marca (19/10/2026). Login pela API do Instagram (Instagram Login), leitura dos posts
 // com as métricas (alcance, visualizações, curtidas, comentários, salvos, compartilhamentos) e a análise do que
 // funcionou, feita pelo Claude. Segredos (chave do app e token) ficam no Vault. Só lê: não publica nada.
-// Ações (POST JSON {acao, empresa}, administrador logado): link, sincronizar, historico, analisar (com filtro de período e formato), desligar.
+// Ações (POST JSON {acao, empresa}, administrador logado): link, sincronizar, historico, analisar (com filtro de período,
+// formato, origem, períodos ou marco), revisao_semanal (fazer agora), desligar.
 // GET ?code=&state= é a volta do login do Instagram (sem login do sistema; vale o código de segurança "estado").
-// Cron diário: {acao: 'sincronizar_todas'} com o cabeçalho x-cron-chave.
+// Cron (cabeçalho x-cron-chave): {acao: 'sincronizar_todas'} todo dia; {acao: 'revisao_semanal_todas'} toda segunda.
 import { createClient, type SupabaseClient } from 'npm:@supabase/supabase-js@2.45.4'
 import { analisar, type Filtro } from './analise.ts'
+import { revisaoSemanal, revisaoTodas } from './revisao.ts'
+import { ligarPecas } from './ligar.ts'
 
 const GRAPH = 'https://graph.instagram.com/v25.0'
 const ESCOPOS = 'instagram_business_basic,instagram_business_manage_insights'
@@ -168,8 +171,10 @@ async function sincronizar(db: SupabaseClient, empresa: string, desde = Date.now
     })))
   }
   if (linhas.length) { const { error } = await db.from('marca_posts').upsert(linhas, { onConflict: 'empresa_id,rede,externo_id' }); if (error) throw new Error(error.message) }
+  // post publicado que veio de uma peça do agente: liga os dois (etiqueta "feito pelo agente")
+  const ligados = await ligarPecas(db, empresa).catch((e) => { console.error('ligar peças', (e as Error).message); return 0 })
   await atualizar(db, empresa, { sincronizado_em: agora(), erro: null })
-  return { posts: linhas.length }
+  return { posts: linhas.length, ligados }
 }
 
 async function sincronizarTodas(db: SupabaseClient) {
@@ -186,10 +191,10 @@ Deno.serve(async (req) => {
   if (req.method === 'GET') return await voltaDoLogin(db, new URL(req.url))
 
   const corpo = await req.json().catch(() => ({})) as { acao?: string; empresa?: string; voltar?: string; filtro?: Filtro }
-  if (corpo.acao === 'sincronizar_todas') {
+  if (corpo.acao === 'sincronizar_todas' || corpo.acao === 'revisao_semanal_todas') {
     const { data: chave } = await db.rpc('crm_chave_cron')
     if (!chave || req.headers.get('x-cron-chave') !== chave) return json({ erro: 'Acesso negado.' }, 403)
-    return json(await sincronizarTodas(db))
+    return json(corpo.acao === 'sincronizar_todas' ? await sincronizarTodas(db) : await revisaoTodas(db))
   }
   const usuario = createClient(url, Deno.env.get('SUPABASE_ANON_KEY')!, { global: { headers: { Authorization: req.headers.get('Authorization') ?? '' } } })
   const { data: admin } = await usuario.rpc('is_admin')
@@ -204,11 +209,8 @@ Deno.serve(async (req) => {
       EdgeRuntime.waitUntil(sincronizar(db, empresa, new Date(HISTORICO_DESDE + 'T00:00:00Z').getTime(), 1200).catch((e) => atualizar(db, empresa, { erro: (e as Error).message })))
       return json({ ok: true })
     }
-    if (corpo.acao === 'analisar') {
-      const analise = await analisar(db, empresa, corpo.filtro ?? {})
-      await atualizar(db, empresa, { analise })
-      return json({ analise })
-    }
+    if (corpo.acao === 'analisar') return json({ analise: await analisar(db, empresa, corpo.filtro ?? {}) })
+    if (corpo.acao === 'revisao_semanal') return json({ analise: await revisaoSemanal(db, empresa) })
     if (corpo.acao === 'desligar') {
       await db.rpc('marca_guardar_token', { p_empresa: empresa, p_rede: 'instagram', p_token: '' })
       await atualizar(db, empresa, { status: 'desligado', estado: null, token_expira_em: null })
