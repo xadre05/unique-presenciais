@@ -8,6 +8,7 @@ import { PessoasMarca } from './PessoasMarca'
 import { LogosMarca } from './LogosMarca'
 import { BibliotecaMarca } from './biblioteca/BibliotecaMarca'
 import { PerfilVoz } from './biblioteca/PerfilVoz'
+import { ConexaoInstagram } from './instagram/ConexaoInstagram'
 
 export default function CentralMarca() {
   const perfil = useConsulta<{ perfil: PerfilMarketing } | null>(() => supabase.from('agentes_empresa').select('perfil').eq('empresa_id', EMPRESA_UNIQUE).eq('agente_id', 'marketing').maybeSingle())
@@ -15,7 +16,8 @@ export default function CentralMarca() {
     <div className="pagina">
       <header className="pagina-topo"><div><h1>Base da marca</h1><p className="muted">A base que os agentes usam para falar como a Unique: o que vende, para quem, o tom e o que nunca fazer.</p></div></header>
       <section className="bloco"><h2>Redes sociais</h2><p className="muted pequeno">Os canais que a empresa usa. Só os ligados aparecem para planejar e criar peças.</p>
-        {!perfil.carregando && <RedesEmpresa empresaId={EMPRESA_UNIQUE} perfil={(perfil.dados?.perfil ?? {}) as Record<string, unknown>} aoSalvar={perfil.recarregar} />}</section>
+        {!perfil.carregando && <RedesEmpresa empresaId={EMPRESA_UNIQUE} perfil={(perfil.dados?.perfil ?? {}) as Record<string, unknown>} aoSalvar={perfil.recarregar} />}
+        <ConexaoInstagram empresa={EMPRESA_UNIQUE} /></section>
       <section className="bloco"><h2>Identidade visual</h2><p className="muted pequeno">O que o Agente de Arte usa em toda arte: o logo real da empresa e imagens que mostram o estilo da marca.</p>
         {!perfil.carregando && <LogosMarca empresaId={EMPRESA_UNIQUE} perfil={(perfil.dados?.perfil ?? {}) as Record<string, unknown>} aoSalvar={perfil.recarregar} />}</section>
       <section className="bloco"><h2>Biblioteca da marca</h2><p className="muted pequeno">O conhecimento da empresa: cursos, técnicas, protocolos, como a marca ensina. É daqui que o agente tira o conteúdo das peças.</p>

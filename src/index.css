@@ -2390,3 +2390,37 @@ a.sala-agente:hover { border-color: var(--ouro); transform: translateY(-2px); }
   .reu-escolha, .reu-grade { grid-template-columns: 1fr; }
   .reu-ata { position: static; }
 }
+
+/* ===== Instagram ligado: conexão (Base da marca) e Resultados (Agente de Marketing) ===== */
+.ig { display: flex; flex-direction: column; gap: 10px; margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--borda); }
+.ig-passos { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 8px; font-size: .9rem; }
+.ig-retorno { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 6px; }
+.ig-retorno code { padding: 6px 8px; border: 1px solid var(--borda); border-radius: 8px; background: var(--painel-2); font-size: .8rem; word-break: break-all; }
+.ig-cadastro { display: flex; flex-direction: column; gap: 8px; }
+.ig-conta { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 10px 14px; align-items: center; }
+.ig-conta > .ia-linha, .ig-conta > .erro { grid-column: 1 / -1; }
+.ig-foto { width: 52px; height: 52px; border-radius: 50%; object-fit: cover; display: grid; place-items: center; background: var(--painel-2); border: 1px solid var(--borda); }
+.ig-conta-txt { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.ig-conta-txt b { margin-right: 8px; }
+.ig-cartoes { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px; margin: 6px 0 12px; }
+.ig-cartoes > div { padding: 12px; border: 1px solid var(--borda); border-radius: 12px; background: var(--painel); display: flex; flex-direction: column; gap: 4px; }
+.ig-cartoes small { color: var(--muted); }
+.ig-cartoes b { font-size: 1.35rem; }
+.ig-tabela { width: 100%; margin-bottom: 12px; }
+.ig-lista { overflow-x: auto; }
+.ig-post { display: flex; gap: 10px; align-items: center; min-width: 260px; }
+.ig-post img, .ig-sem-foto { width: 46px; height: 46px; border-radius: 8px; object-fit: cover; flex: none; display: grid; place-items: center; background: var(--painel-2); }
+.ig-post span { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.ig-post small { color: var(--muted); }
+.ig-acima, .ig-abaixo { display: block; font-size: .75rem; }
+.ig-acima { color: #4cbf73; }
+.ig-abaixo { color: #e07a5f; }
+.ig-analise { margin: 12px 0; }
+.ig-padroes-grade { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; }
+.ig-padroes { padding: 10px 12px; border-radius: 10px; border: 1px solid var(--borda); }
+.ig-padroes.bom { border-left: 3px solid #4cbf73; }
+.ig-padroes.ruim { border-left: 3px solid #e07a5f; }
+.ig-padroes h5 { margin: 0 0 6px; }
+.ig-padroes ul, .ig-recom, .ig-aprendizados { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 8px; }
+.ig-padroes li { display: flex; flex-direction: column; gap: 2px; }
+.ig-aprendizados li { display: flex; justify-content: space-between; align-items: center; gap: 10px; }

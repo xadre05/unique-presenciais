@@ -1,5 +1,5 @@
-// Agente de Marketing: Conteúdos (período livre, quadro e calendário), Produção (lista de peças e editor por peça)
-// e Configurar agente. Uma entrada só para criar: "Planejar com o agente" abre a Reunião de pauta (algo para hoje,
+// Agente de Marketing: Conteúdos (período livre, quadro e calendário), Produção (lista de peças e editor por peça),
+// Resultados (posts do Instagram e análise) e Configurar agente. Uma entrada só para criar: "Planejar com o agente" abre a Reunião de pauta (algo para hoje,
 // próximos dias, semana, mês ou campanha), em página própria com o caminho no topo.
 // Regras em docs/agentes/REGRAS_AGENTE_MARKETING.md.
 import { Voltar } from '../../components/Voltar'
@@ -14,6 +14,7 @@ import { Producao } from './marketing/Producao'
 import { PaginaReuniao } from './marketing/reuniao/PaginaReuniao'
 import type { TipoEscopo } from './marketing/reuniao/dados'
 import { Caminho } from './marketing/Caminho'
+import { ResultadosInstagram } from './instagram/ResultadosInstagram'
 import { PaginaPlanejar } from './marketing/PaginaPlanejar'
 import { NovaCampanha } from './marketing/Campanhas'
 import { etapaDe } from './marketing/etapas'
@@ -22,14 +23,14 @@ import { CabecalhoAba } from './marketing/BarraFiltros'
 import { aplicar, filtrosIniciais, filtrosProducaoIniciais, intervaloDe, type Filtros, type FiltrosProducao } from './marketing/filtros'
 import type { Plano } from './marketing/planos'
 
-type Aba = 'conteudos' | 'producao' | 'config'
+type Aba = 'conteudos' | 'producao' | 'resultados' | 'config'
 // páginas que tomam a tela inteira (sem as abas), com o caminho no topo
 type Pagina = { tipo: 'reuniao'; id?: string; escopo: TipoEscopo; data: string } | { tipo: 'planejar'; modo: ModoPlano; data: string; revisar: Plano | null } | null
 const ESCOPO_DO_MODO: Record<ModoPlano, TipoEscopo> = { dia: 'dia', semana: 'semana', mes: 'mes', periodo: 'dias' }
 
 export default function AgenteMarketing() {
   const local = useLocation()
-  const [aba, setAba] = useState<Aba>(new URLSearchParams(local.search).get('aba') === 'config' ? 'config' : 'conteudos')
+  const [aba, setAba] = useState<Aba>(() => { const a = new URLSearchParams(local.search).get('aba'); return a === 'config' || a === 'resultados' ? a : 'conteudos' })
   // filtros moram aqui: continuam iguais ao trocar Quadro/Calendário e ao ir à Produção e voltar (regra 6)
   const [f, setF] = useState<Filtros>(filtrosIniciais)
   const [fp, setFp] = useState<FiltrosProducao>(filtrosProducaoIniciais)
@@ -60,6 +61,7 @@ export default function AgenteMarketing() {
     <nav className="mk-abas-topo">
       <button className={aba === 'conteudos' ? 'ativa' : ''} onClick={() => setAba('conteudos')}>Conteúdos</button>
       <button className={aba === 'producao' ? 'ativa' : ''} onClick={() => { setAba('producao'); setAberta(null) }}>Produção{aguardando ? <span className="mk-conta">{aguardando}</span> : null}</button>
+      <button className={aba === 'resultados' ? 'ativa' : ''} onClick={() => setAba('resultados')}>Resultados</button>
       <button className={aba === 'config' ? 'ativa' : ''} onClick={() => setAba('config')}>Configurar agente</button>
     </nav>
   )
@@ -112,6 +114,7 @@ export default function AgenteMarketing() {
         <Producao pecas={todas.dados ?? []} carregando={todas.carregando && !todas.dados} aberta={pecaAberta} aoAbrir={(p) => setAberta(p.id)} aoFecharPeca={() => setAberta(null)}
           trabalhos={trabalhos.dados ?? []} aoMudar={recarregar} campanhas={campanhas} planos={planos} abasTopo={abasTopo} f={fp} mudar={(c) => setFp((x) => ({ ...x, ...c }))} />
       )}
+      {aba === 'resultados' && <ResultadosInstagram empresa={EMPRESA} />}
       {aba === 'config' && (
         <section className="mk-plano">
           <CabecalhoAba titulo="Funcionamento e preferências" sub="Defina como este agente trabalha e revise o que ele deve lembrar." />
