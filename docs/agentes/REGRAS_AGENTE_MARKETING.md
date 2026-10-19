@@ -15,7 +15,7 @@ Fixadas pelo Alexandre em 18/10/2026. Qualquer mudança nas telas ou na função
    - "Gerar rascunhos" pede os textos ao agente.
 6. **Filtros preservados.** Período, canal, campanha, formato, situação e busca continuam selecionados ao alternar entre Quadro e Calendário, e ao ir para a Produção e voltar.
 
-## Reunião de pauta: uma entrada só (decidido 19/10/2026, a construir)
+## Reunião de pauta: uma entrada só (decidida e construída em 19/10/2026)
 
 Substitui "Duas entradas, um editor" logo abaixo. O agente trabalha como uma social media: discute antes de gerar.
 
@@ -56,7 +56,15 @@ Substitui "Duas entradas, um editor" logo abaixo. O agente trabalha como uma soc
 
    No Clinical, isso entra na cota mensal do plano.
 
-Ordem combinada: primeiro a integração com o Instagram (dados dos posts alimentam a reunião), depois a reunião com o botão único.
+Como ficou no código: `marketing/reuniao/` (tela, ata, conversa, escolha), `usePropostaPlano.ts` (proposta compartilhada com a página antiga de plano), tabela `agentes_reunioes`, função `agentes` (arquivo `reuniao.ts`, rota `reuniao`). Peças levam `conteudo.reuniao`. A página antiga "Planejar conteúdos" só abre planos feitos antes da reunião.
+
+## Instagram ligado e Resultados (19/10/2026)
+
+- Base da marca → Redes sociais → **Resultados do Instagram**: a empresa cadastra o app da Meta (ID e chave secreta, a chave vai cifrada para o Vault), clica em Conectar e autoriza a conta profissional. O endereço de retorno a cadastrar no app aparece na tela.
+- Função `instagram`: login (Instagram Login), token longo renovado sozinho, leitura dos posts dos últimos 6 meses (até 150) com alcance, visualizações, curtidas, comentários, salvos, compartilhamentos, interações, visitas ao perfil, seguidores ganhos e tempo médio do reels. Leitura diária às 06:13 (cron `instagram-diario`). Só leitura: não publica.
+- Agente de Marketing → aba **Resultados**: cartões, desempenho por formato, lista de posts comparada com a mediana de alcance e a análise do agente (o que funcionou, o que não, recomendações e aprendizados, que vão para a memória com um clique).
+- A Reunião de pauta lê os resultados (tabela `marca_posts`) e compara cada post com a mediana. Sem Instagram ligado, o agente diz que não tem dado e não inventa.
+- Para vender no Clinical: cada clínica liga o próprio Instagram; para atender contas que não são da empresa dona do app, a Meta exige revisão do app (acesso avançado).
 
 ## Duas entradas, um editor (18/10/2026 — será substituído pela Reunião de pauta)
 
