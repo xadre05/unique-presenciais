@@ -16,18 +16,20 @@ export type Conexao = {
   app_id: string | null; status: 'sem_app' | 'pronta' | 'conectado' | 'erro' | 'desligado'
   usuario: string | null; nome: string | null; foto: string | null; seguidores: number | null; publicacoes: number | null
   token_expira_em: string | null; conectado_em: string | null; sincronizado_em: string | null; erro: string | null
-  revisao_semanal: boolean
+  revisao_semanal: boolean; permissoes: string | null
 }
 export type Metricas = { alcance?: number; visualizacoes?: number; curtidas?: number; comentarios?: number; salvos?: number; compartilhamentos?: number; interacoes?: number; visitas_perfil?: number; seguidores_ganhos?: number; tempo_medio_ms?: number }
 // origem: 'agente' = veio de uma peça do agente (ligada sozinha ou marcada à mão); vazio ou 'fora' = feito por fora
 export type PostIG = { id: string; tipo: string; legenda: string | null; link: string | null; miniatura: string | null; publicado_em: string; metricas: Metricas; origem: Origem | null; peca_id: string | null }
+// a conexão atual deixa publicar? (a permissão vem do último login do dono da conta)
+export const podePublicar = (c: Pick<Conexao, 'permissoes'> | null | undefined) => !!c?.permissoes?.includes('instagram_business_content_publish')
 export const origemDe = (p: Pick<PostIG, 'origem'>): Origem => (p.origem === 'agente' ? 'agente' : 'fora')
 
 // endereço que o Instagram chama de volta depois do login (tem de estar cadastrado no app da Meta, igualzinho)
 export const ENDERECO_RETORNO = `${SUPABASE_URL}/functions/v1/instagram`
 
 export function useConexao(empresa: string) {
-  return useConsulta<Conexao | null>(() => supabase.from('marca_conexoes').select('app_id,status,usuario,nome,foto,seguidores,publicacoes,token_expira_em,conectado_em,sincronizado_em,erro,revisao_semanal')
+  return useConsulta<Conexao | null>(() => supabase.from('marca_conexoes').select('app_id,status,usuario,nome,foto,seguidores,publicacoes,token_expira_em,conectado_em,sincronizado_em,erro,revisao_semanal,permissoes')
     .eq('empresa_id', empresa).eq('rede', 'instagram').maybeSingle(), [empresa])
 }
 
@@ -41,11 +43,11 @@ export async function salvarApp(empresa: string, appId: string, segredo: string)
   if (error) throw new Error(msgErro(error))
 }
 
-type Acao = 'link' | 'sincronizar' | 'historico' | 'analisar' | 'revisao_semanal' | 'desligar'
-export async function acaoInstagram<T = Record<string, unknown>>(empresa: string, acao: Acao, filtro?: FiltroAnalise): Promise<T> {
+type Acao = 'link' | 'sincronizar' | 'historico' | 'analisar' | 'revisao_semanal' | 'publicar' | 'desligar'
+export async function acaoInstagram<T = Record<string, unknown>>(empresa: string, acao: Acao, filtro?: FiltroAnalise, extra: Record<string, unknown> = {}): Promise<T> {
   // o login do Instagram volta para Configurações → Integrações, onde fica a conexão
   const voltar = `${window.location.origin}/agentes/central?aba=integracoes`
-  const { data, error } = await supabase.functions.invoke('instagram', { body: { acao, empresa, voltar, filtro } })
+  const { data, error } = await supabase.functions.invoke('instagram', { body: { acao, empresa, voltar, filtro, ...extra } })
   const d = data as (T & { erro?: string }) | null
   if (error || !d || d.erro) throw new Error(d?.erro ?? 'Não consegui falar com o Instagram agora. Tente de novo.')
   return d

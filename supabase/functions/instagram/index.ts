@@ -1,17 +1,20 @@
 // Instagram ligado à Base da marca (19/10/2026). Login pela API do Instagram (Instagram Login), leitura dos posts
 // com as métricas (alcance, visualizações, curtidas, comentários, salvos, compartilhamentos) e a análise do que
-// funcionou, feita pelo Claude. Segredos (chave do app e token) ficam no Vault. Só lê: não publica nada.
+// funcionou, feita pelo Claude. Segredos (chave do app e token) ficam no Vault. Publica só o que a equipe agendou
+// (marca_publicacoes, liberado em 19/10/2026): nada sai sem alguém ter clicado em Agendar.
 // Ações (POST JSON {acao, empresa}, administrador logado): link, sincronizar, historico, analisar (com filtro de período,
-// formato, origem, períodos ou marco), revisao_semanal (fazer agora), desligar.
+// formato, origem, períodos ou marco), revisao_semanal (fazer agora), publicar (um agendamento agora), desligar.
 // GET ?code=&state= é a volta do login do Instagram (sem login do sistema; vale o código de segurança "estado").
-// Cron (cabeçalho x-cron-chave): {acao: 'sincronizar_todas'} todo dia; {acao: 'revisao_semanal_todas'} toda segunda.
+// Cron (cabeçalho x-cron-chave): 'sincronizar_todas' todo dia; 'revisao_semanal_todas' toda segunda; 'publicar_pendentes' a cada 5 min.
 import { createClient, type SupabaseClient } from 'npm:@supabase/supabase-js@2.45.4'
 import { analisar, type Filtro } from './analise.ts'
 import { revisaoSemanal, revisaoTodas } from './revisao.ts'
 import { ligarPecas } from './ligar.ts'
+import { publicarAgora, publicarPendentes, type Credenciais } from './publicar.ts'
 
 const GRAPH = 'https://graph.instagram.com/v25.0'
-const ESCOPOS = 'instagram_business_basic,instagram_business_manage_insights'
+// ler (básico e métricas), publicar, comentários e mensagens do Direct
+const ESCOPOS = 'instagram_business_basic,instagram_business_manage_insights,instagram_business_content_publish,instagram_business_manage_comments,instagram_business_manage_messages'
 const RETORNO = `${Deno.env.get('SUPABASE_URL')}/functions/v1/instagram`
 // leitura diária: 1 ano (métricas continuam mudando); histórico: uma vez, desde 2024, para comparar os anos
 const DIAS_POSTS = 365
@@ -75,12 +78,14 @@ async function voltaDoLogin(db: SupabaseClient, url: URL) {
     const corpo = new URLSearchParams({ client_id: String(conexao.app_id), client_secret: appSegredo, grant_type: 'authorization_code', redirect_uri: RETORNO, code: (url.searchParams.get('code') ?? '').replace(/#_$/, '') })
     const curto = await lerJson(await fetch('https://api.instagram.com/oauth/access_token', { method: 'POST', body: corpo }))
     const tokenCurto = String(curto?.data?.[0]?.access_token ?? curto?.access_token ?? '')
+    const aceitas = curto?.data?.[0]?.permissions ?? curto?.permissions ?? ''
+    const permissoes = Array.isArray(aceitas) ? aceitas.join(',') : String(aceitas)
     if (!tokenCurto) throw new Error('O Instagram não devolveu o acesso.')
     const longo = await lerJson(await fetch(`https://graph.instagram.com/access_token?grant_type=ig_exchange_token&client_secret=${appSegredo}&access_token=${tokenCurto}`))
     const { error } = await db.rpc('marca_guardar_token', { p_empresa: conexao.empresa_id, p_rede: 'instagram', p_token: longo.access_token })
     if (error) throw new Error(error.message)
     const perfil = await perfilDa(longo.access_token)
-    await atualizar(db, conexao.empresa_id, { ...dadosDoPerfil(perfil), status: 'conectado', estado: null, erro: null, conectado_em: agora(), token_renovado_em: agora(), token_expira_em: new Date(Date.now() + Number(longo.expires_in ?? 5184000) * 1000).toISOString() })
+    await atualizar(db, conexao.empresa_id, { ...dadosDoPerfil(perfil), permissoes, status: 'conectado', estado: null, erro: null, conectado_em: agora(), token_renovado_em: agora(), token_expira_em: new Date(Date.now() + Number(longo.expires_in ?? 5184000) * 1000).toISOString() })
     // os posts entram em segundo plano; a tela já mostra a conta ligada
     // @ts-ignore EdgeRuntime existe no Supabase
     EdgeRuntime.waitUntil(sincronizar(db, conexao.empresa_id).catch((e) => atualizar(db, conexao.empresa_id, { erro: (e as Error).message })))
@@ -177,6 +182,13 @@ async function sincronizar(db: SupabaseClient, empresa: string, desde = Date.now
   return { posts: linhas.length, ligados }
 }
 
+// token (renovado se preciso) e a conta do Instagram da empresa, para publicar
+const credenciaisDe = (db: SupabaseClient): Credenciais => async (empresa) => {
+  const { data: c } = await db.from('marca_conexoes').select('*').eq('empresa_id', empresa).eq('rede', 'instagram').maybeSingle()
+  if (!c || c.status !== 'conectado' || !c.conta_id) throw new Error('O Instagram não está conectado.')
+  return { token: await renovarSePreciso(db, empresa, c as Conexao, await segredo(db, empresa, 'instagram_token')), conta: String(c.conta_id) }
+}
+
 async function sincronizarTodas(db: SupabaseClient) {
   const { data } = await db.from('marca_conexoes').select('empresa_id').eq('rede', 'instagram').eq('status', 'conectado')
   const feitas: Record<string, unknown> = {}
@@ -190,10 +202,11 @@ Deno.serve(async (req) => {
   const db = createClient(url, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!)
   if (req.method === 'GET') return await voltaDoLogin(db, new URL(req.url))
 
-  const corpo = await req.json().catch(() => ({})) as { acao?: string; empresa?: string; voltar?: string; filtro?: Filtro }
-  if (corpo.acao === 'sincronizar_todas' || corpo.acao === 'revisao_semanal_todas') {
+  const corpo = await req.json().catch(() => ({})) as { acao?: string; empresa?: string; voltar?: string; filtro?: Filtro; id?: string }
+  if (corpo.acao === 'sincronizar_todas' || corpo.acao === 'revisao_semanal_todas' || corpo.acao === 'publicar_pendentes') {
     const { data: chave } = await db.rpc('crm_chave_cron')
     if (!chave || req.headers.get('x-cron-chave') !== chave) return json({ erro: 'Acesso negado.' }, 403)
+    if (corpo.acao === 'publicar_pendentes') return json(await publicarPendentes(db, credenciaisDe(db)))
     return json(corpo.acao === 'sincronizar_todas' ? await sincronizarTodas(db) : await revisaoTodas(db))
   }
   const usuario = createClient(url, Deno.env.get('SUPABASE_ANON_KEY')!, { global: { headers: { Authorization: req.headers.get('Authorization') ?? '' } } })
@@ -211,6 +224,7 @@ Deno.serve(async (req) => {
     }
     if (corpo.acao === 'analisar') return json({ analise: await analisar(db, empresa, corpo.filtro ?? {}) })
     if (corpo.acao === 'revisao_semanal') return json({ analise: await revisaoSemanal(db, empresa) })
+    if (corpo.acao === 'publicar') return json(await publicarAgora(db, empresa, String(corpo.id ?? ''), credenciaisDe(db)))
     if (corpo.acao === 'desligar') {
       await db.rpc('marca_guardar_token', { p_empresa: empresa, p_rede: 'instagram', p_token: '' })
       await atualizar(db, empresa, { status: 'desligado', estado: null, token_expira_em: null })

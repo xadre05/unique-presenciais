@@ -9,6 +9,7 @@ import { estagioDe } from './progresso'
 import { BotaoEnviar, Miniatura, pastaDa } from './arquivos'
 import { ORIGEM } from './AbaVersoes'
 import { DetalhesPeca } from './DetalhesPeca'
+import { PublicarPeca } from './PublicarPeca'
 import { AjustarArte, BotaoCriarArte } from './AvisoArte'
 import type { Campanha } from '../useMarketing'
 import type { Plano } from '../planos'
@@ -86,6 +87,7 @@ export function LadoPeca(p: Props) {
   return (
     <aside className="pp-lado">
       <DetalhesPeca peca={p.peca} proporcao={p.r.visual.proporcao} campanhas={p.campanhas} planos={p.planos} ocupada={p.ocupada} antes={p.antes} aoMudar={p.aoMudar} />
+      <PublicarPeca peca={p.peca} r={p.r} aoMudar={p.aoMudar} />
       {p.aba === 'itens' && cfg.artes === 'por_item' && p.r.itens.length > 0 && <ArquivosItem {...p} />}
       {(p.aba === 'itens' || p.aba === 'principal' || p.aba === 'legenda') && <Resumo {...p} />}
       {p.aba === 'visual' && <RevisaoArte {...p} />}

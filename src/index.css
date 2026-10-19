@@ -2758,3 +2758,26 @@ a.sala-agente:hover { border-color: var(--ouro); transform: translateY(-2px); }
   .re-abas button { flex: 1 1 auto; justify-content: center; padding: 7px 8px; }
   .pe-posts { grid-template-columns: 1fr; }
 }
+/* Publicar no Instagram (peça) */
+.pub-cartao .btn-ouro { width: 100%; justify-content: center; }
+.pub-cartao h3 { display: flex; align-items: center; gap: 6px; }
+.pub-situacao { display: flex; flex-direction: column; gap: 4px; padding: 10px; border: 1px solid var(--borda); border-radius: var(--raio); margin-bottom: 8px; }
+.pub-situacao.agendada { border-color: var(--ouro); background: var(--ouro-fundo); }
+.pub-situacao.publicada { border-color: rgba(111, 191, 138, .45); background: var(--ok-fundo); }
+.pub-situacao.erro { border-color: rgba(226, 120, 107, .45); background: var(--erro-fundo); }
+.ag-corpo { display: flex; flex-direction: column; gap: 14px; }
+.ag-corpo section { display: flex; flex-direction: column; gap: 6px; }
+.ag-artes { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
+.ag-artes li button { position: relative; padding: 0; border: 2px solid var(--borda); border-radius: 10px; background: none; cursor: pointer; opacity: .55; }
+.ag-artes li.marcada button { border-color: var(--ouro); opacity: 1; }
+.ag-artes .pp-mini { width: 86px; pointer-events: none; }
+.ag-num { position: absolute; top: 4px; left: 4px; min-width: 20px; height: 20px; display: inline-flex; align-items: center; justify-content: center; border-radius: 999px; background: rgba(0,0,0,.7); color: #fff; font-size: .72rem; }
+.ag-artes li.marcada .ag-num { background: var(--ouro); color: #111; }
+.ag-video { display: flex; flex-direction: column; gap: 4px; }
+.ag-legenda { width: 100%; resize: vertical; font-family: inherit; }
+.ag-quando { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.ag-quando label { display: inline-flex; align-items: center; gap: 6px; }
+.ag-quando input[type="radio"] { accent-color: var(--ouro); }
+.ag-quando input[type="datetime-local"] { width: auto; }
+.ag-acoes { justify-content: flex-end; }
+.ag-acoes > span { margin-right: auto; }
