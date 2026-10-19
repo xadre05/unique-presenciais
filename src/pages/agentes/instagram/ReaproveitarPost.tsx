@@ -101,9 +101,8 @@ export function ReaproveitarPost({ empresa, contexto, redesAtivas, aoVoltar, aoC
           <div className="rp-filtros">
             <label>Período:<span className="select-icone"><select value={periodo} onChange={(e) => { setPeriodo(e.target.value); setMostrar(POR_VEZ) }}>{PERIODOS.map((x) => <option key={x.id} value={x.id}>{x.nome}</option>)}</select></span></label>
             <label>Formato:<span className="select-icone"><select value={tipo} onChange={(e) => { setTipo(e.target.value); setMostrar(POR_VEZ) }}><option value="">Todos</option>{tipos.map((t) => <option key={t} value={t}>{NOME_TIPO[t] ?? t}</option>)}</select></span></label>
-            <label>Ordenar por:<span className="select-icone"><select value={ordem} onChange={(e) => setOrdem(e.target.value as Ordem)}>{ORDENS.map((o) => <option key={o.id} value={o.id}>{o.nome}</option>)}</select></span></label>
+            <div className="rp-ordens" role="radiogroup" aria-label="Ordenar por"><span>Ordenar:</span>{ORDENS.map((o) => <button key={o.id} type="button" role="radio" aria-checked={ordem === o.id} className={`rp-ordem${ordem === o.id ? ' ativa' : ''}`} onClick={() => setOrdem(o.id)}><Icone nome={o.icone} tam={14} /> {o.nome}</button>)}</div>
           </div>
-          <div className="rp-ordens">{ORDENS.map((o) => <button key={o.id} type="button" className={`rp-ordem${ordem === o.id ? ' ativa' : ''}`} onClick={() => setOrdem(o.id)}><Icone nome={o.icone} tam={16} /> {o.nome}</button>)}</div>
           {posts.carregando && !posts.dados ? <p className="muted pequeno">Carregando os posts…</p>
             : !lista.length ? <p className="muted pequeno">Nenhum post com esses filtros.</p>
               : <ul className="rp-cartoes">{lista.slice(0, mostrar).map((p) => <CartaoPost key={p.id} p={p} escolhido={escolhido?.id === p.id} aoEscolher={() => setEscolhido(p)} />)}</ul>}
