@@ -35,6 +35,7 @@ export function AjudaOrientacao({ uso, tipo, valor, mudar, pessoas = [], imagens
 export function SugestoesAjuste({ sugestoes, usar }: { sugestoes: string[]; usar: (s: string) => void }) {
   return (
     <div className="orienta-frases orienta-sugestoes">
+      <small className="muted orienta-sugestoes-ajuda" title="São atalhos fixos para este formato, não foram escritos pela IA. Clicar só junta a frase ao pedido; nada é enviado nem gasta créditos até você clicar em Pedir ajuste.">Atalhos (opcional): clique para juntar a frase ao seu pedido. Não gasta créditos.</small>
       {sugestoes.map((s) => <button key={s} type="button" onClick={() => usar(s)}><Icone nome="mais" tam={12} /> {s}</button>)}
     </div>
   )
