@@ -68,7 +68,7 @@ export function ResultadosInstagram({ empresa }: { empresa: string }) {
       <CabecalhoAba titulo="Resultados" sub="O que os posts publicados entregaram e o que o agente aprendeu com eles." />
       {!conexao.carregando && c?.status !== 'conectado' && (
         <div className="mk-vazio-grande"><Icone nome="grafico" tam={30} /><p>O Instagram ainda não está ligado.</p>
-          <span className="muted pequeno">Ligue em <Link to="/agentes/marca?aba=canais">Base da marca → Canais</Link>. Depois disso o agente lê os posts e as métricas todo dia.</span></div>
+          <span className="muted pequeno">Ligue em <Link to="/agentes/central?aba=integracoes">Configurações → Integrações</Link>. Depois disso o agente lê os posts e as métricas todo dia.</span></div>
       )}
       {c?.status === 'conectado' && (<>
         <div className="ig-cartoes">
@@ -80,7 +80,7 @@ export function ResultadosInstagram({ empresa }: { empresa: string }) {
         {lista.length > 0 && <PorFormato posts={lista} />}
         <AnaliseInstagram empresa={empresa} analise={c.analise} analisando={analisando} aoAnalisar={analisar} podeAnalisar={lista.length >= 5} />
         <Erro msg={erro} />
-        {lista.length > 0 ? <ListaPosts posts={lista} med={med} /> : <p className="muted pequeno">Os posts ainda estão sendo lidos. Volte em alguns minutos ou clique em Atualizar agora na Base da marca.</p>}
+        {lista.length > 0 ? <ListaPosts posts={lista} med={med} /> : <p className="muted pequeno">Os posts ainda estão sendo lidos. Volte em alguns minutos ou clique em Atualizar agora em Configurações → Integrações.</p>}
       </>)}
     </section>
   )

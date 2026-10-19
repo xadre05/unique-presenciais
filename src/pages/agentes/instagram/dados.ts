@@ -1,4 +1,4 @@
-// Instagram ligado à Base da marca: a conexão (marca_conexoes), os posts com métricas (marca_posts) e as ações
+// Instagram ligado (Configurações → Integrações): a conexão (marca_conexoes), os posts com métricas (marca_posts) e as ações
 // da função instagram (link de login, atualizar, analisar, desligar). Os segredos nunca chegam ao navegador.
 import { supabase, SUPABASE_URL } from '../../../lib/supabase'
 import { msgErro, useConsulta } from '../../../lib/dados'
@@ -37,7 +37,8 @@ export async function salvarApp(empresa: string, appId: string, segredo: string)
 
 type Acao = 'link' | 'sincronizar' | 'analisar' | 'desligar'
 export async function acaoInstagram<T = Record<string, unknown>>(empresa: string, acao: Acao): Promise<T> {
-  const voltar = `${window.location.origin}/agentes/marca`
+  // o login do Instagram volta para Configurações → Integrações, onde fica a conexão
+  const voltar = `${window.location.origin}/agentes/central?aba=integracoes`
   const { data, error } = await supabase.functions.invoke('instagram', { body: { acao, empresa, voltar } })
   const d = data as (T & { erro?: string }) | null
   if (error || !d || d.erro) throw new Error(d?.erro ?? 'Não consegui falar com o Instagram agora. Tente de novo.')

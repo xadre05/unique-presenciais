@@ -247,3 +247,11 @@ Capa, thumbnail e legenda são materiais dentro da peça, não peças separadas.
   conteúdo, as frases, os dados ou a marca. Cada empresa só vê as suas (tabela marca_referencias).
   Ainda não tem: áudio do vídeo (a fala precisa ser colada como texto; depois, Gemini), base compartilhada
   "Modelos Unique" para clientes, e perfis acompanhados pelo Instagram (Business Discovery).
+
+## Onde fica cada coisa (19/10/2026)
+
+- **Base da marca** em 4 abas: A marca (sobre, como fala, pessoas, identidade visual) · Campanhas · Conhecimento
+  (biblioteca e referências para modelar) · Canais (quais redes a empresa usa).
+- **Configurações** em 3 abas: Inteligências artificiais (chaves, modelo, limite) · Integrações (Instagram: ID e chave
+  do app, conectar, atualizar, desligar; WhatsApp em seguida) · Agentes (ligados e gasto). Conta de fora ligada ao
+  sistema é integração e fica em Configurações; a Base da marca só mostra se o Instagram está ligado.

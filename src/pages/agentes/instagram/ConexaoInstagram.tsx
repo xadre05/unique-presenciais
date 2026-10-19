@@ -1,4 +1,4 @@
-// Base da marca → Redes sociais → Instagram ligado: cadastrar o app da Meta (ID e chave secreta), conectar a conta
+// Configurações → Integrações → Instagram: cadastrar o app da Meta (ID e chave secreta), conectar a conta
 // profissional e acompanhar a leitura dos posts. Depois de ligado, os resultados aparecem no Agente de Marketing.
 import { useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
