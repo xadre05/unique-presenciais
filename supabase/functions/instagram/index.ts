@@ -5,12 +5,15 @@
 // Ações (POST JSON {acao, empresa}, administrador logado): link, sincronizar, historico, analisar (com filtro de período,
 // formato, origem, períodos ou marco), revisao_semanal (fazer agora), publicar (um agendamento agora), desligar.
 // GET ?code=&state= é a volta do login do Instagram (sem login do sistema; vale o código de segurança "estado").
-// Cron (cabeçalho x-cron-chave): 'sincronizar_todas' todo dia; 'revisao_semanal_todas' toda segunda; 'publicar_pendentes' a cada 5 min.
+// Cron (cabeçalho x-cron-chave): 'sincronizar_todas' todo dia; 'revisao_semanal_todas' toda segunda; 'publicar_pendentes' a cada 5 min;
+// 'automacoes_todas' a cada 2 min (comentário → direct). Avisos instantâneos do Instagram (webhook): GET com hub.mode
+// (verificação) e POST com X-Hub-Signature-256 (comentários novos), ambos sem login do sistema.
 import { createClient, type SupabaseClient } from 'npm:@supabase/supabase-js@2.45.4'
 import { analisar, type Filtro } from './analise.ts'
 import { revisaoSemanal, revisaoTodas } from './revisao.ts'
 import { ligarPecas } from './ligar.ts'
 import { publicarAgora, publicarPendentes, type Credenciais } from './publicar.ts'
+import { automacoesTodas, lerComentarios, receberAviso } from './automacao.ts'
 
 const GRAPH = 'https://graph.instagram.com/v25.0'
 // ler (básico e métricas), publicar, comentários e mensagens do Direct
@@ -225,6 +228,26 @@ const credenciaisDe = (db: SupabaseClient): Credenciais => async (empresa) => {
   return { token: await renovarSePreciso(db, empresa, c as Conexao, await segredo(db, empresa, 'instagram_token')), conta: String(c.conta_id) }
 }
 
+// ===== avisos instantâneos (webhook) =====
+// código de verificação que a equipe cola no painel da Meta, junto com o endereço (RETORNO)
+async function prepararAviso(db: SupabaseClient, empresa: string) {
+  const { data: c } = await db.from('marca_conexoes').select('webhook_token,webhook_em').eq('empresa_id', empresa).eq('rede', 'instagram').maybeSingle()
+  let token = c?.webhook_token as string | null
+  if (!token) { token = crypto.randomUUID().replaceAll('-', ''); await atualizar(db, empresa, { webhook_token: token }) }
+  return { endereco: RETORNO, codigo: token, ultimo_aviso: c?.webhook_em ?? null }
+}
+async function verificarAviso(db: SupabaseClient, u: URL) {
+  const token = u.searchParams.get('hub.verify_token') ?? ''
+  const { data } = token ? await db.from('marca_conexoes').select('empresa_id').eq('webhook_token', token).limit(1) : { data: [] }
+  return data?.length ? new Response(u.searchParams.get('hub.challenge') ?? '', { headers: { 'Content-Type': 'text/plain' } }) : new Response('código errado', { status: 403 })
+}
+// pede ao Instagram para mandar os avisos de comentário e de mensagem desta conta
+async function assinarAvisos(db: SupabaseClient, empresa: string) {
+  const { token } = await credenciaisDe(db)(empresa)
+  const r = await fetch(`${GRAPH}/me/subscribed_apps?subscribed_fields=comments,messages&access_token=${token}`, { method: 'POST' })
+  return await lerJson(r)
+}
+
 async function sincronizarTodas(db: SupabaseClient) {
   const { data } = await db.from('marca_conexoes').select('empresa_id').eq('rede', 'instagram').eq('status', 'conectado')
   const feitas: Record<string, unknown> = {}
@@ -236,13 +259,26 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors })
   const url = Deno.env.get('SUPABASE_URL')!
   const db = createClient(url, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!)
-  if (req.method === 'GET') return await voltaDoLogin(db, new URL(req.url))
+  if (req.method === 'GET') {
+    const u = new URL(req.url)
+    if (u.searchParams.get('hub.mode') === 'subscribe') return await verificarAviso(db, u)
+    return await voltaDoLogin(db, u)
+  }
 
-  const corpo = await req.json().catch(() => ({})) as { acao?: string; empresa?: string; voltar?: string; filtro?: Filtro; id?: string }
-  if (corpo.acao === 'sincronizar_todas' || corpo.acao === 'revisao_semanal_todas' || corpo.acao === 'publicar_pendentes') {
+  const bruto = await req.text()
+  const assinatura = req.headers.get('x-hub-signature-256')
+  if (assinatura) {
+    // aviso do Instagram: responde rápido e trata em segundo plano (o Instagram reenvia se demorar)
+    // @ts-ignore EdgeRuntime existe no Supabase
+    EdgeRuntime.waitUntil(receberAviso(db, bruto, assinatura, credenciaisDe(db), (e) => segredo(db, e, 'instagram_app')).catch((e) => console.error('aviso', (e as Error).message)))
+    return new Response('ok', { headers: cors })
+  }
+  const corpo = (() => { try { return JSON.parse(bruto || '{}') } catch { return {} } })() as { acao?: string; empresa?: string; voltar?: string; filtro?: Filtro; id?: string }
+  if (corpo.acao === 'sincronizar_todas' || corpo.acao === 'revisao_semanal_todas' || corpo.acao === 'publicar_pendentes' || corpo.acao === 'automacoes_todas') {
     const { data: chave } = await db.rpc('crm_chave_cron')
     if (!chave || req.headers.get('x-cron-chave') !== chave) return json({ erro: 'Acesso negado.' }, 403)
     if (corpo.acao === 'publicar_pendentes') return json(await publicarPendentes(db, credenciaisDe(db)))
+    if (corpo.acao === 'automacoes_todas') return json(await automacoesTodas(db, credenciaisDe(db)))
     return json(corpo.acao === 'sincronizar_todas' ? await sincronizarTodas(db) : await revisaoTodas(db))
   }
   const usuario = createClient(url, Deno.env.get('SUPABASE_ANON_KEY')!, { global: { headers: { Authorization: req.headers.get('Authorization') ?? '' } } })
@@ -261,6 +297,9 @@ Deno.serve(async (req) => {
     if (corpo.acao === 'analisar') return json({ analise: await analisar(db, empresa, corpo.filtro ?? {}) })
     if (corpo.acao === 'revisao_semanal') return json({ analise: await revisaoSemanal(db, empresa) })
     if (corpo.acao === 'publicar') return json(await publicarAgora(db, empresa, String(corpo.id ?? ''), credenciaisDe(db)))
+    if (corpo.acao === 'automacoes_agora') return json(await lerComentarios(db, empresa, credenciaisDe(db)))
+    if (corpo.acao === 'aviso_preparar') return json(await prepararAviso(db, empresa))
+    if (corpo.acao === 'aviso_assinar') return json(await assinarAvisos(db, empresa))
     if (corpo.acao === 'desligar') {
       await db.rpc('marca_guardar_token', { p_empresa: empresa, p_rede: 'instagram', p_token: '' })
       await atualizar(db, empresa, { status: 'desligado', estado: null, token_expira_em: null })

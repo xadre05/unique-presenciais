@@ -1,5 +1,8 @@
 // Ícones em traço fino (desenho no estilo Lucide), sem dependência externa.
 const P: Record<string, string> = {
+  raio: 'M13 2 3 14h9l-1 8 10-12h-9z',
+  cima: 'M18 15l-6-6-6 6',
+  baixo: 'M6 9l6 6 6-6',
   copiar: 'M10 8h9a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-9a2 2 0 0 1-2-2v-9a2 2 0 0 1 2-2M5 16H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1',
   lixeira: 'M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6M10 11v6M14 11v6',
   arrastar: 'M9 5h.01M9 12h.01M9 19h.01M15 5h.01M15 12h.01M15 19h.01',

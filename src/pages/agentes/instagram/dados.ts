@@ -43,7 +43,7 @@ export async function salvarApp(empresa: string, appId: string, segredo: string)
   if (error) throw new Error(msgErro(error))
 }
 
-type Acao = 'link' | 'sincronizar' | 'historico' | 'analisar' | 'revisao_semanal' | 'publicar' | 'desligar'
+type Acao = 'link' | 'sincronizar' | 'historico' | 'analisar' | 'revisao_semanal' | 'publicar' | 'desligar' | 'automacoes_agora' | 'aviso_preparar' | 'aviso_assinar'
 export async function acaoInstagram<T = Record<string, unknown>>(empresa: string, acao: Acao, filtro?: FiltroAnalise, extra: Record<string, unknown> = {}): Promise<T> {
   // o login do Instagram volta para Configurações → Integrações, onde fica a conexão
   const voltar = `${window.location.origin}/agentes/central?aba=integracoes`

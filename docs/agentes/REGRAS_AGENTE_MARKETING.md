@@ -341,3 +341,21 @@ Capa, thumbnail e legenda são materiais dentro da peça, não peças separadas.
   - Publicado, o post entra em `marca_posts` já como "Agente", ligado à peça, e a peça passa a publicada.
 - **Permissões do login:** básico, métricas, publicar, comentários e mensagens. As aceitas ficam em `marca_conexoes.permissoes`. Sem a de publicar, a peça e as Integrações pedem "Conectar de novo".
 - **Comentários e Direct (o "nosso ManyChat"):** são o próximo passo. Para funcionar com qualquer pessoa, e não só contas de teste, o app precisa de Acesso Avançado (revisão do app + verificação da empresa na Meta).
+
+## Automações: comentário → direct (19/10/2026)
+
+- Aba **Automações** do Agente de Marketing. Cada automação diz onde vale (um post publicado, uma peça do agente, que
+  passa a valer quando for publicada, ou qualquer post dos últimos 7 dias), as palavras-chave (inteiras, sem ligar para
+  acento ou maiúscula) ou "qualquer comentário", a mensagem do direct (`{nome}` vira o @), o link (pode ficar em branco
+  até a página subir) e até 3 respostas públicas, sorteadas.
+- Tabelas: `marca_automacoes` e `marca_automacao_envios` (um registro por comentário, `comentario_id` único: nunca
+  manda duas vezes). Migration `agentes_013_automacoes.sql`.
+- Duas entradas, a mesma regra (`supabase/functions/instagram/automacao.ts`):
+  - **leitura**: cron `instagram-automacoes` a cada 2 minutos (só quando há automação ligada), ação `automacoes_todas`.
+    Não depende da aprovação da Meta.
+  - **aviso instantâneo (webhook)**: GET com `hub.mode` (verificação com `marca_conexoes.webhook_token`) e POST com
+    `X-Hub-Signature-256` (conferido com a chave secreta do app). Só chega com o app publicado (Live), verificação do
+    negócio e acesso avançado para `comments`.
+- Resposta privada do Instagram: só texto (o link vai dentro), até 7 dias depois do comentário, uma por comentário.
+  Enquanto o app está em desenvolvimento, só quem tem papel no app recebe.
+- Comentários da própria conta são ignorados. Ligar (ou religar) uma automação vale só para comentários feitos depois.
