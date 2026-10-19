@@ -2902,7 +2902,7 @@ a.sala-agente:hover { border-color: var(--ouro); transform: translateY(-2px); }
 .rp-escolhido .link { display: inline-flex; align-items: center; gap: 4px; }
 .rp-bloco { display: flex; flex-direction: column; gap: 6px; }
 .rp-bloco h4 { margin: 0; font-family: 'Fraunces', Georgia, serif; font-size: 1.05rem; }
-.rp-manter { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
+.rp-manter { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 4px; }
 .rp-marcar { display: inline-flex; align-items: center; gap: 7px; padding: 7px 11px; font-size: .9rem; border: 1px solid var(--borda); border-radius: 10px; background: none; color: inherit; font: inherit; cursor: pointer; }
 .rp-marcar > span { width: 20px; height: 20px; border-radius: 50%; border: 1.5px solid var(--muted); display: inline-flex; align-items: center; justify-content: center; flex: none; }
 .rp-marcar.ativo { border-color: var(--ouro); color: var(--ouro); background: var(--ouro-fundo); }
@@ -2917,7 +2917,7 @@ a.sala-agente:hover { border-color: var(--ouro); transform: translateY(-2px); }
 .rp-preparar { width: 100%; justify-content: center; }
 .rp-nota { display: flex; align-items: center; gap: 6px; margin: 0; }
 
-@media (max-width: 900px) { .rp-grade { grid-template-columns: 1fr; } .rp-lado { position: static; } }
+@media (max-width: 900px) { .rp-grade { grid-template-columns: 1fr; } .rp-lado { position: static; } .rp-ordens { max-width: 100%; overflow-x: auto; } }
 
 
 /* ===== Reunião com o agente ===== */
