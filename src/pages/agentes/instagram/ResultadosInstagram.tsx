@@ -94,7 +94,6 @@ export function ResultadosInstagram({ empresa }: { empresa: string }) {
         <div className="ig-cartoes">
           <div><small>Posts no filtro</small><b>{lista.length}</b></div>
           <div><small>Alcance mediano por post</small><b>{milhar(med)}</b></div>
-          <div><small>Seguidores</small><b>{milhar(c.seguidores ?? undefined)}</b></div>
           <div><small>Desde</small><b>{maisAntigo ? new Date(maisAntigo + 'T12:00:00').toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' }) : '—'}</b></div>
         </div>
         <SeguidoresInstagram historico={historico} atual={c.seguidores} />
