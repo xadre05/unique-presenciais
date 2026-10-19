@@ -47,7 +47,7 @@ export function AnaliseInstagram({ empresa, analises, opcoes, analisando, aoPedi
             {analises.map((a) => <option key={a.id} value={a.id}>{nomeNaLista(a)}</option>)}</select></span></label>
       )}
       {atual && r && (<>
-        <p className="ig-titulo-analise"><span className="ig-tipo-analise">{NOME_TIPO_ANALISE[atual.tipo]}</span> <b>{atual.titulo}</b> <span className="muted pequeno">· {quando(atual.criado_em)} · {r.posts} posts · alcance mediano {r.mediana}</span></p>
+        <p className="ig-titulo-analise"><b>{atual.titulo ?? NOME_TIPO_ANALISE[atual.tipo]}</b> <span className="muted pequeno">· {quando(atual.criado_em)} · {r.posts} posts · alcance mediano {r.mediana}</span></p>
         <p>{r.resumo}</p>
         {!!r.comparacao?.length && <><h5 className="reu-subtitulo">O que mudou entre os períodos</h5><ul className="ig-recom">{r.comparacao.map((x, i) => <li key={i}>{x}</li>)}</ul></>}
         <div className="ig-padroes-grade">
