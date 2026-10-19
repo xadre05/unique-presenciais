@@ -9,7 +9,7 @@ import { EMPRESA_UNIQUE } from '../crm/comum'
 import { Retrato } from './Retrato'
 import { useSala, type AgenteNaSala } from './useSala'
 import { TIPO_PECA, visualDe } from './comum'
-import { creditos } from './creditos'
+import { creditosDe } from './creditos'
 import type { PerfilMarketing } from './marca/dados'
 
 function situacao(a: AgenteNaSala, temChave: boolean): { txt: string; tom: string } {
@@ -49,6 +49,22 @@ function CartaoAgente({ a, temChave }: { a: AgenteNaSala; temChave: boolean }) {
   )
 }
 
+// créditos do mês: o número grande é o que ainda dá para usar; a barra mostra quanto já foi
+function KpiCreditos({ usados, limite }: { usados: number; limite: number | null }) {
+  const n = (x: number) => x.toLocaleString('pt-BR')
+  const parte = limite ? Math.min(100, Math.round((usados / limite) * 100)) : 0
+  return (
+    <Link to="/agentes/central" className="sala-kpi-cred" title="Ver créditos em Configurações">
+      <Icone nome="moedas" tam={22} />
+      <span>Créditos do mês
+        <b>{limite != null ? n(Math.max(0, limite - usados)) : n(usados)}<small>{limite != null ? ' disponíveis' : ' usados'}</small></b>
+        {limite != null && <i className="sala-barra" aria-hidden><i style={{ width: `${parte}%` }} /></i>}
+        <small>{limite != null ? `${n(usados)} usados de ${n(limite)}` : 'Sem limite definido'}</small>
+      </span>
+    </Link>
+  )
+}
+
 export default function Sala() {
   const { agentes, cfg, erro } = useSala()
   const fila = useConsulta<{ id: string; titulo: string; tipo: string; agente_id: string }[]>(() => supabase.from('agentes_pecas').select('id,titulo,tipo,agente_id').eq('empresa_id', EMPRESA_UNIQUE).eq('status', 'rascunho').order('dia').limit(5))
@@ -73,7 +89,7 @@ export default function Sala() {
         <div><Icone nome="usuario" tam={22} /><span>Agentes ativos<b>{ativos}</b></span></div>
         <div><Icone nome="documento" tam={22} /><span>Em aprovação<b>{emAprovacao}</b></span></div>
         <div><Icone nome="relogio" tam={22} /><span>Em execução<b>{emExecucao}</b></span></div>
-        <div><Icone nome="grafico" tam={22} /><span>Créditos usados no mês<b>{creditos(consumo)}</b></span><Link to="/agentes/central" className="link pequeno">{cfg?.limite_mes_creditos != null ? `Limite do mês: ${cfg.limite_mes_creditos} créditos` : 'Definir créditos'} ›</Link></div>
+        <KpiCreditos usados={creditosDe(consumo)} limite={cfg?.limite_mes_creditos ?? null} />
       </div>
 
       {cfg && !temChave && (

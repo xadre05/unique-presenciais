@@ -1310,6 +1310,13 @@ a.sala-agente:hover { border-color: var(--ouro); transform: translateY(-2px); }
 .sala-kpis span { display: flex; flex-direction: column; color: var(--muted); font-size: .82rem; }
 .sala-kpis b { color: var(--texto); font-family: 'Fraunces', Georgia, serif; font-size: 1.3rem; }
 .sala-kpis .link { margin-left: auto; white-space: nowrap; }
+.sala-kpis > .sala-kpi-cred { display: flex; align-items: center; gap: 12px; padding: 12px 18px; color: var(--ouro); text-decoration: none; border-left: 1px solid var(--borda); }
+.sala-kpi-cred:hover { background: rgba(201,168,106,.05); }
+.sala-kpi-cred > span { flex: 1; min-width: 0; gap: 2px; }
+.sala-kpi-cred b small { font-family: inherit; font-size: .78rem; font-weight: 400; color: var(--muted); }
+.sala-kpi-cred > span > small { font-size: .75rem; }
+.sala-barra { display: block; height: 4px; border-radius: 99px; background: var(--painel-2); overflow: hidden; margin: 2px 0; }
+.sala-barra > i { display: block; height: 100%; background: var(--ouro); border-radius: 99px; }
 .sala-aviso { background: linear-gradient(90deg, rgba(224,180,79,.16), rgba(224,180,79,.05)); }
 .sala-abas { display: flex; gap: 8px; margin: 4px 0 12px; }
 .sala-abas button { padding: 7px 26px; border-radius: 9px; border: 1px solid var(--borda); background: var(--painel); color: var(--texto); cursor: pointer; font: inherit; font-size: .9rem; display: flex; gap: 8px; align-items: center; }
