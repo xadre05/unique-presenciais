@@ -2435,3 +2435,6 @@ a.sala-agente:hover { border-color: var(--ouro); transform: translateY(-2px); }
 .mk-coluna header { padding: 12px 8px; gap: 4px; }
 .mk-coluna header > svg { width: 17px; height: 17px; }
 .mk-coluna header .mk-mais { width: 26px; height: 26px; }
+.mk-coluna header .mk-conta { margin-left: 0; }
+.mk-coluna header { gap: 3px; }
+.mk-coluna header b { margin-right: 2px; }
