@@ -1,20 +1,18 @@
 // Base da marca: o que os agentes precisam saber da empresa, em 4 abas para não virar uma página sem fim.
 // A marca (quem é, o que vende, como fala, rosto e visual) · Campanhas (ofertas com data) ·
 // Conhecimento (biblioteca da empresa e referências de terceiros para modelar) · Canais (redes e Instagram ligado).
-import { useState } from 'react'
+import { useCallback, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import { useConsulta } from '../../lib/dados'
 import { EMPRESA_UNIQUE } from '../crm/comum'
-import { MarketingPerfil, type PerfilMarketing } from './MarketingPerfil'
+import { Icone } from '../../components/Icone'
 import { RedesEmpresa } from './RedesEmpresa'
-import { PessoasMarca } from './PessoasMarca'
-import { LogosMarca } from './LogosMarca'
 import { BibliotecaMarca } from './biblioteca/BibliotecaMarca'
-import { PerfilVoz } from './biblioteca/PerfilVoz'
 import { useConexao } from './instagram/dados'
 import { CampanhasMarca } from './CampanhasMarca'
 import { ReferenciasMarca } from './referencias/ReferenciasMarca'
+import { AbaMarca } from './marca/AbaMarca'
 
 type Aba = 'marca' | 'campanhas' | 'conhecimento' | 'canais'
 const ABAS: { id: Aba; nome: string; sub: string }[] = [
@@ -37,27 +35,27 @@ export default function CentralMarca() {
   const [params, setParams] = useSearchParams()
   const inicial = ABAS.find((a) => a.id === params.get('aba'))?.id ?? 'marca'
   const [aba, setAba] = useState<Aba>(inicial)
-  const perfil = useConsulta<{ perfil: PerfilMarketing } | null>(() => supabase.from('agentes_empresa').select('perfil').eq('empresa_id', EMPRESA_UNIQUE).eq('agente_id', 'marketing').maybeSingle())
+  const perfil = useConsulta<{ perfil: Record<string, unknown>; atualizado_em: string | null } | null>(() => supabase.from('agentes_empresa').select('perfil,atualizado_em').eq('empresa_id', EMPRESA_UNIQUE).eq('agente_id', 'marketing').maybeSingle())
   const dados = (perfil.dados?.perfil ?? {}) as Record<string, unknown>
-  const pronto = !perfil.carregando
-  const trocar = (a: Aba) => { setAba(a); setParams({ aba: a }, { replace: true }) }
+  // depois da primeira leitura a página não some ao recarregar (senão perderia o que está sendo editado)
+  const pronto = !perfil.carregando || perfil.dados !== null
+  const [pendente, setPendente] = useState(false)
+  const [aviso, setAviso] = useState<string | null>(null)
+  const mudarPendente = useCallback((p: boolean) => { setPendente(p); if (!p) setAviso(null) }, [])
+  const trocar = (a: Aba) => {
+    if (pendente && a !== aba) return setAviso('Salve ou descarte as alterações de "A marca" antes de trocar de aba (barra lá embaixo).')
+    setAba(a); setParams({ aba: a }, { replace: true })
+  }
+  const quando = perfil.dados?.atualizado_em ? new Date(perfil.dados.atualizado_em).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : null
   const atual = ABAS.find((a) => a.id === aba)!
   return (
     <div className="pagina">
-      <header className="pagina-topo"><div><h1>Base da marca</h1><p className="muted">O que os agentes precisam saber para falar como a empresa.</p></div></header>
+      <header className="pagina-topo"><div><h1>Base da marca</h1><p className="muted">O que os agentes precisam saber para falar como a empresa.</p></div>{quando && <span className="bm-quando muted pequeno"><Icone nome="relogio" tam={15} /> Última alteração: {quando}</span>}</header>
       <nav className="mk-abas-topo">{ABAS.map((a) => <button key={a.id} className={aba === a.id ? 'ativa' : ''} onClick={() => trocar(a.id)}>{a.nome}</button>)}</nav>
       <p className="muted base-sub">{atual.sub}</p>
+      {aviso && <p className="nota pequeno erro-txt">{aviso}</p>}
 
-      {aba === 'marca' && <>
-        <section className="bloco"><h2>Sobre a marca</h2><p className="muted pequeno">O que a marca é e vende sempre. Oferta com data (Black, lançamento) vai na aba Campanhas.</p>
-          {pronto && <MarketingPerfil empresaId={EMPRESA_UNIQUE} perfil={perfil.dados?.perfil ?? {}} aoSalvar={perfil.recarregar} />}</section>
-        <section className="bloco"><h2>Como a marca fala</h2><p className="muted pequeno">Não precisa escrever do zero: clique em "Gerar a partir da biblioteca", revise e salve. Vai junto em todo pedido ao agente.</p>
-          {pronto && <PerfilVoz empresaId={EMPRESA_UNIQUE} perfil={dados} aoSalvar={perfil.recarregar} />}</section>
-        <section className="bloco"><h2>Pessoas da marca</h2><p className="muted pequeno">Quem pode aparecer nas artes criadas pela IA. As fotos servem de referência para o rosto ficar parecido; só entram com a autorização de uso de imagem.</p>
-          <PessoasMarca empresa={EMPRESA_UNIQUE} /></section>
-        <section className="bloco"><h2>Identidade visual</h2><p className="muted pequeno">O logo real da empresa e imagens que mostram o estilo da marca. O Agente de Arte usa em toda arte.</p>
-          {pronto && <LogosMarca empresaId={EMPRESA_UNIQUE} perfil={dados} aoSalvar={perfil.recarregar} />}</section>
-      </>}
+      {aba === 'marca' && pronto && <AbaMarca empresa={EMPRESA_UNIQUE} perfil={dados} aoSalvar={perfil.recarregar} aoMudarPendente={mudarPendente} />}
 
       {aba === 'campanhas' && <section className="bloco"><h2>Campanhas</h2><p className="muted pequeno">Cada campanha tem período, oferta e regras próprias. As peças da campanha usam só essas informações.</p>
         {pronto && <CampanhasMarca empresaId={EMPRESA_UNIQUE} perfil={dados} aoSalvar={perfil.recarregar} />}</section>}

@@ -9,7 +9,7 @@ import { EMPRESA_UNIQUE } from '../crm/comum'
 import { Retrato } from './Retrato'
 import { useSala, type AgenteNaSala } from './useSala'
 import { TIPO_PECA, usd, visualDe } from './comum'
-import type { PerfilMarketing } from './MarketingPerfil'
+import type { PerfilMarketing } from './marca/dados'
 
 function situacao(a: AgenteNaSala, temChave: boolean): { txt: string; tom: string } {
   if (!a.disponivel) return { txt: a.escopo === 'clinical' ? 'Para clínicas · Em breve' : 'Em breve', tom: 'neutro' }

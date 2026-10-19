@@ -39,7 +39,7 @@ function Pessoa({ p, aoMudar }: { p: PessoaMarca; aoMudar: () => void }) {
     <div className="pessoa-cartao">
       <div className="pessoa-topo">
         <input className="pessoa-nome" defaultValue={p.nome} onBlur={(e) => e.target.value.trim() && e.target.value !== p.nome && gravar({ nome: e.target.value.trim() })} aria-label="Nome" />
-        <input defaultValue={p.papel ?? ''} placeholder="Papel (ex.: dentista, dona da clínica)" onBlur={(e) => e.target.value !== (p.papel ?? '') && gravar({ papel: e.target.value.trim() || null })} aria-label="Papel" />
+        <input defaultValue={p.papel ?? ''} placeholder="Função pública (ex.: especialista e professora)" onBlur={(e) => e.target.value !== (p.papel ?? '') && gravar({ papel: e.target.value.trim() || null })} aria-label="Função pública" />
         <button className="btn btn-mini" onClick={() => gravar({ ativo: false })} title="Tirar esta pessoa da lista"><Icone nome="lixeira" tam={14} /> Tirar</button>
       </div>
       <label className="pp-check"><input type="checkbox" checked={p.autorizado} onChange={(e) => autorizar(e.target.checked)} /> Esta pessoa autorizou, por escrito, o uso da imagem dela para criar artes de divulgação da empresa.</label>
@@ -57,8 +57,10 @@ function Pessoa({ p, aoMudar }: { p: PessoaMarca; aoMudar: () => void }) {
   )
 }
 
-export function PessoasMarca({ empresa }: { empresa: string }) {
-  const pessoas = usePessoasMarca(empresa)
+export function PessoasMarca({ empresa, aoMudar }: { empresa: string; aoMudar?: () => void }) {
+  const consulta = usePessoasMarca(empresa)
+  // quem mostra o resumo das pessoas (Base da marca) é avisado a cada mudança
+  const pessoas = { ...consulta, recarregar: () => { consulta.recarregar(); aoMudar?.() } }
   const [nome, setNome] = useState('')
   const [erro, setErro] = useState<string | null>(null)
   const incluir = async () => {

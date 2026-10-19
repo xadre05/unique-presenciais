@@ -2484,3 +2484,41 @@ a.sala-agente:hover { border-color: var(--ouro); transform: translateY(-2px); }
 .reu-escolha.sozinha { grid-template-columns: minmax(0, 1fr); max-width: 980px; }
 .ref-form .form-duas { align-items: end; }
 .base-sub { margin: -6px 0 14px; }
+
+/* Base da marca → A marca: seções que abrem e fecham, resumo ao lado e barra de salvar */
+.pagina-topo .bm-quando { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border: 1px solid var(--borda); border-radius: 10px; align-self: flex-start; }
+.bm-grade { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 18px; align-items: start; padding-bottom: 80px; }
+.bm-principal { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.bm-secao { background: var(--painel); border: 1px solid var(--borda); border-radius: 14px; }
+.bm-secao.aberta { border-color: rgba(201,168,106,.35); }
+.bm-secao-cab { width: 100%; display: flex; align-items: center; gap: 12px; padding: 14px 18px; background: none; border: 0; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.bm-secao-cab b { font-family: 'Fraunces', Georgia, serif; font-weight: 600; font-size: 1.12rem; white-space: nowrap; }
+.bm-seta { display: inline-block; font-size: 1.3rem; line-height: 1; color: var(--muted); transition: transform .15s; width: 12px; }
+.bm-secao.aberta .bm-seta { transform: rotate(90deg); color: var(--ouro); }
+.bm-secao-resumo { flex: 1; min-width: 0; color: var(--muted); font-size: .85rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bm-secao-corpo { padding: 0 18px 18px; display: flex; flex-direction: column; gap: 12px; }
+.bm-campos { display: flex; flex-direction: column; gap: 12px; }
+.bm-duas { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.bm-secao-corpo textarea, .bm-secao-corpo input:not([type="checkbox"]) { width: 100%; }
+.bm-gerar { align-self: flex-start; }
+.bm-proposta { border: 1px dashed rgba(201,168,106,.5); border-radius: 12px; padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; }
+.bm-proposta b { display: flex; align-items: center; gap: 6px; color: var(--ouro-forte); }
+.bm-proposta pre { white-space: pre-wrap; font: inherit; font-size: .9rem; margin: 0; max-height: 320px; overflow: auto; }
+.bm-lado { display: flex; flex-direction: column; gap: 14px; position: sticky; top: 12px; }
+.bm-cartao { background: var(--painel); border: 1px solid var(--borda); border-radius: 14px; padding: 16px; }
+.bm-cartao h3 { display: flex; align-items: center; gap: 8px; margin: 0 0 10px; font-size: 1.05rem; }
+.bm-resumo { margin: 0; display: flex; flex-direction: column; }
+.bm-resumo > div { display: grid; grid-template-columns: 120px 1fr; gap: 8px; padding: 8px 0; border-top: 1px solid var(--borda); font-size: .88rem; }
+.bm-resumo > div:first-child { border-top: 0; }
+.bm-resumo dt { display: flex; align-items: center; gap: 6px; color: var(--muted); }
+.bm-resumo dd { margin: 0; overflow-wrap: anywhere; }
+.bm-logo { margin: 0 0 10px; display: flex; flex-direction: column; gap: 4px; }
+.bm-logo img { width: 100%; max-height: 110px; object-fit: contain; border: 1px solid var(--borda); border-radius: 10px; padding: 10px; background: repeating-conic-gradient(rgba(255,255,255,.04) 0% 25%, transparent 0% 50%) 50% / 16px 16px; }
+.bm-logo figcaption { font-size: .78rem; color: var(--muted); text-align: center; }
+.bm-logos .pp-ref .pp-mini { width: 150px; height: 96px; aspect-ratio: auto; }
+.bm-logos .pp-mini img { object-fit: contain; padding: 6px; }
+.bm-barra { position: sticky; bottom: 0; z-index: 5; grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 16px; background: var(--painel); border: 1px solid var(--borda); border-radius: 14px; box-shadow: 0 -8px 24px rgba(0,0,0,.35); }
+.bm-barra.pendente { border-color: rgba(201,168,106,.5); }
+.bm-ponto { display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: var(--ouro); margin-right: 4px; }
+@media (max-width: 1100px) { .bm-grade { grid-template-columns: 1fr; } .bm-lado { position: static; } }
+@media (max-width: 700px) { .bm-duas { grid-template-columns: 1fr; } .bm-secao-resumo { display: none; } }
