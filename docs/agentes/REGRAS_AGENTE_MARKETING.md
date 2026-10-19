@@ -325,3 +325,19 @@ Capa, thumbnail e legenda são materiais dentro da peça, não peças separadas.
 - **Comparações:** Antes × depois de uma data (as datas guardadas com nome são os antigos marcos), o mesmo recorte em anos diferentes e os anos e formatos. Cada parte tem o seu botão de análise.
 - **Aprendizados:** revisão semanal (ligar e revisar agora), o que o agente aprendeu e todas as análises (lista à esquerda, análise aberta à direita, com os cartões de ensinar).
 - **Planejar:** os três caminhos (Já sei o que postar, Partir de um post que funcionou, Conversar com o agente) em linhas iguais.
+
+### Publicar e agendar no Instagram (19/10/2026, liberado pelo Alexandre)
+- A regra antiga "o sistema só lê o Instagram" mudou: **o sistema publica só o que alguém da equipe agendou** numa peça aprovada. Nada sai sozinho sem esse clique.
+- **Na peça,** o cartão "Instagram" (coluna da direita) leva a "Agendar no Instagram". A janela tem:
+  - as artes em ordem, para marcar quais entram;
+  - o vídeo do Reels, que vai para o armazenamento "videos" (até 300 MB);
+  - a legenda montada (legenda, chamada e hashtags), editável;
+  - Agora ou dia e hora.
+  - Depois de agendar: Publicar agora, Cancelar e Tentar de novo.
+- **Imagens:** o Instagram só aceita JPEG. As artes em outro formato viram JPEG no navegador antes de subir.
+- **No servidor** (`marca_publicacoes` + `instagram/publicar.ts`):
+  - O cron `instagram-publicar` roda a cada 5 minutos.
+  - A publicação é em duas etapas: o contêiner com a mídia e, quando ele fica pronto, a publicação. Vídeo pode levar minutos, e o cron tenta de novo.
+  - Publicado, o post entra em `marca_posts` já como "Agente", ligado à peça, e a peça passa a publicada.
+- **Permissões do login:** básico, métricas, publicar, comentários e mensagens. As aceitas ficam em `marca_conexoes.permissoes`. Sem a de publicar, a peça e as Integrações pedem "Conectar de novo".
+- **Comentários e Direct (o "nosso ManyChat"):** são o próximo passo. Para funcionar com qualquer pessoa, e não só contas de teste, o app precisa de Acesso Avançado (revisão do app + verificação da empresa na Meta).
