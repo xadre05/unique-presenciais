@@ -3024,3 +3024,11 @@ a.sala-agente:hover { border-color: var(--ouro); transform: translateY(-2px); }
 .au-copiar code { padding: 4px 8px; border-radius: 6px; background: rgba(0,0,0,.3); font-size: .8rem; overflow-wrap: anywhere; }
 .au-avisos-rodape { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
 @media (max-width: 760px) { .au-form { grid-template-columns: 1fr; } }
+.au-destino { display: flex; flex-direction: column; gap: 8px; }
+.au-alvo { display: inline-flex; align-items: center; gap: 6px; }
+.au-alvo.desligado { opacity: .45; cursor: default; border-style: dashed; }
+.au-vendedoras { display: flex; flex-direction: column; gap: 6px; padding: 10px; border: 1px solid var(--borda); border-radius: 10px; }
+.au-vendedora { display: grid; grid-template-columns: minmax(120px, 1fr) minmax(0, 1.2fr) auto; gap: 8px; align-items: center; }
+.au-vendedora .pp-check { font-weight: 400; }
+.au-subir { align-self: flex-start; cursor: pointer; }
+@media (max-width: 600px) { .au-vendedora { grid-template-columns: 1fr; } }

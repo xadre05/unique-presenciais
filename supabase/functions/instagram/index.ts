@@ -7,13 +7,14 @@
 // GET ?code=&state= é a volta do login do Instagram (sem login do sistema; vale o código de segurança "estado").
 // Cron (cabeçalho x-cron-chave): 'sincronizar_todas' todo dia; 'revisao_semanal_todas' toda segunda; 'publicar_pendentes' a cada 5 min;
 // 'automacoes_todas' a cada 2 min (comentário → direct). Avisos instantâneos do Instagram (webhook): GET com hub.mode
-// (verificação) e POST com X-Hub-Signature-256 (comentários novos), ambos sem login do sistema.
+// (verificação) e POST com X-Hub-Signature-256 (comentários novos), ambos sem login do sistema. GET ?ir=código é o link
+// rastreado das automações (conta o clique e leva ao link, ao PDF ou ao WhatsApp).
 import { createClient, type SupabaseClient } from 'npm:@supabase/supabase-js@2.45.4'
 import { analisar, type Filtro } from './analise.ts'
 import { revisaoSemanal, revisaoTodas } from './revisao.ts'
 import { ligarPecas } from './ligar.ts'
 import { publicarAgora, publicarPendentes, type Credenciais } from './publicar.ts'
-import { automacoesTodas, lerComentarios, receberAviso } from './automacao.ts'
+import { automacoesTodas, irPara, lerComentarios, receberAviso } from './automacao.ts'
 
 const GRAPH = 'https://graph.instagram.com/v25.0'
 // ler (básico e métricas), publicar, comentários e mensagens do Direct
@@ -262,6 +263,7 @@ Deno.serve(async (req) => {
   if (req.method === 'GET') {
     const u = new URL(req.url)
     if (u.searchParams.get('hub.mode') === 'subscribe') return await verificarAviso(db, u)
+    if (u.searchParams.get('ir')) return await irPara(db, u.searchParams.get('ir')!.slice(0, 20))
     return await voltaDoLogin(db, u)
   }
 

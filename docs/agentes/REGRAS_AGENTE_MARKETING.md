@@ -359,3 +359,11 @@ Capa, thumbnail e legenda são materiais dentro da peça, não peças separadas.
 - Resposta privada do Instagram: só texto (o link vai dentro), até 7 dias depois do comentário, uma por comentário.
   Enquanto o app está em desenvolvimento, só quem tem papel no app recebe.
 - Comentários da própria conta são ignorados. Ligar (ou religar) uma automação vale só para comentários feitos depois.
+- **O que a pessoa recebe** (migration `agentes_014_automacao_destinos.sql`): só a mensagem, um link, um PDF (bucket
+  `arquivos`, link temporário gerado no clique) ou uma conversa no WhatsApp. No WhatsApp, reveza entre as vendedoras
+  ativas com `vendedoras.whatsapp` (a que recebeu menos cliques em 30 dias) ou vai para um número fixo; número comum, não
+  precisa da API oficial. A mensagem que já vem escrita leva "(código XXXXXXXX)" para a vendedora saber de onde veio.
+- Todo destino vai por um **link rastreado**: `functions/v1/instagram?ir=código`, um código por mensagem
+  (`marca_automacao_envios.codigo`). O clique conta (`cliques`, `clicou_em`) e grava a vendedora (`vendedora_id`).
+- "Uma pergunta" (o próximo passo depende da resposta) aparece como "em breve": precisa ler as respostas no direct
+  (permissão de mensagens aprovada pela Meta).

@@ -1,10 +1,12 @@
 // Criar ou editar uma automação de comentário → direct: nome, onde vale (um post publicado, uma peça do agente ou
-// qualquer post recente), palavras-chave, a mensagem privada com o link e, se quiser, respostas públicas no comentário.
+// qualquer post recente), palavras-chave, a mensagem privada, o que a pessoa recebe (link, PDF ou WhatsApp) e, se
+// quiser, respostas públicas no comentário.
 // À direita, a prévia de como a mensagem chega no direct.
 import { useState } from 'react'
 import { Erro, Modal } from '../../../components/ui'
 import { Icone } from '../../../components/Icone'
-import { NOME_ALVO, palavrasDe, previaMensagem, salvarAutomacao, type Alvo, type Automacao, type PecaAlvo, type PostAlvo } from './dados'
+import { NOME_ALVO, palavrasDe, previaMensagem, salvarAutomacao, whatsappValido, type Alvo, type Automacao, type PecaAlvo, type PostAlvo } from './dados'
+import { DestinoAutomacao, type DestinoForm } from './DestinoAutomacao'
 
 type Props = { empresa: string; editar: Automacao | null; posts: PostAlvo[]; pecas: PecaAlvo[]; aoFechar: () => void; aoSalvar: () => void }
 const LIMITE_MENSAGEM = 900
@@ -31,7 +33,13 @@ export function FormAutomacao({ empresa, editar, posts, pecas, aoFechar, aoSalva
   const [palavras, setPalavras] = useState((editar?.palavras ?? []).join(', '))
   const [qualquer, setQualquer] = useState(editar?.qualquer_comentario ?? false)
   const [mensagem, setMensagem] = useState(editar?.mensagem ?? 'Oi, {nome}! Que bom que você comentou. Aqui está o link que prometemos:')
-  const [link, setLink] = useState(editar?.link ?? '')
+  const [destino, setDestino] = useState<DestinoForm>(() => ({
+    destino: editar?.destino ?? 'link', link: editar?.link ?? '', arquivo_caminho: editar?.arquivo_caminho ?? null, arquivo_nome: editar?.arquivo_nome ?? null,
+    whatsapp_modo: editar?.whatsapp_modo ?? 'reveza', whatsapp_numero: editar?.whatsapp_numero ?? '', whatsapp_texto: editar?.whatsapp_texto ?? '', vendedoras: editar?.vendedoras ?? [],
+  }))
+  const mudarDestino = (v: Partial<DestinoForm>) => setDestino((d) => ({ ...d, ...v }))
+  const link = destino.link ?? ''
+  const comLink = destino.destino === 'whatsapp' || (destino.destino === 'arquivo' && !!destino.arquivo_caminho) || (destino.destino === 'link' && !!link.trim())
   const [publicas, setPublicas] = useState((editar?.respostas_publicas ?? []).join('\n'))
   const [salvando, setSalvando] = useState(false)
   const [erro, setErro] = useState<string | null>(null)
@@ -43,12 +51,14 @@ export function FormAutomacao({ empresa, editar, posts, pecas, aoFechar, aoSalva
     if (alvo === 'peca' && !peca) return setErro('Escolha a peça.')
     if (!qualquer && !lista.length) return setErro('Diga pelo menos uma palavra-chave (ou marque "qualquer comentário").')
     if (!mensagem.trim()) return setErro('Escreva a mensagem do direct.')
-    if (link.trim() && !/^https?:\/\/\S+\.\S+/.test(link.trim())) return setErro('O link precisa começar com https://')
+    if (destino.destino === 'link' && link.trim() && !/^https?:\/\/\S+\.\S+/.test(link.trim())) return setErro('O link precisa começar com https://')
+    if (destino.destino === 'arquivo' && !destino.arquivo_caminho) return setErro('Escolha o PDF que a pessoa vai receber.')
+    if (destino.destino === 'whatsapp' && destino.whatsapp_modo === 'numero' && !whatsappValido(destino.whatsapp_numero)) return setErro('Confira o número do WhatsApp (com DDD).')
     setErro(null); setSalvando(true)
     try {
       await salvarAutomacao(empresa, {
         nome, alvo, media_id: alvo === 'post' ? media : null, peca_id: alvo === 'peca' ? peca : null, palavras: lista, qualquer_comentario: qualquer,
-        respostas_publicas: publicas.split('\n').map((x) => x.trim()).filter(Boolean).slice(0, 3), mensagem, link,
+        respostas_publicas: publicas.split('\n').map((x) => x.trim()).filter(Boolean).slice(0, 3), mensagem, ...destino, link: destino.destino === 'link' ? link : null,
       }, editar?.id)
       aoSalvar()
     } catch (e) { setErro((e as Error).message); setSalvando(false) }
@@ -77,8 +87,8 @@ export function FormAutomacao({ empresa, editar, posts, pecas, aoFechar, aoSalva
 
           <label className="au-rotulo">Mensagem no direct<textarea rows={4} value={mensagem} maxLength={LIMITE_MENSAGEM} onChange={(e) => setMensagem(e.target.value)} /></label>
           <small className="muted">{'{nome}'} vira o @ de quem comentou. {mensagem.length}/{LIMITE_MENSAGEM}</small>
-          <label className="au-rotulo">Link<input value={link} onChange={(e) => setLink(e.target.value)} placeholder="https://…" inputMode="url" /></label>
-          <small className="muted">Pode deixar em branco e colocar quando a página estiver no ar. Sem link, a mensagem vai só com o texto.</small>
+          <span className="au-rotulo">O que a pessoa recebe</span>
+          <DestinoAutomacao empresa={empresa} valor={destino} aoMudar={mudarDestino} />
 
           <label className="au-rotulo">Resposta pública no comentário <small className="muted">(opcional)</small>
             <textarea rows={3} value={publicas} onChange={(e) => setPublicas(e.target.value)} placeholder={'Te mandei no direct! 💛\nAcabei de te enviar, {nome}!'} /></label>
@@ -86,12 +96,14 @@ export function FormAutomacao({ empresa, editar, posts, pecas, aoFechar, aoSalva
         </div>
         <aside className="au-previa">
           <span className="au-rotulo">Como chega no direct</span>
-          <div className="au-balao">{previaMensagem(mensagem, link) || '…'}</div>
-          {!link.trim() && <p className="nota pequeno"><Icone nome="alerta" tam={14} /> Sem link por enquanto.</p>}
+          <div className="au-balao">{previaMensagem(mensagem, comLink) || '…'}</div>
+          {destino.destino === 'link' && !link.trim() && <p className="nota pequeno"><Icone nome="alerta" tam={14} /> Sem link por enquanto.</p>}
+          {comLink && <small className="muted">O link é único para cada pessoa: assim dá para saber quem clicou.</small>}
           <ul className="au-regras muted pequeno">
             <li>Uma mensagem por comentário, no máximo 7 dias depois dele.</li>
             <li>Vale só para comentários feitos depois de salvar.</li>
             <li>Até a aprovação da Meta, só quem tem papel no app recebe (bom para testar).</li>
+            <li>Pela regra da Meta, essa primeira mensagem vai só com texto: o link segue no fim dela.</li>
           </ul>
         </aside>
       </div>

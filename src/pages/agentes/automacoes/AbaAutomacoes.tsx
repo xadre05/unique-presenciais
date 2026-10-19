@@ -7,7 +7,7 @@ import { Icone } from '../../../components/Icone'
 import { CabecalhoAba } from '../marketing/BarraFiltros'
 import { AvisosInstantaneos } from './AvisosInstantaneos'
 import { FormAutomacao } from './FormAutomacao'
-import { NOME_ALVO, excluirAutomacao, ligarAutomacao, useAutomacoes, useEnvios, usePecasAlvo, usePostsRecentes, verificarAgora, type Automacao, type Envio, type PecaAlvo, type PostAlvo } from './dados'
+import { NOME_ALVO, NOME_DESTINO, excluirAutomacao, ligarAutomacao, useAutomacoes, useEnvios, usePecasAlvo, usePostsRecentes, useVendedoras, verificarAgora, type Automacao, type Envio, type PecaAlvo, type PostAlvo } from './dados'
 
 const quando = (iso: string) => new Date(iso).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
 
@@ -29,8 +29,8 @@ function CartaoAutomacao({ a, onde, envios, aoEditar, aoMudar }: { a: Automacao;
       <small className="muted">{onde}</small>
       <div className="au-chips">{a.qualquer_comentario ? <span className="au-chip">qualquer comentário</span> : a.palavras.map((p) => <span key={p} className="au-chip">{p}</span>)}</div>
       <p className="au-msg">{a.mensagem}</p>
-      {a.link ? <small className="au-link"><Icone nome="links" tam={13} /> {a.link}</small> : <small className="nota pequeno"><Icone nome="alerta" tam={13} /> Sem link por enquanto: a mensagem vai só com o texto.</small>}
-      <small className="muted">{meus.filter((e) => e.status === 'enviado').length} enviada(s){meus.some((e) => e.status === 'erro') ? ` · ${meus.filter((e) => e.status === 'erro').length} com erro` : ''} · vale para comentários desde {quando(a.desde)}</small>
+      <small className="au-link"><Icone nome={a.destino === 'whatsapp' ? 'whats' : a.destino === 'arquivo' ? 'pdf' : a.destino === 'link' ? 'links' : 'mensagem'} tam={13} /> {NOME_DESTINO[a.destino]}{a.destino === 'link' ? `: ${a.link || 'ainda sem link'}` : a.destino === 'arquivo' ? `: ${a.arquivo_nome ?? ''}` : a.destino === 'whatsapp' ? (a.whatsapp_modo === 'reveza' ? ' · reveza entre as vendedoras' : ' · número fixo') : ''}</small>
+      <small className="muted">{meus.filter((e) => e.status === 'enviado').length} enviada(s) · {meus.filter((e) => e.cliques > 0).length} clicaram{meus.some((e) => e.status === 'erro') ? ` · ${meus.filter((e) => e.status === 'erro').length} com erro` : ''} · vale para comentários desde {quando(a.desde)}</small>
       <div className="au-cartao-acoes">
         <button type="button" className="btn btn-mini" onClick={() => agir(() => ligarAutomacao(a.id, !a.ativa))}>{a.ativa ? 'Desligar' : 'Ligar'}</button>
         <button type="button" className="btn btn-mini" onClick={aoEditar}><Icone nome="lapis" tam={13} /> Editar</button>
@@ -43,22 +43,23 @@ function CartaoAutomacao({ a, onde, envios, aoEditar, aoMudar }: { a: Automacao;
   )
 }
 
-function Registro({ envios, nomes }: { envios: Envio[]; nomes: Map<string, string> }) {
+function Registro({ envios, nomes, vendedoras }: { envios: Envio[]; nomes: Map<string, string>; vendedoras: Map<string, string> }) {
   if (!envios.length) return <p className="muted pequeno">Nenhum comentário respondido ainda. Para testar, comente a palavra-chave no post com a sua conta.</p>
   return (
     <div className="ig-lista"><table className="tabela ig-tabela au-registro">
-      <thead><tr><th>Quando</th><th>Quem</th><th>Comentário</th><th>Automação</th><th>Situação</th></tr></thead>
+      <thead><tr><th>Quando</th><th>Quem</th><th>Comentário</th><th>Automação</th><th>Situação</th><th>Clicou</th></tr></thead>
       <tbody>{envios.map((e) => (
         <tr key={e.id}><td>{quando(e.criado_em)}</td><td>{e.usuario ? `@${e.usuario}` : '—'}</td><td className="au-coment">{e.texto}</td><td>{e.automacao_id ? nomes.get(e.automacao_id) ?? '—' : 'excluída'}</td>
           <td>{e.status === 'enviado' ? <span className="ig-acima">Enviado{e.respondeu_em_publico ? ' + resposta pública' : ''}{e.via === 'aviso' ? ' · na hora' : ''}</span>
-            : e.status === 'erro' ? <span className="ig-abaixo" title={e.erro ?? ''}>Erro: {e.erro}</span> : <span className="muted">Enviando…</span>}</td></tr>))}
+            : e.status === 'erro' ? <span className="ig-abaixo" title={e.erro ?? ''}>Erro: {e.erro}</span> : <span className="muted">Enviando…</span>}</td>
+          <td>{e.clicou_em ? <span>{quando(e.clicou_em)}{e.cliques > 1 ? ` (${e.cliques}×)` : ''}{e.vendedora_id ? ` · ${vendedoras.get(e.vendedora_id) ?? 'vendedora'}` : ''}</span> : <span className="muted">—</span>}</td></tr>))}
       </tbody>
     </table></div>
   )
 }
 
 export function AbaAutomacoes({ empresa }: { empresa: string }) {
-  const automacoes = useAutomacoes(empresa), envios = useEnvios(empresa), posts = usePostsRecentes(empresa), pecas = usePecasAlvo(empresa)
+  const automacoes = useAutomacoes(empresa), envios = useEnvios(empresa), posts = usePostsRecentes(empresa), pecas = usePecasAlvo(empresa), equipe = useVendedoras()
   const [form, setForm] = useState<{ editar: Automacao | null } | null>(null)
   const [verificando, setVerificando] = useState(false)
   const [aviso, setAviso] = useState<string | null>(null)
@@ -74,7 +75,7 @@ export function AbaAutomacoes({ empresa }: { empresa: string }) {
 
   return (
     <section className="mk-plano au-aba">
-      <CabecalhoAba titulo="Automações" sub="Quem comenta a palavra-chave recebe uma mensagem no direct, com o link. Hoje: Instagram." />
+      <CabecalhoAba titulo="Automações" sub="Quem comenta a palavra-chave recebe uma mensagem no direct com um link, um PDF ou o caminho para o WhatsApp da equipe. Hoje: Instagram." />
       <div className="mk-painel au-como">
         <div><b>Como funciona</b>
           <span className="muted pequeno">O sistema confere os comentários dos posts escolhidos a cada 2 minutos e responde no direct (uma vez por comentário). Até a Meta aprovar o app, só quem tem papel no app recebe a mensagem: dá para testar com a sua conta.</span></div>
@@ -92,7 +93,7 @@ export function AbaAutomacoes({ empresa }: { empresa: string }) {
       <ul className="au-lista">{lista.map((a) => <CartaoAutomacao key={a.id} a={a} onde={ondeVale(a, posts.dados ?? [], pecas.dados ?? [])} envios={registro} aoEditar={() => setForm({ editar: a })} aoMudar={recarregar} />)}</ul>
       <section className="mk-painel pe-bloco">
         <div className="au-registro-topo"><h4 className="pe-titulo">Mensagens enviadas</h4><button type="button" className="btn btn-mini" onClick={() => envios.recarregar()}><Icone nome="atualizar" tam={13} /> Atualizar</button></div>
-        <Registro envios={registro} nomes={nomes} />
+        <Registro envios={registro} nomes={nomes} vendedoras={new Map((equipe.dados ?? []).map((v) => [v.id, v.nome]))} />
       </section>
       <AvisosInstantaneos empresa={empresa} />
       {form && <FormAutomacao empresa={empresa} editar={form.editar} posts={posts.dados ?? []} pecas={pecas.dados ?? []} aoFechar={() => setForm(null)} aoSalvar={() => { setForm(null); recarregar() }} />}
