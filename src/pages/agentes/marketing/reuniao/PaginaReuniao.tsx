@@ -57,7 +57,7 @@ export function PaginaReuniao(pr: Props) {
   if (r.carregando) return <div className="mk-pagina-planejar"><Caminho passos={passos} /><div className="progresso"><div className="indeterminado" /><span>Abrindo a reunião…</span></div></div>
   return (
     <div className="mk-pagina-planejar reu">
-      <button type="button" className="link rp-voltar" onClick={reu ? r.novaReuniao : pr.aoVoltar}><Icone nome="esquerda" tam={14} /> {reu ? 'Voltar à configuração' : 'Voltar ao planejamento'}</button>
+      {reu && <button type="button" className="link rp-voltar" onClick={r.novaReuniao}><Icone nome="esquerda" tam={14} /> Voltar à configuração</button>}
       <Caminho passos={passos} />
       <div className="mk-titulo-aba pl-titulo"><h2>{titulo}</h2><p className="muted">{sub}</p></div>
       {reu && r.conversando && (
