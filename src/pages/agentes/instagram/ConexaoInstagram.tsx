@@ -41,7 +41,7 @@ function CadastroApp({ empresa, conexao, aoSalvar }: { empresa: string; conexao:
     <div className="ig-cadastro">
       <div className="form-duas">
         <label>ID do app do Instagram<input value={appId} onChange={(e) => setAppId(e.target.value)} inputMode="numeric" placeholder="Só números" /></label>
-        <label>Chave secreta do app {conexao?.app_id && <small className="muted">(deixe em branco para manter)</small>}<input type="password" autoComplete="off" value={segredo} onChange={(e) => setSegredo(e.target.value)} placeholder="Cole a chave secreta" /></label>
+        <label>Chave secreta do app {conexao?.app_id && <small className="ok-txt">✓ guardada</small>}<input type="password" autoComplete="off" value={segredo} onChange={(e) => setSegredo(e.target.value)} placeholder={conexao?.app_id ? '•••••••••••••••• (cole outra só se quiser trocar)' : 'Cole a chave secreta'} /></label>
       </div>
       <span className="muted pequeno"><Icone nome="info" tam={13} /> A chave secreta fica guardada cifrada e nunca volta para a tela.</span>
       <Erro msg={erro} />
