@@ -1314,7 +1314,7 @@ a.sala-agente:hover { border-color: var(--ouro); transform: translateY(-2px); }
 .sala-kpis .link { margin-left: auto; white-space: nowrap; }
 .sala-kpis > .sala-kpi-cred { display: flex; align-items: flex-start; gap: 12px; padding: 14px 18px; color: var(--ouro); text-decoration: none; border-left: 1px solid var(--borda); }
 .sala-kpi-cred:hover { background: rgba(201,168,106,.05); }
-.sala-kpi-cred > span { flex: 1; min-width: 0; gap: 2px; }
+.sala-kpi-cred > span { flex: 1; min-width: 0; }
 .sala-kpi-cred b small { font-family: inherit; font-size: .78rem; font-weight: 400; color: var(--muted); }
 .sala-kpi-cred > span > small { font-size: .75rem; }
 .sala-barra { display: block; height: 4px; border-radius: 99px; background: var(--painel-2); overflow: hidden; margin: 2px 0; }
