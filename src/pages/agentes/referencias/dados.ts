@@ -13,10 +13,10 @@ export type Ficha = {
 }
 export type Arquivo = { caminho: string; nome: string; quadro?: boolean }
 export type Referencia = {
-  id: string; categoria: Categoria; autor: string | null; link: string | null; formato: Formato; por_que: string | null; texto: string | null
+  id: string; nome: string | null; canal: string | null; categoria: Categoria; autor: string | null; link: string | null; formato: Formato; por_que: string | null; texto: string | null
   arquivos: Arquivo[]; ficha: Ficha | null; status: 'nova' | 'analisando' | 'pronta' | 'erro'; erro: string | null; criado_em: string
 }
-export type NovaRef = { categoria: Categoria; formato: Formato; autor: string; link: string; por_que: string; texto: string }
+export type NovaRef = { nome: string; canal: string; categoria: Categoria; formato: Formato; autor: string; link: string; por_que: string; texto: string }
 
 export const CATEGORIAS: { id: Categoria; nome: string; dica: string }[] = [
   { id: 'concorrente', nome: 'Concorrentes', dica: 'Quem disputa o mesmo cliente' },
@@ -29,11 +29,13 @@ export const FORMATOS: { id: Formato; nome: string }[] = [
   { id: 'reels', nome: 'Reels' }, { id: 'carrossel', nome: 'Carrossel' }, { id: 'post', nome: 'Post de imagem' }, { id: 'stories', nome: 'Stories' },
   { id: 'video', nome: 'Vídeo longo' }, { id: 'texto', nome: 'Texto (legenda, e-mail, mensagem)' }, { id: 'outro', nome: 'Outro' },
 ]
+// título do cartão: o nome dado pela equipe ou, sem ele, o formato e de quem é
+export const tituloReferencia = (r: Pick<Referencia, 'nome' | 'formato' | 'autor'>) => r.nome?.trim() || `${nomeFormato(r.formato)}${r.autor ? ` · ${r.autor}` : ''}`
 export const nomeFormato = (f: string) => FORMATOS.find((x) => x.id === f)?.nome ?? f
 export const nomeCategoria = (c: string) => CATEGORIAS.find((x) => x.id === c)?.nome ?? c
 
 export function useReferencias(empresa: string) {
-  return useConsulta<Referencia[]>(() => supabase.from('marca_referencias').select('id,categoria,autor,link,formato,por_que,texto,arquivos,ficha,status,erro,criado_em')
+  return useConsulta<Referencia[]>(() => supabase.from('marca_referencias').select('id,nome,canal,categoria,autor,link,formato,por_que,texto,arquivos,ficha,status,erro,criado_em')
     .eq('empresa_id', empresa).eq('ativo', true).order('criado_em', { ascending: false }), [empresa])
 }
 
@@ -51,7 +53,7 @@ export async function guardarReferencia(empresa: string, nova: NovaRef, imagens:
     arquivos.push({ caminho: await enviarArquivo(pasta, img), nome: img.name })
   }
   const { error } = await supabase.from('marca_referencias').insert({
-    id, empresa_id: empresa, categoria: nova.categoria, formato: nova.formato, autor: nova.autor.trim() || null, link: nova.link.trim() || null,
+    id, empresa_id: empresa, nome: nova.nome.trim() || null, canal: nova.canal || null, categoria: nova.categoria, formato: nova.formato, autor: nova.autor.trim() || null, link: nova.link.trim() || null,
     por_que: nova.por_que.trim() || null, texto: nova.texto.trim() || null, arquivos,
   })
   if (error) throw new Error(msgErro(error))

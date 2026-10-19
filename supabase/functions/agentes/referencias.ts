@@ -7,7 +7,7 @@ import type { SupabaseClient } from 'npm:@supabase/supabase-js@2.45.4'
 import type { Dependencias } from './reuniao.ts'
 
 type Referencia = {
-  id: string; empresa_id: string; categoria: string; autor: string | null; link: string | null; formato: string
+  id: string; empresa_id: string; nome: string | null; canal: string | null; categoria: string; autor: string | null; link: string | null; formato: string
   por_que: string | null; texto: string | null; arquivos: { caminho: string; nome?: string; quadro?: boolean }[]; ficha: Ficha | null
 }
 type Ficha = {
@@ -75,7 +75,7 @@ export async function analisarReferencia(d: Dependencias, db: SupabaseClient, em
     const { blocos, quadros } = await imagensDa(db, ref)
     if (!blocos.length && !ref.texto?.trim()) throw new Error('Envie pelo menos um print, um vídeo ou o texto da peça.')
     const usuario = [
-      `REFERÊNCIA (${CATEGORIA[ref.categoria] ?? ref.categoria}) · formato: ${ref.formato}${ref.autor ? ` · de: ${ref.autor}` : ''}${ref.link ? ` · ${ref.link}` : ''}`,
+      `REFERÊNCIA${ref.nome ? ` "${ref.nome}"` : ''} (${CATEGORIA[ref.categoria] ?? ref.categoria}) · formato: ${ref.formato}${ref.canal ? ` · canal: ${ref.canal}` : ''}${ref.autor ? ` · de: ${ref.autor}` : ''}${ref.link ? ` · ${ref.link}` : ''}`,
       quadros ? 'As imagens acima são quadros do vídeo, em ordem.' : blocos.length ? 'As imagens acima são prints da peça, em ordem.' : '',
       ref.texto?.trim() ? `TEXTO DA PEÇA (legenda, texto das lâminas ou transcrição da fala):\n${ref.texto.trim().slice(0, 6000)}` : '',
       ref.por_que?.trim() ? `POR QUE A EQUIPE GOSTOU (dê peso a isto): ${ref.por_que.trim()}` : '',
@@ -101,12 +101,12 @@ const PARENTES: Record<string, string[]> = { reels: ['reels', 'video'], video: [
 async function fichasPara(db: SupabaseClient, empresa: string, tipos: string[], limite: number) {
   const formatos = [...new Set(tipos.flatMap((t) => PARENTES[t] ?? [t]))]
   if (!formatos.length) return []
-  const { data } = await db.from('marca_referencias').select('categoria,autor,formato,por_que,ficha').eq('empresa_id', empresa).eq('ativo', true).eq('status', 'pronta')
+  const { data } = await db.from('marca_referencias').select('nome,categoria,autor,formato,por_que,ficha').eq('empresa_id', empresa).eq('ativo', true).eq('status', 'pronta')
     .in('formato', formatos).order('atualizado_em', { ascending: false }).limit(limite)
-  return (data ?? []) as Pick<Referencia, 'categoria' | 'autor' | 'formato' | 'por_que' | 'ficha'>[]
+  return (data ?? []) as Pick<Referencia, 'nome' | 'categoria' | 'autor' | 'formato' | 'por_que' | 'ficha'>[]
 }
 
-const nomeModelo = (r: { autor: string | null; formato: string; categoria: string }) => `${r.formato}${r.autor ? ` de ${r.autor}` : ''} (${CATEGORIA[r.categoria] ?? r.categoria})`
+const nomeModelo = (r: { nome?: string | null; autor: string | null; formato: string; categoria: string }) => `${r.nome ? `"${r.nome}" · ` : ''}${r.formato}${r.autor ? ` de ${r.autor}` : ''} (${CATEGORIA[r.categoria] ?? r.categoria})`
 
 // bloco para a escrita das peças: as fichas dos formatos pedidos
 export async function blocoModelos(db: SupabaseClient, empresa: string, tipos: string[], limite = 4) {
@@ -126,8 +126,8 @@ export async function blocoModelos(db: SupabaseClient, empresa: string, tipos: s
 
 // lista curta para a pauta da reunião: o agente pode sugerir "um carrossel no modelo X"
 export async function pautaModelos(db: SupabaseClient, empresa: string) {
-  const { data } = await db.from('marca_referencias').select('categoria,autor,formato,ficha').eq('empresa_id', empresa).eq('ativo', true).eq('status', 'pronta').order('atualizado_em', { ascending: false }).limit(12)
-  const refs = (data ?? []) as Pick<Referencia, 'categoria' | 'autor' | 'formato' | 'ficha'>[]
+  const { data } = await db.from('marca_referencias').select('nome,categoria,autor,formato,ficha').eq('empresa_id', empresa).eq('ativo', true).eq('status', 'pronta').order('atualizado_em', { ascending: false }).limit(12)
+  const refs = (data ?? []) as Pick<Referencia, 'nome' | 'categoria' | 'autor' | 'formato' | 'ficha'>[]
   if (!refs.length) return '- Modelos de formato guardados: nenhum ainda.'
   return `- Modelos de formato guardados (pode sugerir usar um deles, pelo nome):\n${refs.map((r) => `  · ${nomeModelo(r)}: ${r.ficha?.resumo ?? ''}`).join('\n')}`
 }

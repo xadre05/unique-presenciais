@@ -8,17 +8,16 @@ import { useConsulta } from '../../lib/dados'
 import { EMPRESA_UNIQUE } from '../crm/comum'
 import { Icone } from '../../components/Icone'
 import { RedesEmpresa } from './RedesEmpresa'
-import { BibliotecaMarca } from './biblioteca/BibliotecaMarca'
 import { useConexao } from './instagram/dados'
-import { CampanhasMarca } from './CampanhasMarca'
-import { ReferenciasMarca } from './referencias/ReferenciasMarca'
+import { CampanhasMarca } from './campanhas/CampanhasMarca'
 import { AbaMarca } from './marca/AbaMarca'
+import { AbaConhecimento } from './marca/AbaConhecimento'
 
 type Aba = 'marca' | 'campanhas' | 'conhecimento' | 'canais'
 const ABAS: { id: Aba; nome: string; sub: string }[] = [
   { id: 'marca', nome: 'A marca', sub: 'Quem é a empresa, o que vende sempre, como fala, quem aparece nas artes e o visual.' },
-  { id: 'campanhas', nome: 'Campanhas', sub: 'Ofertas com data para começar e terminar (Black, lançamento). Na hora de planejar, você escolhe a campanha.' },
-  { id: 'conhecimento', nome: 'Conhecimento', sub: 'O que o agente estuda: os materiais da própria empresa e os conteúdos de outras pessoas que servem de modelo.' },
+  { id: 'campanhas', nome: 'Campanhas', sub: 'Ofertas, períodos e orientações de cada ação. Uma campanha pode vender produtos da marca ou nenhum (ex.: ganhar seguidores).' },
+  { id: 'conhecimento', nome: 'Conhecimento', sub: 'Conteúdo aprovado da empresa e referências de criação de terceiros, com funções diferentes.' },
   { id: 'canais', nome: 'Canais', sub: 'As redes que a empresa usa. Só as ligadas aparecem para planejar e criar peças.' },
 ]
 
@@ -57,15 +56,9 @@ export default function CentralMarca() {
 
       {aba === 'marca' && pronto && <AbaMarca empresa={EMPRESA_UNIQUE} perfil={dados} aoSalvar={perfil.recarregar} aoMudarPendente={mudarPendente} />}
 
-      {aba === 'campanhas' && <section className="bloco"><h2>Campanhas</h2><p className="muted pequeno">Cada campanha tem período, oferta e regras próprias. As peças da campanha usam só essas informações.</p>
-        {pronto && <CampanhasMarca empresaId={EMPRESA_UNIQUE} perfil={dados} aoSalvar={perfil.recarregar} />}</section>}
+      {aba === 'campanhas' && pronto && <CampanhasMarca empresa={EMPRESA_UNIQUE} perfil={dados} aoSalvar={perfil.recarregar} />}
 
-      {aba === 'conhecimento' && <>
-        <section className="bloco"><h2>Biblioteca da marca</h2><p className="muted pequeno">Os materiais da própria empresa: cursos, técnicas, protocolos. É daqui que o agente tira o conteúdo das peças.</p>
-          <BibliotecaMarca empresa={EMPRESA_UNIQUE} /></section>
-        <section className="bloco"><h2>Referências para modelar</h2><p className="muted pequeno">Posts e reels de outras pessoas que vocês gostariam de ter feito. Guarde e diga o que copiar; o agente estuda sozinho e passa a usar a forma (gancho, estrutura, edição), nunca o conteúdo. Só esta empresa vê.</p>
-          <ReferenciasMarca empresa={EMPRESA_UNIQUE} /></section>
-      </>}
+      {aba === 'conhecimento' && <AbaConhecimento empresa={EMPRESA_UNIQUE} novaReferencia={params.get('ref') === 'nova'} aoNovaReferencia={(v) => setParams(v ? { aba: 'conhecimento', ref: 'nova' } : { aba: 'conhecimento' })} />}
 
       {aba === 'canais' && <section className="bloco"><h2>Redes sociais</h2><p className="muted pequeno">Os canais que a empresa usa. Só os ligados aparecem para planejar e criar peças.</p>
         {pronto && <RedesEmpresa empresaId={EMPRESA_UNIQUE} perfil={dados} aoSalvar={perfil.recarregar} />}

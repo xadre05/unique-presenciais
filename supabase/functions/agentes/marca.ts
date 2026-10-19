@@ -14,7 +14,15 @@ const dm = (iso: string) => `${iso.slice(8, 10)}/${iso.slice(5, 7)}/${iso.slice(
 // hoje no horário de Brasília (o produto sai da lista no dia seguinte ao fim da venda)
 const hojeBR = () => new Date(Date.now() - 3 * 3600 * 1000).toISOString().slice(0, 10)
 
-type Campanha = { nome: string; produtos?: string[]; encerrada?: boolean }
+type Campanha = { nome: string; produtos?: string[]; encerrada?: boolean; descricao?: string; inicio?: string; fim?: string; hora_fim?: string; objetivo?: string; oferta?: string; comunicacao?: string; link?: string }
+
+// a campanha em texto para o agente: período (com hora do fim), objetivo, oferta, como chamar e a mensagem
+export function textoCampanha(c: Campanha | null | undefined) {
+  if (!c) return ''
+  const periodo = c.inicio ? ` (de ${c.inicio}${c.fim ? ` a ${c.fim}, encerra às ${c.hora_fim ?? '23:59'} de Brasília` : ''})` : c.fim ? ` (até ${c.fim}, encerra às ${c.hora_fim ?? '23:59'} de Brasília)` : ''
+  return [`${c.nome}${periodo}.`, c.objetivo && `Objetivo: ${c.objetivo}.`, c.oferta && `Oferta: ${c.oferta}.`, c.comunicacao && `Nome e comunicação: ${c.comunicacao}.`,
+    c.link && `Materiais: ${c.link}.`, c.descricao].filter(Boolean).join(' ')
+}
 
 function linhaProduto(p: Produto, campanhas: Campanha[]) {
   const daCampanha = campanhas.filter((c) => !c.encerrada && p.id && c.produtos?.includes(p.id)).map((c) => c.nome)

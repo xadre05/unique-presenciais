@@ -5,10 +5,11 @@
 // Regras em docs/agentes/REGRAS_AGENTE_MARKETING.md (seção Reunião de pauta).
 import type { SupabaseClient } from 'npm:@supabase/supabase-js@2.45.4'
 import { pautaModelos } from './referencias.ts'
+import { textoCampanha } from './marca.ts'
 
 type Mensagem = { de: 'equipe' | 'agente'; texto: string }
 export type Escopo = { tipo: 'dia' | 'dias' | 'semana' | 'mes' | 'campanha'; inicio: string; fim: string; campanha?: string; texto?: string }
-type Campanha = { id: string; nome: string; descricao?: string; inicio?: string; fim?: string }
+type Campanha = { id: string; nome: string; descricao?: string; inicio?: string; fim?: string; hora_fim?: string; objetivo?: string; oferta?: string; comunicacao?: string; link?: string }
 type Ferramenta = { name: string; description: string; input_schema: Record<string, unknown> }
 
 // o que a função principal empresta para a reunião (mesmas regras de chave, limite, marca e biblioteca)
@@ -91,7 +92,7 @@ async function levantarPauta(db: SupabaseClient, d: Dependencias, empresa: strin
     pecasDaPauta(db, empresa, e),
     resultadosDaPauta(db, empresa),
     d.contexto(db),
-    db.from('marca_fontes').select('titulo').eq('empresa_id', empresa).eq('ativo', true).eq('status', 'pronta').order('criado_em', { ascending: false }).limit(30),
+    db.from('marca_fontes').select('titulo').eq('empresa_id', empresa).eq('ativo', true).eq('aprovada', true).eq('status', 'pronta').order('criado_em', { ascending: false }).limit(30),
     db.from('agentes_reunioes').select('titulo,ata,criado_em').eq('empresa_id', empresa).eq('agente_id', 'marketing').eq('ativo', true).neq('status', 'aberta').neq('id', reuniaoId ?? '00000000-0000-0000-0000-000000000000').order('criado_em', { ascending: false }).limit(1).maybeSingle(),
     pautaModelos(db, empresa),
   ])
@@ -100,7 +101,7 @@ async function levantarPauta(db: SupabaseClient, d: Dependencias, empresa: strin
   return [
     ...pecas,
     resultados,
-    ativas.length ? `CAMPANHAS CADASTRADAS:\n${ativas.map((c) => `- ${c.nome}${c.inicio ? ` (de ${c.inicio}${c.fim ? ` a ${c.fim}` : ''})` : ''}: ${c.descricao ?? ''}`).join('\n')}` : 'CAMPANHAS: nenhuma cadastrada.',
+    ativas.length ? `CAMPANHAS CADASTRADAS:\n${ativas.map((c) => `- ${textoCampanha(c)}`).join('\n')}` : 'CAMPANHAS: nenhuma cadastrada.',
     agenda ? `AGENDA E OFERTAS DO SISTEMA:\n${agenda}` : '',
     `REFERÊNCIAS DE FORMATO:\n${modelos}`,
     fontes.data?.length ? `ASSUNTOS QUE A BIBLIOTECA DA MARCA COBRE: ${fontes.data.map((f) => f.titulo).join('; ')}` : 'BIBLIOTECA DA MARCA: vazia.',
@@ -132,7 +133,7 @@ export async function reunir(d: Dependencias, db: SupabaseClient, empresa: strin
   const campanhas = todas.filter((c) => !c.encerrada || c.id === e.campanha)
   const pauta = await levantarPauta(db, d, empresa, e, campanhas, corpo.id)
   const ultimas = mensagens.filter((m) => m.de === 'equipe').slice(-3).map((m) => m.texto)
-  const kn = await d.conhecimento(db, empresa, [e.texto, campanha?.nome, campanha?.descricao, ...ultimas].filter(Boolean).join(' '), 4)
+  const kn = await d.conhecimento(db, empresa, [e.texto, textoCampanha(campanha), ...ultimas].filter(Boolean).join(' '), 4)
   const sistema = [SISTEMA, `CANAIS QUE A EMPRESA USA (só estes): ${d.canais(pa)}`, ...d.blocoEmpresa(pa as Record<string, string>, [])].join('\n')
   const usuario = [
     kn.bloco,

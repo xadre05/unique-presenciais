@@ -2339,7 +2339,36 @@ a.sala-agente:hover { border-color: var(--ouro); transform: translateY(-2px); }
 .bib-envios li { font-size: 13px; display: flex; gap: 8px; flex-wrap: wrap; }
 .bib-envios li span { color: var(--muted, #9a9a9a); }
 .bib-envios li.erro span { color: var(--erro, #e5484d); }
-.bib-fonte { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border: 1px solid var(--borda, rgba(255,255,255,.1)); border-radius: 10px; }
+.bib-fonte { display: flex; flex-direction: column; gap: 10px; padding: 12px 14px; border: 1px solid var(--borda, rgba(255,255,255,.1)); border-radius: 12px; background: var(--painel-2); }
+.bib-fonte-linha { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.bib-fonte-ico { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 8px; border: 1px solid var(--borda); color: var(--muted); flex: none; }
+.bib-aviso { margin: 0; display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: 8px; background: var(--alerta-fundo); color: var(--alerta); }
+.bib-revisar { display: flex; flex-direction: column; gap: 8px; }
+.bib-revisar textarea { width: 100%; font-size: .9rem; line-height: 1.5; }
+.bib-filtro { max-width: none; }
+.bib-testar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: 8px 0; }
+.bib-testar .camp-busca { max-width: none; flex: 1 1 280px; }
+.bib-como { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.bib-como li { display: grid; grid-template-columns: 22px 1fr; gap: 10px; padding: 10px 0; border-top: 1px solid var(--borda); font-size: .88rem; }
+.bib-como li:first-child { border-top: 0; padding-top: 0; }
+.bib-como li svg { color: var(--ouro); }
+.conh { display: flex; flex-direction: column; gap: 16px; }
+.bm-grade.sem-barra { padding-bottom: 0; }
+.bm-cartao h2 { margin: 0 0 4px; font-family: 'Fraunces', Georgia, serif; font-size: 1.3rem; }
+.bm-cartao.bib, .bm-cartao.ref { display: flex; flex-direction: column; gap: 12px; }
+.nota-neutra { margin: 0; display: flex; align-items: center; justify-content: center; gap: 8px; padding-top: 10px; border-top: 1px solid var(--borda); color: var(--muted); }
+.ref-vazio { display: flex; align-items: center; justify-content: center; gap: 14px; padding: 18px; }
+.ref-soltar-ico { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 50%; background: rgba(201,168,106,.14); color: var(--ouro); flex: none; }
+.ref-pagina { display: flex; flex-direction: column; gap: 8px; }
+.ref-pagina .bm-grade { margin-top: 8px; }
+.ref-pagina .bm-principal { gap: 14px; }
+.ref-pagina .mk-form { display: flex; flex-direction: column; gap: 12px; }
+.ref-pagina .mk-form label { display: flex; flex-direction: column; gap: 4px; }
+.ref-pagina .form-duas { align-items: end; }
+.ref-voltar { align-self: flex-start; display: inline-flex; align-items: center; gap: 6px; background: none; border: 0; padding: 0; cursor: pointer; font: inherit; }
+.ref-h { margin: 0; font-family: 'Fraunces', Georgia, serif; font-size: 1.6rem; }
+.ref-soltar { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 18px; border: 1px dashed rgba(201,168,106,.45); border-radius: 12px; background: none; color: inherit; font: inherit; text-align: center; cursor: pointer; }
+.ref-soltar:hover { background: rgba(201,168,106,.06); }
 .bib-fonte-txt { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 .bib-fonte-txt b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .bib-fonte-txt small { color: var(--muted, #9a9a9a); }
@@ -2442,11 +2471,44 @@ a.sala-agente:hover { border-color: var(--ouro); transform: translateY(-2px); }
 .mk-coluna header b { margin-right: 2px; }
 
 /* Base da marca → Campanhas */
-.camp { display: flex; flex-direction: column; gap: 10px; }
-.camp-lista { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
-.camp-lista li { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; padding: 10px 12px; border: 1px solid var(--borda); border-left: 3px solid var(--ouro); border-radius: 10px; background: var(--painel-2); }
-.camp-lista li.encerrada { opacity: .6; border-left-color: var(--borda); }
-.camp-txt { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+/* Base da marca → Campanhas: lista à esquerda, detalhe à direita */
+.camp-barra { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 14px; }
+.camp-busca { display: flex; align-items: center; gap: 8px; flex: 1 1 240px; max-width: 360px; padding: 0 12px; border: 1px solid var(--borda); border-radius: 10px; background: var(--painel); color: var(--muted); }
+.camp-busca input { flex: 1; border: 0; background: none; padding: 10px 0; color: var(--texto); min-width: 0; }
+.camp-busca input:focus { outline: none; }
+.camp-nova { margin-left: auto; }
+.camp-grade { display: grid; grid-template-columns: minmax(240px, 360px) minmax(0, 1fr); gap: 18px; align-items: start; }
+.camp-cartoes { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.camp-cartao { width: 100%; display: flex; flex-direction: column; align-items: flex-start; gap: 6px; padding: 14px 16px; text-align: left; font: inherit; color: inherit; background: var(--painel); border: 1px solid var(--borda); border-radius: 14px; cursor: pointer; }
+.camp-cartao:hover { border-color: rgba(201,168,106,.4); }
+.camp-cartao.ativa { border-color: var(--ouro); box-shadow: 0 0 0 1px var(--ouro) inset; }
+.camp-cartao.encerrada { opacity: .65; }
+.camp-cartao > small:last-child { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.camp-lado { display: flex; flex-direction: column; gap: 14px; min-width: 0; scroll-margin-top: 70px; }
+.camp-detalhe { background: var(--painel); border: 1px solid var(--borda); border-radius: 14px; padding: 18px 20px; display: flex; flex-direction: column; gap: 0; }
+.camp-cab { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-start; gap: 12px; padding-bottom: 14px; }
+.camp-cab > div:first-child { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; }
+.camp-titulo { margin: 0; font-family: 'Fraunces', Georgia, serif; font-weight: 600; font-size: 1.15rem; }
+.camp-titulo.grande { font-size: 1.45rem; }
+.camp-duas { display: grid; grid-template-columns: 1fr 1fr; gap: 0 18px; }
+.camp-duas > .camp-item + .camp-item { border-left: 1px solid var(--borda); padding-left: 18px; }
+.camp-item { display: flex; flex-direction: column; gap: 6px; padding: 14px 0; border-top: 1px solid var(--borda); font-size: .92rem; }
+.camp-item > b { font-size: .88rem; }
+.camp-item .bloco-linha, .camp-detalhe .bloco-linha { display: block; margin-top: 4px; }
+.camp-texto { margin: 0; white-space: pre-wrap; }
+.camp-vende { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.camp-vende li { display: flex; flex-direction: column; gap: 2px; }
+.camp-contas { display: flex; flex-wrap: wrap; gap: 6px 16px; margin: 0 0 8px; font-size: .9rem; }
+.camp-vinculos .nota { background: var(--painel-2); border-left-color: var(--borda); display: flex; align-items: center; gap: 8px; }
+.camp-form.camp-detalhe { gap: 12px; }
+.camp-form .form-tres { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+@media (max-width: 900px) {
+  .camp-grade { grid-template-columns: 1fr; }
+  .camp-nova { margin-left: 0; }
+  .camp-duas { grid-template-columns: 1fr; }
+  .camp-duas > .camp-item + .camp-item { border-left: 0; padding-left: 0; }
+  .camp-form .form-tres { grid-template-columns: 1fr 1fr; }
+}
 .camp-form { padding: 12px; border: 1px solid var(--borda); border-radius: 12px; }
 .camp-form label { display: flex; flex-direction: column; gap: 4px; }
 

@@ -6,7 +6,7 @@
 import { createClient, type SupabaseClient } from 'npm:@supabase/supabase-js@2.45.4'
 import { blocoAta, reunir, type Dependencias } from './reuniao.ts'
 import { analisarReferencia, blocoModelos } from './referencias.ts'
-import { blocoProdutos, testarVoz } from './marca.ts'
+import { blocoProdutos, testarVoz, textoCampanha } from './marca.ts'
 
 const cors = {
   'Access-Control-Allow-Origin': '*',
@@ -78,7 +78,7 @@ const formatosDe = (rede: string) => Object.entries(REDES[rede].nomes).map(([tip
 const listaCanais = (redes: string[]) => redes.map((r) => `${REDES[r].nome} (rede "${r}": ${formatosDe(r)})`).join('; ')
 const redeDo = (x: unknown) => (typeof x === 'string' && REDES[x] ? x : 'instagram')
 type DiaPlano = { dia: string; post?: number; carrossel?: number; reels?: number; stories?: number; video?: number }
-type Campanha = { id: string; nome: string; descricao?: string; inicio?: string; fim?: string }
+type Campanha = { id: string; nome: string; descricao?: string; inicio?: string; fim?: string; hora_fim?: string; objetivo?: string; oferta?: string; comunicacao?: string; link?: string }
 // versões da peça: cada escrita do agente vira uma versão (a tela mostra o histórico, compara e restaura)
 type Versao = { n: number; em: string | null; por: string; origem: string; nota: string; aprovada?: boolean; dados: Record<string, unknown> }
 const CAMPOS_VERSAO = ['objetivo', 'legenda', 'roteiro', 'orientacoes', 'cta', 'hashtags', 'texto_arte', 'prompt_imagem', 'observacao', 'visual', 'artes']
@@ -256,7 +256,7 @@ function pedidoMarketing(perfil: Record<string, string>, pedido: Record<string, 
       : nDias === 1 ? `Monte o conteúdo do dia ${inicio}: ${qtd}.`
       : `Monte o conteúdo de ${inicio} a ${fim} (${nDias} dias): ${qtd}. Espalhe pelos dias (não precisa ter peça todo dia).`,
     pedido.foco ? `${avulsa ? 'Sobre o que é a peça' : 'Foco pedido pela equipe'}: ${pedido.foco}` : avulsa ? 'Tema livre: escolha o que mais ajuda a vender agora.' : 'Foco livre: equilibre atrair, educar e vender.',
-    campanha ? `CAMPANHA destas peças: ${campanha.nome}${campanha.inicio ? ` (de ${campanha.inicio}${campanha.fim ? ` a ${campanha.fim}` : ''})` : ''}. ${campanha.descricao ?? ''}` : '',
+    campanha ? `CAMPANHA destas peças: ${textoCampanha(campanha)}` : '',
     ctx ? `Informações atuais do sistema:\n${ctx}` : '',
     'Entregue OBRIGATORIAMENTE chamando a ferramenta entregar_semana, com todas as peças de uma vez. Não escreva nada fora da ferramenta.',
   ].filter(Boolean).join('\n\n')
@@ -393,7 +393,7 @@ function pedidoEscrever(perfil: Record<string, unknown>, pecas: PecaBanco[], ped
     `Escreva estas ${pecas.length} peças, uma para cada item da lista. Em cada peça preencha "ref" com o número do item e mantenha o "tipo" e o "dia" do item:\n${itens.join('\n')}`,
     pedido.tema ? `Tema central pedido pela equipe: ${pedido.tema}` : '',
     pedido.adaptar !== false && redes.length > 1 ? 'Todas partem da mesma ideia central, mas adapte a abertura, a profundidade e a chamada ao jeito de cada canal. Não repita o mesmo texto entre canais.' : '',
-    usadas.length ? `Campanhas:\n${usadas.map((c) => `- ${c.nome}${c.inicio ? ` (de ${c.inicio}${c.fim ? ` a ${c.fim}` : ''})` : ''}: ${c.descricao ?? ''}`).join('\n')}` : '',
+    usadas.length ? `Campanhas:\n${usadas.map((c) => `- ${textoCampanha(c)}`).join('\n')}` : '',
     ctx ? `Informações atuais do sistema:\n${ctx}` : '',
     'Entregue OBRIGATORIAMENTE chamando a ferramenta entregar_semana, com todas as peças de uma vez. Não escreva nada fora da ferramenta.',
   ].filter(Boolean).join('\n\n')
@@ -528,13 +528,13 @@ async function proporPlano(db: SupabaseClient, t: Trabalho, perfil: Record<strin
     anteriores.length ? `Esta é a proposta atual:\n${anteriores.map((i) => `- ${i.dia} · ${i.rede} · ${i.tipo} · ${i.titulo}${i.angulo ? ` — ${i.angulo}` : ''}`).join('\n')}\n\nAJUSTE PEDIDO PELA EQUIPE: ${pd.ajuste ?? ''}\nRefaça a proposta inteira já com o ajuste, mantendo o que não foi pedido para mudar.` : '',
     pd.objetivo ? `Objetivo: ${pd.objetivo}` : '', pd.publico ? `Público: ${pd.publico}` : '',
     pd.tema ? `Tema ou orientação da equipe: ${pd.tema}` : 'Tema livre: equilibre atrair, educar, relacionar e vender.',
-    campanha ? `Campanha: ${campanha.nome}${campanha.inicio ? ` (de ${campanha.inicio}${campanha.fim ? ` a ${campanha.fim}` : ''})` : ''}. ${campanha.descricao ?? ''}` : 'Sem campanha: o plano pode ser educativo e de relacionamento, sem empurrar oferta.',
+    campanha ? `Campanha: ${textoCampanha(campanha)}` : 'Sem campanha: o plano pode ser educativo e de relacionamento, sem empurrar oferta.',
     'Distribua bem pelas datas, varie formatos e assuntos e crie uma sequência que faça sentido (um conteúdo prepara o outro). Uma mesma ideia pode aparecer em canais diferentes no mesmo dia, adaptada.',
     'Entregue OBRIGATORIAMENTE chamando a ferramenta propor_calendario. Não escreva nada fora da ferramenta.',
   ].filter(Boolean).join('\n\n')
   const ctx = await contexto(db)
   const assuntos = ((pd.ata as { assuntos?: { tema: string }[] } | undefined)?.assuntos ?? []).map((a) => a.tema)
-  const kn = await conhecimento(db, t.empresa_id, [pd.tema, pd.objetivo, pd.publico, campanha?.nome, campanha?.descricao, plano.nome, ...assuntos].filter(Boolean).join(' '), 10)
+  const kn = await conhecimento(db, t.empresa_id, [pd.tema, pd.objetivo, pd.publico, textoCampanha(campanha), plano.nome, ...assuntos].filter(Boolean).join(' '), 10)
   const { entrega, entrada, saida } = await chamarClaude(chave, modelo, sistema, comBloco(kn.bloco, `${usuario}\n\nInformações atuais do sistema:\n${ctx}`), FERRAMENTA_PLANO)
   const permitidos = new Map(canais.map((c) => [c.rede, c.formatos]))
   const itens = (entrega.itens ?? []).filter((i) => datas.includes(i.dia) && permitidos.get(i.rede)?.includes(i.tipo)).slice(0, total || 60)
@@ -568,7 +568,7 @@ const FERRAMENTA_VOZ = {
 
 async function gerarVoz(db: SupabaseClient, empresa: string) {
   const { chave, pa, modelo } = await prepararAgente(db, empresa, 'marketing')
-  const { data: fontes } = await db.from('marca_fontes').select('id,titulo').eq('empresa_id', empresa).eq('ativo', true).eq('status', 'pronta').limit(60)
+  const { data: fontes } = await db.from('marca_fontes').select('id,titulo').eq('empresa_id', empresa).eq('ativo', true).eq('aprovada', true).eq('status', 'pronta').limit(60)
   if (!fontes?.length) throw new Error('A biblioteca está vazia. Envie apostilas, roteiros ou textos da marca antes de gerar o perfil de voz.')
   // amostra espalhada: os primeiros trechos de cada fonte, até ~60 mil caracteres
   const porFonte = Math.max(2, Math.floor(40 / fontes.length))
@@ -806,7 +806,7 @@ async function executar(db: SupabaseClient, t: Trabalho) {
     const modeloDe = (pd: Record<string, unknown>) => (Number(pd.posts ?? 0) + Number(pd.reels ?? 0) === 0 && pa.stories_economico !== false ? 'claude-haiku-5-5' : modelo)
     const campanhaId = (t.pedido.campanha as Campanha | null)?.id
     const anexos = (Array.isArray(t.pedido.anexos) ? t.pedido.anexos : []) as Anexo[]
-    const kn = await conhecimento(db, t.empresa_id, [t.pedido.foco, (t.pedido.campanha as Campanha | null)?.nome, (t.pedido.campanha as Campanha | null)?.descricao].filter(Boolean).join(' '), 8)
+    const kn = await conhecimento(db, t.empresa_id, [t.pedido.foco, textoCampanha(t.pedido.campanha as Campanha | null)].filter(Boolean).join(' '), 8)
     const respostas = await Promise.all(pedidos.map(async (pd) => { const { sistema, usuario } = pedidoMarketing(perfil, pd, ctx, (exemplos ?? []) as Exemplo[]); const m = modeloDe(pd); return { ...(await chamarClaude(String(chave), m, sistema, comAnexos(comBloco(kn.bloco, usuario), anexos))), modelo: m } }))
     const entrega = { resumo: respostas.map((r) => r.entrega.resumo).filter(Boolean)[0] ?? null, pecas: respostas.flatMap((r) => r.entrega.pecas ?? []) }
     const entrada = respostas.reduce((s, r) => s + r.entrada, 0), saida = respostas.reduce((s, r) => s + r.saida, 0)
