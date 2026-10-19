@@ -2438,3 +2438,12 @@ a.sala-agente:hover { border-color: var(--ouro); transform: translateY(-2px); }
 .mk-coluna header .mk-conta { margin-left: 0; }
 .mk-coluna header { gap: 3px; }
 .mk-coluna header b { margin-right: 2px; }
+
+/* Base da marca → Campanhas */
+.camp { display: flex; flex-direction: column; gap: 10px; }
+.camp-lista { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.camp-lista li { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; padding: 10px 12px; border: 1px solid var(--borda); border-left: 3px solid var(--ouro); border-radius: 10px; background: var(--painel-2); }
+.camp-lista li.encerrada { opacity: .6; border-left-color: var(--borda); }
+.camp-txt { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.camp-form { padding: 12px; border: 1px solid var(--borda); border-radius: 12px; }
+.camp-form label { display: flex; flex-direction: column; gap: 4px; }

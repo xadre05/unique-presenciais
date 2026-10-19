@@ -8,12 +8,12 @@ export type PerfilMarketing = Partial<Record<'empresa' | 'o_que_vende' | 'public
 
 const CAMPOS: { k: keyof PerfilMarketing; rotulo: string; dica: string; linhas: number }[] = [
   { k: 'empresa', rotulo: 'Empresa', dica: 'Quem é, em uma frase', linhas: 1 },
-  { k: 'o_que_vende', rotulo: 'O que vende', dica: 'Produtos, cursos ou procedimentos e o que cada um entrega', linhas: 4 },
+  { k: 'o_que_vende', rotulo: 'O que vende', dica: 'O que a marca vende sempre (produtos, cursos, procedimentos) e o que cada um entrega. Campanha, como a Black, não entra aqui: fica em Campanhas', linhas: 4 },
   { k: 'publico', rotulo: 'Para quem', dica: 'Quem compra e o que essa pessoa quer', linhas: 3 },
   { k: 'tom', rotulo: 'Tom de voz', dica: 'Como a marca fala', linhas: 2 },
   { k: 'evitar', rotulo: 'Nunca fazer', dica: 'Palavras e promessas proibidas', linhas: 2 },
   { k: 'conselho', rotulo: 'Regras do conselho', dica: 'CFO, CFM, CRBM: o que a publicidade não pode ter', linhas: 2 },
-  { k: 'materiais', rotulo: 'Ofertas e materiais (fonte da verdade)', dica: 'Cole aqui o texto da página de vendas (ex.: Black), preços, formas de pagamento, bônus, datas e perguntas frequentes. O agente usa isso e não inventa nada fora daqui.', linhas: 12 },
+  { k: 'materiais', rotulo: 'Ofertas e materiais fixos (fonte da verdade)', dica: 'Preços, formas de pagamento e perguntas frequentes do que a marca vende sempre. O que é de uma campanha fica na campanha. O agente não inventa nada fora daqui.', linhas: 12 },
 ]
 
 export function MarketingPerfil({ empresaId, perfil, aoSalvar }: { empresaId: string; perfil: PerfilMarketing; aoSalvar: () => void }) {

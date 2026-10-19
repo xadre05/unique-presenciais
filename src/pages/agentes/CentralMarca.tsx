@@ -9,6 +9,7 @@ import { LogosMarca } from './LogosMarca'
 import { BibliotecaMarca } from './biblioteca/BibliotecaMarca'
 import { PerfilVoz } from './biblioteca/PerfilVoz'
 import { ConexaoInstagram } from './instagram/ConexaoInstagram'
+import { CampanhasMarca } from './CampanhasMarca'
 
 export default function CentralMarca() {
   const perfil = useConsulta<{ perfil: PerfilMarketing } | null>(() => supabase.from('agentes_empresa').select('perfil').eq('empresa_id', EMPRESA_UNIQUE).eq('agente_id', 'marketing').maybeSingle())
@@ -26,7 +27,9 @@ export default function CentralMarca() {
         {!perfil.carregando && <PerfilVoz empresaId={EMPRESA_UNIQUE} perfil={(perfil.dados?.perfil ?? {}) as Record<string, unknown>} aoSalvar={perfil.recarregar} />}</section>
       <section className="bloco"><h2>Pessoas da marca</h2><p className="muted pequeno">Quem pode aparecer nas artes criadas pela IA. As fotos servem de referência para o rosto ficar parecido; só entram com a autorização de uso de imagem.</p>
         <PessoasMarca empresa={EMPRESA_UNIQUE} /></section>
-      <section className="bloco"><h2>Sobre a marca</h2>{!perfil.carregando && <MarketingPerfil empresaId={EMPRESA_UNIQUE} perfil={perfil.dados?.perfil ?? {}} aoSalvar={perfil.recarregar} />}</section>
+      <section className="bloco"><h2>Sobre a marca</h2><p className="muted pequeno">O que a marca é e vende sempre. Ofertas de um momento (Black, lançamento, data especial) ficam em Campanhas, logo abaixo.</p>{!perfil.carregando && <MarketingPerfil empresaId={EMPRESA_UNIQUE} perfil={perfil.dados?.perfil ?? {}} aoSalvar={perfil.recarregar} />}</section>
+      <section className="bloco"><h2>Campanhas</h2><p className="muted pequeno">Cada campanha tem período, oferta e regras próprias. Na reunião de pauta você escolhe a campanha, e as peças dela usam só essas informações.</p>
+        {!perfil.carregando && <CampanhasMarca empresaId={EMPRESA_UNIQUE} perfil={(perfil.dados?.perfil ?? {}) as Record<string, unknown>} aoSalvar={perfil.recarregar} />}</section>
     </div>
   )
 }

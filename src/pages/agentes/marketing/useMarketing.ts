@@ -34,7 +34,8 @@ export function useMarketing(inicio: string, dias = 7) {
   // quando um trabalho termina, recarrega as peças
   useEffect(() => { if (!emAndamento.length) { pecas.recarregar(); todas.recarregar() } }, [emAndamento.length]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  const campanhas = (Array.isArray(perfil.dados?.perfil?.campanhas) ? perfil.dados?.perfil?.campanhas : []) as Campanha[]
+  // campanhas encerradas saem das listas (continuam guardadas para as peças antigas)
+  const campanhas = ((Array.isArray(perfil.dados?.perfil?.campanhas) ? perfil.dados?.perfil?.campanhas : []) as (Campanha & { encerrada?: boolean })[]).filter((c) => !c.encerrada)
   const planos = planosDe(perfil.dados?.perfil)
   return { pecas, todas, trabalhos, perfil, campanhas, planos, emAndamento, ocupado, erro }
 }

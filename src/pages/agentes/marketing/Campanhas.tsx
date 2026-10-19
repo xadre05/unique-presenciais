@@ -44,7 +44,7 @@ export function NovaCampanha({ aberto, aoFechar, aoCriar }: { aberto: boolean; a
           <Campo rotulo="Começa em"><input type="date" value={f.inicio} onChange={(e) => setF((x) => ({ ...x, inicio: e.target.value }))} /></Campo>
           <Campo rotulo="Termina em"><input type="date" value={f.fim} onChange={(e) => setF((x) => ({ ...x, fim: e.target.value }))} /></Campo>
         </div>
-        <Campo rotulo="O que a campanha vende e o foco" dica="Oferta, bônus, para quem é, a mensagem principal. Preços e condições ficam em Base da marca → Ofertas e materiais.">
+        <Campo rotulo="O que a campanha vende e o foco" dica="Oferta, bônus, preço e condições, prazo, para quem é e a mensagem principal. Dá para editar depois em Base da marca → Campanhas.">
           <textarea rows={4} value={f.descricao} onChange={(e) => setF((x) => ({ ...x, descricao: e.target.value }))} />
         </Campo>
         <Erro msg={erro} />
