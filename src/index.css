@@ -2425,3 +2425,10 @@ a.sala-agente:hover { border-color: var(--ouro); transform: translateY(-2px); }
 .ig-padroes li { display: flex; flex-direction: column; gap: 2px; }
 .ig-aprendizados li { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
 .reu-periodo-txt { align-self: center; }
+
+/* quadro: o título da coluna encolhe (com reticências) e o "+" nunca sai da coluna */
+.mk-coluna { min-width: 0; }
+.mk-coluna header { min-width: 0; }
+.mk-coluna header > * { flex-shrink: 0; }
+.mk-coluna header b { flex-shrink: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.mk-coluna header button { margin-left: auto; }
