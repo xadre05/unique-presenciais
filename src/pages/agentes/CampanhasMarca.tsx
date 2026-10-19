@@ -7,12 +7,13 @@ import { Erro } from '../../components/ui'
 import { Icone } from '../../components/Icone'
 import { atualizarPerfil } from './memoria'
 import type { Campanha } from './marketing/useMarketing'
+import { produtosDe, textoSituacao, type Produto } from './marca/dados'
 
 type CampanhaGuardada = Campanha & { encerrada?: boolean }
 const vazia = (): CampanhaGuardada => ({ id: crypto.randomUUID(), nome: '', inicio: '', fim: '', descricao: '' })
 const dm = (iso?: string) => (iso ? new Date(iso + 'T12:00:00').toLocaleDateString('pt-BR') : '—')
 
-function Formulario({ inicial, aoSalvar, aoCancelar }: { inicial: CampanhaGuardada; aoSalvar: (c: CampanhaGuardada) => Promise<string | null>; aoCancelar: () => void }) {
+function Formulario({ inicial, produtos, aoSalvar, aoCancelar }: { inicial: CampanhaGuardada; produtos: Produto[]; aoSalvar: (c: CampanhaGuardada) => Promise<string | null>; aoCancelar: () => void }) {
   const [c, setC] = useState(inicial)
   const [erro, setErro] = useState<string | null>(null)
   const [salvando, setSalvando] = useState(false)
@@ -29,8 +30,16 @@ function Formulario({ inicial, aoSalvar, aoCancelar }: { inicial: CampanhaGuarda
         <label>Começa em<input type="date" value={c.inicio ?? ''} onChange={(e) => mudar({ inicio: e.target.value })} /></label>
         <label>Termina em<input type="date" value={c.fim ?? ''} onChange={(e) => mudar({ fim: e.target.value })} /></label>
       </div>
-      <label>Oferta e regras da campanha <small className="muted">(fonte da verdade enquanto a campanha durar)</small>
-        <textarea rows={7} value={c.descricao ?? ''} onChange={(e) => mudar({ descricao: e.target.value })} placeholder="O que é vendido nesta campanha, bônus, preço e condições, prazo, vagas, para quem é e a mensagem principal. O agente usa isto só nas peças desta campanha." /></label>
+      <fieldset className="camp-produtos"><legend>O que esta campanha vende <small className="muted">(opcional: campanha de seguidores ou de marca não vende produto)</small></legend>
+        {produtos.length ? produtos.map((p) => (
+          <label key={p.id} className="pp-check"><input type="checkbox" checked={(c.produtos ?? []).includes(p.id)}
+            onChange={(e) => mudar({ produtos: e.target.checked ? [...(c.produtos ?? []), p.id] : (c.produtos ?? []).filter((x) => x !== p.id) })} />
+            {p.nome || 'Produto sem nome'} <small className="muted">· {textoSituacao(p)}</small></label>))
+          : <span className="muted pequeno">Nenhum produto cadastrado em A marca → Produtos e condições.</span>}
+        <span className="muted pequeno">Preço, o que entrega e até quando está à venda ficam no produto. Aqui fica a comunicação.</span>
+      </fieldset>
+      <label>Mensagem e regras da campanha <small className="muted">(fonte da verdade enquanto a campanha durar)</small>
+        <textarea rows={7} value={c.descricao ?? ''} onChange={(e) => mudar({ descricao: e.target.value })} placeholder="Objetivo, fases (aquecimento, abertura, fechamento), mensagem principal, chamada, escassez verdadeira e o que não dizer. O agente usa isto só nas peças desta campanha." /></label>
       <Erro msg={erro} />
       <div className="ia-linha"><button type="button" className="btn btn-contorno-ouro" disabled={salvando} onClick={salvar}>{salvando ? 'Salvando…' : 'Salvar campanha'}</button><button type="button" className="btn btn-mini" onClick={aoCancelar}>Cancelar</button></div>
     </div>
@@ -39,6 +48,8 @@ function Formulario({ inicial, aoSalvar, aoCancelar }: { inicial: CampanhaGuarda
 
 export function CampanhasMarca({ empresaId, perfil, aoSalvar }: { empresaId: string; perfil: Record<string, unknown>; aoSalvar: () => void }) {
   const todas = (Array.isArray(perfil.campanhas) ? perfil.campanhas : []) as CampanhaGuardada[]
+  const produtos = produtosDe(perfil)
+  const nomes = (ids?: string[]) => (ids ?? []).map((id) => produtos.find((p) => p.id === id)?.nome).filter(Boolean).join(', ')
   const [editando, setEditando] = useState<CampanhaGuardada | null>(null)
   const [verEncerradas, setVerEncerradas] = useState(false)
   const [erro, setErro] = useState<string | null>(null)
@@ -59,14 +70,14 @@ export function CampanhasMarca({ empresaId, perfil, aoSalvar }: { empresaId: str
       {lista.length ? (
         <ul className="camp-lista">{lista.map((c) => (
           <li key={c.id} className={c.encerrada ? 'encerrada' : ''}>
-            <span className="camp-txt"><b>{c.nome}</b><small className="muted">{dm(c.inicio)} a {dm(c.fim)}{c.encerrada ? ' · encerrada' : ''}</small>{c.descricao && <small>{c.descricao.slice(0, 180)}{c.descricao.length > 180 ? '…' : ''}</small>}</span>
+            <span className="camp-txt"><b>{c.nome}</b><small className="muted">{dm(c.inicio)} a {dm(c.fim)}{c.encerrada ? ' · encerrada' : ''}</small><small className="muted">{nomes(c.produtos) ? `Vende: ${nomes(c.produtos)}` : 'Sem produto ligado'}</small>{c.descricao && <small>{c.descricao.slice(0, 180)}{c.descricao.length > 180 ? '…' : ''}</small>}</span>
             <span className="ia-linha">
               <button type="button" className="btn btn-mini" onClick={() => setEditando(c)}><Icone nome="lapis" tam={13} /> Editar</button>
               <button type="button" className="btn btn-mini" onClick={() => encerrar(c, !c.encerrada)}>{c.encerrada ? 'Reabrir' : 'Encerrar'}</button>
             </span>
           </li>))}</ul>
       ) : <p className="muted pequeno">Nenhuma campanha ainda.</p>}
-      {editando ? <Formulario key={editando.id} inicial={editando} aoSalvar={salvar} aoCancelar={() => setEditando(null)} />
+      {editando ? <Formulario key={editando.id} inicial={editando} produtos={produtos} aoSalvar={salvar} aoCancelar={() => setEditando(null)} />
         : <div className="ia-linha"><button type="button" className="btn btn-contorno-ouro" onClick={() => setEditando(vazia())}><Icone nome="mais" tam={15} /> Nova campanha</button>
           {todas.some((c) => c.encerrada) && <button type="button" className="btn btn-mini" onClick={() => setVerEncerradas(!verEncerradas)}>{verEncerradas ? 'Esconder encerradas' : 'Ver encerradas'}</button>}</div>}
       <Erro msg={erro} />

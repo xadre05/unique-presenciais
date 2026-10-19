@@ -2543,3 +2543,6 @@ a.sala-agente:hover { border-color: var(--ouro); transform: translateY(-2px); }
 .bm-historico li:first-child { border-top: 0; }
 @media (max-width: 1100px) { .bm-lado-col { position: static; } }
 @media (max-width: 700px) { .bm-tres { grid-template-columns: 1fr; } }
+.camp-produtos { border: 1px solid var(--borda); border-radius: 10px; padding: 10px 12px; display: flex; flex-direction: column; gap: 6px; }
+.camp-produtos legend { padding: 0 6px; }
+.camp-form .pp-check { flex-direction: row; align-items: center; gap: 8px; }

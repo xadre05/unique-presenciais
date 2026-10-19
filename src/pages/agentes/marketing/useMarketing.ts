@@ -8,7 +8,8 @@ import { somaDias, type Peca, type Trabalho } from '../comum'
 import { planosDe } from './planos'
 
 export const EMPRESA = EMPRESA_UNIQUE
-export type Campanha = { id: string; nome: string; descricao?: string; inicio?: string; fim?: string }
+// campanha: esforço de marketing com período; pode vender produtos da Base da marca (ids) ou nenhum (ex.: ganhar seguidores)
+export type Campanha = { id: string; nome: string; descricao?: string; inicio?: string; fim?: string; produtos?: string[] }
 
 export function useMarketing(inicio: string, dias = 7) {
   const fim = somaDias(inicio, dias - 1)

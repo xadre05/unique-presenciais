@@ -4,7 +4,7 @@ import type { SupabaseClient } from 'npm:@supabase/supabase-js@2.45.4'
 import type { Dependencias } from './reuniao.ts'
 
 type Produto = {
-  nome: string; tipo?: string; entrega?: string; para_quem?: string; acesso?: string
+  id?: string; nome: string; tipo?: string; entrega?: string; para_quem?: string; acesso?: string
   preco_vista?: number; parcelas?: number; valor_parcela?: number; pagamento?: string; link?: string; regras?: string; ativo?: boolean
   venda_inicio?: string; venda_fim?: string
 }
@@ -14,21 +14,25 @@ const dm = (iso: string) => `${iso.slice(8, 10)}/${iso.slice(5, 7)}/${iso.slice(
 // hoje no horário de Brasília (o produto sai da lista no dia seguinte ao fim da venda)
 const hojeBR = () => new Date(Date.now() - 3 * 3600 * 1000).toISOString().slice(0, 10)
 
-function linhaProduto(p: Produto) {
+type Campanha = { nome: string; produtos?: string[]; encerrada?: boolean }
+
+function linhaProduto(p: Produto, campanhas: Campanha[]) {
+  const daCampanha = campanhas.filter((c) => !c.encerrada && p.id && c.produtos?.includes(p.id)).map((c) => c.nome)
   const preco = [p.preco_vista != null && `${reais(p.preco_vista)} à vista`, p.parcelas && p.valor_parcela != null && `${p.parcelas}x de ${reais(p.valor_parcela)}`].filter(Boolean).join(' ou ')
   return [`- ${p.nome}${TIPO[p.tipo ?? ''] ? ` (${TIPO[p.tipo ?? '']})` : ''}${p.entrega ? `: ${p.entrega}` : ''}`,
     p.para_quem && `  para quem: ${p.para_quem}`, p.acesso && `  acesso/duração: ${p.acesso}`, preco && `  preço: ${preco}`,
-    p.pagamento && `  pagamento: ${p.pagamento}`, p.link && `  link de compra: ${p.link}`, p.regras && `  regras: ${p.regras}`, p.venda_fim && `  à venda só até ${dm(p.venda_fim)} (não prometa depois dessa data)`].filter(Boolean).join('\n')
+    p.pagamento && `  pagamento: ${p.pagamento}`, p.link && `  link de compra: ${p.link}`, p.regras && `  regras: ${p.regras}`, p.venda_fim && `  à venda só até ${dm(p.venda_fim)} (não prometa depois dessa data)`, daCampanha.length && `  produto da campanha: ${daCampanha.join(', ')}`].filter(Boolean).join('\n')
 }
 
 // produtos à venda hoje: fonte da verdade de preço fora das campanhas
 export function blocoProdutos(perfil: Record<string, unknown>) {
   const lista = (Array.isArray(perfil.produtos) ? perfil.produtos : []) as Produto[]
   const hoje = hojeBR()
+  const campanhas = (Array.isArray(perfil.campanhas) ? perfil.campanhas : []) as Campanha[]
   // fora de venda, ainda não começou ou já passou da data: o agente não oferece
   const venda = lista.filter((p) => p.ativo !== false && p.nome?.trim() && (!p.venda_inicio || p.venda_inicio <= hoje) && (!p.venda_fim || p.venda_fim >= hoje))
   if (!venda.length) return ''
-  return `\nPRODUTOS À VENDA HOJE (fonte da verdade de preço e condições; uma campanha ativa pode mudar enquanto durar). Não ofereça produto fora desta lista:\n${venda.map(linhaProduto).join('\n')}`
+  return `\nPRODUTOS À VENDA HOJE (fonte da verdade de preço e condições; uma campanha ativa pode mudar enquanto durar). Não ofereça produto fora desta lista:\n${venda.map((p) => linhaProduto(p, campanhas)).join('\n')}`
 }
 
 const FERRAMENTA_TESTE = {
