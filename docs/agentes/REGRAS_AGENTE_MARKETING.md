@@ -286,3 +286,9 @@ Capa, thumbnail e legenda são materiais dentro da peça, não peças separadas.
 - **Campanha** é comunicação com período (mensagem, tom, regras de divulgação). Pode vender 0, 1 ou vários produtos: Black Friday → produto da Black; campanha de seguidores → nenhum produto.
 - No servidor, o agente só recebe os produtos à venda **hoje** (horário de Brasília); depois do "À venda até" o produto some da lista sozinho. Produto ligado a campanha ativa vem marcado "produto da campanha: …".
 - Preço fica só no produto. O texto da campanha não repete preço, para não haver dois números diferentes.
+
+## Campanhas, Conhecimento e Referências redesenhados (19/10/2026, proposta do GPT com ajustes)
+- **Campanhas:** lista (busca, situação: ativa, agendada, encerrada, sem período) e detalhe ao lado. Campos: objetivo, período com hora do encerramento (Brasília), produtos que vende (0..n), oferta em uma frase (sem preço), nome e comunicação, mensagem/fases/regras e link dos materiais. "Conteúdos vinculados" conta as peças e planejamentos da campanha e abre o Agente de Marketing já filtrado (`?campanha=`). O servidor descreve a campanha com todos esses campos (`textoCampanha`).
+- **Biblioteca:** cada material é **Aprovado** (o agente usa como fonte) ou **A validar** (guardado, fora das buscas). Arquivos enviados entram aprovados; texto colado pode entrar "a validar". "Revisar" mostra o texto inteiro; corrigir cria uma versão nova e tira a antiga. Sem nome de pessoa nos rótulos ("A validar", não "A validar pela Dra.").
+- **Testar conhecimento:** mostra o que o agente encontraria, só nos aprovados.
+- **Nova referência:** página própria em 3 blocos (identificação com nome e canal, material, o que copiar). Continua com um botão só: guardar já estuda. Não entram "o que analisar" nem "disponibilizar após revisão" (complexidade que o Alexandre recusou).
