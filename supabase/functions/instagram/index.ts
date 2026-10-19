@@ -144,6 +144,41 @@ async function novosPorDia(db: SupabaseClient, empresa: string, token: string) {
   if (linhas.length) { const { error } = await db.from('marca_seguidores').upsert(linhas, { onConflict: 'empresa_id,rede,dia' }); if (error) throw new Error(error.message) }
 }
 
+// quantos deixaram de seguir em cada dia (follows_and_unfollows, quebra NON_FOLLOWER; só existe em total do período,
+// então é um pedido por dia). Dias de Brasília. Busca os dias ainda sem número e refaz os 3 últimos (o Instagram
+// leva até 2 dias para fechar). Grava só a coluna "saidas".
+const DIAS_SAIDAS = 30
+const UM_DIA = 86400
+const segundosDoDia = (dia: string) => Math.floor(new Date(dia + 'T03:00:00Z').getTime() / 1000)
+type Quebra = { dimension_values?: string[]; value?: number }
+
+async function saidasDoDia(token: string, dia: string) {
+  const ini = segundosDoDia(dia)
+  const r = await fetch(`${GRAPH}/me/insights?metric=follows_and_unfollows&period=day&metric_type=total_value&breakdown=follow_type&since=${ini}&until=${ini + UM_DIA}&access_token=${token}`)
+  const texto = await r.text()
+  if (!r.ok) throw new Error(`Instagram ${r.status}: ${texto.slice(0, 200)}`)
+  const d = JSON.parse(texto) as { data?: { total_value?: { breakdowns?: { results?: Quebra[] }[] } }[] }
+  const resultados = d.data?.[0]?.total_value?.breakdowns?.[0]?.results
+  if (!resultados) { console.error('saídas: resposta sem quebra', dia, texto.slice(0, 300)); return null }
+  return resultados.filter((x) => x.dimension_values?.[0] === 'NON_FOLLOWER').reduce((s, x) => s + Number(x.value ?? 0), 0)
+}
+
+async function saidasPorDia(db: SupabaseClient, empresa: string, token: string) {
+  const hoje = new Date(Date.now() - 3 * 3600000).toISOString().slice(0, 10)
+  const dia = (n: number) => new Date(new Date(hoje + 'T12:00:00Z').getTime() - n * UM_DIA * 1000).toISOString().slice(0, 10)
+  const { data } = await db.from('marca_seguidores').select('dia,saidas').eq('empresa_id', empresa).eq('rede', 'instagram').gte('dia', dia(DIAS_SAIDAS))
+  const comNumero = new Set((data ?? []).filter((x) => x.saidas != null).map((x) => String(x.dia)))
+  const faltam = Array.from({ length: DIAS_SAIDAS }, (_, i) => dia(i + 1)).filter((d, i) => i < 3 || !comNumero.has(d))
+  const linhas: { empresa_id: string; rede: string; dia: string; saidas: number }[] = []
+  for (let i = 0; i < faltam.length; i += 6) {
+    const lote = faltam.slice(i, i + 6)
+    const valores = await Promise.all(lote.map((d) => saidasDoDia(token, d).catch((e) => { console.error('saídas', d, (e as Error).message); return null })))
+    lote.forEach((d, j) => { const v = valores[j]; if (v != null) linhas.push({ empresa_id: empresa, rede: 'instagram', dia: d, saidas: v }) })
+  }
+  if (linhas.length) { const { error } = await db.from('marca_seguidores').upsert(linhas, { onConflict: 'empresa_id,rede,dia' }); if (error) throw new Error(error.message) }
+  return linhas.length
+}
+
 async function sincronizar(db: SupabaseClient, empresa: string, desde = Date.now() - DIAS_POSTS * 86400000, maximo = 400) {
   const { data: c } = await db.from('marca_conexoes').select('*').eq('empresa_id', empresa).eq('rede', 'instagram').maybeSingle()
   if (!c || c.status !== 'conectado') throw new Error('O Instagram não está conectado.')
@@ -156,6 +191,7 @@ async function sincronizar(db: SupabaseClient, empresa: string, desde = Date.now
     if (error) console.error('seguidores', error.message)
   }
   await novosPorDia(db, empresa, token).catch((e) => console.error('novos seguidores', (e as Error).message))
+  await saidasPorDia(db, empresa, token).catch((e) => console.error('saídas de seguidores', (e as Error).message))
   const limite = desde
   const medias: Media[] = []
   let pagina: string | null = `${GRAPH}/me/media?fields=id,caption,media_type,media_product_type,permalink,timestamp,thumbnail_url,media_url,like_count,comments_count&limit=50&access_token=${token}`

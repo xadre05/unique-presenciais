@@ -55,7 +55,7 @@ export function numeros(ps: PostIG[], i: Pick<Intervalo, 'de' | 'ate'>, seguidor
   return {
     posts: ps.length, alcance: soma('alcance'), mediana: mediana(ps.map((p) => n(p, 'alcance'))),
     salvos: soma('salvos'), compartilhamentos: soma('compartilhamentos'), curtidas: soma('curtidas'), comentarios: soma('comentarios'),
-    seguidores: c.saldo ?? c.novos, seguidoresSaldo: c.saldo != null,
+    seguidores: c.saldoDias ?? c.saldo ?? c.novos, seguidoresSaldo: c.saldoDias != null || c.saldo != null,
     doAgente: ps.filter((p) => origemDe(p) === 'agente').length,
   }
 }

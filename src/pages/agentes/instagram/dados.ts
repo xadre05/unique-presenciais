@@ -65,16 +65,16 @@ export const n = (p: PostIG, k: keyof PostIG['metricas']) => Number(p.metricas[k
 
 // ===== seguidores dia a dia =====
 // seguidores: foto do total tirada na leitura (vazio nos dias antes de começar); novos: o que o Instagram informa no dia
-export type DiaSeguidores = { dia: string; seguidores: number | null; novos: number | null }
+export type DiaSeguidores = { dia: string; seguidores: number | null; novos: number | null; saidas: number | null }
 
-// o Instagram leva uns 2 dias para fechar os novos de um dia (até lá devolve 0); a leitura seguinte corrige.
-// Por isso, 0 nos 2 últimos dias conta como "ainda sem número".
+// o Instagram leva uns 2 dias para fechar os números de um dia (até lá devolve 0 ou um número parcial); a leitura
+// seguinte corrige. Por isso, 0 de novos nos 2 últimos dias e as saídas de ontem e hoje contam como "ainda sem número".
 export function useSeguidores(empresa: string) {
   return useConsulta<DiaSeguidores[]>(async () => {
-    const r = await supabase.from('marca_seguidores').select('dia,seguidores,novos')
+    const r = await supabase.from('marca_seguidores').select('dia,seguidores,novos,saidas')
       .eq('empresa_id', empresa).eq('rede', 'instagram').order('dia', { ascending: true }).limit(3000)
-    const recente = somaDias(hojeBR(), -2)
-    return { ...r, data: (r.data ?? []).map((x) => (x.novos === 0 && x.dia >= recente ? { ...x, novos: null } : x)) }
+    const hoje = hojeBR(), recente = somaDias(hoje, -2), ontem = somaDias(hoje, -1)
+    return { ...r, data: (r.data ?? []).map((x) => ({ ...x, novos: x.novos === 0 && x.dia >= recente ? null : x.novos, saidas: x.dia >= ontem ? null : x.saidas })) }
   }, [empresa])
 }
 
@@ -85,11 +85,15 @@ export function crescimento(h: DiaSeguidores[], de: string, ate: string) {
   const inicio = fotos.filter((x) => x.dia < de).at(-1) ?? fotos.find((x) => x.dia >= de && x.dia <= ate) ?? null
   const fim = fotos.filter((x) => x.dia >= de && x.dia <= ate).at(-1) ?? null
   const comNovos = h.filter((x) => x.novos != null && x.dia >= de && x.dia <= ate)
+  const completos = h.filter((x) => x.novos != null && x.saidas != null && x.dia >= de && x.dia <= ate)
   return {
     inicio, fim,
     saldo: inicio && fim && inicio.dia !== fim.dia ? Number(fim.seguidores) - Number(inicio.seguidores) : null,
     novos: comNovos.length ? comNovos.reduce((s, x) => s + Number(x.novos ?? 0), 0) : null,
     diasComNovos: comNovos.length,
+    // entraram − saíram, somando só os dias que têm os dois números
+    saldoDias: completos.length ? completos.reduce((s, x) => s + Number(x.novos) - Number(x.saidas), 0) : null,
+    diasCompletos: completos.length,
   }
 }
 

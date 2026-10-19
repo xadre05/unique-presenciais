@@ -1,4 +1,4 @@
-// Gráficos simples dos Resultados (uma série cada, sem segundo eixo): colunas por dia e linha do total.
+// Gráficos simples dos Resultados: colunas por dia, linha do total e entradas × saídas de seguidores (acima e abaixo do zero).
 // Barras finas com ponta arredondada, grade discreta, dica ao passar o mouse ou tocar, valor escrito no maior ponto.
 import { useState } from 'react'
 import { milhar } from './dados'
@@ -82,6 +82,49 @@ export function Linha({ pontos, titulo }: { pontos: Ponto[]; titulo: string }) {
         </svg>
         {ativo != null && validos[ativo] && <Dica ponto={validos[ativo]} x={x(ativo)} largura={largura} />}
       </div>
+    </figure>
+  )
+}
+
+// entraram (acima da linha do zero) e saíram (abaixo) em cada dia; null = dia sem número ainda (traço)
+export type PontoDuplo = { rotulo: string; entraram: number | null; sairam: number | null; dica: string }
+function barraDe(x: number, largura: number, base: number, ponta: number) {
+  const r = Math.min(4, Math.abs(ponta - base) / 2), sobe = ponta < base
+  return sobe
+    ? `M${x},${base} V${ponta + r} Q${x},${ponta} ${x + r},${ponta} H${x + largura - r} Q${x + largura},${ponta} ${x + largura},${ponta + r} V${base} Z`
+    : `M${x},${base} V${ponta - r} Q${x},${ponta} ${x + r},${ponta} H${x + largura - r} Q${x + largura},${ponta} ${x + largura},${ponta - r} V${base} Z`
+}
+
+export function EntradasSaidas({ pontos, titulo }: { pontos: PontoDuplo[]; titulo: string }) {
+  const [ativo, setAtivo] = useState<number | null>(null)
+  const ALTURA = 220, passo = 34, largura = ESQ + pontos.length * passo + 4, rodape = 18
+  const max = topoLimpo(Math.max(0, ...pontos.flatMap((p) => [p.entraram ?? 0, p.sairam ?? 0])))
+  const meio = TOPO + (ALTURA - TOPO - rodape) / 2, meiaAltura = (ALTURA - TOPO - rodape) / 2
+  const y = (v: number) => meio - (v / max) * meiaAltura
+  const barra = Math.min(18, passo - 6)
+  return (
+    <figure className="gr-figura" aria-label={titulo}>
+      <div className="gr-area">
+        <svg viewBox={`0 0 ${largura} ${ALTURA}`} role="img" aria-label={titulo} onMouseLeave={() => setAtivo(null)} className="gr-duplo">
+          {[max, max / 2, -max / 2, -max].map((v) => <g key={v}><line x1={ESQ} x2={largura} y1={y(v)} y2={y(v)} className="gr-grade" /><text x={ESQ - 6} y={y(v) + 4} className="gr-eixo" textAnchor="end">{v > 0 ? '+' : '−'}{curto(Math.abs(v))}</text></g>)}
+          {pontos.map((p, i) => {
+            const cx = ESQ + i * passo + passo / 2, x = cx - barra / 2
+            return (
+              <g key={p.rotulo + i} onMouseEnter={() => setAtivo(i)} onClick={() => setAtivo(i)}>
+                <rect x={ESQ + i * passo} y={TOPO} width={passo} height={ALTURA - TOPO - rodape} className="gr-alvo" />
+                {p.entraram != null && p.entraram > 0 ? <path d={barraDe(x, barra, meio, y(p.entraram))} className={`gr-barra${ativo === i ? ' ativa' : ''}`} />
+                  : p.entraram == null ? <line x1={x} x2={x + barra} y1={meio - 2} y2={meio - 2} className="gr-vazio" /> : null}
+                {p.sairam != null && p.sairam > 0 ? <path d={barraDe(x, barra, meio, y(-p.sairam))} className={`gr-barra-saida${ativo === i ? ' ativa' : ''}`} />
+                  : p.sairam == null ? <line x1={x} x2={x + barra} y1={meio + 2} y2={meio + 2} className="gr-vazio" /> : null}
+                {i % Math.ceil(pontos.length / 8) === 0 && <text x={cx} y={ALTURA - 4} className="gr-eixo" textAnchor="middle">{p.rotulo}</text>}
+              </g>
+            )
+          })}
+          <line x1={ESQ} x2={largura} y1={meio} y2={meio} className="gr-base" />
+        </svg>
+        {ativo != null && pontos[ativo] && <Dica ponto={{ rotulo: pontos[ativo].rotulo, valor: null, dica: pontos[ativo].dica }} x={ESQ + ativo * passo + passo / 2} largura={largura} />}
+      </div>
+      <figcaption className="gr-legenda"><span><i className="gr-cor-entrou" /> Entraram</span><span><i className="gr-cor-saiu" /> Saíram</span><span><i className="gr-cor-vazio" /> Sem número ainda</span></figcaption>
     </figure>
   )
 }
