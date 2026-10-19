@@ -29,6 +29,11 @@ export function periodoDe(tipo: TipoEscopo, data: string, campanha?: Campanha): 
 }
 
 export function tituloDe(e: Escopo, campanha?: Campanha) {
+  const base = tituloBase(e, campanha)
+  return campanha && e.tipo !== 'campanha' ? `${base} · ${campanha.nome}` : base
+}
+
+function tituloBase(e: Escopo, campanha?: Campanha) {
   if (e.tipo === 'dia') return e.inicio === hojeISO() ? `Hoje, ${dm(e.inicio)}` : `Dia ${dm(e.inicio)}`
   if (e.tipo === 'campanha') return `Campanha ${campanha?.nome ?? ''} · ${dm(e.inicio)}–${dm(e.fim)}`.trim()
   if (e.tipo === 'mes') return `Mês de ${new Date(e.inicio + 'T12:00:00').toLocaleDateString('pt-BR', { month: 'long' })}`

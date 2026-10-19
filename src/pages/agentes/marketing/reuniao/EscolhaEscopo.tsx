@@ -25,15 +25,26 @@ type Props = {
 
 export function EscolhaEscopo(pr: Props) {
   const [tipo, setTipo] = useState<TipoEscopo>(pr.tipoInicial)
-  const [campanha, setCampanha] = useState(pr.campanhas[0]?.id ?? '')
+  // a campanha vale em qualquer planejamento (opcional); em "Uma campanha" ela é obrigatória e define o período
+  const [campanha, setCampanha] = useState(pr.tipoInicial === 'campanha' ? pr.campanhas[0]?.id ?? '' : '')
   const [periodo, setPeriodo] = useState(() => periodoDe(pr.tipoInicial, pr.dataInicial || hojeISO()))
   const [texto, setTexto] = useState('')
   const [comecando, setComecando] = useState(false)
   const [erro, setErro] = useState<string | null>(null)
   const [verTodas, setVerTodas] = useState(false)
-  const camp = pr.campanhas.find((c) => c.id === campanha) ?? pr.campanhas[0]
+  const camp = pr.campanhas.find((c) => c.id === campanha)
 
-  const escolher = (t: TipoEscopo) => { const p = periodoDe(t, t === 'dia' ? hojeISO() : periodo.inicio, t === 'campanha' ? camp : undefined); setTipo(t); setPeriodo(p); setDigitado(p.inicio) }
+  const escolher = (t: TipoEscopo) => {
+    const c = t === 'campanha' ? camp ?? pr.campanhas[0] : camp
+    if (t === 'campanha' && c) setCampanha(c.id)
+    const p = periodoDe(t, t === 'dia' ? hojeISO() : periodo.inicio, t === 'campanha' ? c : undefined); setTipo(t); setPeriodo(p); setDigitado(p.inicio)
+  }
+  const mudarCampanha = (id: string) => {
+    if (id === '__nova') return pr.aoCriarCampanha()
+    setCampanha(id)
+    if (tipo !== 'campanha') return
+    const p = periodoDe('campanha', '', pr.campanhas.find((c) => c.id === id)); setPeriodo(p); setDigitado(p.inicio)
+  }
   // o campo guarda o que foi digitado; o período só muda com uma data completa (ano com 4 dígitos)
   const [digitado, setDigitado] = useState(periodo.inicio)
   const valida = (d: string) => /^20\d\d-\d\d-\d\d$/.test(d)
@@ -42,7 +53,7 @@ export function EscolhaEscopo(pr: Props) {
     if (tipo === 'campanha' && !camp) return setErro('Escolha a campanha ou crie uma nova.')
     if (!valida(periodo.inicio) || !valida(periodo.fim)) return setErro('Confira a data: use dia, mês e ano completos.')
     setErro(null); setComecando(true)
-    const escopo: Escopo = { tipo, ...periodo, campanha: tipo === 'campanha' ? camp?.id : undefined, texto: texto.trim() || undefined }
+    const escopo: Escopo = { tipo, ...periodo, campanha: camp?.id, texto: texto.trim() || undefined }
     try { await pr.aoComecar(escopo, tituloDe(escopo, camp)) } catch (e) { setErro(e instanceof Error ? e.message : 'Não foi possível começar.'); setComecando(false) }
   }
   const lista = verTodas ? pr.recentes : pr.recentes.slice(0, 4)
@@ -59,12 +70,17 @@ export function EscolhaEscopo(pr: Props) {
           ))}
         </div>
         <div className="form-duas reu-periodo">
-          {tipo === 'campanha' && <label>Campanha<select value={camp?.id ?? ''} onChange={(e) => { if (e.target.value === '__nova') return pr.aoCriarCampanha(); setCampanha(e.target.value); const p = periodoDe('campanha', '', pr.campanhas.find((c) => c.id === e.target.value)); setPeriodo(p); setDigitado(p.inicio) }}>{!pr.campanhas.length && <option value="">Nenhuma campanha cadastrada</option>}{pr.campanhas.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}<option value="__nova">+ Nova campanha…</option></select></label>}
+          <label>Campanha {tipo !== 'campanha' && <small className="muted">(opcional)</small>}
+            <select value={camp?.id ?? ''} onChange={(e) => mudarCampanha(e.target.value)}>
+              {(tipo !== 'campanha' || !pr.campanhas.length) && <option value="">{tipo === 'campanha' ? 'Nenhuma campanha cadastrada' : 'Nenhuma: conteúdo do dia a dia'}</option>}
+              {pr.campanhas.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}
+              <option value="__nova">+ Nova campanha…</option>
+            </select></label>
           {tipo === 'mes'
             ? <label>Mês<input type="month" value={periodo.inicio.slice(0, 7)} onChange={(e) => e.target.value && mudarInicio(e.target.value + '-01')} /></label>
             : <label>{tipo === 'dia' ? 'Dia' : tipo === 'semana' ? 'Semana de' : 'Início'}<input type="date" value={digitado} onChange={(e) => { setDigitado(e.target.value); mudarInicio(e.target.value) }} /></label>}
           {(tipo === 'dias' || tipo === 'campanha') && <label>Fim<input type="date" value={periodo.fim} min={periodo.inicio} onChange={(e) => valida(e.target.value) && setPeriodo({ ...periodo, fim: e.target.value })} /></label>}
-          <span className="muted pequeno reu-periodo-txt">Período: {dmy(periodo.inicio)}{periodo.fim !== periodo.inicio ? ` a ${dmy(periodo.fim)}` : ''}</span>
+          <span className="muted pequeno reu-periodo-txt">Período: {dmy(periodo.inicio)}{periodo.fim !== periodo.inicio ? ` a ${dmy(periodo.fim)}` : ''}{camp ? ` · as peças usam a oferta e as regras de ${camp.nome}` : ''}</span>
         </div>
         <label className="mk-rotulo">Quer adiantar o assunto? <small className="muted">(opcional)</small></label>
         <textarea rows={2} maxLength={600} value={texto} onChange={(e) => setTexto(e.target.value)} placeholder="Ex.: saiu uma notícia sobre a regulamentação da HOF e quero falar disso hoje" />
