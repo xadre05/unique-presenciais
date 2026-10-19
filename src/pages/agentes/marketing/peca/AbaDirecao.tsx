@@ -3,7 +3,7 @@
 // À direita, a prévia: o arquivo enviado (ou, quando o Agente de Arte estiver ligado, a arte gerada).
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { usePessoasMarca } from '../../PessoasMarca'
+import { useNomesPessoas, usePessoasMarca } from '../../PessoasMarca'
 import { EMPRESA } from '../useMarketing'
 import { Icone } from '../../../../components/Icone'
 import type { Peca, Trabalho } from '../../comum'
@@ -13,7 +13,7 @@ import { CampoEditor } from './CampoEditor'
 import { AjusteIA } from './AjusteIA'
 import { BotaoEnviar, Miniatura, pastaDa } from './arquivos'
 import { AjustarArte, BotaoCriarArte } from './AvisoArte'
-import { EscolhaLogo, ImagensParaUsar } from './ImagensArte'
+import { AjudaOrientacao, EscolhaLogo, ImagensParaUsar } from './ImagensArte'
 
 type Props = {
   peca: Peca; r: Rascunho; mudar: (c: Partial<Rascunho>) => void; atual: number; setAtual: (i: number) => void; nomeAba: string
@@ -119,6 +119,7 @@ export function AbaDirecao({ peca, r, mudar, atual, setAtual, nomeAba, rodando, 
   const orientaItem = (orientacao: string) => mudaArte({ orientacao })
   const elementosItem = (elementos: Referencia[]) => mudaArte({ elementos })
   const campos: Campo[] = cfg.visual
+  const nomesPessoas = useNomesPessoas(EMPRESA, v.pessoas ?? [])
   const so = `Ajuste SOMENTE a parte visual (${campos.map((c) => `${c.rotulo}: campo ${c.campo}`).join('; ')}).`
   return (
     <div className="pp-direcao">
@@ -139,9 +140,15 @@ export function AbaDirecao({ peca, r, mudar, atual, setAtual, nomeAba, rodando, 
           ? <>
               <CampoEditor id="arte-item" rotulo={`Orientação para a arte da ${minusc(singular)} ${i + 1}`} valor={r.artes[i]?.orientacao ?? ''} mudar={orientaItem} linhas={4}
                 dica={`Só para esta ${minusc(singular)}. Troque o número na prévia ao lado.`} placeholder="Ex.: fundo escuro e o preço em dourado, com bastante respiro" />
+              <AjudaOrientacao valor={r.artes[i]?.orientacao ?? ''} mudar={orientaItem} pessoas={nomesPessoas} imagens={(r.artes[i]?.elementos ?? []).map((x) => x.nome)} />
               <ImagensParaUsar pecaId={peca.id} lista={r.artes[i]?.elementos ?? []} mudar={elementosItem} onde={`na ${minusc(singular)} ${i + 1}`} />
             </>
-          : campos.map((c) => <CampoEditor key={c.campo} id={`visual-${c.campo}`} rotulo={c.rotulo} valor={valor(r, c.campo)} mudar={(x) => mudar({ [c.campo]: x })} max={c.max} linhas={c.linhas} dica={c.dica} />)}
+          : campos.map((c) => (
+            <div key={c.campo}>
+              <CampoEditor id={`visual-${c.campo}`} rotulo={c.rotulo} valor={valor(r, c.campo)} mudar={(x) => mudar({ [c.campo]: x })} max={c.max} linhas={c.linhas} dica={c.dica} />
+              {c.campo === 'prompt_imagem' && cfg.artes && <AjudaOrientacao valor={r.prompt_imagem} mudar={(x) => mudar({ prompt_imagem: x })} pessoas={nomesPessoas} imagens={(v.elementos ?? []).map((x) => x.nome)} />}
+            </div>
+          ))}
         {cfg.artes && !porItem && <ImagensParaUsar pecaId={peca.id} lista={v.elementos ?? []} mudar={(elementos) => muda({ elementos })} onde="na arte" />}
         <div className="pp-campo">
           <span className="pp-rotulo">Referências visuais</span>

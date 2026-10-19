@@ -16,6 +16,12 @@ export function usePessoasMarca(empresa: string) {
   return useConsulta<PessoaMarca[]>(() => supabase.from('marca_pessoas').select('*').eq('empresa_id', empresa).eq('ativo', true).order('criado_em'), [empresa])
 }
 
+// nomes das pessoas marcadas numa peça (a ajuda da orientação usa nas frases prontas)
+export function useNomesPessoas(empresa: string, ids: string[]) {
+  const pessoas = usePessoasMarca(empresa).dados ?? []
+  return pessoas.filter((p) => ids.includes(p.id)).map((p) => p.nome)
+}
+
 function Pessoa({ p, aoMudar }: { p: PessoaMarca; aoMudar: () => void }) {
   const { session } = useAuth()
   const [erro, setErro] = useState<string | null>(null)

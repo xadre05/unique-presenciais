@@ -8,7 +8,9 @@ import { configDe, nomesItem } from './editor'
 import type { Arte, Item, Rascunho } from './modelo'
 import { BotaoCopiar, CampoEditor } from './CampoEditor'
 import { AjusteIA, type Alcance } from './AjusteIA'
-import { ImagensParaUsar } from './ImagensArte'
+import { AjudaOrientacao, ImagensParaUsar } from './ImagensArte'
+import { useNomesPessoas } from '../../PessoasMarca'
+import { EMPRESA } from '../useMarketing'
 
 type Props = {
   peca: Peca; r: Rascunho; mudar: (c: Partial<Rascunho>) => void; atual: number; setAtual: (i: number) => void
@@ -36,6 +38,7 @@ export function AbaItens({ peca, r, mudar, atual, setAtual, rodando, ultimo, ant
   const i = Math.min(atual, Math.max(0, r.itens.length - 1))
   const item = r.itens[i]
   const porItem = cfg.artes === 'por_item'
+  const nomesPessoas = useNomesPessoas(EMPRESA, r.visual.pessoas ?? [])
   const completo = !!(cfg.item.titulo && cfg.item.texto)
 
   const mudarItem = (c: Partial<Item>) => mudar({ itens: r.itens.map((x, j) => (j === i ? { ...x, ...c } : x)) })
@@ -85,6 +88,7 @@ export function AbaItens({ peca, r, mudar, atual, setAtual, rodando, ultimo, ant
           {cfg.item.texto && <CampoEditor id={`item-x-${i}`} rotulo={cfg.item.texto} valor={item.texto} mudar={(v) => mudarItem({ texto: v })} max={cfg.item.maxTexto} linhas={peca.tipo === 'video' || peca.tipo === 'live' ? 7 : 4} />}
           {completo && <CampoEditor id={`item-o-${i}`} rotulo={`Orientação para esta ${minusc(singular)}`} valor={item.orientacao} mudar={(v) => mudarItem({ orientacao: v })} linhas={2}
             placeholder="Ex.: destacar o benefício principal com mais contraste" dica="Fica com a peça e vai junto quando você pede ajuste à IA." />}
+          {porItem && <AjudaOrientacao valor={item.orientacao} mudar={(v) => mudarItem({ orientacao: v })} pessoas={nomesPessoas} imagens={(r.artes[i]?.elementos ?? []).map((x) => x.nome)} />}
           {porItem && <ImagensParaUsar pecaId={peca.id} lista={r.artes[i]?.elementos ?? []} onde={`nesta ${minusc(singular)}`}
             mudar={(elementos) => mudar({ artes: Array.from({ length: Math.max(r.itens.length, r.artes.length) }, (_, j) => (j === i ? { ...r.artes[j], elementos } : r.artes[j] ?? {})) })} />}
           <div className="pp-item-rodape">

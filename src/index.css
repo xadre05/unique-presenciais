@@ -2317,3 +2317,15 @@ a.sala-agente:hover { border-color: var(--ouro); transform: translateY(-2px); }
 .marca-imagem select { font-size: 12px; padding: 4px 26px 4px 8px; }
 .pp-linha-curta { display: flex; align-items: center; gap: 10px; margin-top: 8px; }
 .pp-linha-curta select { min-width: 180px; }
+
+/* ajuda para escrever a orientação da arte */
+.orienta-ajuda { display: flex; flex-direction: column; gap: 10px; margin-top: -4px; margin-bottom: 12px; }
+.orienta-ajuda > .link { align-self: flex-start; display: inline-flex; align-items: center; gap: 6px; }
+.orienta-ajuda p { margin: 0; }
+.orienta-grupo { display: flex; flex-direction: column; gap: 6px; }
+.orienta-frases { display: flex; flex-wrap: wrap; gap: 6px; }
+.orienta-frases button { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; padding: 5px 10px; border-radius: 999px; border: 1px solid var(--borda, rgba(255,255,255,.14)); background: transparent; color: inherit; cursor: pointer; }
+.orienta-frases button:hover { border-color: var(--ouro, #d4af37); color: var(--ouro, #d4af37); }
+.orienta-exemplo { border: 1px dashed var(--borda, rgba(255,255,255,.18)); border-radius: 10px; padding: 10px 12px; display: flex; flex-direction: column; gap: 6px; align-items: flex-start; }
+.orienta-exemplo p { font-size: 13px; line-height: 1.5; }
+.marca-nome { font-size: 12px; padding: 4px 8px; width: 120px; }
