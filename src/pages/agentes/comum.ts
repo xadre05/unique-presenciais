@@ -21,8 +21,8 @@ export type Peca = {
 export type Config = { empresa_id: string; modelo: string; limite_mes_creditos: number | null; chave_em: string | null; ias?: Record<string, unknown> }
 
 export const MODELOS: Record<string, { nome: string; dica: string }> = {
-  'claude-sonnet-5-5': { nome: 'Claude Sonnet 5.5 (recomendado)', dica: 'Melhor texto. Uma semana de conteúdo custa alguns centavos de dólar.' },
-  'claude-haiku-5-5': { nome: 'Claude Haiku 5.5 (econômico)', dica: 'Cerca de 20 vezes mais barato; texto um pouco mais simples.' },
+  'claude-sonnet-5-5': { nome: 'Claude Sonnet 5.5 (recomendado)', dica: 'Melhor texto. Uma semana de conteúdo usa cerca de 14 créditos.' },
+  'claude-haiku-5-5': { nome: 'Claude Haiku 5.5 (econômico)', dica: 'Gasta cerca de 20 vezes menos créditos; texto um pouco mais simples.' },
 }
 
 // Catálogo dos agentes (nome, função, escopo e visual). Os retratos foram criados no GPT pelo Alexandre.

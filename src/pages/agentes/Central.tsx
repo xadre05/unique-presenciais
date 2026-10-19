@@ -52,7 +52,7 @@ export default function Central() {
 
       <section className="bloco">
         <h2>Modelo do Claude e créditos</h2>
-        <div className="linha-campos">
+        <div className="linha-campos topo">
           <Campo rotulo="Modelo do Claude" dica={MODELOS[modelo]?.dica}>
             <select value={modelo} onChange={(e) => salvarCfg({ modelo: e.target.value })}>{Object.entries(MODELOS).map(([k, m]) => <option key={k} value={k}>{m.nome}</option>)}</select>
           </Campo>

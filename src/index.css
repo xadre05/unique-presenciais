@@ -1247,6 +1247,7 @@ a.sala-agente:hover { border-color: var(--ouro); transform: translateY(-2px); }
 .passos { margin: 0 0 12px; padding-left: 20px; line-height: 1.6; }
 .linha-campos { display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap; }
 .linha-campos > .campo { flex: 1; min-width: 220px; }
+.linha-campos.topo { align-items: flex-start; }
 @media (max-width: 640px) { .pecas-grade { grid-template-columns: 1fr; } .agente-topo { align-items: flex-start; } }
 .agente-erro { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
 
