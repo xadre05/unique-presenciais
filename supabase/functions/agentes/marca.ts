@@ -21,14 +21,14 @@ function linhaProduto(p: Produto) {
     p.pagamento && `  pagamento: ${p.pagamento}`, p.link && `  link de compra: ${p.link}`, p.regras && `  regras: ${p.regras}`, p.venda_fim && `  à venda só até ${dm(p.venda_fim)} (não prometa depois dessa data)`].filter(Boolean).join('\n')
 }
 
-// produtos que a marca vende sempre: fonte da verdade de preço fora das campanhas
+// produtos à venda hoje: fonte da verdade de preço fora das campanhas
 export function blocoProdutos(perfil: Record<string, unknown>) {
   const lista = (Array.isArray(perfil.produtos) ? perfil.produtos : []) as Produto[]
   const hoje = hojeBR()
   // fora de venda, ainda não começou ou já passou da data: o agente não oferece
   const venda = lista.filter((p) => p.ativo !== false && p.nome?.trim() && (!p.venda_inicio || p.venda_inicio <= hoje) && (!p.venda_fim || p.venda_fim >= hoje))
   if (!venda.length) return ''
-  return `\nPRODUTOS QUE A MARCA VENDE SEMPRE (fonte da verdade de preço e condições; uma campanha ativa pode mudar enquanto durar). Não ofereça produto fora desta lista:\n${venda.map(linhaProduto).join('\n')}`
+  return `\nPRODUTOS À VENDA HOJE (fonte da verdade de preço e condições; uma campanha ativa pode mudar enquanto durar). Não ofereça produto fora desta lista:\n${venda.map(linhaProduto).join('\n')}`
 }
 
 const FERRAMENTA_TESTE = {
