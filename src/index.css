@@ -2445,6 +2445,9 @@ a.sala-agente:hover { border-color: var(--ouro); transform: translateY(-2px); }
 .ig-cartoes { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px; margin: 6px 0 12px; }
 .ig-cartoes > div { padding: 12px; border: 1px solid var(--borda); border-radius: 12px; background: var(--painel); display: flex; flex-direction: column; gap: 4px; }
 .ig-cartoes small { color: var(--muted); }
+.ig-barra { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px; margin: 4px 0 8px; }
+.ig-atualiza { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.ig-atualiza > span { display: inline-flex; align-items: center; gap: 6px; }
 .ig-cartoes b { font-size: 1.35rem; }
 .ig-tabela { width: 100%; margin-bottom: 12px; }
 .ig-lista { overflow-x: auto; }

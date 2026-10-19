@@ -1,29 +1,16 @@
-// Agente de Marketing → Resultados: os posts do Instagram com as métricas, comparados com a mediana da conta,
-// o resumo por formato e a análise do agente (o que funcionou, o que não, recomendações e aprendizados).
+// Agente de Marketing → Resultados: os posts do Instagram com as métricas, filtrados por ano e formato, comparados
+// com a mediana do filtro, a comparação entre os anos, o resumo por formato e a análise do agente (no mesmo filtro).
+// Atualiza sozinho todo dia de manhã; "Atualizar agora" lê na hora; o histórico desde 2024 é trazido uma vez.
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Erro } from '../../../components/ui'
 import { Icone } from '../../../components/Icone'
 import { CabecalhoAba } from '../marketing/BarraFiltros'
-import { acaoInstagram, mediana, milhar, useConexao, usePostsInstagram, type PostIG } from './dados'
+import { NOME_TIPO, acaoInstagram, mediana, milhar, n, useConexao, usePostsInstagram, type FiltroAnalise, type PostIG } from './dados'
 import { AnaliseInstagram } from './AnaliseInstagram'
+import { ComparaAnos, PorFormato } from './Tabelas'
 
-const NOME_TIPO: Record<string, string> = { reels: 'Reels', carrossel: 'Carrossel', imagem: 'Imagem', video: 'Vídeo' }
 type Ordem = 'recentes' | 'alcance' | 'salvos'
-const n = (p: PostIG, k: keyof PostIG['metricas']) => Number(p.metricas[k] ?? 0)
-
-function PorFormato({ posts }: { posts: PostIG[] }) {
-  const tipos = [...new Set(posts.map((p) => p.tipo))]
-  const media = (ps: PostIG[], k: keyof PostIG['metricas']) => Math.round(ps.reduce((s, p) => s + n(p, k), 0) / Math.max(1, ps.length))
-  const linhas = tipos.map((t) => { const ps = posts.filter((p) => p.tipo === t); return { t, qtd: ps.length, alcance: mediana(ps.map((p) => n(p, 'alcance'))), salvos: media(ps, 'salvos'), comp: media(ps, 'compartilhamentos') } })
-    .sort((a, b) => b.alcance - a.alcance)
-  return (
-    <table className="tabela ig-tabela">
-      <thead><tr><th>Formato</th><th>Posts</th><th>Alcance mediano</th><th>Salvos por post</th><th>Compartilhamentos por post</th></tr></thead>
-      <tbody>{linhas.map((l) => <tr key={l.t}><td>{NOME_TIPO[l.t] ?? l.t}</td><td>{l.qtd}</td><td>{milhar(l.alcance)}</td><td>{milhar(l.salvos)}</td><td>{milhar(l.comp)}</td></tr>)}</tbody>
-    </table>
-  )
-}
 
 function ListaPosts({ posts, med }: { posts: PostIG[]; med: number }) {
   const [ordem, setOrdem] = useState<Ordem>('recentes')
@@ -50,37 +37,68 @@ function ListaPosts({ posts, med }: { posts: PostIG[]; med: number }) {
   )
 }
 
+// ano e formato escolhidos viram o filtro da análise (de, até, tipo)
+const filtroDe = (ano: string, tipo: string): FiltroAnalise => ({ ...(ano ? { de: `${ano}-01-01`, ate: `${ano}-12-31` } : {}), ...(tipo ? { tipo } : {}) })
+
 export function ResultadosInstagram({ empresa }: { empresa: string }) {
   const conexao = useConexao(empresa)
   const posts = usePostsInstagram(empresa)
-  const [analisando, setAnalisando] = useState(false)
+  const [ano, setAno] = useState('')
+  const [tipo, setTipo] = useState('')
+  const [fazendo, setFazendo] = useState<'analisar' | 'sincronizar' | 'historico' | null>(null)
+  const [aviso, setAviso] = useState<string | null>(null)
   const [erro, setErro] = useState<string | null>(null)
-  const lista = useMemo(() => posts.dados ?? [], [posts.dados])
+  const todos = useMemo(() => posts.dados ?? [], [posts.dados])
+  const anos = useMemo(() => [...new Set(todos.map((p) => p.publicado_em.slice(0, 4)))].sort().reverse(), [todos])
+  const tipos = useMemo(() => [...new Set(todos.map((p) => p.tipo))], [todos])
+  const lista = useMemo(() => todos.filter((p) => (!ano || p.publicado_em.startsWith(ano)) && (!tipo || p.tipo === tipo)), [todos, ano, tipo])
   const med = useMemo(() => mediana(lista.map((p) => n(p, 'alcance'))), [lista])
+  const maisAntigo = todos.at(-1)?.publicado_em.slice(0, 10) ?? ''
   const c = conexao.dados
-  const analisar = async () => {
-    setErro(null); setAnalisando(true)
-    try { await acaoInstagram(empresa, 'analisar'); conexao.recarregar() } catch (e) { setErro((e as Error).message) }
-    setAnalisando(false)
+  const agir = async (acao: 'analisar' | 'sincronizar' | 'historico') => {
+    setErro(null); setAviso(null); setFazendo(acao)
+    try {
+      await acaoInstagram(empresa, acao, acao === 'analisar' ? filtroDe(ano, tipo) : undefined)
+      if (acao === 'historico') setAviso('Buscando os posts desde 2024 com as métricas. Leva alguns minutos: volte e recarregue a página.')
+      conexao.recarregar(); posts.recarregar()
+    } catch (e) { setErro((e as Error).message) }
+    setFazendo(null)
   }
   return (
     <section className="mk-plano">
-      <CabecalhoAba titulo="Resultados" sub="O que os posts publicados entregaram e o que o agente aprendeu com eles." />
+      <CabecalhoAba titulo="Resultados" sub="O que os posts publicados entregaram e o que o agente aprendeu com eles. Hoje: Instagram." />
       {!conexao.carregando && c?.status !== 'conectado' && (
         <div className="mk-vazio-grande"><Icone nome="grafico" tam={30} /><p>O Instagram ainda não está ligado.</p>
           <span className="muted pequeno">Ligue em <Link to="/agentes/central?aba=integracoes">Configurações → Integrações</Link>. Depois disso o agente lê os posts e as métricas todo dia.</span></div>
       )}
       {c?.status === 'conectado' && (<>
+        <div className="ig-barra">
+          <div className="ia-linha">
+            <button type="button" className={`mk-chip${!ano ? ' ativo' : ''}`} onClick={() => setAno('')}>Todos os anos</button>
+            {anos.map((a) => <button key={a} type="button" className={`mk-chip${ano === a ? ' ativo' : ''}`} onClick={() => setAno(a)}>{a}</button>)}
+            <span className="select-icone"><select value={tipo} onChange={(e) => setTipo(e.target.value)} aria-label="Formato">
+              <option value="">Todos os formatos</option>{tipos.map((t) => <option key={t} value={t}>{NOME_TIPO[t] ?? t}</option>)}</select></span>
+          </div>
+          <div className="ig-atualiza">
+            <span className="muted pequeno"><Icone nome="relogio" tam={14} /> Atualiza sozinho todo dia às 6h. Última leitura: {c.sincronizado_em ? new Date(c.sincronizado_em).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '—'}</span>
+            <button type="button" className="btn btn-mini" disabled={!!fazendo} onClick={() => agir('sincronizar')}><Icone nome="atualizar" tam={13} /> {fazendo === 'sincronizar' ? 'Lendo…' : 'Atualizar agora'}</button>
+            {maisAntigo > '2024-01-31' && <button type="button" className="btn btn-mini" disabled={!!fazendo} onClick={() => agir('historico')}><Icone nome="historico" tam={13} /> Trazer histórico desde 2024</button>}
+          </div>
+        </div>
+        {aviso && <p className="nota pequeno">{aviso}</p>}
         <div className="ig-cartoes">
-          <div><small>Posts lidos (últimos 6 meses)</small><b>{lista.length}</b></div>
+          <div><small>Posts no filtro</small><b>{lista.length}</b></div>
           <div><small>Alcance mediano por post</small><b>{milhar(med)}</b></div>
           <div><small>Seguidores</small><b>{milhar(c.seguidores ?? undefined)}</b></div>
-          <div><small>Última leitura</small><b>{c.sincronizado_em ? new Date(c.sincronizado_em).toLocaleDateString('pt-BR') : '—'}</b></div>
+          <div><small>Desde</small><b>{maisAntigo ? new Date(maisAntigo + 'T12:00:00').toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' }) : '—'}</b></div>
         </div>
-        {lista.length > 0 && <PorFormato posts={lista} />}
-        <AnaliseInstagram empresa={empresa} analise={c.analise} analisando={analisando} aoAnalisar={analisar} podeAnalisar={lista.length >= 5} />
+        {!ano && anos.length > 1 && <><h4 className="reu-subtitulo">Comparação entre os anos{tipo ? ` · ${NOME_TIPO[tipo] ?? tipo}` : ''}</h4><ComparaAnos posts={lista} /></>}
+        {lista.length > 0 && <><h4 className="reu-subtitulo">Por formato{ano ? ` · ${ano}` : ''}</h4><PorFormato posts={lista} /></>}
+        <AnaliseInstagram empresa={empresa} analise={c.analise} analisando={fazendo === 'analisar'} aoAnalisar={() => agir('analisar')} podeAnalisar={lista.length >= 5}
+          rotuloFiltro={`${ano || 'todos os anos'}${tipo ? ` · ${NOME_TIPO[tipo] ?? tipo}` : ''}`} />
         <Erro msg={erro} />
-        {lista.length > 0 ? <ListaPosts posts={lista} med={med} /> : <p className="muted pequeno">Os posts ainda estão sendo lidos. Volte em alguns minutos ou clique em Atualizar agora em Configurações → Integrações.</p>}
+        {lista.length > 0 ? <ListaPosts posts={lista} med={med} /> : <p className="muted pequeno">Nenhum post neste filtro.</p>}
+        <p className="muted pequeno">Os números vêm do Instagram e não separam o que foi impulsionado (anúncio) do orgânico.</p>
       </>)}
     </section>
   )

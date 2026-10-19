@@ -7,8 +7,9 @@ export type Analise = {
   resumo: string; em: string; posts: number; mediana: number
   funcionou: { padrao: string; porque: string; exemplos?: string[] }[]
   nao_funcionou: { padrao: string; porque: string; exemplos?: string[] }[]
-  recomendacoes: string[]; aprendizados: string[]
+  recomendacoes: string[]; aprendizados: string[]; comparacao?: string[]; filtro?: FiltroAnalise
 }
+export type FiltroAnalise = { de?: string; ate?: string; tipo?: string }
 export type Conexao = {
   app_id: string | null; status: 'sem_app' | 'pronta' | 'conectado' | 'erro' | 'desligado'
   usuario: string | null; nome: string | null; foto: string | null; seguidores: number | null; publicacoes: number | null
@@ -27,7 +28,7 @@ export function useConexao(empresa: string) {
 
 export function usePostsInstagram(empresa: string) {
   return useConsulta<PostIG[]>(() => supabase.from('marca_posts').select('id,tipo,legenda,link,miniatura,publicado_em,metricas')
-    .eq('empresa_id', empresa).eq('rede', 'instagram').order('publicado_em', { ascending: false }).limit(200), [empresa])
+    .eq('empresa_id', empresa).eq('rede', 'instagram').order('publicado_em', { ascending: false }).limit(1500), [empresa])
 }
 
 export async function salvarApp(empresa: string, appId: string, segredo: string) {
@@ -35,11 +36,11 @@ export async function salvarApp(empresa: string, appId: string, segredo: string)
   if (error) throw new Error(msgErro(error))
 }
 
-type Acao = 'link' | 'sincronizar' | 'analisar' | 'desligar'
-export async function acaoInstagram<T = Record<string, unknown>>(empresa: string, acao: Acao): Promise<T> {
+type Acao = 'link' | 'sincronizar' | 'historico' | 'analisar' | 'desligar'
+export async function acaoInstagram<T = Record<string, unknown>>(empresa: string, acao: Acao, filtro?: FiltroAnalise): Promise<T> {
   // o login do Instagram volta para Configurações → Integrações, onde fica a conexão
   const voltar = `${window.location.origin}/agentes/central?aba=integracoes`
-  const { data, error } = await supabase.functions.invoke('instagram', { body: { acao, empresa, voltar } })
+  const { data, error } = await supabase.functions.invoke('instagram', { body: { acao, empresa, voltar, filtro } })
   const d = data as (T & { erro?: string }) | null
   if (error || !d || d.erro) throw new Error(d?.erro ?? 'Não consegui falar com o Instagram agora. Tente de novo.')
   return d
@@ -51,3 +52,6 @@ export function mediana(ns: number[]) {
   return v.length ? v[Math.floor(v.length / 2)] : 0
 }
 export const milhar = (n?: number) => (n == null ? '—' : n >= 10000 ? `${(n / 1000).toFixed(n >= 100000 ? 0 : 1).replace('.', ',')} mil` : n.toLocaleString('pt-BR'))
+
+export const NOME_TIPO: Record<string, string> = { reels: 'Reels', carrossel: 'Carrossel', imagem: 'Imagem', video: 'Vídeo' }
+export const n = (p: PostIG, k: keyof PostIG['metricas']) => Number(p.metricas[k] ?? 0)

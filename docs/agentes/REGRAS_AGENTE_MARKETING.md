@@ -298,3 +298,9 @@ Capa, thumbnail e legenda são materiais dentro da peça, não peças separadas.
 - Empresa: "Créditos da empresa por mês" (Configurações → Inteligências artificiais), `agentes_config.limite_mes_creditos`. Agente: limite próprio opcional (Configurar agente), `perfil.limite_mes_creditos`. O servidor para o agente quando o limite acaba.
 - Configurar agente mostra quanto já usou, o saldo da empresa e **quanto custa, em média**, cada tipo de pedido (últimos 90 dias; "escrever" é por peça).
 - O custo real em dólar continua gravado (`agentes_trabalhos.custo_usd`) e vai para a área de controle que o Alexandre vai ter (gasto geral e por empresa em dólar). Preço do crédito em reais e margem: decisão dele, depois.
+
+## Resultados do Instagram (19/10/2026)
+- Leitura automática todo dia às 6h13 (Brasília): posts do último **1 ano**, até 400, com as métricas atualizadas. "Atualizar agora" faz o mesmo na hora.
+- "Trazer histórico desde 2024": uma vez, em segundo plano, para comparar os anos (até 1.200 posts). Depois, os posts com mais de 1 ano ficam com as métricas da última leitura.
+- Tela com filtro de **ano** e **formato**; com todos os anos, aparece a comparação ano a ano (posts, alcance mediano, salvos e compartilhamentos por post, formato que mais alcançou). A análise do agente usa o mesmo filtro e, com mais de um ano, explica o que mudou entre os anos.
+- O Instagram não separa orgânico de impulsionado nas métricas do post: o agente só levanta a suspeita quando um post foge do padrão; cruzar com a conta de anúncios fica para depois.

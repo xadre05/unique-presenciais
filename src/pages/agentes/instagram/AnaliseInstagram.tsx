@@ -6,7 +6,7 @@ import { lembrar } from '../memoria'
 import { EMPRESA } from '../marketing/useMarketing'
 import type { Analise } from './dados'
 
-type Props = { empresa: string; analise: Analise | null; analisando: boolean; podeAnalisar: boolean; aoAnalisar: () => void }
+type Props = { empresa: string; analise: Analise | null; analisando: boolean; podeAnalisar: boolean; aoAnalisar: () => void; rotuloFiltro: string }
 
 function Padroes({ titulo, itens, classe }: { titulo: string; itens: Analise['funcionou']; classe: string }) {
   if (!itens?.length) return null
@@ -17,18 +17,21 @@ function Padroes({ titulo, itens, classe }: { titulo: string; itens: Analise['fu
   )
 }
 
-export function AnaliseInstagram({ empresa, analise, analisando, podeAnalisar, aoAnalisar }: Props) {
+const periodo = (a: Analise) => (a.filtro?.de ? a.filtro.de.slice(0, 4) : 'todos os anos') + (a.filtro?.tipo ? ` · ${a.filtro.tipo}` : '')
+
+export function AnaliseInstagram({ empresa, analise, analisando, podeAnalisar, aoAnalisar, rotuloFiltro }: Props) {
   const [guardados, setGuardados] = useState<string[]>([])
   const guardar = async (t: string) => { const r = await lembrar(empresa || EMPRESA, 'marketing', t, 'manual'); if (!r.error) setGuardados((g) => [...g, t]) }
   return (
     <section className="mk-painel ig-analise">
       <header className="mk-painel-cab"><span className="mk-convite-icone"><Icone nome="ideia" tam={22} /></span>
-        <div><h3>O que funcionou e por quê</h3><span className="muted pequeno">{analise ? `Análise de ${new Date(analise.em).toLocaleDateString('pt-BR')}, com ${analise.posts} posts (alcance mediano ${analise.mediana}).` : 'O agente compara cada post com a mediana da conta e aponta os padrões.'}</span></div>
-        <button type="button" className="btn btn-contorno-ouro" disabled={analisando || !podeAnalisar} onClick={aoAnalisar}><Icone nome="floco" tam={16} /> {analisando ? 'Analisando… (até 1 minuto)' : analise ? 'Analisar de novo' : 'Pedir análise ao agente'}</button>
+        <div><h3>O que funcionou e por quê</h3><span className="muted pequeno">{analise ? `Análise de ${new Date(analise.em).toLocaleDateString('pt-BR')} (${periodo(analise)}), com ${analise.posts} posts e alcance mediano ${analise.mediana}.` : 'O agente compara cada post com a mediana e, com mais de um ano, compara os anos.'}</span></div>
+        <button type="button" className="btn btn-contorno-ouro" disabled={analisando || !podeAnalisar} onClick={aoAnalisar}><Icone nome="floco" tam={16} /> {analisando ? 'Analisando… (até 1 minuto)' : `Analisar: ${rotuloFiltro}`}</button>
       </header>
-      {!podeAnalisar && <p className="muted pequeno">A análise libera com pelo menos 5 posts lidos.</p>}
+      {!podeAnalisar && <p className="muted pequeno">A análise precisa de pelo menos 5 posts no filtro.</p>}
       {analise && (<>
         <p>{analise.resumo}</p>
+        {!!analise.comparacao?.length && <><h5 className="reu-subtitulo">Comparação entre os anos</h5><ul className="ig-recom">{analise.comparacao.map((x, i) => <li key={i}>{x}</li>)}</ul></>}
         <div className="ig-padroes-grade">
           <Padroes titulo="Funcionou" itens={analise.funcionou} classe="bom" />
           <Padroes titulo="Não funcionou" itens={analise.nao_funcionou} classe="ruim" />
