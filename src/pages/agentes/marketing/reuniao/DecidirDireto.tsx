@@ -8,7 +8,7 @@ import { REDES, nomeFormato, useRedes, type Formato, type Rede } from '../redes'
 import { EMPRESA, criarTrabalho, pedirTrabalho, type Campanha } from '../useMarketing'
 
 type Linha = { rede: Rede; tipo: Formato; dia: string; tema: string }
-type Props = { inicio: string; fim: string; campanha?: Campanha; aoEscreveu: (ids: string[]) => void; aoGuardou: () => void; aoVoltar: () => void }
+type Props = { canais?: string[]; inicio: string; fim: string; campanha?: Campanha; aoEscreveu: (ids: string[]) => void; aoGuardou: () => void; aoVoltar: () => void }
 
 // as peças são criadas pela função do agente; o lote marca quais são estas para pedir os textos logo depois
 async function idsDoLote(lote: string, quantas: number) {
@@ -20,8 +20,9 @@ async function idsDoLote(lote: string, quantas: number) {
   throw new Error('As peças demoraram para aparecer. Elas já estão no calendário da aba Conteúdos; peça os textos por lá.')
 }
 
-export function DecidirDireto({ inicio, fim, campanha, aoEscreveu, aoGuardou, aoVoltar }: Props) {
-  const redes = useRedes()
+export function DecidirDireto({ canais, inicio, fim, campanha, aoEscreveu, aoGuardou, aoVoltar }: Props) {
+  const ligadas = useRedes()
+  const redes = canais?.length ? ligadas.filter((r) => canais.includes(r)) : ligadas
   const nova = (): Linha => { const r = redes[0] ?? 'instagram'; return { rede: r, tipo: REDES[r].formatos[0], dia: inicio, tema: '' } }
   const [linhas, setLinhas] = useState<Linha[]>(() => [nova()])
   const [enviando, setEnviando] = useState<string | null>(null)

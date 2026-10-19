@@ -42,7 +42,7 @@ export function NestePlanejamento({ periodo, campanha, canais, agenteDefine }: R
       <dl className="pl-resumo">
         <div><dt>Período</dt><dd>{periodo}</dd></div>
         <div><dt>Campanha</dt><dd>{campanha ? <>{campanha.nome} {campanha.ativa && <span className="pl-ativa"><i /> Ativa</span>}</> : 'Sem campanha'}</dd></div>
-        <div><dt>Canais</dt><dd>{agenteDefine || !canais.length ? 'A confirmar na reunião' : canais.map((c) => REDES[c as Rede]?.nome ?? c).join(', ')}</dd></div>
+        <div><dt>Canais</dt><dd>{agenteDefine || !canais.length ? 'O agente sugere na reunião' : canais.map((c) => REDES[c as Rede]?.nome ?? c).join(', ')}</dd></div>
       </dl>
     </section>
   )

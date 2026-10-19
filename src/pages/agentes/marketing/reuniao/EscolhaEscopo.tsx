@@ -6,12 +6,12 @@ import { Erro } from '../../../../components/ui'
 import { Icone } from '../../../../components/Icone'
 import { hojeISO, segundaDe } from '../../comum'
 import { situacaoCampanha } from '../../campanhas/dados'
-import { REDES, useRedes, type Rede } from '../redes'
-import { LogoRede } from '../LogoRede'
+import { useRedes } from '../redes'
 import type { Campanha } from '../useMarketing'
 import { periodoDe, tituloDe, type Escopo, type Reuniao, type TipoEscopo } from './dados'
 import { DecidirDireto } from './DecidirDireto'
 import { NestePlanejamento, Retomar } from './LadoPlanejar'
+import { CanaisPlanejar } from './CanaisPlanejar'
 
 const OPCOES: { tipo: TipoEscopo; nome: string; sub: string; icone: string }[] = [
   { tipo: 'dia', nome: 'Algo para hoje', sub: 'Conteúdo pontual', icone: 'relogio' },
@@ -29,23 +29,6 @@ type Props = {
   aoReaproveitar: (contexto: ContextoPlanejar) => void
 }
 export type ContextoPlanejar = { campanha?: Campanha; inicio: string; fim: string; canais: string[] }
-
-function Canais({ ativas, canais, agente, aoMudar, aoAgente }: { ativas: Rede[]; canais: string[]; agente: boolean; aoMudar: (c: string[]) => void; aoAgente: (v: boolean) => void }) {
-  const faltam = ativas.filter((r) => !canais.includes(r))
-  return (
-    <div className="pl-canais">
-      <div className="pl-canais-linha">
-        <span className="select-icone pl-canais-sel"><select value="" disabled={agente || !faltam.length} onChange={(e) => e.target.value && aoMudar([...canais, e.target.value])} aria-label="Adicionar canal">
-          <option value="">{agente ? 'O agente sugere os canais na reunião' : canais.length ? canais.map((c) => REDES[c as Rede]?.nome ?? c).join(', ') : 'Escolha os canais'}</option>
-          {faltam.map((r) => <option key={r} value={r}>+ {REDES[r].nome}</option>)}</select></span>
-        <button type="button" className={`btn pl-agente${agente ? ' ativo' : ''}`} onClick={() => aoAgente(!agente)} aria-pressed={agente}><Icone nome="floco" tam={16} /> Definir com o agente</button>
-      </div>
-      {!agente && canais.length > 0 && <div className="pl-canais-chips">{canais.map((c) => (
-        <span key={c} className="pl-canal"><LogoRede rede={c as Rede} tam={15} /> {REDES[c as Rede]?.nome ?? c}
-          <button type="button" aria-label={`Tirar ${REDES[c as Rede]?.nome ?? c}`} onClick={() => aoMudar(canais.filter((x) => x !== c))}><Icone nome="fechar" tam={12} /></button></span>))}</div>}
-    </div>
-  )
-}
 
 export function EscolhaEscopo(pr: Props) {
   const ativas = useRedes()
@@ -83,6 +66,19 @@ export function EscolhaEscopo(pr: Props) {
     try { await pr.aoComecar(e, tituloDe(e, camp)) } catch (x) { setErro(x instanceof Error ? x.message : 'Não foi possível começar.'); setComecando(false) }
   }
 
+  const canaisDosCaminhos = agenteDefine ? [] : canais
+  const caminhos = [
+    { id: 'reuniao', icone: 'mensagem', nome: 'Fazer uma reunião com o agente', acao: 'Iniciar reunião', aoClicar: comecar, gasta: true,
+      texto: 'Converse sobre objetivo, público e ideias. O agente monta o briefing com você antes de propor os conteúdos.',
+      custo: 'Usa créditos: o agente já responde ao abrir, cerca de 4 créditos por resposta' },
+    { id: 'direto', icone: 'documento', nome: 'Já sei o que quero postar', acao: 'Descrever pedido', aoClicar: () => setCaminho('direto'), gasta: false,
+      texto: 'Você informa tema, canal, formato e dia de cada peça, sem conversa.',
+      custo: 'Abrir não gasta. Só gasta quando você mandar o agente escrever' },
+    { id: 'reaproveitar', icone: 'trocar', nome: 'Reaproveitar um post com resultado', acao: 'Escolher post', gasta: false,
+      aoClicar: () => pr.aoReaproveitar({ campanha: camp, inicio: periodo.inicio, fim: periodo.fim, canais: canaisDosCaminhos }),
+      texto: 'Escolha um post do Instagram que foi bem e diga o que manter ou mudar.',
+      custo: 'Abrir não gasta. Só gasta quando você pedir a nova versão' },
+  ]
   const textoPeriodo = `${NOME_ESCOPO[tipo]} ${dm(periodo.inicio)}${periodo.fim !== periodo.inicio ? ` a ${dm(periodo.fim)}` : ''}`
   return (
     <div className="pl-grade">
@@ -112,32 +108,21 @@ export function EscolhaEscopo(pr: Props) {
         </div>
 
         <label className="pl-rotulo">Canais</label>
-        <Canais ativas={ativas} canais={canais} agente={agenteDefine} aoMudar={setCanais} aoAgente={setAgenteDefine} />
+        <CanaisPlanejar ativas={ativas} canais={canais} agente={agenteDefine} aoMudar={setCanais} aoAgente={setAgenteDefine} />
 
         <hr className="pl-divisao" />
         <h3 className="pl-passo"><span>2</span> Como você quer começar?</h3>
         <p className="muted pl-passo-sub">Escolha a forma de iniciar. Cada opção leva a um próximo passo diferente.</p>
         {caminho === 'direto'
-          ? <DecidirDireto inicio={periodo.inicio} fim={periodo.fim} campanha={camp} aoEscreveu={pr.aoEscreveu} aoGuardou={pr.aoGuardou} aoVoltar={() => setCaminho('escolher')} />
+          ? <DecidirDireto canais={canaisDosCaminhos} inicio={periodo.inicio} fim={periodo.fim} campanha={camp} aoEscreveu={pr.aoEscreveu} aoGuardou={pr.aoGuardou} aoVoltar={() => setCaminho('escolher')} />
           : <>
-            <div className="pl-caminhos">
-              <div className="pl-caminho destaque">
-                <b><Icone nome="mensagem" tam={22} /> Fazer uma reunião com o agente</b>
-                <p className="muted">Converse sobre objetivos, público, campanha e ideias. O agente organiza o briefing com você antes de propor os conteúdos.</p>
-                <span className="pl-etiqueta">Antes do briefing</span>
-                <button type="button" className="btn btn-ouro" disabled={comecando} onClick={comecar}>{comecando ? 'Abrindo a reunião…' : 'Iniciar reunião'} <Icone nome="seta_dir" tam={15} /></button>
-              </div>
-              <div className="pl-caminho">
-                <b><Icone nome="documento" tam={22} /> Já sei o que quero postar</b>
-                <p className="muted">Informe tema, canal e formato. O agente estrutura seu pedido para você revisar.</p>
-                <button type="button" className="btn btn-contorno" onClick={() => setCaminho('direto')}>Descrever meu pedido <Icone nome="seta_dir" tam={15} /></button>
-              </div>
-              <div className="pl-caminho">
-                <b><Icone nome="trocar" tam={22} /> Reaproveitar um post com resultado</b>
-                <p className="muted">Escolha entre os posts da sua conta do Instagram e defina o que manter ou mudar.</p>
-                <span className="pl-fonte"><LogoRede rede="instagram" tam={14} /> Posts e métricas da conta conectada</span>
-                <button type="button" className="btn btn-contorno" onClick={() => pr.aoReaproveitar({ campanha: camp, inicio: periodo.inicio, fim: periodo.fim, canais: agenteDefine ? [] : canais })}>Escolher um post <Icone nome="seta_dir" tam={15} /></button>
-              </div>
+            <div className="pl-caminhos">{caminhos.map((c) => (
+              <button key={c.id} type="button" className="pl-caminho" disabled={comecando} onClick={c.aoClicar}>
+                <Icone nome={c.icone} tam={22} />
+                <span className="pl-caminho-texto"><b>{c.nome}</b><span className="muted">{c.texto}</span>
+                  <small className={`pl-custo${c.gasta ? ' gasta' : ''}`}><Icone nome={c.gasta ? 'floco' : 'check'} tam={12} /> {c.custo}</small></span>
+                <span className="pl-acao">{c.id === 'reuniao' && comecando ? 'Abrindo…' : c.acao} <Icone nome="seta_dir" tam={14} /></span>
+              </button>))}
             </div>
             <p className="muted pequeno pl-rodape"><Icone nome="info" tam={14} /> Você revisa o briefing e a proposta antes de criar as peças.</p>
           </>}
