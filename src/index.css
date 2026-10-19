@@ -2346,3 +2346,47 @@ a.sala-agente:hover { border-color: var(--ouro); transform: translateY(-2px); }
 .bib-achados li { border-left: 2px solid var(--ouro, #d4af37); padding: 4px 10px; }
 .bib-achados small { color: var(--ouro, #d4af37); }
 .bib-achados p { margin: 2px 0 0; font-size: 13px; line-height: 1.5; }
+
+/* ===== Reunião de pauta do Agente de Marketing (19/10/2026) ===== */
+.mk-caminho { flex-wrap: wrap; margin-bottom: 4px; }
+.mk-caminho-passo { display: inline-flex; align-items: center; gap: 8px; }
+.mk-caminho-passo b { color: var(--texto); font-weight: 600; }
+.reu-escolha { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); gap: 14px; align-items: start; }
+.reu-opcoes { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 10px; }
+.reu-opcao { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; text-align: left; padding: 12px; border: 1px solid var(--borda); border-radius: 12px; background: var(--painel-2); color: var(--texto); font: inherit; cursor: pointer; transition: border-color .15s, background .15s; }
+.reu-opcao span { color: var(--muted); font-size: .82rem; line-height: 1.35; }
+.reu-opcao:hover { border-color: color-mix(in srgb, var(--ouro) 60%, var(--borda)); }
+.reu-opcao.ativa { border-color: var(--ouro); background: color-mix(in srgb, var(--ouro) 12%, var(--painel-2)); }
+.reu-opcao.ativa svg { color: var(--ouro-forte); }
+.reu-periodo { align-items: end; }
+.reu-lado { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.reu-lado-titulo { display: flex; align-items: center; gap: 8px; margin: 0; font-size: 1rem; }
+.reu-recentes { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.reu-recentes button { width: 100%; display: flex; flex-direction: column; gap: 2px; text-align: left; padding: 9px 10px; border: 1px solid var(--borda); border-radius: 10px; background: var(--painel-2); color: var(--texto); font: inherit; cursor: pointer; }
+.reu-recentes button:hover { border-color: var(--ouro); }
+.reu-recentes small { color: var(--muted); }
+.reu-anotar { align-self: flex-start; }
+.reu-grade { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 14px; align-items: start; }
+.reu-col { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.reu-conversa .mk-msgs { max-height: 58vh; min-height: 320px; }
+.reu-ata { position: sticky; top: 12px; }
+.reu-ata h4 { display: flex; align-items: center; gap: 8px; margin: 0; }
+.reu-ata dd input { width: 100%; }
+.reu-subtitulo { margin: 6px 0 0; font-size: .9rem; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+.reu-canais { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.reu-canais li { display: grid; grid-template-columns: auto minmax(0, 1fr) 58px auto auto; align-items: center; gap: 8px; padding: 6px 8px; border-left: 3px solid var(--cor-rede, var(--ouro)); border-radius: 8px; background: var(--painel); }
+.reu-canais input { width: 58px; padding: 4px 6px; }
+.reu-assuntos { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 8px; }
+.reu-assuntos li > span { display: inline-flex; flex-direction: column; gap: 2px; }
+.reu-assuntos li { position: relative; padding-right: 26px; }
+.reu-assuntos li .reu-tirar { position: absolute; right: 0; top: 0; }
+.reu-assuntos small { font-size: .82rem; }
+.reu-tirar { display: inline-grid; place-items: center; width: 22px; height: 22px; padding: 0; border: 1px solid var(--borda); border-radius: 6px; background: transparent; color: var(--muted); cursor: pointer; }
+.reu-tirar:hover { color: var(--texto); border-color: var(--ouro); }
+.reu-ata-rodape { display: flex; flex-direction: column; align-items: stretch; gap: 6px; border-top: 1px solid var(--borda); padding-top: 10px; margin-top: 4px; }
+.reu-aprovado { align-items: flex-start; }
+.reu-aprovado h3 { margin: 0; }
+@media (max-width: 900px) {
+  .reu-escolha, .reu-grade { grid-template-columns: 1fr; }
+  .reu-ata { position: static; }
+}

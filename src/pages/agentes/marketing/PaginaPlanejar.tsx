@@ -1,19 +1,16 @@
-// Planejar conteúdos (página): à esquerda a direção do planejamento (período, objetivo, público, campanha, canais,
-// volume, distribuição e orientação); à direita a proposta de calendário do agente para revisar e aprovar.
-// Ver docs/agentes/REGRAS_AGENTE_MARKETING.md (regra 5: planejar e produzir são passos separados).
-import { Voltar } from '../../../components/Voltar'
+// Planejar conteúdos (página antiga, só para reabrir planos feitos antes da Reunião de pauta de 19/10/2026):
+// à esquerda a direção do planejamento; à direita a proposta de calendário do agente para revisar e aprovar.
+// Planos novos nascem na Reunião de pauta (reuniao/PaginaReuniao). Ver docs/agentes/REGRAS_AGENTE_MARKETING.md.
 import { useEffect, useState } from 'react'
-import { supabase } from '../../../lib/supabase'
-import { useConsulta } from '../../../lib/dados'
 import { Erro, InputNumero } from '../../../components/ui'
 import { Icone } from '../../../components/Icone'
-import { segundaDe, somaDias, type Peca } from '../comum'
-import { mudarPeca } from './etapas'
+import { segundaDe, somaDias } from '../comum'
 import { REDES, nomeFormato, useRedes, type Formato, type Rede } from './redes'
 import { LogoRede } from './LogoRede'
 import { OBJETIVOS, PUBLICOS } from './textos'
-import { marcarPlano, nomePadrao, salvarPlano, type Briefing, type Plano } from './planos'
-import { EMPRESA, criarTrabalho, pedirTrabalho, type Campanha } from './useMarketing'
+import { nomePadrao, salvarPlano, type Briefing, type Plano } from './planos'
+import type { Campanha } from './useMarketing'
+import { usePropostaPlano } from './usePropostaPlano'
 import { PropostaCalendario } from './PropostaCalendario'
 
 type Modo = 'dia' | 'semana' | 'mes' | 'periodo'
@@ -48,23 +45,9 @@ export function PaginaPlanejar(pr: Props) {
   const [orientacao, setOrientacao] = useState(b?.orientacao ?? '')
   const [link, setLink] = useState(b?.link ?? '')
   const [distribuicao, setDistribuicao] = useState(false)
-  const [trabalho, setTrabalho] = useState<string | null>(null)
-  const [resumo, setResumo] = useState<string | null>(null)
-  const [erro, setErro] = useState<string | null>(null)
-  const [enviando, setEnviando] = useState(false)
+  const proposta = usePropostaPlano(plano, pr.aoMudou)
+  const { erro, setErro, trabalho, resumo, enviando } = proposta
   useEffect(() => setCampanha((c) => c || pr.campanhaPadrao), [pr.campanhaPadrao])
-
-  const pecas = useConsulta<Peca[]>(() => plano ? supabase.from('agentes_pecas').select('*').eq('empresa_id', EMPRESA).eq('agente_id', 'marketing').eq('conteudo->>plano', plano.id).neq('status', 'descartada').order('dia').order('ordem') : Promise.resolve({ data: [], error: null }), [plano?.id])
-  // enquanto o agente monta (ou ajusta) a proposta, confere a cada 3 segundos
-  useEffect(() => {
-    if (!trabalho) return
-    const t = setInterval(async () => {
-      const { data: tr } = await supabase.from('agentes_trabalhos').select('status,erro,resumo').eq('id', trabalho).maybeSingle()
-      if (tr?.status === 'pronto') { setTrabalho(null); setResumo(tr.resumo); pecas.recarregar(); pr.aoMudou() }
-      if (tr?.status === 'erro') { setTrabalho(null); setErro(tr.erro) }
-    }, 3000)
-    return () => clearInterval(t)
-  }, [trabalho]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const { inicio, fim } = intervalo(modo, data, ate)
   const datas = datasEntre(inicio, fim).filter((d) => modo === 'dia' || diasSemana.includes(new Date(d + 'T12:00:00').getDay()))
@@ -74,7 +57,7 @@ export function PaginaPlanejar(pr: Props) {
     plano: { id: p.id, nome: p.nome }, datas, unidade: 'periodo', total, objetivo, publico, tema: orientacao.trim() || null, orientacao: orientacao.trim() || null,
     link: link.trim() || null, campanha: pr.campanhas.find((x) => x.id === campanha) ?? null, canais: canais.filter((c) => c.formatos.length).map((c) => ({ ...c, quantidade: total })),
   })
-  const lista = pecas.dados ?? []
+  const lista = proposta.lista
 
   const sugerir = async () => {
     setErro(null)
@@ -82,40 +65,17 @@ export function PaginaPlanejar(pr: Props) {
     if (!datas.length) return setErro('Nenhuma data disponível nesse período.')
     const p = novoPlano('proposta')
     const r = await salvarPlano(p); if (r.error) return setErro(r.error.message)
-    // se já havia proposta, a nova substitui a anterior
-    const { id, erro: e } = await criarTrabalho('propor_plano', { ...pedido(p), substituir: lista.map((x) => x.id) })
-    if (e || !id) return setErro(e ?? 'Não foi possível pedir a proposta.')
-    setPlano(p); setTrabalho(id); setResumo(null); pr.aoMudou()
+    setPlano(p)
+    if (await proposta.pedirProposta(pedido(p))) pr.aoMudou()
   }
-  const ajustar = async (instrucao: string) => {
-    if (!plano) return
-    setErro(null)
-    const { id, erro: e } = await criarTrabalho('propor_plano', { ...pedido(plano), ajuste: instrucao, substituir: lista.map((x) => x.id),
-      anteriores: lista.map((x) => ({ dia: x.dia, rede: x.conteudo.rede ?? 'instagram', tipo: x.tipo, titulo: x.titulo, angulo: x.conteudo.objetivo })) })
-    if (e || !id) return setErro(e ?? 'Não foi possível ajustar.')
-    setTrabalho(id)
-  }
+  const ajustar = (instrucao: string) => { if (plano) proposta.pedirProposta(pedido(plano), instrucao) }
   const salvarBriefing = async () => { const p = novoPlano(plano?.status === 'proposta' ? 'proposta' : 'briefing'); const r = await salvarPlano(p); if (r.error) return setErro(r.error.message); setPlano(p); pr.aoMudou() }
-  const acrescentar = async () => {
-    if (!plano) return
-    const m = await pedirTrabalho('ideia', { pecas: [{ tipo: 'carrossel', rede: 'instagram', dia: inicio, titulo: 'Nova peça', plano: plano.id, proposta: plano.status !== 'aprovado' }] })
-    if (m) return setErro(m)
-    setTimeout(() => pecas.recarregar(), 1500)
-  }
-  const aprovar = async () => {
-    if (!plano) return
-    setEnviando(true)
-    await Promise.all(lista.map((p) => mudarPeca(p.id, { conteudo: { ...p.conteudo, proposta: undefined } })))
-    await marcarPlano(plano.id, 'aprovado')
-    setEnviando(false); pr.aoMudou(); pr.aoVoltar()
-  }
+  const aprovar = async () => { await proposta.aprovar(); pr.aoVoltar() }
   const alternarCanal = (r: Rede) => setCanais((cs) => (cs.some((c) => c.rede === r) ? cs.filter((c) => c.rede !== r) : [...cs, { rede: r, formatos: FORMATOS_PADRAO[r] }]))
   const alternarFormato = (r: Rede, f: Formato) => setCanais((cs) => cs.map((c) => (c.rede !== r ? c : { ...c, formatos: c.formatos.includes(f) ? c.formatos.filter((x) => x !== f) : [...c.formatos, f] })))
-  const status = trabalho ? 'aguardando' : !lista.length ? 'vazio' : plano?.status === 'aprovado' ? 'aprovado' : 'proposta'
 
   return (
     <div className="mk-pagina-planejar">
-      <Voltar aoClicar={pr.aoVoltar} texto="Voltar ao planejamento" />
       <div className="mk-titulo-aba"><h2>Planejar conteúdos{plano ? `: ${plano.nome}` : ''}</h2><p className="muted">Defina o objetivo e revise a distribuição antes de produzir.</p></div>
       <div className="mk-planejar-grade">
         <section className="mk-painel">
@@ -151,8 +111,8 @@ export function PaginaPlanejar(pr: Props) {
             <button className="btn btn-contorno-ouro" onClick={salvarBriefing}><Icone nome="documento" tam={16} /> Salvar briefing</button>
           </footer>
         </section>
-        <PropostaCalendario pecas={lista} status={status as 'vazio' | 'aguardando' | 'proposta' | 'aprovado'} periodo={`${dm(inicio)}–${dm(fim)}`} resumo={resumo} erro={null}
-          aoMudar={pecas.recarregar} aoAcrescentar={acrescentar} aoAjustar={ajustar} aoSalvar={() => { salvarBriefing(); pr.aoVoltar() }} aoAprovar={aprovar} enviando={enviando || !!trabalho} />
+        <PropostaCalendario pecas={lista} status={proposta.status} periodo={`${dm(inicio)}–${dm(fim)}`} resumo={resumo} erro={null}
+          aoMudar={proposta.pecas.recarregar} aoAcrescentar={() => proposta.acrescentar(inicio)} aoAjustar={ajustar} aoSalvar={() => { salvarBriefing(); pr.aoVoltar() }} aoAprovar={aprovar} enviando={enviando || !!trabalho} />
       </div>
     </div>
   )

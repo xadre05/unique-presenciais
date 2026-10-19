@@ -1,8 +1,10 @@
 // Agentes de IA (núcleo). Recebe o id de um trabalho "na fila", responde na hora e faz o trabalho em segundo plano:
 // chama o Claude com o perfil da empresa e o contexto do sistema, grava as peças para aprovação e o custo.
 // Hoje: agente de Marketing → conteúdo para redes sociais, e-mail, WhatsApp e site (imagem, carrossel, vídeos, stories, live,
-// texto/enquete, artigo, e-mail, mensagem, PDF): planos, peças avulsas, ideias, ajustes. Nada é publicado: só vira rascunho para aprovar.
+// texto/enquete, artigo, e-mail, mensagem, PDF): reunião de pauta (reuniao.ts), planos, ideias, textos, ajustes e artes.
+// Nada é publicado: só vira rascunho para aprovar.
 import { createClient, type SupabaseClient } from 'npm:@supabase/supabase-js@2.45.4'
+import { blocoAta, reunir, type Dependencias } from './reuniao.ts'
 
 const cors = {
   'Access-Control-Allow-Origin': '*',
@@ -325,7 +327,7 @@ async function ajustar(db: SupabaseClient, t: Trabalho, perfil: Record<string, s
   const { anterior: _a, etapa: _e, versoes: _v2, aprovado_texto: _t2, producao_ok: _p2, livre: _l, proposta: _pr, ...guardar } = (peca.conteudo ?? {}) as Record<string, unknown>
   const tipoNovo = TIPOS.includes(String(t.pedido.tipo_novo ?? '')) ? String(t.pedido.tipo_novo) : peca.tipo
   const titulo = p.titulo || peca.titulo
-  const novo = { ...guardar, ...conteudoDe(p, { rede: redeDo(guardar.rede), campanha: guardar.campanha, plano: guardar.plano, briefing: guardar.briefing, horario: p.horario || guardar.horario, fontes: kn.fontes.length ? kn.fontes : guardar.fontes }) }
+  const novo = { ...guardar, ...conteudoDe(p, { rede: redeDo(guardar.rede), campanha: guardar.campanha, plano: guardar.plano, reuniao: guardar.reuniao, briefing: guardar.briefing, horario: p.horario || guardar.horario, fontes: kn.fontes.length ? kn.fontes : guardar.fontes }) }
   const nota = String(t.pedido.nota ?? '').trim() || `Ajuste com IA: ${String(t.pedido.instrucao ?? '').slice(0, 120)}`
   await db.from('agentes_pecas').update({
     titulo, tipo: tipoNovo, status: 'rascunho', atualizado_em: new Date().toISOString(),
@@ -437,7 +439,7 @@ async function escrever(db: SupabaseClient, t: Trabalho, perfil: Record<string, 
         const rede = livre && e.rede && REDES[e.rede] ? e.rede : redeDo(p.conteudo.rede)
         return db.from('agentes_pecas').update({
           titulo: e.titulo || p.titulo, tipo, status: 'rascunho', atualizado_em: new Date().toISOString(),
-          conteudo: primeiraVersao(e.titulo || p.titulo, tipo, conteudoDe(e, { rede, campanha: p.conteudo.campanha, plano: p.conteudo.plano, briefing: p.conteudo.briefing, visual: p.conteudo.visual, fontes: r.fontes.length ? r.fontes : undefined })),
+          conteudo: primeiraVersao(e.titulo || p.titulo, tipo, conteudoDe(e, { rede, campanha: p.conteudo.campanha, plano: p.conteudo.plano, reuniao: p.conteudo.reuniao, briefing: p.conteudo.briefing, visual: p.conteudo.visual, fontes: r.fontes.length ? r.fontes : undefined })),
         }).eq('id', p.id)
       }))
     }
@@ -515,6 +517,7 @@ async function proporPlano(db: SupabaseClient, t: Trabalho, perfil: Record<strin
     total ? `Monte exatamente ${total} peça(s) no total, distribuídas entre os canais abaixo.` : '',
     `Canais e formatos permitidos:\n${canais.map((c) => `- ${REDES[c.rede].nome} (rede "${c.rede}")${total ? '' : `: até ${c.quantidade} peça(s) por ${unidade}`}; formatos: ${c.formatos.map((f) => `${REDES[c.rede].nomes[f] ?? f} (tipo "${f}")`).join(', ')}`).join('\n')}`,
     referencia ? `Página de referência enviada pela equipe (use o conteúdo como base, sem copiar):\n${referencia}` : '',
+    blocoAta(pd.ata as Record<string, unknown> | undefined),
     anteriores.length ? `Esta é a proposta atual:\n${anteriores.map((i) => `- ${i.dia} · ${i.rede} · ${i.tipo} · ${i.titulo}${i.angulo ? ` — ${i.angulo}` : ''}`).join('\n')}\n\nAJUSTE PEDIDO PELA EQUIPE: ${pd.ajuste ?? ''}\nRefaça a proposta inteira já com o ajuste, mantendo o que não foi pedido para mudar.` : '',
     pd.objetivo ? `Objetivo: ${pd.objetivo}` : '', pd.publico ? `Público: ${pd.publico}` : '',
     pd.tema ? `Tema ou orientação da equipe: ${pd.tema}` : 'Tema livre: equilibre atrair, educar, relacionar e vender.',
@@ -523,7 +526,8 @@ async function proporPlano(db: SupabaseClient, t: Trabalho, perfil: Record<strin
     'Entregue OBRIGATORIAMENTE chamando a ferramenta propor_calendario. Não escreva nada fora da ferramenta.',
   ].filter(Boolean).join('\n\n')
   const ctx = await contexto(db)
-  const kn = await conhecimento(db, t.empresa_id, [pd.tema, pd.objetivo, pd.publico, campanha?.nome, campanha?.descricao, plano.nome].filter(Boolean).join(' '), 10)
+  const assuntos = ((pd.ata as { assuntos?: { tema: string }[] } | undefined)?.assuntos ?? []).map((a) => a.tema)
+  const kn = await conhecimento(db, t.empresa_id, [pd.tema, pd.objetivo, pd.publico, campanha?.nome, campanha?.descricao, plano.nome, ...assuntos].filter(Boolean).join(' '), 10)
   const { entrega, entrada, saida } = await chamarClaude(chave, modelo, sistema, comBloco(kn.bloco, `${usuario}\n\nInformações atuais do sistema:\n${ctx}`), FERRAMENTA_PLANO)
   const permitidos = new Map(canais.map((c) => [c.rede, c.formatos]))
   const itens = (entrega.itens ?? []).filter((i) => datas.includes(i.dia) && permitidos.get(i.rede)?.includes(i.tipo)).slice(0, total || 60)
@@ -531,7 +535,7 @@ async function proporPlano(db: SupabaseClient, t: Trabalho, perfil: Record<strin
   const briefing = { objetivo: pd.objetivo || undefined, publico: pd.publico || undefined, orientacao: pd.orientacao || undefined }
   const { data, error } = await db.from('agentes_pecas').insert(itens.map((i, n) => ({
     trabalho_id: t.id, empresa_id: t.empresa_id, agente_id: t.agente_id, tipo: i.tipo, dia: i.dia, titulo: (i.titulo || 'Peça').trim(), ordem: n,
-    conteudo: { etapa: 'ideia', proposta: true, rede: i.rede, objetivo: i.angulo, horario: i.horario, plano: plano.id, campanha: campanha?.id, briefing },
+    conteudo: { etapa: 'ideia', proposta: true, rede: i.rede, objetivo: i.angulo, horario: i.horario, plano: plano.id, campanha: campanha?.id, briefing, reuniao: typeof pd.reuniao === 'string' ? pd.reuniao : undefined },
   }))).select('id')
   if (error) throw new Error(error.message)
   const substituir = (Array.isArray(pd.substituir) ? pd.substituir : []) as string[]
@@ -540,53 +544,6 @@ async function proporPlano(db: SupabaseClient, t: Trabalho, perfil: Record<strin
     pedido: { ...pd, peca_ids: (data ?? []).map((d) => d.id) }, status: 'pronto', resumo: entrega.resumo ?? `${itens.length} peças propostas`,
     modelo, tokens_entrada: entrada, tokens_saida: saida, custo_usd: custo(modelo, entrada, saida), terminado_em: new Date().toISOString(),
   }).eq('id', t.id)
-}
-
-// ===== conversa da Nova peça com IA: resposta na hora (não vira trabalho na fila), com a proposta da peça atualizada =====
-const FERRAMENTA_CONVERSA = {
-  name: 'responder',
-  description: 'Responde à equipe na conversa e atualiza a proposta da peça.',
-  input_schema: {
-    type: 'object',
-    properties: {
-      resposta: { type: 'string', description: 'Sua fala na conversa: curta (até 3 frases), útil, em português do Brasil. Pode fazer UMA pergunta por vez.' },
-      opcoes: { type: 'array', items: { type: 'string' }, description: 'Até 3 respostas rápidas que a equipe pode clicar (ex.: "Vídeo", "Carrossel", "Sugira o formato")' },
-      proposta: {
-        type: 'object',
-        properties: {
-          rede: { type: 'string', enum: NOMES_REDES },
-          tipo: { type: 'string', enum: TIPOS },
-          titulo: { type: 'string', description: 'Título sugerido para a peça' },
-          abordagem: { type: 'string', description: 'Em 1 ou 2 frases: o que a peça diz, o gancho e a chamada' },
-          objetivo: { type: 'string' }, publico: { type: 'string' },
-          duracao: { type: 'string', description: 'Só para vídeo: duração sugerida' },
-        },
-      },
-    },
-    required: ['resposta', 'proposta'],
-  },
-}
-type Mensagem = { de: 'equipe' | 'agente'; texto: string }
-
-async function conversar(db: SupabaseClient, empresa: string, corpo: { mensagens?: Mensagem[]; proposta?: Record<string, unknown> }) {
-  const { chave, pa, modelo } = await prepararAgente(db, empresa, 'marketing')
-  const mensagens = (corpo.mensagens ?? []).filter((m) => m.texto?.trim()).slice(-16)
-  if (!mensagens.length || mensagens[mensagens.length - 1].de !== 'equipe') throw new Error('Escreva sua mensagem.')
-  const sistema = [
-    'Você é o Agente de Marketing de uma empresa brasileira e está conversando com a equipe para definir UMA peça de conteúdo antes de escrevê-la.',
-    `Ajude a definir a abordagem, o canal e o formato. Canais que a empresa usa (só estes): ${listaCanais(redesAtivas(pa))}. Respeite o que a equipe já escolheu.`,
-    'Seja breve e prático. Quando faltar informação importante, pergunte uma coisa de cada vez e ofereça opções rápidas. Sempre devolva a proposta atualizada.',
-    `Proposta atual (pode estar vazia): ${JSON.stringify(corpo.proposta ?? {})}`,
-    ...blocoEmpresa(pa as Record<string, string>, []),
-  ].filter(Boolean).join('\n')
-  const historico = mensagens.map((m) => `${m.de === 'equipe' ? 'EQUIPE' : 'AGENTE'}: ${m.texto}`).join('\n')
-  const kn = await conhecimento(db, empresa, [...mensagens.filter((m) => m.de === 'equipe').slice(-3).map((m) => m.texto), String((corpo.proposta ?? {}).titulo ?? '')].join(' '), 4)
-  const usuario = comBloco(kn.bloco, `Conversa até agora:\n${historico}\n\nResponda à última mensagem da equipe chamando OBRIGATORIAMENTE a ferramenta responder.`)
-  const { entrega, entrada, saida } = await chamarClaude(chave, modelo, sistema, usuario, FERRAMENTA_CONVERSA)
-  const e = entrega as unknown as { resposta?: string; opcoes?: string[]; proposta?: Record<string, unknown> }
-  // registra o custo como um trabalho já pronto (aparece no Histórico e conta no limite do mês)
-  await db.from('agentes_trabalhos').insert({ empresa_id: empresa, agente_id: 'marketing', tipo: 'conversa', status: 'pronto', pedido: { ultima: mensagens[mensagens.length - 1].texto.slice(0, 300) }, resumo: (e.resposta ?? '').slice(0, 200), modelo, tokens_entrada: entrada, tokens_saida: saida, custo_usd: custo(modelo, entrada, saida), terminado_em: new Date().toISOString() })
-  return { resposta: e.resposta ?? '', opcoes: (e.opcoes ?? []).slice(0, 3), proposta: e.proposta ?? {} }
 }
 
 // ===== perfil de voz: o agente lê amostras da biblioteca e descreve como a marca fala. A equipe revisa e salva =====
@@ -837,7 +794,7 @@ async function executar(db: SupabaseClient, t: Trabalho) {
         { ...t.pedido, plano: plano.map((d) => ({ dia: d.dia, stories: d.stories ?? 0 })), posts: 0, reels: 0, stories: soma(plano, 'stories') },
       ]
       : [{ ...t.pedido, stories: 0 }, { ...t.pedido, posts: 0, reels: 0 }]
-    ).filter((pd) => Number(pd.posts ?? 0) + Number(pd.reels ?? 0) + Number(pd.stories ?? 0) > 0)
+    ).filter((pd: Record<string, unknown>) => Number(pd.posts ?? 0) + Number(pd.reels ?? 0) + Number(pd.stories ?? 0) > 0)
     // stories são textos curtos e muitos: vão no modelo econômico (cerca de 20x mais barato); posts e reels no modelo escolhido
     const modeloDe = (pd: Record<string, unknown>) => (Number(pd.posts ?? 0) + Number(pd.reels ?? 0) === 0 && pa.stories_economico !== false ? 'claude-haiku-5-5' : modelo)
     const campanhaId = (t.pedido.campanha as Campanha | null)?.id
@@ -865,6 +822,16 @@ async function executar(db: SupabaseClient, t: Trabalho) {
   }
 }
 
+// o que a Reunião de pauta (reuniao.ts) usa daqui: as mesmas regras de chave, limite, marca e biblioteca
+const DEPENDENCIAS: Dependencias = {
+  prepararAgente: async (db, empresa, agente) => { const r = await prepararAgente(db, empresa, agente); return { chave: r.chave, pa: r.pa, modelo: r.modelo } },
+  chamarClaude: (chave, modelo, sistema, usuario, ferramenta) => chamarClaude(chave, modelo, sistema, usuario, ferramenta),
+  blocoEmpresa: (perfil) => blocoEmpresa(perfil, []),
+  conhecimento, contexto, custo,
+  canais: (perfil) => listaCanais(redesAtivas(perfil)),
+  redes: NOMES_REDES, tipos: TIPOS,
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors })
   const url = Deno.env.get('SUPABASE_URL')!
@@ -877,8 +844,8 @@ Deno.serve(async (req) => {
   if (corpo.voz) {
     try { return json(await gerarVoz(db, String(corpo.empresa ?? ''))) } catch (e) { return json({ erro: (e as Error).message }) }
   }
-  if (corpo.conversa) {
-    try { return json(await conversar(db, String(corpo.empresa ?? ''), corpo.conversa)) } catch (e) { return json({ erro: (e as Error).message }) }
+  if (corpo.reuniao) {
+    try { return json(await reunir(DEPENDENCIAS, db, String(corpo.empresa ?? ''), corpo.reuniao)) } catch (e) { return json({ erro: (e as Error).message }) }
   }
   const { trabalho } = corpo
   const { data: t } = await db.from('agentes_trabalhos').select('*').eq('id', String(trabalho ?? '')).maybeSingle()

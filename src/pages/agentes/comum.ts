@@ -14,7 +14,7 @@ export type Peca = {
   id: string; trabalho_id: string; tipo: string; dia: string | null; titulo: string; status: 'rascunho' | 'aprovada' | 'descartada' | 'postada'; ordem: number; atualizado_em: string
   conteudo: {
     objetivo?: string; legenda?: string; roteiro?: string[]; texto_arte?: string; cta?: string; hashtags?: string[]; observacao?: string; prompt_imagem?: string
-    horario?: string; pendencia?: string; etapa?: 'ideia' | 'producao'; campanha?: string; rede?: string; plano?: string; livre?: boolean; proposta?: boolean; briefing?: Record<string, unknown>; anterior?: Record<string, unknown>; fontes?: string[]
+    horario?: string; pendencia?: string; etapa?: 'ideia' | 'producao'; campanha?: string; rede?: string; plano?: string; reuniao?: string; livre?: boolean; proposta?: boolean; briefing?: Record<string, unknown>; anterior?: Record<string, unknown>; fontes?: string[]
     orientacoes?: string[]; visual?: unknown; artes?: unknown[]; versoes?: unknown[]; aprovado_texto?: unknown; producao_ok?: unknown
   }
 }
@@ -87,6 +87,8 @@ export function rotuloTrabalho(t: Pick<Trabalho, 'tipo' | 'pedido'>) {
   if (t.tipo === 'ajuste') return 'Ajuste de peça'
   if (t.tipo === 'ideia') return `Planejamento salvo · ${Array.isArray(p.pecas) ? p.pecas.length : 0} ideia(s)`
   if (t.tipo === 'conversa') return 'Conversa (nova peça)'
+  if (t.tipo === 'reuniao') return 'Reunião de pauta (mensagem)'
+  if (t.tipo === 'voz') return 'Perfil de voz'
   if (t.tipo === 'propor_plano') return `Proposta de plano${p.ajuste ? ' (ajuste)' : ''}`
   if (t.tipo === 'escrever') return `Rascunhos · ${Array.isArray(p.novas) ? p.novas.length : Array.isArray(p.peca_ids) ? p.peca_ids.length : 0} peça(s)`
   const inicio = String(p.semana_inicio ?? '')

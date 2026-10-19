@@ -4,7 +4,7 @@ import { EMPRESA } from './useMarketing'
 
 // briefing = a direção do plano (o que foi pedido ao agente), para reabrir e ajustar depois
 export type Briefing = { modo: string; objetivo: string; publico: string; campanha: string; canais: { rede: string; formatos: string[] }[]; total: number; diasSemana: number[]; orientacao: string; link: string }
-export type Plano = { id: string; nome: string; inicio: string; fim: string; objetivo?: string; status: 'briefing' | 'proposta' | 'aprovado'; criado_em: string; briefing?: Briefing }
+export type Plano = { id: string; nome: string; inicio: string; fim: string; objetivo?: string; status: 'briefing' | 'proposta' | 'aprovado'; criado_em: string; briefing?: Briefing; reuniao?: string }
 
 export const planosDe = (perfil: Record<string, unknown> | undefined) => (Array.isArray(perfil?.planejamentos) ? perfil?.planejamentos : []) as Plano[]
 

@@ -1,4 +1,4 @@
-// Proposta de calendário (lado direito do Planejar conteúdos): as peças que o agente propôs, para editar,
+// Proposta de calendário (lado direito da Reunião de pauta e do Planejar conteúdos antigo): as peças que o agente propôs, para editar,
 // tirar, acrescentar, pedir ajuste à IA e aprovar. A aprovação cria as peças em Ideias; os roteiros vêm depois.
 import { useEffect, useState } from 'react'
 import { Erro } from '../../../components/ui'
@@ -43,6 +43,7 @@ function Linha({ p, aoMudar }: { p: Peca; aoMudar: () => void }) {
 type Props = {
   pecas: Peca[]; status: 'vazio' | 'aguardando' | 'proposta' | 'aprovado'; periodo: string; resumo: string | null; erro: string | null
   aoMudar: () => void; aoAcrescentar: () => void; aoAjustar: (instrucao: string) => void; aoSalvar: () => void; aoAprovar: () => void; enviando: boolean
+  textoVazio?: string
 }
 
 export function PropostaCalendario(pr: Props) {
@@ -57,7 +58,7 @@ export function PropostaCalendario(pr: Props) {
         {pr.status === 'aprovado' && <span className="mk-ponto" style={{ ['--cor-etapa' as string]: '#4cbf73' }}>Aprovado</span>}
       </header>
       {pr.resumo && <p className="nota pequeno">{pr.resumo}</p>}
-      {pr.status === 'vazio' && <div className="mk-vazio-grande"><Icone nome="floco" tam={30} /><p>Defina a direção ao lado e clique em <b>Sugerir planejamento</b>.</p><span className="muted pequeno">O agente propõe temas, canais, formatos e datas. Nada é escrito antes da sua aprovação.</span></div>}
+      {pr.status === 'vazio' && <div className="mk-vazio-grande"><Icone nome="floco" tam={30} /><p>{pr.textoVazio ?? <>Defina a direção ao lado e clique em <b>Sugerir planejamento</b>.</>}</p><span className="muted pequeno">O agente propõe temas, canais, formatos e datas. Nada é escrito antes da sua aprovação.</span></div>}
       {pr.status === 'aguardando' && <div className="mk-aguardando"><div className="progresso"><div className="indeterminado" /><span>O agente está montando a proposta…</span></div></div>}
       {(pr.status === 'proposta' || pr.status === 'aprovado') && (<>
         <div className="mk-prop-lista">

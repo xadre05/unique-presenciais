@@ -1,4 +1,4 @@
-// Planejamento editorial: período livre (dia, semana, mês, período), Quadro por etapa ou Calendário,
+// Conteúdos (antes "Planejamento editorial"): período livre (dia, semana, mês, período), Quadro por etapa ou Calendário,
 // filtros que não se perdem e o convite para criar conteúdo do período que está na tela.
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
@@ -68,7 +68,7 @@ export function Planejamento(pr: Props) {
 
   return (
     <section className="mk-plano">
-      <CabecalhoAba titulo="Planejamento editorial" sub="Organize as peças e acompanhe cada etapa da produção.">
+      <CabecalhoAba titulo="Conteúdos" sub="As peças do período em cada etapa, do planejado ao publicado.">
         <TrocaVisao visao={f.visao} mudar={(visao) => pr.mudar({ visao })} />
       </CabecalhoAba>
       <PainelFiltros tela={{ periodo: f.periodo, data: f.data, ate: f.ate }} mudarTela={(c) => pr.mudar(c as Partial<Filtros>)}
@@ -109,7 +109,7 @@ export function Planejamento(pr: Props) {
 
       <div className="mk-convite">
         <span className="mk-convite-icone"><Icone nome="agenda" tam={22} /></span>
-        <span><b>{convite.pergunta}</b><br /><span className="muted pequeno">O agente propõe temas, formatos e datas; você revisa e aprova antes de produzir. Nada é publicado sozinho.</span></span>
+        <span><b>{convite.pergunta}</b><br /><span className="muted pequeno">Abra uma reunião de pauta: o agente mostra o que já saiu, sugere o que postar e por quê. Nada é gerado sem o seu ok.</span></span>
         <button className="btn btn-contorno-ouro" onClick={() => pr.aoPlanejar(convite.modo, f.periodo === 'mes' ? inicio : f.data)}><Icone nome="agenda" /> {convite.botao}</button>
       </div>
     </section>
