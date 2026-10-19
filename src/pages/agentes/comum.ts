@@ -32,7 +32,7 @@ export type AgenteCatalogo = { id: string; nome: string; papel: string; descrica
 export const CATALOGO: AgenteCatalogo[] = [
   { id: 'marketing', nome: 'Marketing', papel: 'Conteúdo e campanhas', escopo: 'ambos', cor: '#a46ee6', foto: '/agentes/marketing.webp?v=4', avatar: '/agentes/marketing-avatar.webp?v=1', icone: 'grafico', trabalhando: 'montando a semana de conteúdo',
     descricao: 'Monta a semana de conteúdo do Instagram (posts, reels, stories e legendas) com o que a empresa vende agora. Nada é publicado sozinho: você aprova, copia e posta.' },
-  { id: 'atendimento', nome: 'Atendimento', papel: 'Conversas e relacionamento', escopo: 'ambos', cor: '#3f7df0', foto: '/agentes/atendimento.webp?v=4', avatar: '/agentes/atendimento-avatar.webp?v=1', icone: 'whats', trabalhando: 'respondendo leads',
+  { id: 'atendimento', nome: 'Atendimento', papel: 'Conversas e relacionamento', escopo: 'ambos', cor: '#3f7df0', foto: '/agentes/atendimento.webp?v=5', avatar: '/agentes/atendimento-avatar.webp?v=2', icone: 'whats', trabalhando: 'respondendo leads',
     descricao: 'Responde o lead novo nas Conversas do Atendimento, tira dúvidas com o material da empresa e passa para a vendedora quando a pessoa quer comprar ou pede para falar com alguém. Entra quando o WhatsApp estiver ligado.' },
   { id: 'vendas', nome: 'Vendas', papel: 'Ofertas e acompanhamento', escopo: 'ambos', cor: '#d9a24b', foto: '/agentes/vendas.webp?v=4', avatar: '/agentes/vendas-avatar.webp?v=1', icone: 'dinheiro', trabalhando: 'separando quem chamar',
     descricao: 'Escolhe todo dia quem da base tem mais chance de comprar agora, escreve a mensagem de cada um e acompanha o retorno. A vendedora manda do celular dela; com o WhatsApp ligado, ele envia sozinho no ritmo seguro.' },
