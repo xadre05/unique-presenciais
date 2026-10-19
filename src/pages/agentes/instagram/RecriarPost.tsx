@@ -13,7 +13,7 @@ const FORMATOS_IG = FORMATOS.filter((f) => REDES.instagram.formatos.includes(f))
 
 export function RecriarPost({ post, med, diaInicial = '', campanha, aoFechar, aoCriada }: Props) {
   const [mudar, setMudar] = useState('')
-  const [manter, setManter] = useState<string[]>(['Gancho', 'Estrutura', 'Formato'])
+  const [manter, setManter] = useState<string[]>(['Gancho', 'Tema'])
   const [tipo, setTipo] = useState(post ? FORMATO_DO_POST[post.tipo] ?? 'post' : 'post')
   const [dia, setDia] = useState(diaInicial)
   const [criando, setCriando] = useState(false)

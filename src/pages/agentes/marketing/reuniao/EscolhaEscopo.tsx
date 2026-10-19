@@ -1,42 +1,64 @@
-// Começo do planejamento: "O que vamos planejar?" (algo para hoje, próximos dias, semana, mês ou campanha) e a campanha.
-// Depois, dois caminhos: conversar com o agente (reunião de pauta) ou dizer direto o que vai ser postado.
+// Planejar com o agente de Marketing. Passo 1: o que vamos planejar (hoje, próximos dias, semana, mês ou campanha),
+// a campanha, o período e os canais (ou o agente define). Passo 2: como começar — reunião com o agente, pedido direto
+// ou reaproveitar um post com resultado (página própria). À direita: retomar de onde parou e o resumo do planejamento.
 import { useState } from 'react'
 import { Erro } from '../../../../components/ui'
 import { Icone } from '../../../../components/Icone'
 import { hojeISO, segundaDe } from '../../comum'
-import type { Campanha } from '../useMarketing'
+import { situacaoCampanha } from '../../campanhas/dados'
+import { REDES, useRedes, type Rede } from '../redes'
+import { LogoRede } from '../LogoRede'
+import { EMPRESA, type Campanha } from '../useMarketing'
 import { periodoDe, tituloDe, type Escopo, type Reuniao, type TipoEscopo } from './dados'
 import { DecidirDireto } from './DecidirDireto'
-import { EscolherPost } from '../../instagram/EscolherPost'
-import { EMPRESA } from '../useMarketing'
+import { NestePlanejamento, Retomar } from './LadoPlanejar'
+import { ReaproveitarPost } from '../../instagram/ReaproveitarPost'
 
 const OPCOES: { tipo: TipoEscopo; nome: string; sub: string; icone: string }[] = [
-  { tipo: 'dia', nome: 'Algo para hoje', sub: 'Uma novidade, um assunto do mercado, um stories de última hora. Conversa curta, de 1 a 3 peças.', icone: 'relogio' },
-  { tipo: 'dias', nome: 'Os próximos dias', sub: 'Dois ou três dias, ou um intervalo que você escolhe.', icone: 'agenda' },
-  { tipo: 'semana', nome: 'A semana', sub: 'Segunda a domingo, olhando o que saiu, o que funcionou e o que vem pela frente.', icone: 'grafico' },
-  { tipo: 'mes', nome: 'O mês', sub: 'A linha do mês inteiro, com as datas importantes.', icone: 'lista' },
-  { tipo: 'campanha', nome: 'Uma campanha', sub: 'O conteúdo de uma campanha do começo ao fim.', icone: 'floco' },
+  { tipo: 'dia', nome: 'Algo para hoje', sub: 'Conteúdo pontual', icone: 'relogio' },
+  { tipo: 'dias', nome: 'Próximos dias', sub: 'Escolha um intervalo', icone: 'agenda' },
+  { tipo: 'semana', nome: 'A semana', sub: 'Distribuição semanal', icone: 'agenda' },
+  { tipo: 'mes', nome: 'O mês', sub: 'Visão do mês', icone: 'lista' },
+  { tipo: 'campanha', nome: 'Uma campanha', sub: 'Do início ao fim da ação', icone: 'floco' },
 ]
-const dmy = (iso: string) => `${iso.slice(8, 10)}/${iso.slice(5, 7)}`
-const STATUS: Record<Reuniao['status'], string> = { aberta: 'Em conversa', plano: 'Plano para revisar', fechada: 'Plano aprovado' }
+const dm = (iso: string) => `${iso.slice(8, 10)}/${iso.slice(5, 7)}`
+const NOME_ESCOPO: Record<TipoEscopo, string> = { dia: 'Dia', dias: 'Dias', semana: 'Semana', mes: 'Mês', campanha: 'Campanha' }
 
 type Props = {
   tipoInicial: TipoEscopo; dataInicial: string; campanhas: Campanha[]; recentes: Reuniao[]
   aoComecar: (escopo: Escopo, titulo: string) => Promise<void>; aoContinuar: (id: string) => void; aoGuardou: () => void; aoEscreveu: (ids: string[]) => void; aoCriarCampanha: () => void
 }
 
+function Canais({ ativas, canais, agente, aoMudar, aoAgente }: { ativas: Rede[]; canais: string[]; agente: boolean; aoMudar: (c: string[]) => void; aoAgente: (v: boolean) => void }) {
+  const faltam = ativas.filter((r) => !canais.includes(r))
+  return (
+    <div className="pl-canais">
+      <div className="pl-canais-linha">
+        <span className="select-icone pl-canais-sel"><select value="" disabled={agente || !faltam.length} onChange={(e) => e.target.value && aoMudar([...canais, e.target.value])} aria-label="Adicionar canal">
+          <option value="">{agente ? 'O agente sugere os canais na reunião' : canais.length ? canais.map((c) => REDES[c as Rede]?.nome ?? c).join(', ') : 'Escolha os canais'}</option>
+          {faltam.map((r) => <option key={r} value={r}>+ {REDES[r].nome}</option>)}</select></span>
+        <button type="button" className={`btn pl-agente${agente ? ' ativo' : ''}`} onClick={() => aoAgente(!agente)} aria-pressed={agente}><Icone nome="floco" tam={16} /> Definir com o agente</button>
+      </div>
+      {!agente && canais.length > 0 && <div className="pl-canais-chips">{canais.map((c) => (
+        <span key={c} className="pl-canal"><LogoRede rede={c as Rede} tam={15} /> {REDES[c as Rede]?.nome ?? c}
+          <button type="button" aria-label={`Tirar ${REDES[c as Rede]?.nome ?? c}`} onClick={() => aoMudar(canais.filter((x) => x !== c))}><Icone nome="fechar" tam={12} /></button></span>))}</div>}
+    </div>
+  )
+}
+
 export function EscolhaEscopo(pr: Props) {
+  const ativas = useRedes()
   const [tipo, setTipo] = useState<TipoEscopo>(pr.tipoInicial)
-  // a campanha vale em qualquer planejamento (opcional); em "Uma campanha" ela é obrigatória e define o período
   const [campanha, setCampanha] = useState(pr.tipoInicial === 'campanha' ? pr.campanhas[0]?.id ?? '' : '')
   const [periodo, setPeriodo] = useState(() => periodoDe(pr.tipoInicial, pr.dataInicial || hojeISO()))
-  const [texto, setTexto] = useState('')
+  const [digitado, setDigitado] = useState(periodo.inicio)
+  const [canais, setCanais] = useState<string[]>(ativas)
+  const [agenteDefine, setAgenteDefine] = useState(false)
   const [comecando, setComecando] = useState(false)
   const [erro, setErro] = useState<string | null>(null)
-  const [verTodas, setVerTodas] = useState(false)
-  const [direto, setDireto] = useState(false)
-  const [deUmPost, setDeUmPost] = useState(false)
+  const [caminho, setCaminho] = useState<'escolher' | 'direto' | 'post'>('escolher')
   const camp = pr.campanhas.find((c) => c.id === campanha)
+  const ativa = camp ? situacaoCampanha(camp) === 'ativa' : false
 
   const escolher = (t: TipoEscopo) => {
     const c = t === 'campanha' ? camp ?? pr.campanhas[0] : camp
@@ -49,83 +71,81 @@ export function EscolhaEscopo(pr: Props) {
     if (tipo !== 'campanha') return
     const p = periodoDe('campanha', '', pr.campanhas.find((c) => c.id === id)); setPeriodo(p); setDigitado(p.inicio)
   }
-  // o campo guarda o que foi digitado; o período só muda com uma data completa (ano com 4 dígitos)
-  const [digitado, setDigitado] = useState(periodo.inicio)
   const valida = (d: string) => /^20\d\d-\d\d-\d\d$/.test(d)
   const mudarInicio = (d: string) => valida(d) && setPeriodo(tipo === 'dia' ? { inicio: d, fim: d } : tipo === 'semana' ? periodoDe('semana', segundaDe(d)) : tipo === 'mes' ? periodoDe('mes', d) : { inicio: d, fim: periodo.fim < d ? d : periodo.fim })
+  const escopo = (): Escopo => ({ tipo, ...periodo, campanha: camp?.id, canais: agenteDefine ? [] : canais })
   const comecar = async () => {
     if (tipo === 'campanha' && !camp) return setErro('Escolha a campanha ou crie uma nova.')
     if (!valida(periodo.inicio) || !valida(periodo.fim)) return setErro('Confira a data: use dia, mês e ano completos.')
     setErro(null); setComecando(true)
-    const escopo: Escopo = { tipo, ...periodo, campanha: camp?.id, texto: texto.trim() || undefined }
-    try { await pr.aoComecar(escopo, tituloDe(escopo, camp)) } catch (e) { setErro(e instanceof Error ? e.message : 'Não foi possível começar.'); setComecando(false) }
+    const e = escopo()
+    try { await pr.aoComecar(e, tituloDe(e, camp)) } catch (x) { setErro(x instanceof Error ? x.message : 'Não foi possível começar.'); setComecando(false) }
   }
-  const lista = verTodas ? pr.recentes : pr.recentes.slice(0, 4)
 
+  if (caminho === 'post') return <ReaproveitarPost empresa={EMPRESA} contexto={{ campanha: camp, inicio: periodo.inicio, fim: periodo.fim, canais: agenteDefine ? [] : canais }} redesAtivas={ativas} aoVoltar={() => setCaminho('escolher')} aoCriadas={pr.aoEscreveu} />
+  const textoPeriodo = `${NOME_ESCOPO[tipo]} ${dm(periodo.inicio)}${periodo.fim !== periodo.inicio ? ` a ${dm(periodo.fim)}` : ''}`
   return (
-    <div className={`reu-escolha${pr.recentes.length ? '' : ' sozinha'}`}>
-      <div className="reu-col">
-      <section className="mk-painel">
-        <header className="mk-painel-cab"><span className="mk-convite-icone"><Icone nome="mensagem" tam={22} /></span><div><h3>O que vamos planejar?</h3><span className="muted pequeno">Escolha o período e a campanha. Depois você decide: conversar com o agente antes, ou dizer direto o que quer postar.</span></div></header>
-        <div className="reu-opcoes" role="radiogroup">
-          {OPCOES.map((o) => (
-            <button key={o.tipo} type="button" role="radio" aria-checked={tipo === o.tipo} className={`reu-opcao${tipo === o.tipo ? ' ativa' : ''}`} onClick={() => escolher(o.tipo)}>
-              <Icone nome={o.icone} tam={20} /><b>{o.nome}</b><span>{o.sub}</span>
-            </button>
-          ))}
+    <div className="pl-grade">
+      <section className="mk-painel pl-principal">
+        <h3 className="pl-passo"><span>1</span> O que vamos planejar?</h3>
+        <p className="muted pl-passo-sub">Escolha o escopo do seu planejamento.</p>
+        <div className="pl-opcoes" role="radiogroup">{OPCOES.map((o) => (
+          <button key={o.tipo} type="button" role="radio" aria-checked={tipo === o.tipo} className={`pl-opcao${tipo === o.tipo ? ' ativa' : ''}`} onClick={() => escolher(o.tipo)}>
+            <Icone nome={o.icone} tam={26} /><b>{o.nome}</b><small>{o.sub}</small></button>))}</div>
+
+        <label className="pl-rotulo">Campanha deste planejamento {tipo !== 'campanha' && <small className="muted">(opcional)</small>}</label>
+        <div className="pl-campanha">
+          <span className="select-icone"><select value={camp?.id ?? ''} onChange={(e) => mudarCampanha(e.target.value)}>
+            {(tipo !== 'campanha' || !pr.campanhas.length) && <option value="">{tipo === 'campanha' ? 'Nenhuma campanha cadastrada' : 'Nenhuma: conteúdo do dia a dia'}</option>}
+            {pr.campanhas.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}
+            <option value="__nova">+ Nova campanha…</option></select></span>
+          {ativa && <span className="pl-ativa"><i /> Ativa</span>}
         </div>
-        <div className="form-duas reu-periodo">
-          <label>Campanha {tipo !== 'campanha' && <small className="muted">(opcional)</small>}
-            <select value={camp?.id ?? ''} onChange={(e) => mudarCampanha(e.target.value)}>
-              {(tipo !== 'campanha' || !pr.campanhas.length) && <option value="">{tipo === 'campanha' ? 'Nenhuma campanha cadastrada' : 'Nenhuma: conteúdo do dia a dia'}</option>}
-              {pr.campanhas.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}
-              <option value="__nova">+ Nova campanha…</option>
-            </select></label>
+        {camp && <small className="muted">Oferta, datas e orientações da campanha acompanham o planejamento.</small>}
+
+        <div className="pl-datas">
           {tipo === 'mes'
             ? <label>Mês<input type="month" value={periodo.inicio.slice(0, 7)} onChange={(e) => e.target.value && mudarInicio(e.target.value + '-01')} /></label>
-            : <label>{tipo === 'dia' ? 'Dia' : tipo === 'semana' ? 'Semana de' : 'Início'}<input type="date" value={digitado} onChange={(e) => { setDigitado(e.target.value); mudarInicio(e.target.value) }} /></label>}
-          {(tipo === 'dias' || tipo === 'campanha') && <label>Fim<input type="date" value={periodo.fim} min={periodo.inicio} onChange={(e) => valida(e.target.value) && setPeriodo({ ...periodo, fim: e.target.value })} /></label>}
-          <span className="muted pequeno reu-periodo-txt">Período: {dmy(periodo.inicio)}{periodo.fim !== periodo.inicio ? ` a ${dmy(periodo.fim)}` : ''}{camp ? ` · as peças usam a oferta e as regras de ${camp.nome}` : ''}</span>
+            : <label>{tipo === 'dia' ? 'Dia' : 'Início'}<input type="date" value={digitado} onChange={(e) => { setDigitado(e.target.value); mudarInicio(e.target.value) }} /></label>}
+          {tipo !== 'dia' && tipo !== 'mes' && <label>Fim<input type="date" value={periodo.fim} min={periodo.inicio} disabled={tipo === 'semana'} onChange={(e) => valida(e.target.value) && setPeriodo({ ...periodo, fim: e.target.value })} /></label>}
+          {camp?.inicio && <div className="pl-periodo-camp"><small className="muted">Período da campanha:</small><b>{dm(camp.inicio)}{camp.fim ? ` a ${dm(camp.fim)}` : ''}</b></div>}
         </div>
-        {!direto && !deUmPost && <>
-          <div className="reu-caminhos">
-            <div className="reu-caminho">
-              <div><b><Icone nome="lista" tam={18} /> Já sei o que postar</b><span className="muted pequeno">Você diz cada peça e o agente escreve.</span></div>
-              <button type="button" className="btn btn-contorno-ouro" onClick={() => setDireto(true)}>Dizer o que postar</button>
-            </div>
-            <div className="reu-caminho">
-              <div><b><Icone nome="trocar" tam={18} /> Partir de um post que funcionou</b><span className="muted pequeno">Escolha o post e diga o que mudar.</span></div>
-              <button type="button" className="btn btn-contorno-ouro" onClick={() => setDeUmPost(true)}>Escolher o post</button>
-            </div>
-            <div className="reu-caminho">
-              <div><b><Icone nome="mensagem" tam={18} /> Conversar com o agente</b><span className="muted pequeno">Ele traz o que funcionou e vocês decidem juntos.</span>
-                <textarea rows={2} maxLength={600} value={texto} onChange={(e) => setTexto(e.target.value)} placeholder="Assunto em mente? (opcional)" aria-label="Assunto em mente (opcional)" /></div>
-              <button type="button" className="btn btn-contorno-ouro" disabled={comecando} onClick={comecar}>{comecando ? 'Abrindo…' : 'Começar a conversa'}</button>
-            </div>
-          </div>
-          <Erro msg={erro} />
-        </>}
-      </section>
-      {deUmPost && <EscolherPost empresa={EMPRESA} dia={periodo.inicio} campanha={camp?.id} aoCriada={(id) => pr.aoEscreveu([id])} aoVoltar={() => setDeUmPost(false)} />}
-      {direto && <DecidirDireto inicio={periodo.inicio} fim={periodo.fim} campanha={camp} aoEscreveu={pr.aoEscreveu} aoGuardou={pr.aoGuardou} aoVoltar={() => setDireto(false)} />}
-      </div>
 
-      <aside className="reu-lado">
-        {pr.recentes.length > 0 && (
-          <section className="mk-painel">
-            <h4 className="reu-lado-titulo"><Icone nome="historico" tam={18} /> Conversas anteriores</h4>
-            <ul className="reu-recentes">
-              {lista.map((r) => (
-                <li key={r.id}><button type="button" onClick={() => pr.aoContinuar(r.id)}>
-                  <b>{r.titulo}</b>
-                  <small>{STATUS[r.status]} · {new Date(r.criado_em).toLocaleDateString('pt-BR')}{r.ata?.assuntos?.length ? ` · ${r.ata.assuntos.length} assunto(s)` : ''}</small>
-                  {r.ata?.objetivo && <span className="muted pequeno">{r.ata.objetivo}</span>}
-                </button></li>
-              ))}
-            </ul>
-            {pr.recentes.length > 4 && <button type="button" className="btn btn-mini" onClick={() => setVerTodas(!verTodas)}>{verTodas ? 'Ver menos' : `Ver todas (${pr.recentes.length})`}</button>}
-          </section>
-        )}
+        <label className="pl-rotulo">Canais</label>
+        <Canais ativas={ativas} canais={canais} agente={agenteDefine} aoMudar={setCanais} aoAgente={setAgenteDefine} />
+
+        <hr className="pl-divisao" />
+        <h3 className="pl-passo"><span>2</span> Como você quer começar?</h3>
+        <p className="muted pl-passo-sub">Escolha a forma de iniciar. Cada opção leva a um próximo passo diferente.</p>
+        {caminho === 'direto'
+          ? <DecidirDireto inicio={periodo.inicio} fim={periodo.fim} campanha={camp} aoEscreveu={pr.aoEscreveu} aoGuardou={pr.aoGuardou} aoVoltar={() => setCaminho('escolher')} />
+          : <>
+            <div className="pl-caminhos">
+              <div className="pl-caminho destaque">
+                <b><Icone nome="mensagem" tam={22} /> Fazer uma reunião com o agente</b>
+                <p className="muted">Converse sobre objetivos, público, campanha e ideias. O agente organiza o briefing com você antes de propor os conteúdos.</p>
+                <span className="pl-etiqueta">Antes do briefing</span>
+                <button type="button" className="btn btn-ouro" disabled={comecando} onClick={comecar}>{comecando ? 'Abrindo a reunião…' : 'Iniciar reunião'} <Icone nome="seta_dir" tam={15} /></button>
+              </div>
+              <div className="pl-caminho">
+                <b><Icone nome="documento" tam={22} /> Já sei o que quero postar</b>
+                <p className="muted">Informe tema, canal e formato. O agente estrutura seu pedido para você revisar.</p>
+                <button type="button" className="btn btn-contorno" onClick={() => setCaminho('direto')}>Descrever meu pedido <Icone nome="seta_dir" tam={15} /></button>
+              </div>
+              <div className="pl-caminho">
+                <b><Icone nome="trocar" tam={22} /> Reaproveitar um post com resultado</b>
+                <p className="muted">Escolha entre os posts da sua conta do Instagram e defina o que manter ou mudar.</p>
+                <span className="pl-fonte"><LogoRede rede="instagram" tam={14} /> Posts e métricas da conta conectada</span>
+                <button type="button" className="btn btn-contorno" onClick={() => setCaminho('post')}>Escolher um post <Icone nome="seta_dir" tam={15} /></button>
+              </div>
+            </div>
+            <p className="muted pequeno pl-rodape"><Icone nome="info" tam={14} /> Você revisa o briefing e a proposta antes de criar as peças.</p>
+          </>}
+        <Erro msg={erro} />
+      </section>
+      <aside className="pl-lado">
+        <Retomar recentes={pr.recentes} aoAbrir={pr.aoContinuar} />
+        <NestePlanejamento periodo={textoPeriodo} campanha={camp ? { nome: camp.nome, ativa } : undefined} canais={canais} agenteDefine={agenteDefine} />
       </aside>
     </div>
   )

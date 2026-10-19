@@ -6,7 +6,8 @@ import { hojeISO, segundaDe, somaDias } from '../../comum'
 import { EMPRESA, type Campanha } from '../useMarketing'
 
 export type TipoEscopo = 'dia' | 'dias' | 'semana' | 'mes' | 'campanha'
-export type Escopo = { tipo: TipoEscopo; inicio: string; fim: string; campanha?: string; texto?: string }
+// canais: os escolhidos no Planejar (vazio = o agente sugere na reunião); entram na ata para o agente já partir deles
+export type Escopo = { tipo: TipoEscopo; inicio: string; fim: string; campanha?: string; texto?: string; canais?: string[] }
 export type Assunto = { tema: string; porque?: string; rede?: string; tipo?: string; dia?: string }
 export type CanalAta = { rede: string; formatos: string[]; quantidade: number }
 export type Ata = { objetivo?: string; publico?: string; inicio?: string; fim?: string; campanha?: string; canais?: CanalAta[]; total?: number; assuntos?: Assunto[]; evitar?: string[]; observacoes?: string }
@@ -59,7 +60,7 @@ export async function lerReuniao(id: string) {
 }
 
 export async function criarReuniao(titulo: string, escopo: Escopo) {
-  const { data, error } = await supabase.from('agentes_reunioes').insert({ empresa_id: EMPRESA, agente_id: 'marketing', titulo, escopo, ata: { inicio: escopo.inicio, fim: escopo.fim } }).select('id,titulo,escopo,mensagens,ata,plano_id,status,criado_em,atualizado_em').single()
+  const { data, error } = await supabase.from('agentes_reunioes').insert({ empresa_id: EMPRESA, agente_id: 'marketing', titulo, escopo, ata: { inicio: escopo.inicio, fim: escopo.fim, ...(escopo.canais?.length ? { canais: escopo.canais.map((rede) => ({ rede, formatos: [], quantidade: 0 })) } : {}) } }).select('id,titulo,escopo,mensagens,ata,plano_id,status,criado_em,atualizado_em').single()
   if (error) throw new Error(msgErro(error))
   return data as Reuniao
 }

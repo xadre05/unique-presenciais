@@ -12,6 +12,7 @@ import { useReuniao } from './useReuniao'
 import { EscolhaEscopo } from './EscolhaEscopo'
 import { ConversaReuniao } from './ConversaReuniao'
 import { AtaReuniao } from './AtaReuniao'
+import { BriefingReuniao } from './BriefingReuniao'
 
 const dm = (iso: string) => `${iso.slice(8, 10)}/${iso.slice(5, 7)}`
 
@@ -40,15 +41,27 @@ export function PaginaReuniao(pr: Props) {
   const reu = r.reuniao
   const escrever = async () => { const ids = await r.escreverAgora(); if (ids) pr.aoIrProducao(ids.length === 1 ? ids[0] : undefined) }
   const passos = [{ texto: 'Agente de Marketing', aoClicar: pr.aoVoltar }, { texto: 'Planejar', aoClicar: reu ? r.novaReuniao : undefined }, ...(reu ? [{ texto: reu.titulo }] : [])]
-  const sub = !reu ? 'Escolha o período. Depois converse com o agente ou diga direto o que quer postar.'
-    : r.conversando ? 'Converse com o agente. A ata ao lado mostra o que já foi combinado.'
+  const titulo = !reu ? 'Planejar com o agente de Marketing' : r.conversando ? 'Reunião com o agente de Marketing' : `Proposta: ${reu.titulo}`
+  const sub = !reu ? 'Uma reunião, um pedido direto ou uma nova versão de um post que já funcionou.'
+    : r.conversando ? 'Alinhe a estratégia antes de fechar o briefing.'
       : 'Revise a proposta de calendário que saiu da reunião e aprove.'
+  const camp = reu ? pr.campanhas.find((c) => c.id === reu.escopo.campanha) : undefined
+  const NOME: Record<TipoEscopo, string> = { dia: 'O dia', dias: 'Os próximos dias', semana: 'A semana', mes: 'O mês', campanha: 'A campanha' }
 
   if (r.carregando) return <div className="mk-pagina-planejar"><Caminho passos={passos} /><div className="progresso"><div className="indeterminado" /><span>Abrindo a reunião…</span></div></div>
   return (
     <div className="mk-pagina-planejar reu">
+      <button type="button" className="link rp-voltar" onClick={reu ? r.novaReuniao : pr.aoVoltar}><Icone nome="esquerda" tam={14} /> {reu ? 'Voltar à configuração' : 'Voltar ao planejamento'}</button>
       <Caminho passos={passos} />
-      <div className="mk-titulo-aba"><h2>{reu ? `Conversa de pauta: ${reu.titulo}` : 'Planejar'}</h2><p className="muted">{sub}</p></div>
+      <div className="mk-titulo-aba pl-titulo"><h2>{titulo}</h2><p className="muted">{sub}</p></div>
+      {reu && r.conversando && (
+        <div className="mk-painel rc-contexto">
+          <Icone nome="agenda" tam={26} />
+          <div><b>{NOME[reu.escopo.tipo]} · {dm(reu.escopo.inicio)}{reu.escopo.fim !== reu.escopo.inicio ? `–${dm(reu.escopo.fim)}` : ''}/{reu.escopo.fim.slice(0, 4)}</b><small className="muted">{camp ? 'Período da campanha' : 'Conteúdo do dia a dia'}</small></div>
+          {camp && <span className="rc-camp"><Icone nome="floco" tam={15} /> {camp.nome}</span>}
+          <button type="button" className="link rc-alterar" onClick={r.novaReuniao}>Alterar contexto <Icone nome="seta_dir" tam={13} /></button>
+        </div>
+      )}
       {!reu && <EscolhaEscopo tipoInicial={pr.tipoInicial} dataInicial={pr.dataInicial} campanhas={pr.campanhas} recentes={recentes.dados ?? []}
         aoComecar={async (e, t) => { await r.comecar(e, t); recentes.recarregar() }} aoContinuar={pr.aoAbrirReuniao} aoGuardou={() => { pr.aoMudou(); pr.aoVoltar() }}
         aoEscreveu={(ids) => { pr.aoMudou(); pr.aoIrProducao(ids.length === 1 ? ids[0] : undefined) }} aoCriarCampanha={pr.aoCriarCampanha} />}
@@ -58,7 +71,7 @@ export function PaginaReuniao(pr: Props) {
             <ConversaReuniao falas={r.falas} pensando={r.pensando} aoFalar={r.falar} />
             {r.erro && <div className="ia-linha"><Erro msg={r.erro} /><button type="button" className="btn btn-mini" onClick={r.tentarDeNovo}><Icone nome="atualizar" tam={14} /> Tentar de novo</button></div>}
           </div>
-          <AtaReuniao ata={r.ata} pronta={r.pronta} editavel montando={r.proposta.status === 'aguardando'} aoMudar={r.setAta} aoMontar={r.montar} />
+          <BriefingReuniao ata={r.ata} campanha={camp?.nome} pronta={r.pronta} montando={r.proposta.status === 'aguardando'} aoMudar={r.setAta} aoMontar={r.montar} />
         </div>
       )}
       {reu && !r.conversando && (

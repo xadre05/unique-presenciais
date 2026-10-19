@@ -6,10 +6,10 @@ import { msgErro } from '../../../lib/dados'
 import { EMPRESA, criarTrabalho } from '../marketing/useMarketing'
 import { NOME_TIPO, milhar, n, type PostIG } from './dados'
 
-export const MANTER = ['Gancho', 'Estrutura', 'Formato', 'Assunto', 'Tom'] as const
+export const MANTER = ['Gancho', 'Tema', 'Estrutura', 'Formato'] as const
 // formato da peça nova a partir do tipo do post no Instagram
 export const FORMATO_DO_POST: Record<string, string> = { reels: 'reels', carrossel: 'carrossel', imagem: 'post', video: 'reels' }
-export type PedidoRecriar = { mudar: string; manter: string[]; tipo: string; dia: string; campanha?: string }
+export type PedidoRecriar = { mudar: string; manter: string[]; tipo: string; dia: string; campanha?: string; rede?: string }
 
 export function temaRecriar(post: PostIG, med: number, p: Pick<PedidoRecriar, 'mudar' | 'manter'>) {
   const alcance = n(post, 'alcance'), acima = med && alcance ? Math.round(((alcance - med) / med) * 100) : null
@@ -26,7 +26,7 @@ export function temaRecriar(post: PostIG, med: number, p: Pick<PedidoRecriar, 'm
 // cria a peça (ideia) e já pede ao agente que escreva; devolve o id da peça para abrir
 export async function recriarPost(post: PostIG, med: number, p: PedidoRecriar) {
   const resumo = (post.legenda ?? '').replace(/\s+/g, ' ').slice(0, 50).trim()
-  const r = await criarTrabalho('ideia', { pecas: [{ tipo: p.tipo, rede: 'instagram', dia: p.dia || undefined, titulo: `Nova versão: ${resumo || NOME_TIPO[post.tipo] || 'post'}`, tema: temaRecriar(post, med, p), campanha: p.campanha || undefined }] })
+  const r = await criarTrabalho('ideia', { pecas: [{ tipo: p.tipo, rede: p.rede ?? 'instagram', dia: p.dia || undefined, titulo: `Nova versão: ${resumo || NOME_TIPO[post.tipo] || 'post'}`, tema: temaRecriar(post, med, p), campanha: p.campanha || undefined }] })
   if (r.erro || !r.id) throw new Error(r.erro ?? 'Não consegui criar a peça.')
   let pecaId: string | null = null
   for (let i = 0; i < 6 && !pecaId; i++) {
