@@ -2697,7 +2697,7 @@ a.sala-agente:hover { border-color: var(--ouro); transform: translateY(-2px); }
 .pe-filtros { display: flex; flex-direction: column; gap: 8px; }
 .pe-filtros input[type="date"] { width: auto; }
 .pe-comparando { margin: 0; }
-.pe-cartoes { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 10px; }
+.pe-cartoes { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; }
 .pe-cartao { display: flex; flex-direction: column; gap: 3px; padding: 12px; border: 1px solid var(--borda); border-radius: 12px; background: var(--painel); }
 .pe-cartao > small:first-child { color: var(--muted); }
 .pe-cartao b { font-size: 1.4rem; }
@@ -2738,7 +2738,7 @@ a.sala-agente:hover { border-color: var(--ouro); transform: translateY(-2px); }
 /* gráficos simples (uma série) */
 .gr-figura { margin: 0; }
 .gr-area { position: relative; overflow-x: auto; }
-.gr-area svg { display: block; width: 100%; min-width: 520px; height: auto; }
+.gr-area svg { display: block; width: 100%; min-width: 640px; height: auto; max-height: 240px; }
 .gr-grade { stroke: var(--borda); stroke-width: 1; }
 .gr-base { stroke: #3a3a40; stroke-width: 1; }
 .gr-eixo { fill: var(--muted); font-size: 10px; }

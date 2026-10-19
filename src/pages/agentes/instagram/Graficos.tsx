@@ -21,11 +21,11 @@ function Dica({ ponto, x, largura }: { ponto: Ponto; x: number; largura: number 
 // colunas por dia; valor null = dia sem número ainda (aparece como um traço na base)
 export function Colunas({ pontos, titulo }: { pontos: Ponto[]; titulo: string }) {
   const [ativo, setAtivo] = useState<number | null>(null)
-  const passo = 22, largura = ESQ + pontos.length * passo + 4
+  const passo = 34, largura = ESQ + pontos.length * passo + 4
   const max = topoLimpo(Math.max(0, ...pontos.map((p) => p.valor ?? 0)))
   const y = (v: number) => TOPO + (ALT - TOPO - BASE) * (1 - v / max)
   const iMax = pontos.reduce((m, p, i) => ((p.valor ?? -1) > (pontos[m]?.valor ?? -1) ? i : m), 0)
-  const barra = Math.min(14, passo - 4)
+  const barra = Math.min(18, passo - 6)
   return (
     <figure className="gr-figura" aria-label={titulo}>
       <div className="gr-area">

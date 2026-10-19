@@ -98,7 +98,7 @@ export function AbaPeriodo({ empresa, posts, seguidores, medRef, analises, anali
         <Cartao rotulo="Alcance mediano por post" agora={a.mediana} antes={b.mediana} />
         <Cartao rotulo="Salvos" agora={a.salvos} antes={b.salvos} />
         <Cartao rotulo="Compartilhamentos" agora={a.compartilhamentos} antes={b.compartilhamentos} />
-        <Cartao rotulo={a.seguidoresSaldo ? 'Seguidores (saldo)' : 'Novos seguidores'} agora={a.seguidores} antes={b.seguidores} sub={a.seguidores == null ? 'o Instagram ainda está fechando estes dias' : undefined} />
+        <Cartao rotulo={a.seguidoresSaldo ? 'Seguidores (saldo)' : 'Novos seguidores'} agora={a.seguidores} antes={b.seguidores} sub={a.seguidores == null ? 'o Instagram ainda está fechando estes dias' : !a.seguidoresSaldo && atual.ate >= somaDias(hojeBR(), -1) ? 'os 2 últimos dias ainda estão fechando' : undefined} />
       </div>
       <section className="mk-painel pe-bloco"><h4 className="pe-titulo">Agente × Fora</h4><AgenteFora agente={pa.filter((p) => origemDe(p) === 'agente')} fora={pa.filter((p) => origemDe(p) === 'fora')} /></section>
       <section className="mk-painel pe-bloco"><h4 className="pe-titulo">Posts do período <span className="muted pequeno">(% contra a mediana dos últimos 90 dias: {milhar(medRef)})</span></h4>

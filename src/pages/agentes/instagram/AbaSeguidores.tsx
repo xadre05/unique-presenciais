@@ -11,7 +11,7 @@ const SEMANA = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb']
 export function AbaSeguidores({ historico, atual }: { historico: DiaSeguidores[]; atual: number | null }) {
   const [hoje] = useState(hojeBR)
   const porDia = new Map(historico.map((x) => [x.dia, x]))
-  const dias = Array.from({ length: 30 }, (_, i) => somaDias(hoje, i - 30))
+  const dias = Array.from({ length: 30 }, (_, i) => somaDias(hoje, i - 29))
   const novos: Ponto[] = dias.map((d) => {
     const v = porDia.get(d)?.novos ?? null
     const fechando = v == null && d >= somaDias(hoje, -2)
@@ -19,8 +19,8 @@ export function AbaSeguidores({ historico, atual }: { historico: DiaSeguidores[]
   })
   const totais: Ponto[] = historico.filter((x) => x.seguidores != null).map((x) => ({ rotulo: dm(x.dia), valor: x.seguidores, dica: `${milhar(x.seguidores ?? undefined)} seguidores` }))
   const soma = (de: string) => historico.filter((x) => x.dia >= de && x.novos != null).reduce((s, x) => s + Number(x.novos), 0)
-  const n7 = soma(somaDias(hoje, -7)), n30 = soma(somaDias(hoje, -30))
-  const diasCom30 = historico.filter((x) => x.dia >= somaDias(hoje, -30) && x.novos != null).length
+  const n7 = soma(somaDias(hoje, -6)), n30 = soma(somaDias(hoje, -29))
+  const diasCom30 = historico.filter((x) => x.dia >= somaDias(hoje, -29) && x.novos != null).length
   const primeira = historico.find((x) => x.seguidores != null)
   const saldo = primeira ? crescimento(historico, primeira.dia, hoje) : null
   return (
