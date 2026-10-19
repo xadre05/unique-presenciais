@@ -15,7 +15,50 @@ Fixadas pelo Alexandre em 18/10/2026. Qualquer mudança nas telas ou na função
    - "Gerar rascunhos" pede os textos ao agente.
 6. **Filtros preservados.** Período, canal, campanha, formato, situação e busca continuam selecionados ao alternar entre Quadro e Calendário, e ao ir para a Produção e voltar.
 
-## Duas entradas, um editor (18/10/2026)
+## Reunião de pauta: uma entrada só (decidido 19/10/2026, a construir)
+
+Substitui "Duas entradas, um editor" logo abaixo. O agente trabalha como uma social media: discute antes de gerar.
+
+1. **Um botão só: "Planejar com o agente".** Substitui "Nova peça com IA" e "Planejar conteúdos". Abre a reunião, que começa com "O que vamos planejar?":
+   - Algo para hoje (novidade, assunto do mercado, stories de última hora): conversa curta, vira a peça.
+   - Os próximos dias.
+   - A semana (reunião completa).
+   - Uma campanha.
+   - Ou texto livre. O "+" das colunas e do calendário e os convites "Planejar este dia/semana" também abrem a reunião, com o período já escolhido.
+2. **O agente chega preparado.** Antes de falar, levanta:
+   - resultado dos posts recentes (Instagram);
+   - quantas vezes cada assunto já saiu;
+   - campanhas ativas e datas dos presenciais;
+   - assuntos da biblioteca ainda não explorados.
+
+   Abre com diagnóstico e sugestão justificada. Na conversa, pergunta uma coisa por vez e defende com dado.
+3. **Ata ao lado da conversa**, montada durante a reunião:
+   - objetivo do período;
+   - assuntos;
+   - quantidade e canais;
+   - o porquê de cada peça;
+   - o que evitar.
+
+   As datas e os canais do antigo formulário passam a ser combinados aqui.
+4. **Nada é gerado sem o ok.** "Fechar reunião e montar o plano" gera o calendário a partir da ata. Depois segue o caminho de sempre: aprovar itens, escrever, artes.
+5. **Reuniões guardadas.**
+   - Há uma lista das reuniões com a ata e as peças que saíram de cada uma.
+   - A peça mostra de qual reunião veio e por quê.
+   - A reunião seguinte começa pela anterior: "combinamos X, o resultado foi Y".
+6. **Telas padronizadas.**
+   - Reunião e peça abrem como página, nunca pop-up. Pop-up só para confirmação ou escolha pequena.
+   - Cada página tem um caminho no topo (ex.: "Agente de Marketing › Reunião: semana 26/10–01/11") e "Voltar ao quadro".
+   - A aba "Planejamento" passa a se chamar "Conteúdos". "Planejar" fica só como nome do botão da reunião.
+7. **Custo.** Cada mensagem da reunião é cobrada na chave da empresa. Referências reais de 19/10/2026:
+   - conversa: cerca de US$ 0,007 por mensagem;
+   - plano da semana: cerca de US$ 0,13;
+   - arte: cerca de US$ 0,05.
+
+   No Clinical, isso entra na cota mensal do plano.
+
+Ordem combinada: primeiro a integração com o Instagram (dados dos posts alimentam a reunião), depois a reunião com o botão único.
+
+## Duas entradas, um editor (18/10/2026 — será substituído pela Reunião de pauta)
 
 | | Nova peça com IA | Planejar conteúdos |
 |---|---|---|
