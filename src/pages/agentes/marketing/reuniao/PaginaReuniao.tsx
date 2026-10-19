@@ -1,15 +1,18 @@
 // Reunião de pauta (página): a entrada única para planejar com o agente. Primeiro "O que vamos planejar?";
 // depois a conversa à esquerda e a ata à direita; com a ata pronta, "Montar o plano" mostra a proposta de
 // calendário para revisar e aprovar. Regras em docs/agentes/REGRAS_AGENTE_MARKETING.md (Reunião de pauta).
+import { useState } from 'react'
 import { Erro } from '../../../../components/ui'
 import { Icone } from '../../../../components/Icone'
 import type { Plano } from '../planos'
-import type { Campanha } from '../useMarketing'
+import { EMPRESA, type Campanha } from '../useMarketing'
 import { PropostaCalendario } from '../PropostaCalendario'
 import { Caminho } from '../Caminho'
 import { useReunioes, type TipoEscopo } from './dados'
 import { useReuniao } from './useReuniao'
-import { EscolhaEscopo } from './EscolhaEscopo'
+import { EscolhaEscopo, type ContextoPlanejar } from './EscolhaEscopo'
+import { ReaproveitarPost } from '../../instagram/ReaproveitarPost'
+import { useRedes } from '../redes'
 import { ConversaReuniao } from './ConversaReuniao'
 import { AtaReuniao } from './AtaReuniao'
 import { BriefingReuniao } from './BriefingReuniao'
@@ -37,6 +40,8 @@ function Aprovado({ n, aoEscrever, aoVoltar }: { n: number; aoEscrever: () => vo
 
 export function PaginaReuniao(pr: Props) {
   const recentes = useReunioes()
+  const redes = useRedes()
+  const [reaproveitar, setReaproveitar] = useState<ContextoPlanejar | null>(null)
   const r = useReuniao({ reuniaoId: pr.reuniaoId, campanhas: pr.campanhas, planos: pr.planos, aoMudou: pr.aoMudou })
   const reu = r.reuniao
   const escrever = async () => { const ids = await r.escreverAgora(); if (ids) pr.aoIrProducao(ids.length === 1 ? ids[0] : undefined) }
@@ -48,6 +53,7 @@ export function PaginaReuniao(pr: Props) {
   const camp = reu ? pr.campanhas.find((c) => c.id === reu.escopo.campanha) : undefined
   const NOME: Record<TipoEscopo, string> = { dia: 'O dia', dias: 'Os próximos dias', semana: 'A semana', mes: 'O mês', campanha: 'A campanha' }
 
+  if (reaproveitar && !reu) return <div className="mk-pagina-planejar"><ReaproveitarPost empresa={EMPRESA} contexto={reaproveitar} redesAtivas={redes} aoVoltar={() => setReaproveitar(null)} aoCriadas={(ids) => { pr.aoMudou(); pr.aoIrProducao(ids.length === 1 ? ids[0] : undefined) }} /></div>
   if (r.carregando) return <div className="mk-pagina-planejar"><Caminho passos={passos} /><div className="progresso"><div className="indeterminado" /><span>Abrindo a reunião…</span></div></div>
   return (
     <div className="mk-pagina-planejar reu">
@@ -64,7 +70,7 @@ export function PaginaReuniao(pr: Props) {
       )}
       {!reu && <EscolhaEscopo tipoInicial={pr.tipoInicial} dataInicial={pr.dataInicial} campanhas={pr.campanhas} recentes={recentes.dados ?? []}
         aoComecar={async (e, t) => { await r.comecar(e, t); recentes.recarregar() }} aoContinuar={pr.aoAbrirReuniao} aoGuardou={() => { pr.aoMudou(); pr.aoVoltar() }}
-        aoEscreveu={(ids) => { pr.aoMudou(); pr.aoIrProducao(ids.length === 1 ? ids[0] : undefined) }} aoCriarCampanha={pr.aoCriarCampanha} />}
+        aoEscreveu={(ids) => { pr.aoMudou(); pr.aoIrProducao(ids.length === 1 ? ids[0] : undefined) }} aoCriarCampanha={pr.aoCriarCampanha} aoReaproveitar={setReaproveitar} />}
       {reu && r.conversando && (
         <div className="reu-grade">
           <div className="reu-col">

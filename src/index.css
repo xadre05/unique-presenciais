@@ -2785,7 +2785,9 @@ a.sala-agente:hover { border-color: var(--ouro); transform: translateY(-2px); }
 .ig-reconectar > span { flex: 1 1 260px; }
 /* ===== Planejar com o agente (passos 1 e 2 + coluna da direita) ===== */
 .pl-titulo h2 { font-size: 2rem; }
-.pl-titulo { border-bottom: 1px solid var(--ouro); padding-bottom: 10px; margin-bottom: 14px; }
+.pl-titulo { display: block; border-bottom: 1px solid var(--ouro); padding-bottom: 10px; margin-bottom: 14px; }
+.pl-titulo h2 { margin: 0 0 4px; }
+.pl-titulo p { margin: 0; text-align: left; }
 .rp-voltar { display: inline-flex; align-items: center; gap: 6px; margin-bottom: 6px; }
 .pl-grade { display: grid; grid-template-columns: minmax(0, 1fr) 400px; gap: 16px; align-items: start; }
 .pl-principal { display: flex; flex-direction: column; gap: 10px; }

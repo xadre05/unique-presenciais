@@ -8,11 +8,10 @@ import { hojeISO, segundaDe } from '../../comum'
 import { situacaoCampanha } from '../../campanhas/dados'
 import { REDES, useRedes, type Rede } from '../redes'
 import { LogoRede } from '../LogoRede'
-import { EMPRESA, type Campanha } from '../useMarketing'
+import type { Campanha } from '../useMarketing'
 import { periodoDe, tituloDe, type Escopo, type Reuniao, type TipoEscopo } from './dados'
 import { DecidirDireto } from './DecidirDireto'
 import { NestePlanejamento, Retomar } from './LadoPlanejar'
-import { ReaproveitarPost } from '../../instagram/ReaproveitarPost'
 
 const OPCOES: { tipo: TipoEscopo; nome: string; sub: string; icone: string }[] = [
   { tipo: 'dia', nome: 'Algo para hoje', sub: 'Conteúdo pontual', icone: 'relogio' },
@@ -27,7 +26,9 @@ const NOME_ESCOPO: Record<TipoEscopo, string> = { dia: 'Dia', dias: 'Dias', sema
 type Props = {
   tipoInicial: TipoEscopo; dataInicial: string; campanhas: Campanha[]; recentes: Reuniao[]
   aoComecar: (escopo: Escopo, titulo: string) => Promise<void>; aoContinuar: (id: string) => void; aoGuardou: () => void; aoEscreveu: (ids: string[]) => void; aoCriarCampanha: () => void
+  aoReaproveitar: (contexto: ContextoPlanejar) => void
 }
+export type ContextoPlanejar = { campanha?: Campanha; inicio: string; fim: string; canais: string[] }
 
 function Canais({ ativas, canais, agente, aoMudar, aoAgente }: { ativas: Rede[]; canais: string[]; agente: boolean; aoMudar: (c: string[]) => void; aoAgente: (v: boolean) => void }) {
   const faltam = ativas.filter((r) => !canais.includes(r))
@@ -56,7 +57,7 @@ export function EscolhaEscopo(pr: Props) {
   const [agenteDefine, setAgenteDefine] = useState(false)
   const [comecando, setComecando] = useState(false)
   const [erro, setErro] = useState<string | null>(null)
-  const [caminho, setCaminho] = useState<'escolher' | 'direto' | 'post'>('escolher')
+  const [caminho, setCaminho] = useState<'escolher' | 'direto'>('escolher')
   const camp = pr.campanhas.find((c) => c.id === campanha)
   const ativa = camp ? situacaoCampanha(camp) === 'ativa' : false
 
@@ -82,7 +83,6 @@ export function EscolhaEscopo(pr: Props) {
     try { await pr.aoComecar(e, tituloDe(e, camp)) } catch (x) { setErro(x instanceof Error ? x.message : 'Não foi possível começar.'); setComecando(false) }
   }
 
-  if (caminho === 'post') return <ReaproveitarPost empresa={EMPRESA} contexto={{ campanha: camp, inicio: periodo.inicio, fim: periodo.fim, canais: agenteDefine ? [] : canais }} redesAtivas={ativas} aoVoltar={() => setCaminho('escolher')} aoCriadas={pr.aoEscreveu} />
   const textoPeriodo = `${NOME_ESCOPO[tipo]} ${dm(periodo.inicio)}${periodo.fim !== periodo.inicio ? ` a ${dm(periodo.fim)}` : ''}`
   return (
     <div className="pl-grade">
@@ -136,7 +136,7 @@ export function EscolhaEscopo(pr: Props) {
                 <b><Icone nome="trocar" tam={22} /> Reaproveitar um post com resultado</b>
                 <p className="muted">Escolha entre os posts da sua conta do Instagram e defina o que manter ou mudar.</p>
                 <span className="pl-fonte"><LogoRede rede="instagram" tam={14} /> Posts e métricas da conta conectada</span>
-                <button type="button" className="btn btn-contorno" onClick={() => setCaminho('post')}>Escolher um post <Icone nome="seta_dir" tam={15} /></button>
+                <button type="button" className="btn btn-contorno" onClick={() => pr.aoReaproveitar({ campanha: camp, inicio: periodo.inicio, fim: periodo.fim, canais: agenteDefine ? [] : canais })}>Escolher um post <Icone nome="seta_dir" tam={15} /></button>
               </div>
             </div>
             <p className="muted pequeno pl-rodape"><Icone nome="info" tam={14} /> Você revisa o briefing e a proposta antes de criar as peças.</p>
