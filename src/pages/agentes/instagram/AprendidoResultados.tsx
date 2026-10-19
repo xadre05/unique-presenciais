@@ -7,7 +7,7 @@ import { esquecer, type Lembranca } from '../memoria'
 type Props = { empresa: string; memoria: Lembranca[]; aoMudar: () => void }
 
 export function AprendidoResultados({ empresa, memoria, aoMudar }: Props) {
-  const [aberto, setAberto] = useState(false)
+  const [aberto, setAberto] = useState(true)
   const [ocupado, setOcupado] = useState<string | null>(null)
   const daqui = memoria.filter((m) => m.origem === 'resultado').reverse()
   const tirar = async (texto: string) => { setOcupado(texto); await esquecer(empresa, 'marketing', texto); setOcupado(null); aoMudar() }

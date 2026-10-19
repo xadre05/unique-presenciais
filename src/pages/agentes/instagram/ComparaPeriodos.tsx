@@ -1,8 +1,10 @@
 // Comparar o mesmo recorte em anos diferentes (ex.: janeiro e fevereiro de 2024, 2025 e 2026), lado a lado
-// (TabelaPeriodos). Os períodos escolhidos sobem para "Pedir análise", onde o agente explica o que fez a diferença.
-import { useEffect, useState } from 'react'
+// (TabelaPeriodos). O botão pede ao agente que explique o que fez a diferença; a análise aparece logo abaixo.
+import { useState } from 'react'
 import { Icone } from '../../../components/Icone'
-import { NOME_TIPO, type DiaSeguidores, type PostIG } from './dados'
+import { NOME_TIPO, type DiaSeguidores, type FiltroAnalise, type PostIG } from './dados'
+import type { AnaliseGuardada } from './analises'
+import { VerAnalise } from './VerAnalise'
 import { TabelaPeriodos, type Periodo } from './TabelaPeriodos'
 
 type Recorte = 'mes' | 'bimestre' | 'trimestre' | 'semestre' | 'ano' | 'livre'
@@ -30,18 +32,19 @@ function periodosDe(r: Recorte, inicio: number, anos: string[], livre: { de: str
   }).filter((p) => p.de <= p.ate)
 }
 
-type Props = { posts: PostIG[]; seguidores: DiaSeguidores[]; anos: string[]; tipo: string; aoMudar: (periodos: Periodo[], rotulo: string) => void }
+type Props = {
+  empresa: string; posts: PostIG[]; seguidores: DiaSeguidores[]; anos: string[]; tipo: string
+  analises: AnaliseGuardada[]; analisando: boolean; aoAnalisar: (f: FiltroAnalise) => void; aoMudar: () => void
+}
+const mesmos = (a: AnaliseGuardada, ps: Periodo[], tipo: string) => a.tipo === 'periodos' && JSON.stringify((a.filtro.periodos ?? []).map((p) => [p.de, p.ate])) === JSON.stringify(ps.map((p) => [p.de, p.ate])) && (a.filtro.tipo ?? '') === tipo
 
-export function ComparaPeriodos({ posts, seguidores, anos, tipo, aoMudar }: Props) {
+export function ComparaPeriodos({ empresa, posts, seguidores, anos, tipo, analises, analisando, aoAnalisar, aoMudar }: Props) {
   const [recorte, setRecorte] = useState<Recorte>('bimestre')
   const [inicio, setInicio] = useState(1)
   const [escolhidos, setEscolhidos] = useState<string[]>(anos)
   const [livre, setLivre] = useState({ de: `${anos[0] ?? '2026'}-01-01`, ate: `${anos[0] ?? '2026'}-02-28` })
   const periodos = periodosDe(recorte, inicio, [...escolhidos].sort(), livre)
-  const rotulo = recorte === 'livre' ? `${livre.de.slice(8, 10)}/${livre.de.slice(5, 7)} a ${livre.ate.slice(8, 10)}/${livre.ate.slice(5, 7)}` : recorte === 'ano' ? 'ano inteiro' : opcoes(recorte).find((o) => o.inicio === inicio)?.nome ?? ''
-  const chave = JSON.stringify(periodos)
-  // os períodos escolhidos aqui viram uma das opções de "Pedir análise"
-  useEffect(() => { aoMudar(periodos, rotulo) }, [chave, rotulo]) // eslint-disable-line react-hooks/exhaustive-deps
+  const analise = analises.find((a) => mesmos(a, periodos, tipo))
   const marcar = (a: string) => setEscolhidos((l) => (l.includes(a) ? l.filter((x) => x !== a) : [...l, a]))
   return (
     <section className="mk-painel ig-compara">
@@ -58,7 +61,10 @@ export function ComparaPeriodos({ posts, seguidores, anos, tipo, aoMudar }: Prop
       {periodos.length ? <TabelaPeriodos posts={posts} periodos={periodos} seguidores={seguidores} />
         : <p className="muted pequeno">Escolha pelo menos um ano.</p>}
       <p className="muted pequeno">"Seguidores ganhos nos posts" soma o que o Instagram informa por post (nem todo post informa). "Crescimento de seguidores" usa o registro dia a dia, que começou em outubro de 2026: períodos anteriores aparecem como "sem registro".</p>
-      <p className="muted pequeno">Para o agente explicar o que fez a diferença, escolha "A comparação de períodos" em Pedir análise, mais abaixo.</p>
+      <div className="pe-pedir"><span className="muted pequeno">O agente explica o que fez a diferença entre os períodos, com os números. Cerca de 10 créditos.</span>
+        <button type="button" className="btn btn-ouro" disabled={analisando || periodos.length < 2} onClick={() => aoAnalisar({ periodos, ...(tipo ? { tipo } : {}) })}><Icone nome="floco" tam={16} /> {analisando ? 'Analisando… (até 1 minuto)' : 'Pedir ao agente: o que fez a diferença?'}</button></div>
+      {periodos.length < 2 && <p className="muted pequeno">Escolha dois anos ou mais.</p>}
+      {analise && <VerAnalise empresa={empresa} analise={analise} aoMudar={aoMudar} />}
     </section>
   )
 }

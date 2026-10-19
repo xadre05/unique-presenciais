@@ -90,21 +90,20 @@ export function EscolhaEscopo(pr: Props) {
         {!direto && !deUmPost && <>
           <div className="reu-caminhos">
             <div className="reu-caminho">
-              <b><Icone nome="lista" tam={18} /> Já sei o que quero postar</b>
-              <span className="muted pequeno">Você diz cada peça (canal, formato, dia e sobre o quê) e o agente escreve. Sem conversa.</span>
-              <button type="button" className="btn btn-ouro" onClick={() => setDireto(true)}>Dizer o que postar</button>
+              <b><Icone nome="lista" tam={18} /> Já sei o que postar</b>
+              <span className="muted pequeno">Você diz cada peça e o agente escreve.</span>
+              <button type="button" className="btn btn-contorno-ouro" onClick={() => setDireto(true)}>Dizer o que postar</button>
             </div>
             <div className="reu-caminho">
-              <b><Icone nome="trocar" tam={18} /> Partir de um post que deu resultado</b>
-              <span className="muted pequeno">Escolha um post que funcionou e diga o que mudar. O agente mantém o gancho, a estrutura e o formato e escreve a nova versão.</span>
+              <b><Icone nome="trocar" tam={18} /> Partir de um post que funcionou</b>
+              <span className="muted pequeno">Escolha o post e diga o que mudar.</span>
               <button type="button" className="btn btn-contorno-ouro" onClick={() => setDeUmPost(true)}>Escolher o post</button>
             </div>
             <div className="reu-caminho">
-              <b><Icone nome="mensagem" tam={18} /> Conversar com o agente antes</b>
-              <span className="muted pequeno">Ele chega com o que levantou (o que saiu, o que funcionou, campanhas e datas) e vocês decidem juntos. Cada mensagem custa alguns centavos.</span>
-              <label className="mk-rotulo">Já tem um assunto em mente? <small className="muted">(opcional; a conversa começa por ele)</small></label>
-              <textarea rows={2} maxLength={600} value={texto} onChange={(e) => setTexto(e.target.value)} placeholder="Ex.: saiu uma notícia sobre a regulamentação da HOF e quero falar disso hoje" />
-              <button type="button" className="btn btn-contorno-ouro" disabled={comecando} onClick={comecar}>{comecando ? 'Abrindo a conversa…' : 'Começar a conversa'}</button>
+              <b><Icone nome="mensagem" tam={18} /> Conversar com o agente</b>
+              <span className="muted pequeno">Ele traz o que funcionou e vocês decidem juntos.</span>
+              <textarea rows={2} maxLength={600} value={texto} onChange={(e) => setTexto(e.target.value)} placeholder="Assunto em mente? (opcional)" aria-label="Assunto em mente (opcional)" />
+              <button type="button" className="btn btn-contorno-ouro" disabled={comecando} onClick={comecar}>{comecando ? 'Abrindo…' : 'Começar a conversa'}</button>
             </div>
           </div>
           <Erro msg={erro} />

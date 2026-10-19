@@ -1,10 +1,9 @@
-// Lista dos posts do Instagram no filtro: miniatura, data, formato, quem fez (agente ou fora, clicável para corrigir),
+// Lista dos posts do Instagram (já filtrados e ordenados por quem chama): miniatura, data, formato, quem fez (agente ou fora, clicável para corrigir),
 // métricas comparadas com a mediana, link para abrir e "Recriar" (nova versão de um post que deu resultado).
 import { useState } from 'react'
 import { Icone } from '../../../components/Icone'
 import { NOME_TIPO, marcarOrigem, milhar, n, origemDe, type PostIG } from './dados'
 
-type Ordem = 'recentes' | 'alcance' | 'salvos'
 type Props = { posts: PostIG[]; med: number; aoMudar: () => void; aoRecriar: (p: PostIG) => void }
 
 function EtiquetaOrigem({ post, aoMudar }: { post: PostIG; aoMudar: () => void }) {
@@ -20,13 +19,10 @@ function EtiquetaOrigem({ post, aoMudar }: { post: PostIG; aoMudar: () => void }
 }
 
 export function ListaPosts({ posts, med, aoMudar, aoRecriar }: Props) {
-  const [ordem, setOrdem] = useState<Ordem>('recentes')
-  const lista = [...posts].sort((a, b) => (ordem === 'alcance' ? n(b, 'alcance') - n(a, 'alcance') : ordem === 'salvos' ? n(b, 'salvos') - n(a, 'salvos') : b.publicado_em.localeCompare(a.publicado_em)))
+  const lista = posts
   const comparar = (v: number) => (med && v ? Math.round(((v - med) / med) * 100) : null)
   return (
     <>
-      <div className="ia-linha"><span className="muted pequeno">Ordenar por</span>
-        {(['recentes', 'alcance', 'salvos'] as Ordem[]).map((o) => <button key={o} type="button" className={`mk-chip${ordem === o ? ' ativo' : ''}`} onClick={() => setOrdem(o)}>{o === 'recentes' ? 'Mais recentes' : o === 'alcance' ? 'Maior alcance' : 'Mais salvos'}</button>)}</div>
       <div className="ig-lista">
         <table className="tabela ig-tabela">
           <thead><tr><th>Post</th><th>Quem fez</th><th>Alcance</th><th>Curtidas</th><th>Coment.</th><th>Salvos</th><th>Compart.</th><th /></tr></thead>

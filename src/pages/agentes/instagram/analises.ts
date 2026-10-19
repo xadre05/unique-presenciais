@@ -12,6 +12,7 @@ export type AnaliseGuardada = {
   decisoes: Record<string, Decisao>; criado_em: string
 }
 
+export const quando = (iso: string) => new Date(iso).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
 export const NOME_TIPO_ANALISE: Record<TipoAnalise, string> = { filtro: 'Análise', periodos: 'Comparação', marco: 'Marco', semanal: 'Revisão semanal' }
 
 export function useAnalises(empresa: string) {
