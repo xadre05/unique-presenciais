@@ -11,7 +11,7 @@ import { DecidirDireto } from './DecidirDireto'
 const OPCOES: { tipo: TipoEscopo; nome: string; sub: string; icone: string }[] = [
   { tipo: 'dia', nome: 'Algo para hoje', sub: 'Uma novidade, um assunto do mercado, um stories de última hora. Conversa curta, de 1 a 3 peças.', icone: 'relogio' },
   { tipo: 'dias', nome: 'Os próximos dias', sub: 'Dois ou três dias, ou um intervalo que você escolhe.', icone: 'agenda' },
-  { tipo: 'semana', nome: 'A semana', sub: 'Reunião completa: o que saiu, o que funcionou e o que vem pela frente.', icone: 'grafico' },
+  { tipo: 'semana', nome: 'A semana', sub: 'Segunda a domingo, olhando o que saiu, o que funcionou e o que vem pela frente.', icone: 'grafico' },
   { tipo: 'mes', nome: 'O mês', sub: 'A linha do mês inteiro, com as datas importantes.', icone: 'lista' },
   { tipo: 'campanha', nome: 'Uma campanha', sub: 'O conteúdo de uma campanha do começo ao fim.', icone: 'floco' },
 ]

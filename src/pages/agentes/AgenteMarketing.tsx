@@ -1,5 +1,5 @@
 // Agente de Marketing: Conteúdos (período livre, quadro e calendário), Produção (lista de peças e editor por peça),
-// Resultados (posts do Instagram e análise) e Configurar agente. Uma entrada só para criar: "Planejar com o agente" abre a Reunião de pauta (algo para hoje,
+// Resultados (posts do Instagram e análise) e Configurar agente. Uma entrada só para criar: "Planejar conteúdo" abre o Planejar (direto ou conversando com o agente) (algo para hoje,
 // próximos dias, semana, mês ou campanha), em página própria com o caminho no topo.
 // Regras em docs/agentes/REGRAS_AGENTE_MARKETING.md.
 import { Voltar } from '../../components/Voltar'
@@ -97,7 +97,7 @@ export default function AgenteMarketing() {
           {perfil.dados && !perfil.dados.ativo && <p className="erro-txt pequeno">Este agente está desligado. Ligue em Configurar agente.</p>}
         </div>
         <div className="mk-topo-botoes">
-          <button className="btn btn-ouro btn-grande" onClick={planejarAgora}><Icone nome="mensagem" /> Planejar com o agente</button>
+          <button className="btn btn-ouro btn-grande" onClick={planejarAgora}><Icone nome="agenda" /> Planejar conteúdo</button>
         </div>
       </header>
       </>}
