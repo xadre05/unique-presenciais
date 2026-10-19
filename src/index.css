@@ -2631,3 +2631,8 @@ a.sala-agente:hover { border-color: var(--ouro); transform: translateY(-2px); }
 .cred-medias { list-style: none; margin: 6px 0 0; padding: 0; display: flex; flex-direction: column; }
 .cred-medias li { display: flex; justify-content: space-between; gap: 12px; padding: 6px 0; border-top: 1px solid var(--borda); font-size: .88rem; }
 .cred-medias li:first-child { border-top: 0; }
+/* Resultados → Comparar períodos */
+.ig-compara { display: flex; flex-direction: column; gap: 10px; }
+.ig-compara-filtros { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.ig-compara-filtros input[type="date"] { width: auto; }
+.ig-compara th small { font-weight: 400; }

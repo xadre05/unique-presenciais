@@ -9,6 +9,7 @@ import { CabecalhoAba } from '../marketing/BarraFiltros'
 import { NOME_TIPO, acaoInstagram, mediana, milhar, n, useConexao, usePostsInstagram, type FiltroAnalise, type PostIG } from './dados'
 import { AnaliseInstagram } from './AnaliseInstagram'
 import { ComparaAnos, PorFormato } from './Tabelas'
+import { ComparaPeriodos } from './ComparaPeriodos'
 
 type Ordem = 'recentes' | 'alcance' | 'salvos'
 
@@ -55,10 +56,11 @@ export function ResultadosInstagram({ empresa }: { empresa: string }) {
   const med = useMemo(() => mediana(lista.map((p) => n(p, 'alcance'))), [lista])
   const maisAntigo = todos.at(-1)?.publicado_em.slice(0, 10) ?? ''
   const c = conexao.dados
-  const agir = async (acao: 'analisar' | 'sincronizar' | 'historico') => {
+  const agir = async (acao: 'analisar' | 'sincronizar' | 'historico', filtro?: FiltroAnalise) => {
     setErro(null); setAviso(null); setFazendo(acao)
     try {
-      await acaoInstagram(empresa, acao, acao === 'analisar' ? filtroDe(ano, tipo) : undefined)
+      await acaoInstagram(empresa, acao, acao === 'analisar' ? filtro ?? filtroDe(ano, tipo) : undefined)
+      if (acao === 'analisar') document.querySelector('.ig-analise')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
       if (acao === 'historico') setAviso('Buscando os posts desde 2024 com as métricas. Leva alguns minutos: volte e recarregue a página.')
       conexao.recarregar(); posts.recarregar()
     } catch (e) { setErro((e as Error).message) }
@@ -94,6 +96,7 @@ export function ResultadosInstagram({ empresa }: { empresa: string }) {
         </div>
         {!ano && anos.length > 1 && <><h4 className="reu-subtitulo">Comparação entre os anos{tipo ? ` · ${NOME_TIPO[tipo] ?? tipo}` : ''}</h4><ComparaAnos posts={lista} /></>}
         {lista.length > 0 && <><h4 className="reu-subtitulo">Por formato{ano ? ` · ${ano}` : ''}</h4><PorFormato posts={lista} /></>}
+        {anos.length > 1 && <ComparaPeriodos key={anos.join()} posts={todos.filter((p) => !tipo || p.tipo === tipo)} anos={anos} tipo={tipo} analisando={fazendo === 'analisar'} aoAnalisar={(f) => agir('analisar', f)} />}
         <AnaliseInstagram empresa={empresa} analise={c.analise} analisando={fazendo === 'analisar'} aoAnalisar={() => agir('analisar')} podeAnalisar={lista.length >= 5}
           rotuloFiltro={`${ano || 'todos os anos'}${tipo ? ` · ${NOME_TIPO[tipo] ?? tipo}` : ''}`} />
         <Erro msg={erro} />

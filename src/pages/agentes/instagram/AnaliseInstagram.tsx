@@ -17,7 +17,7 @@ function Padroes({ titulo, itens, classe }: { titulo: string; itens: Analise['fu
   )
 }
 
-const periodo = (a: Analise) => (a.filtro?.de ? a.filtro.de.slice(0, 4) : 'todos os anos') + (a.filtro?.tipo ? ` · ${a.filtro.tipo}` : '')
+const periodo = (a: Analise) => (a.filtro?.periodos?.length ? `comparação ${a.filtro.periodos.map((p) => `${p.de.slice(8, 10)}/${p.de.slice(5, 7)}–${p.ate.slice(8, 10)}/${p.ate.slice(5, 7)}/${p.nome}`).join(' x ')}` : a.filtro?.de ? a.filtro.de.slice(0, 4) : 'todos os anos') + (a.filtro?.tipo ? ` · ${a.filtro.tipo}` : '')
 
 export function AnaliseInstagram({ empresa, analise, analisando, podeAnalisar, aoAnalisar, rotuloFiltro }: Props) {
   const [guardados, setGuardados] = useState<string[]>([])
@@ -31,7 +31,7 @@ export function AnaliseInstagram({ empresa, analise, analisando, podeAnalisar, a
       {!podeAnalisar && <p className="muted pequeno">A análise precisa de pelo menos 5 posts no filtro.</p>}
       {analise && (<>
         <p>{analise.resumo}</p>
-        {!!analise.comparacao?.length && <><h5 className="reu-subtitulo">Comparação entre os anos</h5><ul className="ig-recom">{analise.comparacao.map((x, i) => <li key={i}>{x}</li>)}</ul></>}
+        {!!analise.comparacao?.length && <><h5 className="reu-subtitulo">O que mudou entre os períodos</h5><ul className="ig-recom">{analise.comparacao.map((x, i) => <li key={i}>{x}</li>)}</ul></>}
         <div className="ig-padroes-grade">
           <Padroes titulo="Funcionou" itens={analise.funcionou} classe="bom" />
           <Padroes titulo="Não funcionou" itens={analise.nao_funcionou} classe="ruim" />

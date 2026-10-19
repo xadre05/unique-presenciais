@@ -122,7 +122,10 @@ async function sincronizar(db: SupabaseClient, empresa: string, desde = Date.now
   const { data: c } = await db.from('marca_conexoes').select('*').eq('empresa_id', empresa).eq('rede', 'instagram').maybeSingle()
   if (!c || c.status !== 'conectado') throw new Error('O Instagram não está conectado.')
   const token = await renovarSePreciso(db, empresa, c as Conexao, await segredo(db, empresa, 'instagram_token'))
-  await atualizar(db, empresa, dadosDoPerfil(await perfilDa(token)))
+  const perfil = dadosDoPerfil(await perfilDa(token))
+  await atualizar(db, empresa, perfil)
+  // foto do dia dos seguidores (o Instagram não guarda o histórico; com o tempo, dá para comparar o crescimento)
+  if (perfil.seguidores != null) await db.from('marca_seguidores').upsert({ empresa_id: empresa, rede: 'instagram', dia: new Date(Date.now() - 3 * 3600000).toISOString().slice(0, 10), seguidores: perfil.seguidores })
   const limite = desde
   const medias: Media[] = []
   let pagina: string | null = `${GRAPH}/me/media?fields=id,caption,media_type,media_product_type,permalink,timestamp,thumbnail_url,media_url,like_count,comments_count&limit=50&access_token=${token}`

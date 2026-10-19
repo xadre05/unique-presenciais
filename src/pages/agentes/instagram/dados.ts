@@ -9,7 +9,7 @@ export type Analise = {
   nao_funcionou: { padrao: string; porque: string; exemplos?: string[] }[]
   recomendacoes: string[]; aprendizados: string[]; comparacao?: string[]; filtro?: FiltroAnalise
 }
-export type FiltroAnalise = { de?: string; ate?: string; tipo?: string }
+export type FiltroAnalise = { de?: string; ate?: string; tipo?: string; periodos?: { nome: string; de: string; ate: string }[] }
 export type Conexao = {
   app_id: string | null; status: 'sem_app' | 'pronta' | 'conectado' | 'erro' | 'desligado'
   usuario: string | null; nome: string | null; foto: string | null; seguidores: number | null; publicacoes: number | null
