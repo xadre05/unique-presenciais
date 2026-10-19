@@ -2424,3 +2424,4 @@ a.sala-agente:hover { border-color: var(--ouro); transform: translateY(-2px); }
 .ig-padroes ul, .ig-recom, .ig-aprendizados { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 8px; }
 .ig-padroes li { display: flex; flex-direction: column; gap: 2px; }
 .ig-aprendizados li { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.reu-periodo-txt { align-self: center; }
