@@ -60,9 +60,15 @@ export const n = (p: PostIG, k: keyof PostIG['metricas']) => Number(p.metricas[k
 // seguidores: foto do total tirada na leitura (vazio nos dias antes de começar); novos: o que o Instagram informa no dia
 export type DiaSeguidores = { dia: string; seguidores: number | null; novos: number | null }
 
+// o Instagram leva uns 2 dias para fechar os novos de um dia (até lá devolve 0); a leitura seguinte corrige.
+// Por isso, 0 nos 2 últimos dias conta como "ainda sem número".
 export function useSeguidores(empresa: string) {
-  return useConsulta<DiaSeguidores[]>(() => supabase.from('marca_seguidores').select('dia,seguidores,novos')
-    .eq('empresa_id', empresa).eq('rede', 'instagram').order('dia', { ascending: true }).limit(3000), [empresa])
+  return useConsulta<DiaSeguidores[]>(async () => {
+    const r = await supabase.from('marca_seguidores').select('dia,seguidores,novos')
+      .eq('empresa_id', empresa).eq('rede', 'instagram').order('dia', { ascending: true }).limit(3000)
+    const recente = somaDias(hojeBR(), -2)
+    return { ...r, data: (r.data ?? []).map((x) => (x.novos === 0 && x.dia >= recente ? { ...x, novos: null } : x)) }
+  }, [empresa])
 }
 
 // crescimento entre duas datas: a última foto do total antes do início (ou a primeira dentro) contra a última dentro;

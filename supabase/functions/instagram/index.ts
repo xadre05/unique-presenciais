@@ -124,8 +124,10 @@ async function novosPorDia(db: SupabaseClient, empresa: string, token: string) {
   const ate = Math.floor(Date.now() / 1000), desde = ate - 29 * 86400
   const r = await fetch(`${GRAPH}/me/insights?metric=follower_count&period=day&since=${desde}&until=${ate}&access_token=${token}`)
   if (!r.ok) throw new Error(`Instagram ${r.status}: ${(await r.text()).slice(0, 200)}`)
-  const d = await r.json() as { data?: { name: string; values?: { value: number; end_time: string }[] }[] }
+  const texto = await r.text()
+  const d = JSON.parse(texto) as { data?: { name: string; values?: { value: number; end_time: string }[] }[] }
   const valores = d.data?.find((x) => x.name === 'follower_count')?.values ?? []
+  if (!valores.length) console.error('novos seguidores: resposta sem dias', texto.slice(0, 400))
   // end_time é o fim do dia (meia-noite do Pacífico): o valor é do dia anterior
   const linhas = valores.filter((v) => typeof v.value === 'number' && v.end_time).map((v) => ({
     empresa_id: empresa, rede: 'instagram', novos: v.value,
