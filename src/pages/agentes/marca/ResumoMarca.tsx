@@ -10,10 +10,10 @@ import { primeiraFrase, type Textos } from './dados'
 type Campanha = { nome: string; inicio?: string; fim?: string; encerrada?: boolean }
 type Props = { textos: Textos; perfil: Record<string, unknown>; pessoas: PessoaMarca[] }
 
-function Logo({ caminho, legenda }: { caminho: string; legenda: string }) {
+function Logo({ caminho, legenda, claro }: { caminho: string; legenda: string; claro?: boolean }) {
   const [url, setUrl] = useState<string | null>(null)
   useEffect(() => { let vivo = true; linkDe(caminho).then((u) => vivo && setUrl(u)); return () => { vivo = false } }, [caminho])
-  return <figure className="bm-logo">{url ? <img src={url} alt={legenda} /> : <span className="muted pequeno">Carregando…</span>}<figcaption>{legenda}</figcaption></figure>
+  return <figure className={`bm-logo${claro ? ' claro' : ''}`}>{url ? <img src={url} alt={legenda} /> : <span className="muted pequeno">Carregando…</span>}<figcaption>{legenda}</figcaption></figure>
 }
 
 function campanhaAtiva(perfil: Record<string, unknown>) {
@@ -41,7 +41,7 @@ export function ResumoMarca({ textos, perfil, pessoas }: Props) {
       </section>
       <section className="bm-cartao">
         <h3><Icone nome="imagem" tam={20} /> Logos</h3>
-        {logos.length ? logos.map((l) => <Logo key={l.caminho} caminho={l.caminho} legenda={l.uso ? NOME_USO[l.uso] : 'Qualquer fundo'} />)
+        {logos.length ? logos.map((l) => <Logo key={l.caminho} caminho={l.caminho} claro={l.uso === 'claro'} legenda={l.uso ? NOME_USO[l.uso] : 'Qualquer fundo'} />)
           : <p className="muted pequeno">Nenhum logo enviado. Sem logo, as artes saem sem logotipo.</p>}
       </section>
     </aside>

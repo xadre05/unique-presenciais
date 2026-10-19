@@ -2522,3 +2522,4 @@ a.sala-agente:hover { border-color: var(--ouro); transform: translateY(-2px); }
 .bm-ponto { display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: var(--ouro); margin-right: 4px; }
 @media (max-width: 1100px) { .bm-grade { grid-template-columns: 1fr; } .bm-lado { position: static; } }
 @media (max-width: 700px) { .bm-duas { grid-template-columns: 1fr; } .bm-secao-resumo { display: none; } }
+.bm-logo.claro img { background: #f4efe6; }
