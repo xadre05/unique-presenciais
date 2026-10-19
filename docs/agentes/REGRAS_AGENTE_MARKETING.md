@@ -280,3 +280,9 @@ Capa, thumbnail e legenda são materiais dentro da peça, não peças separadas.
 - **Testar voz da marca**: o agente escreve um post e uma mensagem de WhatsApp com a base como está na tela (sem
   salvar) e diz o que seguiu e o que faltou. Custo registrado como trabalho "teste_voz".
 - **Histórico**: cada "Salvar alterações" grava quem, quando e quais partes mudaram (perfil.historico_base, 30 últimas).
+
+## Produto x campanha (decisão do Alexandre, 19/10/2026)
+- **Produto** é o que se vende: preço, o que entrega, para quem, link e **até quando está à venda** ("À venda a partir de" / "À venda até", ou "Fora de venda agora"). É a única fonte de preço.
+- **Campanha** é comunicação com período (mensagem, tom, regras de divulgação). Pode vender 0, 1 ou vários produtos: Black Friday → produto da Black; campanha de seguidores → nenhum produto.
+- No servidor, o agente só recebe os produtos à venda **hoje** (horário de Brasília); depois do "À venda até" o produto some da lista sozinho. Produto ligado a campanha ativa vem marcado "produto da campanha: …".
+- Preço fica só no produto. O texto da campanha não repete preço, para não haver dois números diferentes.
