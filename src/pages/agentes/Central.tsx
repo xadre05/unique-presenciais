@@ -65,7 +65,7 @@ export default function Central() {
       </>}
 
       {aba === 'integracoes' && <>
-        <section className="bloco"><h2>Instagram</h2><p className="muted pequeno">Só leitura: o sistema lê os posts e as métricas da conta profissional. Nada é publicado por aqui.</p>
+        <section className="bloco"><h2>Instagram</h2><p className="muted pequeno">O sistema lê os posts e as métricas da conta profissional e publica só o que a equipe agendar numa peça aprovada.</p>
           <ConexaoInstagram empresa={EMPRESA} /></section>
         <section className="bloco"><h2>WhatsApp</h2><p className="muted pequeno">Em seguida: os números das vendedoras no Atendimento e, depois, o envio de campanhas para os grupos.</p></section>
       </>}
