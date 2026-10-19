@@ -2998,7 +2998,8 @@ a.sala-agente:hover { border-color: var(--ouro); transform: translateY(-2px); }
 .au-coment { max-width: 280px; overflow-wrap: anywhere; }
 .au-form { display: grid; grid-template-columns: minmax(0, 1fr) 280px; gap: 18px; }
 .au-campos { display: flex; flex-direction: column; gap: 6px; }
-.au-campos input, .au-campos textarea { width: 100%; }
+.au-campos input:not([type="checkbox"]), .au-campos textarea { width: 100%; }
+.au-campos .pp-check { display: flex; align-items: center; gap: 8px; font-weight: 400; }
 .au-rotulo { display: flex; flex-direction: column; gap: 4px; font-weight: 600; margin-top: 8px; }
 .au-alvos { display: flex; flex-wrap: wrap; gap: 8px; }
 .au-alvo { padding: 8px 12px; border: 1px solid var(--borda); border-radius: 10px; background: var(--painel-2); color: var(--texto); font: inherit; font-size: .88rem; cursor: pointer; }
