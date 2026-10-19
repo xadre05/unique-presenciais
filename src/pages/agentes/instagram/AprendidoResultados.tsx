@@ -15,7 +15,7 @@ export function AprendidoResultados({ empresa, memoria, aoMudar }: Props) {
     <section className="mk-painel ap-aprendido">
       <header className="mk-painel-cab"><span className="mk-convite-icone"><Icone nome="livro" tam={22} /></span>
         <div><h3>O que o agente aprendeu com os resultados</h3>
-          <span className="muted pequeno">{daqui.length ? `${daqui.length} ${daqui.length === 1 ? 'regra vale' : 'regras valem'} em toda peça nova.` : 'Nada ainda. Ensine os aprendizados das análises acima.'}</span></div>
+          <span className="muted pequeno">{daqui.length ? `${daqui.length} ${daqui.length === 1 ? 'regra vale' : 'regras valem'} em toda peça nova.` : 'Nada ainda. Ensine os aprendizados das análises abaixo.'}</span></div>
         {daqui.length > 0 && <button type="button" className="btn btn-mini" onClick={() => setAberto((a) => !a)}>{aberto ? 'Esconder' : 'Ver as regras'}</button>}
       </header>
       {aberto && <ul className="ap-memoria">{daqui.map((m) => (

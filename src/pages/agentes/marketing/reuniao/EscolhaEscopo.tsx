@@ -90,19 +90,16 @@ export function EscolhaEscopo(pr: Props) {
         {!direto && !deUmPost && <>
           <div className="reu-caminhos">
             <div className="reu-caminho">
-              <b><Icone nome="lista" tam={18} /> Já sei o que postar</b>
-              <span className="muted pequeno">Você diz cada peça e o agente escreve.</span>
+              <div><b><Icone nome="lista" tam={18} /> Já sei o que postar</b><span className="muted pequeno">Você diz cada peça e o agente escreve.</span></div>
               <button type="button" className="btn btn-contorno-ouro" onClick={() => setDireto(true)}>Dizer o que postar</button>
             </div>
             <div className="reu-caminho">
-              <b><Icone nome="trocar" tam={18} /> Partir de um post que funcionou</b>
-              <span className="muted pequeno">Escolha o post e diga o que mudar.</span>
+              <div><b><Icone nome="trocar" tam={18} /> Partir de um post que funcionou</b><span className="muted pequeno">Escolha o post e diga o que mudar.</span></div>
               <button type="button" className="btn btn-contorno-ouro" onClick={() => setDeUmPost(true)}>Escolher o post</button>
             </div>
             <div className="reu-caminho">
-              <b><Icone nome="mensagem" tam={18} /> Conversar com o agente</b>
-              <span className="muted pequeno">Ele traz o que funcionou e vocês decidem juntos.</span>
-              <textarea rows={2} maxLength={600} value={texto} onChange={(e) => setTexto(e.target.value)} placeholder="Assunto em mente? (opcional)" aria-label="Assunto em mente (opcional)" />
+              <div><b><Icone nome="mensagem" tam={18} /> Conversar com o agente</b><span className="muted pequeno">Ele traz o que funcionou e vocês decidem juntos.</span>
+                <textarea rows={2} maxLength={600} value={texto} onChange={(e) => setTexto(e.target.value)} placeholder="Assunto em mente? (opcional)" aria-label="Assunto em mente (opcional)" /></div>
               <button type="button" className="btn btn-contorno-ouro" disabled={comecando} onClick={comecar}>{comecando ? 'Abrindo…' : 'Começar a conversa'}</button>
             </div>
           </div>
