@@ -17,7 +17,7 @@ async function idsDoLote(lote: string, quantas: number) {
     if ((data?.length ?? 0) >= quantas) return data!.map((p) => p.id as string)
     await new Promise((ok) => setTimeout(ok, 1000))
   }
-  throw new Error('As peças demoraram para aparecer. Elas estão em Ideias; peça os textos por lá.')
+  throw new Error('As peças demoraram para aparecer. Elas já estão no calendário da aba Conteúdos; peça os textos por lá.')
 }
 
 export function DecidirDireto({ inicio, fim, campanha, aoEscreveu, aoGuardou, aoVoltar }: Props) {
@@ -58,11 +58,12 @@ export function DecidirDireto({ inicio, fim, campanha, aoEscreveu, aoGuardou, ao
           {linhas.length > 1 && <button type="button" className="reu-tirar" aria-label="Tirar peça" onClick={() => setLinhas((v) => v.filter((_, j) => j !== i))}><Icone nome="fechar" tam={13} /></button>}
         </li>))}</ol>
       <button type="button" className="btn btn-mini" onClick={() => setLinhas((v) => [...v, { ...nova(), dia: v.at(-1)?.dia ?? inicio }])}><Icone nome="mais" tam={13} /> Mais uma peça</button>
+      <p className="muted pequeno"><b>Mandar o agente escrever:</b> ele escreve agora e as peças aparecem na aba Produção para você revisar. <b>Só pôr no calendário:</b> as peças entram na aba Conteúdos sem texto, para escrever depois.</p>
       <Erro msg={erro} />
       <footer className="mk-criar-rodape">
         <button type="button" className="btn btn-mini" disabled={!!enviando} onClick={aoVoltar}>Voltar</button>
         <span className="ia-linha">
-          <button type="button" className="btn btn-contorno-ouro" disabled={!!enviando} onClick={() => criar(false)}>Só guardar em Ideias</button>
+          <button type="button" className="btn btn-contorno-ouro" disabled={!!enviando} onClick={() => criar(false)} title="As peças entram no calendário da aba Conteúdos, sem texto. Depois você pede para o agente escrever ou escreve você mesmo.">Só pôr no calendário</button>
           <button type="button" className="btn btn-ouro" disabled={!!enviando} onClick={() => criar(true)}><Icone nome="floco" tam={16} /> {enviando ?? `Mandar o agente escrever (${linhas.length})`}</button>
         </span>
       </footer>
