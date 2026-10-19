@@ -13,7 +13,8 @@ export const ATALHOS: { id: Atalho; nome: string }[] = [
 export const dm = (d: string) => `${d.slice(8, 10)}/${d.slice(5, 7)}`
 export const textoIntervalo = (i: Pick<Intervalo, 'de' | 'ate'>) => (i.de === i.ate ? dm(i.de) : `${dm(i.de)} a ${dm(i.ate)}`)
 const diasEntre = (de: string, ate: string) => Math.round((new Date(ate + 'T12:00:00Z').getTime() - new Date(de + 'T12:00:00Z').getTime()) / 86400000) + 1
-const segundaDa = (d: string) => somaDias(d, -((new Date(d + 'T12:00:00Z').getUTCDay() + 6) % 7))
+// a semana começa no domingo e vai até o sábado
+const domingoDa = (d: string) => somaDias(d, -new Date(d + 'T12:00:00Z').getUTCDay())
 const ultimoDiaDoMes = (ano: number, mes: number) => new Date(Date.UTC(ano, mes, 0)).getUTCDate()
 const doisDig = (x: number) => String(x).padStart(2, '0')
 function mesAntes(dia: string) {
@@ -28,8 +29,8 @@ export function periodosDo(atalho: Atalho, datas: { de: string; ate: string }, h
   if (atalho === 'hoje') return { atual: { de: hoje, ate: hoje, nome: 'Hoje' }, anterior: { de: somaDias(hoje, -7), ate: somaDias(hoje, -7), nome: 'Mesmo dia da semana passada' } }
   if (atalho === '7dias') { const atual = { de: somaDias(hoje, -6), ate: hoje, nome: 'Últimos 7 dias' }; return { atual, anterior: igual(atual, '7 dias antes') } }
   if (atalho === '30dias') { const atual = { de: somaDias(hoje, -29), ate: hoje, nome: 'Últimos 30 dias' }; return { atual, anterior: igual(atual, '30 dias antes') } }
-  if (atalho === 'semana') { const atual = { de: segundaDa(hoje), ate: hoje, nome: 'Esta semana' }; return { atual, anterior: igual(atual, 'Mesmos dias da semana passada') } }
-  if (atalho === 'semana_passada') { const de = somaDias(segundaDa(hoje), -7); const atual = { de, ate: somaDias(de, 6), nome: 'Semana passada' }; return { atual, anterior: igual(atual, 'Semana retrasada') } }
+  if (atalho === 'semana') { const atual = { de: domingoDa(hoje), ate: hoje, nome: 'Esta semana' }; return { atual, anterior: { de: somaDias(atual.de, -7), ate: somaDias(hoje, -7), nome: 'Mesmos dias da semana passada' } } }
+  if (atalho === 'semana_passada') { const de = somaDias(domingoDa(hoje), -7); const atual = { de, ate: somaDias(de, 6), nome: 'Semana passada' }; return { atual, anterior: igual(atual, 'Semana retrasada') } }
   if (atalho === 'mes') {
     const atual = { de: hoje.slice(0, 8) + '01', ate: hoje, nome: 'Este mês' }, ant = mesAntes(hoje)
     return { atual, anterior: { de: `${ant.a}-${doisDig(ant.m)}-01`, ate: ant.fim, nome: 'Mesmos dias do mês passado' } }

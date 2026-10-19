@@ -1,19 +1,18 @@
 // Revisão semanal automática (19/10/2026): toda segunda, para cada empresa que ligou a revisão, o agente compara a
-// semana passada (segunda a domingo) com as 4 semanas antes dela e propõe aprendizados. A equipe aprova na tela.
+// semana passada (domingo a sábado) com as 4 semanas antes dela e propõe aprendizados. A equipe aprova na tela.
 import type { SupabaseClient } from 'npm:@supabase/supabase-js@2.45.4'
 import { analisar } from './analise.ts'
 
 const somaDias = (dia: string, dias: number) => new Date(new Date(dia + 'T12:00:00Z').getTime() + dias * 86400000).toISOString().slice(0, 10)
 const hojeBR = () => new Date(Date.now() - 3 * 3600000).toISOString().slice(0, 10)
 
-// semana passada completa (segunda a domingo antes de hoje) e as 4 semanas anteriores a ela
+// semana passada completa (domingo a sábado antes de hoje) e as 4 semanas anteriores a ela
 export function periodosDaSemana(hoje = hojeBR()) {
-  const diaDaSemana = (new Date(hoje + 'T12:00:00Z').getUTCDay() + 6) % 7
-  const domingo = somaDias(hoje, -diaDaSemana - 1)
-  const segunda = somaDias(domingo, -6)
+  const sabado = somaDias(hoje, -new Date(hoje + 'T12:00:00Z').getUTCDay() - 1)
+  const domingo = somaDias(sabado, -6)
   return [
-    { nome: '4 semanas antes', de: somaDias(segunda, -28), ate: somaDias(segunda, -1) },
-    { nome: 'Semana passada', de: segunda, ate: domingo },
+    { nome: '4 semanas antes', de: somaDias(domingo, -28), ate: somaDias(domingo, -1) },
+    { nome: 'Semana passada', de: domingo, ate: sabado },
   ]
 }
 
