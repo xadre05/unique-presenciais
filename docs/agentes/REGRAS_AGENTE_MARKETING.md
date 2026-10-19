@@ -225,3 +225,25 @@ Capa, thumbnail e legenda são materiais dentro da peça, não peças separadas.
 - "Ajuda para escrever a orientação" em todos os formatos (guiasOrientacao.ts): arte, telas de stories, capa/thumbnail, gravação, cena, bloco, pauta, transmissão, página e diagramação de PDF, seção de artigo. Frases prontas e exemplo montados com as pessoas e imagens da própria peça (nada fixo de uma empresa).
 - "Pedir ajuste à IA" tem sugestões rápidas por formato (inclui e-mail, WhatsApp e texto/enquete).
 - Fotos grandes são reduzidas no navegador antes de subir (lado maior até 2048 px; limite do armazenamento 10 MB).
+
+## Campanhas, caminho direto e referências para modelar (decidido e construído em 19/10/2026)
+
+- **Sobre a marca ≠ Campanha.** "O que vende" guarda só o que a marca vende sempre (plataforma, cursos presenciais).
+  Oferta de um momento (Black Friday Limited Edition, lançamento) é uma **campanha** em Base da marca → Campanhas:
+  nome, começo, fim e "Oferta e regras" (fonte da verdade enquanto durar). Encerrar tira das listas; nada é apagado.
+- **Campanha em qualquer planejamento.** Em Planejar, o campo Campanha vale para hoje, dias, semana ou mês
+  (opcional; "Nenhuma: conteúdo do dia a dia" = sem oferta). "Uma campanha" continua para planejar a campanha
+  inteira, com o período dela.
+- **Dois caminhos depois de escolher o período:**
+  1. "Já sei o que quero postar" — uma linha por peça (canal, formato, dia, sobre o quê). "Mandar o agente
+     escrever" cria as peças e pede os textos na hora; "Só guardar em Ideias" não custa nada. Sem reunião.
+  2. "Conversar com o agente antes" — a reunião de pauta. A abertura é curta (até 3 tópicos e uma pergunta) e a
+     ata só recebe o que a equipe disse ou aceitou; sugestão do agente não aceita fica fora.
+- **Referências para modelar** (Base da marca, separada da Biblioteca): conteúdo de terceiros guardado como modelo
+  de FORMATO — concorrentes, outros nichos, quem admiramos, materiais comprados. Prints ou vídeo baixado (o
+  navegador tira 10 quadros; o vídeo não sobe), texto da peça e "o que copiar daqui". O agente escreve a ficha
+  (gancho, estrutura, visual, texto na tela, ritmo, linguagem, como usar na marca, o que não copiar). As fichas
+  entram na reunião (lista de modelos) e na escrita das peças do mesmo formato. Regra: copiar a forma, nunca o
+  conteúdo, as frases, os dados ou a marca. Cada empresa só vê as suas (tabela marca_referencias).
+  Ainda não tem: áudio do vídeo (a fala precisa ser colada como texto; depois, Gemini), base compartilhada
+  "Modelos Unique" para clientes, e perfis acompanhados pelo Instagram (Business Discovery).
