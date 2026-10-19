@@ -317,3 +317,11 @@ Capa, thumbnail e legenda são materiais dentro da peça, não peças separadas.
 - **Quem fez** (`marca_posts.origem`/`peca_id`): na leitura diária, um post é ligado à peça do agente quando a legenda é parecida (pelo menos metade das palavras) e a data fica a até 3 dias do dia planejado. Ligado, vira "Agente" e a peça aprovada passa a publicada. O resto é "Fora". A etiqueta é clicável para corrigir, e a origem marcada à mão não é tocada. Há filtro "Agente e fora".
 - **Recriar um post:** em Resultados (botão em cada post) e em Planejar → "Partir de um post que deu resultado" (os melhores do último ano). Cria uma peça nova com o post como base (números, legenda e link no tema; o que manter e o que mudar) e já pede ao agente que escreva. A peça segue o caminho normal.
 - **Revisão semanal:** a opção "Fazer sozinho toda segunda" liga `marca_conexoes.revisao_semanal`. O cron `instagram-revisao-semanal` roda às segundas, 07:07 de Brasília, e compara a semana passada com as 4 anteriores. As análises respeitam o limite de créditos da empresa e do agente.
+
+### Resultados em abas (19/10/2026, refeito)
+- **Período** (abre aqui): atalhos Hoje, Últimos 7 dias, Esta semana, Semana passada, Últimos 30 dias, Este mês, Mês passado e Escolher datas. Sempre comparado com o período anterior do mesmo tamanho (no mês, os mesmos dias do mês anterior). A aba mostra cartões com ▲▼ %, Agente × Fora, os posts do período com o % contra a mediana dos últimos 90 dias e Recriar. Um botão só pede ao agente o que funcionou; a análise do período aparece logo abaixo.
+- **Posts:** filtros em cima (quando, formato, quem fez, ordem e busca na legenda), 30 por vez.
+- **Seguidores:** cartões, colunas de novos por dia (30 dias, os dias que o Instagram ainda fecha aparecem com um traço) e a linha do total (a partir da 2ª leitura).
+- **Comparações:** Antes × depois de uma data (as datas guardadas com nome são os antigos marcos), o mesmo recorte em anos diferentes e os anos e formatos. Cada parte tem o seu botão de análise.
+- **Aprendizados:** revisão semanal (ligar e revisar agora), o que o agente aprendeu e todas as análises (lista à esquerda, análise aberta à direita, com os cartões de ensinar).
+- **Planejar:** os três caminhos (Já sei o que postar, Partir de um post que funcionou, Conversar com o agente) em linhas iguais.
