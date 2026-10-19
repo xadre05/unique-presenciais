@@ -51,7 +51,6 @@ export default function AgenteMarketing() {
   const aguardando = (todas.dados ?? []).filter((p) => etapaDe(p) === 'revisao').length
   const abrir = (p: Peca) => { setAberta(p.id); setAba('producao') }
   const recarregar = () => { trabalhos.recarregar(); pecas.recarregar(); todas.recarregar(); perfil.recarregar() }
-  const custoMes = (trabalhos.dados ?? []).reduce((s, t) => s + Number(t.custo_usd ?? 0), 0)
   const reuniao = (escopo: TipoEscopo, data: string, id?: string) => setPagina({ tipo: 'reuniao', escopo, data: data || hojeISO(), id })
   const planejarAgora = () => reuniao(f.periodo === 'dia' ? 'dia' : f.periodo === 'mes' ? 'mes' : 'semana', f.periodo === 'dia' ? f.data : inicio)
   const revisarPlano = (p: Plano) => (p.reuniao ? reuniao('semana', p.inicio, p.reuniao) : setPagina({ tipo: 'planejar', modo: 'periodo', data: p.inicio, revisar: p }))
@@ -119,7 +118,7 @@ export default function AgenteMarketing() {
       {aba === 'config' && (
         <section className="mk-plano">
           <CabecalhoAba titulo="Funcionamento e preferências" sub="Defina como este agente trabalha e revise o que ele deve lembrar." />
-          {perfil.dados !== undefined && !perfil.carregando && <ConfigAgente key={perfil.dados?.perfil ? 'ok' : 'novo'} empresaId={EMPRESA} agenteId="marketing" ativo={perfil.dados?.ativo ?? true} perfil={(perfil.dados?.perfil ?? {}) as Record<string, unknown>} aoSalvar={perfil.recarregar} custoMes={custoMes} />}
+          {perfil.dados !== undefined && !perfil.carregando && <ConfigAgente key={perfil.dados?.perfil ? 'ok' : 'novo'} empresaId={EMPRESA} agenteId="marketing" ativo={perfil.dados?.ativo ?? true} perfil={(perfil.dados?.perfil ?? {}) as Record<string, unknown>} aoSalvar={perfil.recarregar} />}
         </section>
       )}
 

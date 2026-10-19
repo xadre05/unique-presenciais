@@ -18,7 +18,7 @@ export type Peca = {
     orientacoes?: string[]; visual?: unknown; artes?: unknown[]; versoes?: unknown[]; aprovado_texto?: unknown; producao_ok?: unknown
   }
 }
-export type Config = { empresa_id: string; modelo: string; limite_mes_usd: number | null; chave_em: string | null; ias?: Record<string, unknown> }
+export type Config = { empresa_id: string; modelo: string; limite_mes_creditos: number | null; chave_em: string | null; ias?: Record<string, unknown> }
 
 export const MODELOS: Record<string, { nome: string; dica: string }> = {
   'claude-sonnet-5-5': { nome: 'Claude Sonnet 5.5 (recomendado)', dica: 'Melhor texto. Uma semana de conteúdo custa alguns centavos de dólar.' },

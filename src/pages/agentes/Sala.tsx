@@ -8,7 +8,8 @@ import { Icone } from '../../components/Icone'
 import { EMPRESA_UNIQUE } from '../crm/comum'
 import { Retrato } from './Retrato'
 import { useSala, type AgenteNaSala } from './useSala'
-import { TIPO_PECA, usd, visualDe } from './comum'
+import { TIPO_PECA, visualDe } from './comum'
+import { creditos } from './creditos'
 import type { PerfilMarketing } from './marca/dados'
 
 function situacao(a: AgenteNaSala, temChave: boolean): { txt: string; tom: string } {
@@ -72,7 +73,7 @@ export default function Sala() {
         <div><Icone nome="usuario" tam={22} /><span>Agentes ativos<b>{ativos}</b></span></div>
         <div><Icone nome="documento" tam={22} /><span>Em aprovação<b>{emAprovacao}</b></span></div>
         <div><Icone nome="relogio" tam={22} /><span>Em execução<b>{emExecucao}</b></span></div>
-        <div><Icone nome="grafico" tam={22} /><span>Consumo do mês<b>{usd(consumo)}</b></span><Link to="/agentes/central" className="link pequeno">{cfg?.limite_mes_usd != null ? `Limite ${usd(cfg.limite_mes_usd)}` : 'Definir limite'} ›</Link></div>
+        <div><Icone nome="grafico" tam={22} /><span>Créditos usados no mês<b>{creditos(consumo)}</b></span><Link to="/agentes/central" className="link pequeno">{cfg?.limite_mes_creditos != null ? `Limite do mês: ${cfg.limite_mes_creditos} créditos` : 'Definir créditos'} ›</Link></div>
       </div>
 
       {cfg && !temChave && (

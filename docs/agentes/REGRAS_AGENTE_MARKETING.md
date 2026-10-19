@@ -292,3 +292,9 @@ Capa, thumbnail e legenda são materiais dentro da peça, não peças separadas.
 - **Biblioteca:** cada material é **Aprovado** (o agente usa como fonte) ou **A validar** (guardado, fora das buscas). Arquivos enviados entram aprovados; texto colado pode entrar "a validar". "Revisar" mostra o texto inteiro; corrigir cria uma versão nova e tira a antiga. Sem nome de pessoa nos rótulos ("A validar", não "A validar pela Dra.").
 - **Testar conhecimento:** mostra o que o agente encontraria, só nos aprovados.
 - **Nova referência:** página própria em 3 blocos (identificação com nome e canal, material, o que copiar). Continua com um botão só: guardar já estuda. Não entram "o que analisar" nem "disponibilizar após revisão" (complexidade que o Alexandre recusou).
+
+## Créditos no lugar de dólar (decisão do Alexandre, 19/10/2026)
+- Quem usa o sistema vê e limita o consumo em **créditos**: 1 crédito = US$ 0,01 de custo de IA, arredondado para cima por trabalho.
+- Empresa: "Créditos da empresa por mês" (Configurações → Inteligências artificiais), `agentes_config.limite_mes_creditos`. Agente: limite próprio opcional (Configurar agente), `perfil.limite_mes_creditos`. O servidor para o agente quando o limite acaba.
+- Configurar agente mostra quanto já usou, o saldo da empresa e **quanto custa, em média**, cada tipo de pedido (últimos 90 dias; "escrever" é por peça).
+- O custo real em dólar continua gravado (`agentes_trabalhos.custo_usd`) e vai para a área de controle que o Alexandre vai ter (gasto geral e por empresa em dólar). Preço do crédito em reais e margem: decisão dele, depois.

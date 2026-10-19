@@ -6,7 +6,8 @@ import { supabase } from '../../lib/supabase'
 import { msgErro, useConsulta } from '../../lib/dados'
 import { Badge, Campo, Erro } from '../../components/ui'
 import { EMPRESA_UNIQUE } from '../crm/comum'
-import { MODELOS, usd, type AgenteSala, type Config } from './comum'
+import { MODELOS, type AgenteSala, type Config } from './comum'
+import { creditos, creditosDe, textoCreditos } from './creditos'
 import { ChavesIA } from './ChavesIA'
 import type { EscolhaIAs } from './ias'
 import { ConexaoInstagram } from './instagram/ConexaoInstagram'
@@ -50,16 +51,16 @@ export default function Central() {
       <ChavesIA empresa={EMPRESA} ias={(cfg.dados?.ias ?? {}) as EscolhaIAs} aoMudarIAs={(ias) => salvarCfg({ ias })} />
 
       <section className="bloco">
-        <h2>Modelo do Claude e limite</h2>
+        <h2>Modelo do Claude e créditos</h2>
         <div className="linha-campos">
           <Campo rotulo="Modelo do Claude" dica={MODELOS[modelo]?.dica}>
             <select value={modelo} onChange={(e) => salvarCfg({ modelo: e.target.value })}>{Object.entries(MODELOS).map(([k, m]) => <option key={k} value={k}>{m.nome}</option>)}</select>
           </Campo>
-          <Campo rotulo="Limite de gasto no mês (US$)" dica="Ao chegar nele, os agentes param até o mês virar. Em branco: sem limite.">
-            <input inputMode="decimal" defaultValue={cfg.dados?.limite_mes_usd ?? ''} key={String(cfg.dados?.limite_mes_usd)} onBlur={(e) => { const v = e.target.value.replace(',', '.').trim(); salvarCfg({ limite_mes_usd: v ? Number(v) : null }) }} placeholder="Ex.: 10" />
+          <Campo rotulo="Créditos da empresa por mês" dica="Saldo para todos os agentes juntos. Ao acabar, eles param até o mês virar. Em branco: sem limite.">
+            <input inputMode="numeric" defaultValue={cfg.dados?.limite_mes_creditos ?? ''} key={String(cfg.dados?.limite_mes_creditos)} onBlur={(e) => { const v = e.target.value.replace(/\D/g, ''); salvarCfg({ limite_mes_creditos: v ? Number(v) : null }) }} placeholder="Ex.: 1000" />
           </Campo>
         </div>
-        <p className="muted pequeno">Gasto neste mês: <b>{usd(total)}</b>{cfg.dados?.limite_mes_usd != null && ` de ${usd(cfg.dados.limite_mes_usd)}`}. O valor exato aparece também em console.anthropic.com → Usage.</p>
+        <p className="muted pequeno">Usado neste mês: <b>{textoCreditos(creditosDe(total))}</b>{cfg.dados?.limite_mes_creditos != null && ` de ${cfg.dados.limite_mes_creditos}`}. Cada agente pode ter um limite próprio em Configurar agente, onde também aparece quanto custa, em média, cada tipo de pedido.</p>
       </section>
       </>}
 
@@ -72,12 +73,12 @@ export default function Central() {
       {aba === 'agentes' && <section className="bloco">
         <h2>Agentes</h2>
         <table className="tabela">
-          <thead><tr><th>Agente</th><th>Faz o quê</th><th className="num">Gasto no mês</th><th>Ligado</th></tr></thead>
+          <thead><tr><th>Agente</th><th>Faz o quê</th><th className="num">Usado no mês</th><th>Ligado</th></tr></thead>
           <tbody>{(sala.dados ?? []).map((a) => (
             <tr key={a.agente_id}>
               <td><b>{a.nome}</b><div className="muted pequeno">{a.papel}</div></td>
               <td className="pequeno">{a.descricao}</td>
-              <td className="num">{a.disponivel ? usd(a.custo_mes_usd) : '—'}</td>
+              <td className="num">{a.disponivel ? creditos(a.custo_mes_usd) : '—'}</td>
               <td>{a.disponivel
                 ? <label className="check"><input type="checkbox" checked={a.ativo} onChange={(e) => ligar(a.agente_id, e.target.checked)} /> {a.ativo ? 'Sim' : 'Não'}</label>
                 : <Badge tom="apagado">em breve</Badge>}</td>

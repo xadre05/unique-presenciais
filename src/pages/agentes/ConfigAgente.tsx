@@ -1,5 +1,5 @@
 // Configurar um agente, em 4 quadros: Funcionamento (ligado, modelo, modo econômico), Instruções específicas,
-// Orçamento do agente e Preferências (o que ele aprendeu ou a equipe ensinou). Fica no perfil do agente
+// Créditos do agente e Preferências (o que ele aprendeu ou a equipe ensinou). Fica no perfil do agente
 // (agentes_empresa.perfil), junto com o que já estiver lá; as preferências gravam na hora, o resto em "Salvar configurações".
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
@@ -7,15 +7,16 @@ import { supabase } from '../../lib/supabase'
 import { msgErro } from '../../lib/dados'
 import { Erro } from '../../components/ui'
 import { Icone } from '../../components/Icone'
-import { MODELOS, usd } from './comum'
+import { MODELOS } from './comum'
+import { CreditosAgente } from './CreditosAgente'
 import { atualizarPerfil, esquecer, lembrar, memoriaDe, type Lembranca } from './memoria'
 
-export type ConfigDoAgente = { modelo?: string; limite_mes_usd?: number | null; instrucoes?: string }
-type Props = { empresaId: string; agenteId: string; ativo: boolean; perfil: Record<string, unknown>; aoSalvar: () => void; custoMes: number }
+export type ConfigDoAgente = { modelo?: string; limite_mes_creditos?: number | null; instrucoes?: string }
+type Props = { empresaId: string; agenteId: string; ativo: boolean; perfil: Record<string, unknown>; aoSalvar: () => void }
 
 const ORIGEM: Record<Lembranca['origem'], string> = { manual: 'Você ensinou', descarte: 'De um descarte', ajuste: 'De um ajuste' }
 const inicial = (ativo: boolean, perfil: Record<string, unknown>) => ({
-  ligado: ativo, modelo: String(perfil.modelo ?? ''), limite: perfil.limite_mes_usd != null ? String(perfil.limite_mes_usd).replace('.', ',') : '',
+  ligado: ativo, modelo: String(perfil.modelo ?? ''), limite: perfil.limite_mes_creditos != null ? String(perfil.limite_mes_creditos) : '',
   instrucoes: String(perfil.instrucoes ?? ''), economico: perfil.stories_economico !== false,
 })
 
@@ -57,7 +58,7 @@ function Preferencias({ empresaId, agenteId, perfil }: Pick<Props, 'empresaId' |
   )
 }
 
-export function ConfigAgente({ empresaId, agenteId, ativo, perfil, aoSalvar, custoMes }: Props) {
+export function ConfigAgente({ empresaId, agenteId, ativo, perfil, aoSalvar }: Props) {
   const [f, setF] = useState(() => inicial(ativo, perfil))
   const [erro, setErro] = useState<string | null>(null)
   const [ok, setOk] = useState(false)
@@ -65,9 +66,8 @@ export function ConfigAgente({ empresaId, agenteId, ativo, perfil, aoSalvar, cus
 
   const salvar = async () => {
     setErro(null); setOk(false)
-    const v = f.limite.replace(/\./g, '').replace(',', '.').trim()
-    if (v && (Number.isNaN(Number(v)) || Number(v) < 0)) return setErro('Limite mensal inválido. Use só números, ex.: 5,00.')
-    const campos = { modelo: f.modelo || null, limite_mes_usd: v ? Number(v) : null, instrucoes: f.instrucoes.trim() || null, stories_economico: f.economico }
+    const v = f.limite.trim()
+    const campos = { modelo: f.modelo || null, limite_mes_creditos: v ? Number(v) : null, instrucoes: f.instrucoes.trim() || null, stories_economico: f.economico }
     const { error } = await atualizarPerfil(empresaId, agenteId, (atual) => ({ ...atual, ...campos }), { ativo: f.ligado })
     if (error) return setErro(msgErro(error))
     setOk(true); aoSalvar()
@@ -100,12 +100,7 @@ export function ConfigAgente({ empresaId, agenteId, ativo, perfil, aoSalvar, cus
           <Link to="/agentes/marca" className="mk-cfg-atalho"><Icone nome="livro" tam={24} /><span><b>Abrir Base da marca ›</b><small className="muted">Público, tom de voz, produtos, redes sociais e regras comuns ficam lá.</small></span></Link>
         </Quadro>
 
-        <Quadro icone="comissoes" titulo="Orçamento do agente">
-          <label>Limite mensal (US$)<input inputMode="decimal" value={f.limite} onChange={(e) => mudar({ limite: e.target.value })} placeholder="Ex.: 5,00" /></label>
-          <p className="muted pequeno">Opcional. Sem limite próprio, vale o limite da empresa.</p>
-          <hr />
-          <div className="mk-cfg-gasto"><span><span className="muted">Últimos trabalhos</span><b>{usd(custoMes)}</b></span><Link to="/agentes/historico" className="link"><Icone nome="historico" tam={16} /> Ver histórico →</Link></div>
-        </Quadro>
+        <CreditosAgente empresa={empresaId} agente={agenteId} limite={f.limite} aoMudarLimite={(limite) => mudar({ limite })} />
 
         <Preferencias empresaId={empresaId} agenteId={agenteId} perfil={perfil} />
       </div>

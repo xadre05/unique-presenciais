@@ -587,10 +587,17 @@ async function gerarVoz(db: SupabaseClient, empresa: string) {
   return { perfil }
 }
 
+// créditos: quem usa o sistema vê e limita o consumo em créditos (1 crédito = US$ 0,01 de custo); o custo em dólar fica gravado
+const CREDITOS_POR_USD = 100
+function checarCreditos(gastoUsd: number, limite: unknown, aviso: string, onde: string) {
+  if (limite == null || limite === '') return
+  if (Math.ceil(gastoUsd * CREDITOS_POR_USD - 1e-9) >= Number(limite)) throw new Error(`${aviso} (limite de ${Number(limite)} créditos). Aumente em ${onde}.`)
+}
+
 // chave, agente ligado, limites do mês (empresa e agente) e o modelo a usar
 async function prepararAgente(db: SupabaseClient, empresa: string, agente: string) {
   const [{ data: cfg }, { data: perfilAg }, { data: chave }, { data: gastos }] = await Promise.all([
-    db.from('agentes_config').select('modelo,limite_mes_usd').eq('empresa_id', empresa).maybeSingle(),
+    db.from('agentes_config').select('modelo,limite_mes_creditos').eq('empresa_id', empresa).maybeSingle(),
     db.from('agentes_empresa').select('perfil,ativo').eq('empresa_id', empresa).eq('agente_id', agente).maybeSingle(),
     db.rpc('agentes_ler_chave', { p_empresa: empresa }),
     db.from('agentes_trabalhos').select('custo_usd,agente_id').eq('empresa_id', empresa).gte('criado_em', new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString()),
@@ -598,11 +605,11 @@ async function prepararAgente(db: SupabaseClient, empresa: string, agente: strin
   if (!chave) throw new Error('Falta cadastrar a chave do Claude em Agentes → Configurações.')
   if (!perfilAg?.ativo) throw new Error('Este agente está desligado. Ligue em Configurar agente.')
   const gastoMes = (gastos ?? []).reduce((s, g) => s + Number(g.custo_usd ?? 0), 0)
-  if (cfg?.limite_mes_usd != null && gastoMes >= Number(cfg.limite_mes_usd)) throw new Error(`Limite do mês da empresa atingido (US$ ${Number(cfg.limite_mes_usd).toFixed(2)}). Aumente em Configurações.`)
+  checarCreditos(gastoMes, cfg?.limite_mes_creditos, 'Os créditos do mês da empresa acabaram', 'Configurações')
   // configuração própria do agente (modelo, limite e instruções), guardada no perfil dele
   const pa = (perfilAg.perfil ?? {}) as Record<string, unknown>
   const gastoAgente = (gastos ?? []).filter((g) => g.agente_id === agente).reduce((s, g) => s + Number(g.custo_usd ?? 0), 0)
-  if (pa.limite_mes_usd != null && pa.limite_mes_usd !== '' && gastoAgente >= Number(pa.limite_mes_usd)) throw new Error(`Limite do mês deste agente atingido (US$ ${Number(pa.limite_mes_usd).toFixed(2)}). Aumente em Configurar agente.`)
+  checarCreditos(gastoAgente, pa.limite_mes_creditos, 'Os créditos do mês deste agente acabaram', 'Configurar agente')
   const modelo = (typeof pa.modelo === 'string' && PRECO[pa.modelo] ? pa.modelo : null) ?? cfg?.modelo ?? 'claude-sonnet-5-5'
   return { chave: String(chave), pa, perfilAg, modelo }
 }
@@ -618,7 +625,7 @@ const custoImagem = (ent: number, sai: number) => Math.round(((ent * 8 + sai * 3
 
 async function prepararArte(db: SupabaseClient, empresa: string) {
   const [{ data: cfg }, { data: perfilAg }, { data: chave }, { data: gastos }] = await Promise.all([
-    db.from('agentes_config').select('limite_mes_usd').eq('empresa_id', empresa).maybeSingle(),
+    db.from('agentes_config').select('limite_mes_creditos').eq('empresa_id', empresa).maybeSingle(),
     db.from('agentes_empresa').select('perfil,ativo').eq('empresa_id', empresa).eq('agente_id', 'marketing').maybeSingle(),
     db.rpc('agentes_ler_chave_ia', { p_empresa: empresa, p_provedor: 'openai' }),
     db.from('agentes_trabalhos').select('custo_usd').eq('empresa_id', empresa).gte('criado_em', new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString()),
@@ -626,7 +633,7 @@ async function prepararArte(db: SupabaseClient, empresa: string) {
   if (!chave) throw new Error('Falta cadastrar a chave da OpenAI em Agentes → Configurações.')
   if (!perfilAg?.ativo) throw new Error('Este agente está desligado. Ligue em Configurar agente.')
   const gastoMes = (gastos ?? []).reduce((s, g) => s + Number(g.custo_usd ?? 0), 0)
-  if (cfg?.limite_mes_usd != null && gastoMes >= Number(cfg.limite_mes_usd)) throw new Error(`Limite do mês da empresa atingido (US$ ${Number(cfg.limite_mes_usd).toFixed(2)}). Aumente em Configurações.`)
+  checarCreditos(gastoMes, cfg?.limite_mes_creditos, 'Os créditos do mês da empresa acabaram', 'Configurações')
   return { chave: String(chave), pa: (perfilAg.perfil ?? {}) as Record<string, unknown> }
 }
 
