@@ -2345,7 +2345,7 @@ a.sala-agente:hover { border-color: var(--ouro); transform: translateY(-2px); }
 .bib-aviso { margin: 0; display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: 8px; background: var(--alerta-fundo); color: var(--alerta); }
 .bib-revisar { display: flex; flex-direction: column; gap: 8px; }
 .bib-revisar textarea { width: 100%; font-size: .9rem; line-height: 1.5; }
-.bib-filtro { max-width: none; }
+.bib-filtro { max-width: none; flex: none; }
 .bib-testar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: 8px 0; }
 .bib-testar .camp-busca { max-width: none; flex: 1 1 280px; }
 .bib-como { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
@@ -2496,6 +2496,8 @@ a.sala-agente:hover { border-color: var(--ouro); transform: translateY(-2px); }
 .camp-item > b { font-size: .88rem; }
 .camp-item .bloco-linha, .camp-detalhe .bloco-linha { display: block; margin-top: 4px; }
 .camp-texto { margin: 0; white-space: pre-wrap; }
+.camp-texto.recolhido { display: -webkit-box; -webkit-line-clamp: 8; -webkit-box-orient: vertical; overflow: hidden; }
+.camp-mais { align-self: flex-start; background: none; border: 0; padding: 0; cursor: pointer; font: inherit; font-size: .88rem; }
 .camp-vende { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
 .camp-vende li { display: flex; flex-direction: column; gap: 2px; }
 .camp-contas { display: flex; flex-wrap: wrap; gap: 6px 16px; margin: 0 0 8px; font-size: .9rem; }

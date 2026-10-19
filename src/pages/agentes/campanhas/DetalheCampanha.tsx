@@ -1,5 +1,6 @@
 // Detalhe de uma campanha: objetivo, período, o que vende (com o preço do produto), oferta, comunicação, mensagem,
 // materiais e os conteúdos ligados a ela (planejamentos e peças), com atalho para vê-los no Agente de Marketing.
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../../../lib/supabase'
 import { useConsulta } from '../../../lib/dados'
@@ -13,6 +14,16 @@ type Props = { empresa: string; c: CampanhaGuardada; produtos: Produto[]; aoEdit
 
 function Item({ titulo, children }: { titulo: string; children: React.ReactNode }) {
   return <div className="camp-item"><b>{titulo}</b><div>{children}</div></div>
+}
+
+// mensagem longa abre recolhida (as primeiras linhas) para o detalhe não virar uma página sem fim
+function TextoLongo({ texto }: { texto: string }) {
+  const [aberto, setAberto] = useState(false)
+  const longo = texto.length > 600
+  return (<>
+    <p className={`camp-texto${longo && !aberto ? ' recolhido' : ''}`}>{texto}</p>
+    {longo && <button type="button" className="link camp-mais" onClick={() => setAberto(!aberto)}>{aberto ? 'Mostrar menos' : 'Ver mensagem completa'}</button>}
+  </>)
 }
 
 function ConteudosVinculados({ empresa, c }: { empresa: string; c: CampanhaGuardada }) {
@@ -64,7 +75,7 @@ export function DetalheCampanha({ empresa, c, produtos, aoEditar, aoEncerrar }: 
       </Item>
       {c.oferta && <Item titulo="Oferta da campanha">{c.oferta}</Item>}
       {c.comunicacao && <Item titulo="Nome e comunicação">{c.comunicacao}</Item>}
-      {c.descricao && <Item titulo="Mensagem, fases e regras"><p className="camp-texto">{c.descricao}</p></Item>}
+      {c.descricao && <Item titulo="Mensagem, fases e regras"><TextoLongo texto={c.descricao} /></Item>}
       <Item titulo="Materiais e condições">
         {c.link ? <a className="link" href={c.link} target="_blank" rel="noreferrer"><Icone nome="links" tam={14} /> Consultar materiais da campanha</a> : <span className="muted">Sem link de materiais.</span>}
         <small className="muted bloco-linha">Preço e pagamento vêm dos produtos ligados (A marca → Produtos e condições).</small>
