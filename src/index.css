@@ -1306,12 +1306,13 @@ a.sala-agente:hover { border-color: var(--ouro); transform: translateY(-2px); }
 .sala-topo p { margin: 2px 0 0; letter-spacing: .06em; color: var(--texto); }
 .btn-contorno-ouro { border: 1.5px solid var(--ouro); color: var(--ouro-forte); background: transparent; }
 .sala-kpis { display: grid; grid-template-columns: repeat(4, 1fr); border: 1px solid var(--borda); border-radius: 12px; background: var(--painel); margin-bottom: 12px; }
-.sala-kpis > div { display: flex; align-items: center; gap: 12px; padding: 12px 18px; color: var(--ouro); }
+.sala-kpis > div { display: flex; align-items: flex-start; gap: 12px; padding: 14px 18px; color: var(--ouro); }
+.sala-kpis svg { margin-top: 3px; flex: none; }
 .sala-kpis > div + div { border-left: 1px solid var(--borda); }
 .sala-kpis span { display: flex; flex-direction: column; color: var(--muted); font-size: .82rem; }
 .sala-kpis b { color: var(--texto); font-family: 'Fraunces', Georgia, serif; font-size: 1.3rem; }
 .sala-kpis .link { margin-left: auto; white-space: nowrap; }
-.sala-kpis > .sala-kpi-cred { display: flex; align-items: center; gap: 12px; padding: 12px 18px; color: var(--ouro); text-decoration: none; border-left: 1px solid var(--borda); }
+.sala-kpis > .sala-kpi-cred { display: flex; align-items: flex-start; gap: 12px; padding: 14px 18px; color: var(--ouro); text-decoration: none; border-left: 1px solid var(--borda); }
 .sala-kpi-cred:hover { background: rgba(201,168,106,.05); }
 .sala-kpi-cred > span { flex: 1; min-width: 0; gap: 2px; }
 .sala-kpi-cred b small { font-family: inherit; font-size: .78rem; font-weight: 400; color: var(--muted); }
