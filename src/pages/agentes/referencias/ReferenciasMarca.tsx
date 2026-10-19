@@ -9,7 +9,7 @@ import { CATEGORIAS, mudarReferencia, nomeCategoria, nomeFormato, pedirFicha, us
 import { NovaReferencia } from './NovaReferencia'
 import { FichaReferencia } from './FichaReferencia'
 
-const STATUS: Record<Referencia['status'], string> = { nova: 'Sem ficha', analisando: 'O agente está estudando…', pronta: 'Ficha pronta', erro: 'Deu erro' }
+const STATUS: Record<Referencia['status'], string> = { nova: 'Ainda não estudada', analisando: 'O agente está estudando…', pronta: 'Aprendido', erro: 'Não deu certo' }
 
 function Cartao({ empresa, r, aoMudou }: { empresa: string; r: Referencia; aoMudou: () => void }) {
   const [aberta, setAberta] = useState(false)
@@ -35,8 +35,8 @@ function Cartao({ empresa, r, aoMudou }: { empresa: string; r: Referencia; aoMud
         {r.status === 'erro' && r.erro && <small className="ref-erro">{r.erro}</small>}
         {aberta && r.ficha && <FichaReferencia ficha={r.ficha} />}
         <div className="ia-linha">
-          {r.ficha && <button type="button" className="btn btn-mini" onClick={() => setAberta(!aberta)}>{aberta ? 'Fechar ficha' : 'Ver ficha'}</button>}
-          <button type="button" className="btn btn-mini" disabled={estudando || r.status === 'analisando'} onClick={estudar}><Icone nome="floco" tam={13} /> {r.ficha ? 'Estudar de novo' : 'Pedir a ficha'}</button>
+          {r.ficha && <button type="button" className="btn btn-mini" onClick={() => setAberta(!aberta)}>{aberta ? 'Fechar' : 'Ver o que ele aprendeu'}</button>}
+          {(r.status === 'erro' || r.status === 'nova') && <button type="button" className="btn btn-mini" disabled={estudando} onClick={estudar}><Icone nome="atualizar" tam={13} /> Estudar de novo</button>}
           {r.link && <a className="btn btn-mini" href={r.link} target="_blank" rel="noreferrer"><Icone nome="globo" tam={13} /> Abrir</a>}
           {r.arquivos.length > 1 && <span className="muted pequeno">{r.arquivos.length} imagens</span>}
           {tirar ? <><span className="pequeno">Tirar esta referência?</span><button type="button" className="btn btn-mini" onClick={confirmarTirar}>Sim, tirar</button><button type="button" className="btn btn-mini" onClick={() => setTirar(false)}>Não</button></>

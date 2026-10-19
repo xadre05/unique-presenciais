@@ -68,7 +68,7 @@ export function ResultadosInstagram({ empresa }: { empresa: string }) {
       <CabecalhoAba titulo="Resultados" sub="O que os posts publicados entregaram e o que o agente aprendeu com eles." />
       {!conexao.carregando && c?.status !== 'conectado' && (
         <div className="mk-vazio-grande"><Icone nome="grafico" tam={30} /><p>O Instagram ainda não está ligado.</p>
-          <span className="muted pequeno">Ligue em <Link to="/agentes/marca">Base da marca → Redes sociais</Link>. Depois disso o agente lê os posts e as métricas todo dia.</span></div>
+          <span className="muted pequeno">Ligue em <Link to="/agentes/marca?aba=canais">Base da marca → Canais</Link>. Depois disso o agente lê os posts e as métricas todo dia.</span></div>
       )}
       {c?.status === 'conectado' && (<>
         <div className="ig-cartoes">

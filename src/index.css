@@ -2482,3 +2482,5 @@ a.sala-agente:hover { border-color: var(--ouro); transform: translateY(-2px); }
 .reu-direto .mk-criar-rodape { justify-content: space-between; }
 @media (max-width: 760px) { .reu-caminhos { grid-template-columns: 1fr; } }
 .reu-escolha.sozinha { grid-template-columns: minmax(0, 1fr); max-width: 980px; }
+.ref-form .form-duas { align-items: end; }
+.base-sub { margin: -6px 0 14px; }

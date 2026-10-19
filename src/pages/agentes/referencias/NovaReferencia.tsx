@@ -37,7 +37,7 @@ export function NovaReferencia({ empresa, aoGuardar, aoCancelar }: Props) {
     setErro(null)
     try {
       const id = await guardarReferencia(empresa, r, prints, video, setEtapa)
-      setEtapa('O agente está estudando a referência (até 1 minuto)…')
+      setEtapa('O agente está estudando (até 1 minuto)…')
       aoGuardar()
       await pedirFicha(empresa, id).catch(() => undefined) // o erro fica gravado na própria referência
       setEtapa(null); aoGuardar(); aoCancelar()
@@ -51,7 +51,7 @@ export function NovaReferencia({ empresa, aoGuardar, aoCancelar }: Props) {
         <button key={c.id} type="button" role="radio" aria-checked={r.categoria === c.id} title={c.dica} className={`mk-chip${r.categoria === c.id ? ' ativo' : ''}`} onClick={() => mudar({ categoria: c.id })}>{c.nome}</button>))}</div>
       <div className="form-duas">
         <label>Formato<select value={r.formato} onChange={(e) => mudar({ formato: e.target.value as NovaRef['formato'] })}>{FORMATOS.map((f) => <option key={f.id} value={f.id}>{f.nome}</option>)}</select></label>
-        <label>De quem <small className="muted">(@perfil ou nome)</small><input value={r.autor} maxLength={120} onChange={(e) => mudar({ autor: e.target.value })} placeholder="@perfil" /></label>
+        <label>De quem<input value={r.autor} maxLength={120} onChange={(e) => mudar({ autor: e.target.value })} placeholder="@perfil ou nome" /></label>
       </div>
       <label>Link <small className="muted">(opcional, para abrir depois)</small><input value={r.link} maxLength={500} onChange={(e) => mudar({ link: e.target.value })} placeholder="https://www.instagram.com/reel/…" /></label>
       <div className="ref-arquivos">
@@ -67,10 +67,10 @@ export function NovaReferencia({ empresa, aoGuardar, aoCancelar }: Props) {
         <textarea rows={3} maxLength={6000} value={r.texto} onChange={(e) => mudar({ texto: e.target.value })} /></label>
       <label>O que você quer copiar daqui? <small className="muted">(o mais importante)</small>
         <textarea rows={3} maxLength={1500} value={r.por_que} onChange={(e) => mudar({ por_que: e.target.value })} placeholder="Ex.: o gancho da primeira frase; a tela dividida ao meio; a legenda que aparece palavra por palavra; o jeito de falar olhando para a câmera" /></label>
-      <p className="muted pequeno">O agente copia a forma (gancho, estrutura, edição, texto na tela), nunca as frases, os dados ou a marca de quem fez.</p>
+      <p className="muted pequeno">Ao guardar, o agente estuda a peça sozinho e passa a usar o formato quando escrever. Ele copia a forma, nunca as frases, os dados ou a marca de quem fez.</p>
       <Erro msg={erro} />
       <div className="ia-linha">
-        <button type="button" className="btn btn-ouro" disabled={!!etapa} onClick={guardar}><Icone nome="floco" tam={15} /> {etapa ?? 'Guardar e pedir a ficha ao agente'}</button>
+        <button type="button" className="btn btn-ouro" disabled={!!etapa} onClick={guardar}><Icone nome="floco" tam={15} /> {etapa ?? 'Guardar referência'}</button>
         <button type="button" className="btn btn-mini" disabled={!!etapa} onClick={aoCancelar}>Cancelar</button>
       </div>
     </div>

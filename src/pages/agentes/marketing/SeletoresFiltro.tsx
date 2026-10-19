@@ -90,7 +90,7 @@ export function SeletorCanais({ f, mudar }: Props) {
   const resumo = !f.canais.length ? 'Todos'
     : <span className="mk-logos">{f.canais.slice(0, 3).map((c) => <LogoRede key={c} rede={c} />)}{f.canais.length === 1 ? REDES[f.canais[0]].nome : `${f.canais.length} canais`}</span>
   return <Painel rotulo="Canais" resumo={resumo} titulo="Canais" itens={itens} escolhidos={f.canais} aoAplicar={aplicar} largura={260}
-    rodape={<Link to="/agentes/marca" className="mk-multi-rodape"><Icone nome="mais" tam={14} /> Ligar outros canais</Link>} />
+    rodape={<Link to="/agentes/marca?aba=canais" className="mk-multi-rodape"><Icone nome="mais" tam={14} /> Ligar outros canais</Link>} />
 }
 
 // formatos que existem nos canais em foco; com um canal só, o nome que ele usa (Reels, Shorts…),
