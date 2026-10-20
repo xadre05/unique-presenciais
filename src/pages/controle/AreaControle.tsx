@@ -1,0 +1,58 @@
+// Área "Controle": serviços pagos (vencimentos, créditos, custo) e a saúde das conexões do sistema. Só para o administrador.
+import { useEffect, useState } from 'react'
+import { Link, NavLink, Navigate, Route, Routes, useLocation } from 'react-router-dom'
+import { supabase } from '../../lib/supabase'
+import { useAuth } from '../../auth'
+import { Marca } from '../../components/ui'
+import { Icone } from '../../components/Icone'
+import { TrocaArea } from '../../components/TrocaArea'
+import PaginaServicos from './PaginaServicos'
+import PaginaConexoes from './PaginaConexoes'
+
+export default function AreaControle() {
+  const { perfil, isAdmin } = useAuth()
+  const local = useLocation()
+  const [menu, setMenu] = useState(false)
+  useEffect(() => { setMenu(false); window.scrollTo(0, 0) }, [local.pathname])
+  useEffect(() => { document.body.classList.toggle('menu-aberto', menu) }, [menu])
+  if (!isAdmin) return <Navigate to="/" replace />
+
+  return (
+    <div className="app area-controle">
+      <header className="topo-movel">
+        <Link to="/controle" className="topo-marca"><img src="/logo-unique.png" alt="Unique" /><span>Controle</span></Link>
+        <button className="btn btn-quadrado topo-menu" aria-label="Abrir menu" onClick={() => setMenu(true)}><Icone nome="menu" /></button>
+      </header>
+      {menu && <div className="fundo-menu" onClick={() => setMenu(false)} />}
+      <aside className={`lateral${menu ? ' aberta' : ''}`}>
+        <button className="btn btn-quadrado fechar-menu" aria-label="Fechar menu" onClick={() => setMenu(false)}><Icone nome="fechar" /></button>
+        <Marca sub="Controle" />
+        <TrocaArea ativa="controle" />
+        <nav>
+          <span className="nav-grupo">Controle</span>
+          <NavLink to="/controle" end><Icone nome="moedas" /> Serviços pagos</NavLink>
+          <NavLink to="/controle/conexoes"><Icone nome="links" /> Conexões do sistema</NavLink>
+        </nav>
+        <div className="lateral-rodape">
+          <div className="avatar"><Icone nome="usuario" tam={20} /></div>
+          <div>
+            <div className="quem">{perfil?.nome || perfil?.email}</div>
+            <div className="muted pequeno">Administrador</div>
+            <button className="link pequeno" onClick={() => supabase.auth.signOut()}>Sair</button>
+          </div>
+        </div>
+      </aside>
+      <nav className="barra-inferior">
+        <NavLink to="/controle" end><Icone nome="moedas" /><span>Serviços</span></NavLink>
+        <NavLink to="/controle/conexoes"><Icone nome="links" /><span>Conexões</span></NavLink>
+      </nav>
+      <main className="conteudo">
+        <Routes>
+          <Route index element={<PaginaServicos />} />
+          <Route path="conexoes" element={<PaginaConexoes />} />
+          <Route path="*" element={<Navigate to="/controle" replace />} />
+        </Routes>
+      </main>
+    </div>
+  )
+}

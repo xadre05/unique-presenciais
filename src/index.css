@@ -3196,3 +3196,11 @@ a.sala-agente:hover { border-color: var(--ouro); transform: translateY(-2px); }
 .mk-camp-ativa { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; padding: 10px 14px; border: 1px solid var(--ouro); border-radius: 12px; background: var(--ouro-fundo); }
 .mk-camp-ativa-txt { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; min-width: 0; }
 .mk-anuncio { font-style: normal; margin-left: 6px; padding: 0 6px; border-radius: 6px; background: var(--ouro-fundo); color: var(--ouro-forte); font-size: .72rem; font-weight: 600; }
+
+/* ── Área Controle ── */
+.tabela tr.apagada td { opacity: .55; }
+.ctl-cartoes { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px; }
+.ctl-cartao { display: flex; flex-direction: column; gap: 6px; }
+.ctl-cartao header { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 4px; }
+.ctl-cartao p { margin: 0; overflow-wrap: anywhere; }
+.ctl-cartao .link { margin-top: auto; padding-top: 6px; }
