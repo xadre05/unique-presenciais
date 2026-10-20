@@ -8,6 +8,7 @@ import { Icone } from '../../components/Icone'
 import { TrocaArea } from '../../components/TrocaArea'
 import VisaoGeral from './VisaoGeral'
 import PaginaPrevisao from './previsao/PaginaPrevisao'
+import PaginaHotmart from './hotmart/PaginaHotmart'
 import Entradas from './Entradas'
 import AReceber from './AReceber'
 import Despesas from './Despesas'
@@ -38,6 +39,7 @@ export default function AreaFinanceiro() {
           <NavLink to="/financeiro/entradas"><Icone nome="moedas" /> Entradas</NavLink>
           <NavLink to="/financeiro/receber"><Icone nome="agenda" /> A receber</NavLink>
           <NavLink to="/financeiro/despesas"><Icone nome="dinheiro" /> Despesas</NavLink>
+          <NavLink to="/financeiro/hotmart"><Icone nome="carrinho" /> Hotmart (extrato)</NavLink>
           <span className="nav-grupo">Ligado a outras áreas</span>
           <NavLink to="/cobrancas"><Icone nome="alerta" /> Dívidas (cobrança)</NavLink>
           <NavLink to="/comissoes"><Icone nome="comissoes" /> Comissões</NavLink>
@@ -65,6 +67,7 @@ export default function AreaFinanceiro() {
           <Route path="entradas" element={<Entradas />} />
           <Route path="receber" element={<AReceber />} />
           <Route path="despesas" element={<Despesas />} />
+          <Route path="hotmart" element={<PaginaHotmart />} />
           <Route path="*" element={<Navigate to="/financeiro" replace />} />
         </Routes>
       </main>

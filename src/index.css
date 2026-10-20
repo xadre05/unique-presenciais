@@ -3186,3 +3186,4 @@ a.sala-agente:hover { border-color: var(--ouro); transform: translateY(-2px); }
 .fin-lancs li { display: grid; grid-template-columns: 44px 1fr auto; gap: 8px; }
 .fin-pend-grupo { margin: 14px 0 6px; font-size: .95rem; }
 @media (max-width: 600px) { .fin-lanc { grid-template-columns: 1fr 1fr; } }
+.fin-neg { color: var(--erro); }
