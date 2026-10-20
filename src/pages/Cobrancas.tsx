@@ -53,7 +53,7 @@ function CartaoCobranca({ c, conta, responsavel, eu, aoMudar }: { c: Cobranca; c
 export default function Cobrancas() {
   const { perfil, isAdmin } = useAuth()
   const cobrancas = useCobrancas(), contas = useContasHotmart()
-  const vendedoras = useConsulta<{ id: string; nome: string }[]>(() => supabase.from('vendedoras').select('id,nome').order('nome'), [])
+  const vendedoras = useConsulta<{ id: string; nome: string }[]>(() => supabase.from('vendedoras').select('id,nome').eq('ativa', true).order('nome'), [])
   const [aba, setAba] = useState<'abertas' | 'resolvidas'>('abertas')
   const [quem, setQuem] = useState('')
   const eu = perfil?.nome || perfil?.email || 'Equipe'
