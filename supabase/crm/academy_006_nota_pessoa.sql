@@ -1,6 +1,6 @@
 -- Nota da pessoa (20/10/2026): cada contato (lead, aluno do online, aluno do presencial) ganha uma nota de 0 a 100 e duas
 -- marcas que dá para filtrar separado:
---   temperatura: quente (sinal de interesse nos últimos 30 dias) · morna (90 dias, ou comprou nos últimos 12 meses) · fria
+--   temperatura: quente (sinal de interesse nos últimos 30 dias) · morna (90 dias, ou pedido novo nos últimos 12 meses) · fria
 --   pagador: bom · atrasou_pagou · devendo · negativado · reembolsou · sem_historico
 -- Recalculada de hora em hora (cron) a partir do que o sistema já tem: Hotmart, matrículas, cobranças e conversas.
 alter table public.contato_resumo
@@ -38,8 +38,9 @@ begin
     from crm_conversas v join crm_mensagens m on m.conversa_id = v.id and m.direcao = 'entrada'
     where v.empresa_id = empresa_unique() group by v.contato_id
   ), ped as (
-    -- qualquer pedido na Hotmart (comprou, tentou e o cartão recusou, boleto que não pagou) conta como sinal de interesse
-    select e.id, max(h.data_pedido) ultimo_pedido from e join hotmart_pagamentos h on lower(h.comprador_email) = e.email group by e.id
+    -- pedido novo na Hotmart (comprou, tentou e o cartão recusou, boleto que não pagou) conta como interesse;
+    -- a cobrança automática das parcelas seguintes (recorrencia > 1) não conta
+    select e.id, max(h.data_pedido) ultimo_pedido from e join hotmart_pagamentos h on lower(h.comprador_email) = e.email and coalesce(h.recorrencia, 1) <= 1 group by e.id
   ), base as (
     select c.id, r.segmento, r.reembolsou, r.ultima_compra, r.total_liquido, greatest(c.ultima_captura_em, c.entrou_em) ultima_captura_em, ped.ultimo_pedido, msg.ultima_entrada,
       coalesce(cob.negativado, false) negativado, coalesce(cob.devendo, false) devendo, coalesce(cob.pagou_atraso, false) pagou_atraso, coalesce(cob.divida, 0) divida
@@ -51,7 +52,7 @@ begin
       case when b.negativado then 'negativado' when b.devendo then 'devendo' when b.reembolsou then 'reembolsou'
            when b.pagou_atraso then 'atrasou_pagou' when b.segmento = 'comprador' then 'bom' else 'sem_historico' end pagador,
       case when greatest(b.ultima_entrada, b.ultima_captura_em, b.ultimo_pedido) > now() - interval '30 days' then 'quente'
-           when greatest(b.ultima_entrada, b.ultima_captura_em, b.ultimo_pedido) > now() - interval '90 days' or b.ultima_compra > now() - interval '12 months' then 'morna'
+           when greatest(b.ultima_entrada, b.ultima_captura_em, b.ultimo_pedido) > now() - interval '90 days' or b.ultimo_pedido > now() - interval '12 months' then 'morna'
            else 'fria' end temperatura
     from base b
   ), notas as (
@@ -63,13 +64,13 @@ begin
       array_remove(array[
         case m.pagador when 'bom' then 'pagou tudo em dia' when 'atrasou_pagou' then 'atrasou e regularizou' when 'reembolsou' then 'pediu reembolso ou chargeback'
              when 'devendo' then 'está devendo R$ ' || replace(to_char(m.divida, 'FM999,999,990'), ',', '.') when 'negativado' then 'negativado ou em negativação' end,
-        case m.temperatura when 'quente' then 'interesse nos últimos 30 dias' when 'morna' then 'interesse nos últimos 90 dias ou comprou no último ano' end,
+        case m.temperatura when 'quente' then 'interesse nos últimos 30 dias' when 'morna' then 'interesse nos últimos 90 dias ou fez pedido novo no último ano' end,
         case when coalesce(m.total_liquido, 0) >= 1000 then 'já comprou R$ ' || replace(to_char(m.total_liquido, 'FM999,999,990'), ',', '.') end], null) motivos
     from marcas m
   )
   update contato_resumo r set temperatura = x.temperatura, pagador = x.pagador, divida = x.divida, nota = x.nota, nota_motivos = x.motivos, nota_em = now()
   from notas x
-  where r.contato_id = x.id and (r.temperatura, r.pagador, r.divida, r.nota) is distinct from (x.temperatura, x.pagador, x.divida, x.nota);
+  where r.contato_id = x.id and (r.temperatura, r.pagador, r.divida, r.nota, r.nota_motivos) is distinct from (x.temperatura, x.pagador, x.divida, x.nota, x.motivos);
   get diagnostics n = row_count;
   return n;
 end $$;

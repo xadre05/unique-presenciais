@@ -7,7 +7,7 @@ export type NotaPessoa = { nota: number | null; temperatura: string | null; paga
 
 export const TEMPERATURA: Record<string, { rotulo: string; tom: string; explica: string }> = {
   quente: { rotulo: 'Quente', tom: 'erro', explica: 'Mandou mensagem, entrou como lead ou tentou comprar nos últimos 30 dias' },
-  morna: { rotulo: 'Morna', tom: 'alerta', explica: 'Sinal de interesse nos últimos 90 dias ou comprou no último ano' },
+  morna: { rotulo: 'Morna', tom: 'alerta', explica: 'Sinal de interesse nos últimos 90 dias ou fez pedido novo no último ano (parcela paga não conta)' },
   fria: { rotulo: 'Fria', tom: 'info', explica: 'Nenhum sinal de interesse há mais de 90 dias' },
 }
 
