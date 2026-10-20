@@ -119,7 +119,7 @@ function Layout() {
           {isAdmin && <Route path="/historico" element={<Historico />} />}
           {isAdmin && <Route path="/configuracoes" element={<Configuracoes />} />}
           {isAdmin && <Route path="/configuracoes/:aba" element={<Configuracoes />} />}
-          {isAdmin && <Route path="/equipe" element={<Navigate to="/configuracoes/equipe" replace />} />}
+          {isAdmin && <Route path="/equipe" element={<Navigate to="/controle/configuracoes/equipe" replace />} />}
           <Route path="*" element={<Navigate to="/" />} />
         </Routes>
       </main>

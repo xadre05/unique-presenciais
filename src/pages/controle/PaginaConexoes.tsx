@@ -19,7 +19,7 @@ function cartaoHotmart(i: Integ): Cartao {
     : !i.credenciais_em ? { tom: 'erro', texto: 'Sem credenciais' }
       : i.ultimo_teste_ok === false ? { tom: 'erro', texto: 'Com erro' }
         : !i.ultimo_aviso_em ? { tom: 'alerta', texto: 'Aviso (webhook) nunca chegou' } : { tom: 'ok', texto: 'Funcionando' }
-  return { nome: i.nome, estado, ir: '/configuracoes/integracoes', linhas: [
+  return { nome: i.nome, estado, ir: '/controle/configuracoes/integracoes', linhas: [
     `Última busca: ${dataHoraBR(i.ultima_sinc_em)}`, `Último aviso da Hotmart: ${dataHoraBR(i.ultimo_aviso_em)}`, ...(i.ultimo_erro ? [`Erro: ${i.ultimo_erro}`] : [])] }
 }
 

@@ -88,8 +88,8 @@ function descrever(e: Ev, ctx: Ctx) {
   const resumo = e.acao === 'UPDATE' ? mudou.slice(0, 2).map((k) => `${ROTULOS[k] ?? k}: ${fmt(k, a[k], e.tabela, ctx)} → ${fmt(k, d[k], e.tabela, ctx)}`).join(' · ') : ''
   const motivo = String(d.motivo_cancelamento || d.ajuste_motivo || d.liberacao_motivo || (st === 'cancelada' ? d.observacao : '') || '') || null
   const link = e.tabela === 'matriculas' ? `/matricula/${e.registro_id}` : matId && ['parcelas', 'comissoes'].includes(e.tabela) ? `/matricula/${ctx.comMat.get(e.registro_id) ?? matId}` : e.tabela === 'alunos' ? `/alunos/${e.registro_id}`
-    : e.tabela === 'turmas' ? `/turmas/${e.registro_id}` : e.tabela === 'encontros' ? `/turmas/${d.turma_id}` : ['comissao_regras', 'comissao_regra_versoes'].includes(e.tabela) ? '/configuracoes/comissoes' : e.tabela === 'links_pagamento' ? '/links' : e.tabela === 'perfis' ? '/configuracoes/equipe'
-    : e.tabela === 'vendedoras' ? '/configuracoes/vendedoras' : e.tabela === 'cursos' ? '/configuracoes/cursos' : e.tabela === 'contas' ? '/configuracoes/contas' : e.tabela === 'hotmart_produtos' ? '/configuracoes/integracoes' : null
+    : e.tabela === 'turmas' ? `/turmas/${e.registro_id}` : e.tabela === 'encontros' ? `/turmas/${d.turma_id}` : ['comissao_regras', 'comissao_regra_versoes'].includes(e.tabela) ? '/configuracoes/comissoes' : e.tabela === 'links_pagamento' ? '/links' : e.tabela === 'perfis' ? '/controle/configuracoes/equipe'
+    : e.tabela === 'vendedoras' ? '/configuracoes/vendedoras' : e.tabela === 'cursos' ? '/configuracoes/cursos' : e.tabela === 'contas' ? '/financeiro/configuracoes/contas' : e.tabela === 'hotmart_produtos' ? '/controle/configuracoes/integracoes' : null
   return { titulo, sub, resumo, motivo, link, mudou }
 }
 

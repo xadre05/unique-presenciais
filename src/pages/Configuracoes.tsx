@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
+import { Link, Navigate, useNavigate, useParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { msgErro, useCadastros, useConsulta } from '../lib/dados'
 import { dataBR } from '../lib/format'
@@ -15,14 +15,22 @@ import { RegrasOnline } from './ComissoesOnline'
 type PerfilC = Perfil & { criado_em: string }
 type Papel = Perfil['papel']
 
+// Cada área de trabalho tem a sua "Configurações", só com o que é dela.
+export type AreaConfig = 'comercial' | 'financeiro' | 'controle'
 const ABAS = [
-  { id: 'equipe', nome: 'Equipe e acessos', icone: 'usuario' },
-  { id: 'vendedoras', nome: 'Vendedoras', icone: 'alunos' },
-  { id: 'cursos', nome: 'Cursos', icone: 'livro' },
-  { id: 'contas', nome: 'Contas de recebimento', icone: 'moedas' },
-  { id: 'comissoes', nome: 'Comissões', icone: 'comissoes' },
-  { id: 'integracoes', nome: 'Integrações', icone: 'links' },
-]
+  { id: 'vendedoras', nome: 'Vendedoras', icone: 'alunos', area: 'comercial' },
+  { id: 'cursos', nome: 'Cursos', icone: 'livro', area: 'comercial' },
+  { id: 'comissoes', nome: 'Comissões', icone: 'comissoes', area: 'comercial' },
+  { id: 'contas', nome: 'Contas de recebimento', icone: 'moedas', area: 'financeiro' },
+  { id: 'equipe', nome: 'Equipe e acessos', icone: 'usuario', area: 'controle' },
+  { id: 'integracoes', nome: 'Integrações', icone: 'links', area: 'controle' },
+] as const
+const BASE: Record<AreaConfig, string> = { comercial: '/configuracoes', financeiro: '/financeiro/configuracoes', controle: '/controle/configuracoes' }
+const TEXTO: Record<AreaConfig, string> = {
+  comercial: 'Vendedoras, cursos e comissões. Só administrador vê esta página, e toda alteração fica no Histórico.',
+  financeiro: 'Contas onde o dinheiro entra. Só administrador vê esta página, e toda alteração fica no Histórico.',
+  controle: 'Quem entra no sistema (e em quais áreas) e as ligações com Hotmart, Asaas e notificação extrajudicial. Valem para todas as áreas.',
+}
 
 export const PAPEIS: Record<Papel, { rotulo: string; tom: string; situacao: string; descricao: string }> = {
   admin: { rotulo: 'Administrador', tom: 'ouro', situacao: 'Ativo', descricao: 'Vê tudo. Confirma recebimentos, libera e paga comissões, cria links, vê o histórico e mexe nas configurações.' },
@@ -38,18 +46,22 @@ const USOS: Record<string, { rotulo: string; tom: string; dica: string }> = {
 }
 const TIPOS: Record<string, string> = { banco: 'Banco (Pix / transferência)', hotmart: 'Hotmart', especie: 'Dinheiro em espécie', outro: 'Outro' }
 
-export default function Configuracoes() {
-  const { aba = 'equipe' } = useParams()
+export default function Configuracoes({ area = 'comercial' }: { area?: AreaConfig }) {
+  const { aba } = useParams()
   const navegar = useNavigate()
-  const atual = ABAS.find((a) => a.id === aba) ?? ABAS[0]
+  const daArea = ABAS.filter((a) => a.area === area)
+  const pedida = ABAS.find((a) => a.id === aba)
+  // endereço antigo (ex.: /configuracoes/equipe) leva para a área certa
+  if (pedida && pedida.area !== area) return <Navigate to={`${BASE[pedida.area]}/${pedida.id}`} replace />
+  const atual = pedida ?? daArea[0]
   return (
     <div className="pagina">
       <header className="pagina-topo">
-        <div><h1>Configurações</h1><p className="muted">Equipe, cadastros, comissões e integrações. Só administrador vê esta página, e toda alteração fica no Histórico.</p></div>
+        <div><h1>Configurações</h1><p className="muted">{TEXTO[area]}</p></div>
       </header>
-      <nav className="abas">
-        {ABAS.map((a) => <button key={a.id} className={a.id === atual.id ? 'ativa' : ''} onClick={() => navegar(`/configuracoes/${a.id}`)}><Icone nome={a.icone} tam={16} /> {a.nome}</button>)}
-      </nav>
+      {daArea.length > 1 && <nav className="abas">
+        {daArea.map((a) => <button key={a.id} className={a.id === atual.id ? 'ativa' : ''} onClick={() => navegar(`${BASE[area]}/${a.id}`)}><Icone nome={a.icone} tam={16} /> {a.nome}</button>)}
+      </nav>}
       {atual.id === 'equipe' && <AbaEquipe />}
       {atual.id === 'vendedoras' && <AbaVendedoras />}
       {atual.id === 'cursos' && <AbaCursos />}

@@ -8,6 +8,7 @@ import { Icone } from '../../components/Icone'
 import { TrocaArea } from '../../components/TrocaArea'
 import PaginaServicos from './PaginaServicos'
 import PaginaConexoes from './PaginaConexoes'
+import Configuracoes from '../Configuracoes'
 
 export default function AreaControle() {
   const { perfil, isAdmin } = useAuth()
@@ -32,6 +33,8 @@ export default function AreaControle() {
           <span className="nav-grupo">Controle</span>
           <NavLink to="/controle" end><Icone nome="links" /> Está tudo no ar?</NavLink>
           <NavLink to="/controle/servicos"><Icone nome="moedas" /> Serviços pagos</NavLink>
+          <span className="nav-grupo">Ajustes</span>
+          <NavLink to="/controle/configuracoes"><Icone nome="equipe" /> Configurações</NavLink>
         </nav>
         <div className="lateral-rodape">
           <div className="avatar"><Icone nome="usuario" tam={20} /></div>
@@ -51,6 +54,8 @@ export default function AreaControle() {
           <Route index element={<PaginaConexoes />} />
           <Route path="servicos" element={<PaginaServicos />} />
           <Route path="conexoes" element={<Navigate to="/controle" replace />} />
+          <Route path="configuracoes" element={<Configuracoes area="controle" />} />
+          <Route path="configuracoes/:aba" element={<Configuracoes area="controle" />} />
           <Route path="*" element={<Navigate to="/controle" replace />} />
         </Routes>
       </main>

@@ -172,7 +172,7 @@ export default function NovaMatricula() {
     if (modoAluno === 'novo' && !novo.whatsapp?.trim()) return setErro('Informe o WhatsApp do aluno novo.')
     if (modoAluno === 'novo' && duplicado) return setErro(`Já existe um aluno com esses dados: ${duplicado.nome}. Use o cadastro existente.`)
     if (!turmaId) return setErro('Escolha a turma.')
-    if (!isAdmin && !minhaVendedora) return setErro('Seu login ainda não está ligado a uma vendedora. Peça ao administrador para fazer isso em Configurações → Equipe e acessos.')
+    if (!isAdmin && !minhaVendedora) return setErro('Seu login ainda não está ligado a uma vendedora. Peça ao administrador para fazer isso em Controle → Configurações → Equipe e acessos.')
     if (origem === 'venda' && !vendedoraId) return setErro('Escolha o vendedor responsável (é por ele que a comissão é calculada).')
     if (valorTabela === null) return setErro('Informe o valor contratado (pode ser zero em cortesia).')
     if ((desconto ?? 0) > valorTabela) return setErro('O desconto é maior que o valor contratado.')

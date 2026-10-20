@@ -12,6 +12,7 @@ import PaginaHotmart from './hotmart/PaginaHotmart'
 import Entradas from './Entradas'
 import AReceber from './AReceber'
 import Despesas from './Despesas'
+import Configuracoes from '../Configuracoes'
 
 export default function AreaFinanceiro() {
   const { perfil, isAdmin } = useAuth()
@@ -43,6 +44,8 @@ export default function AreaFinanceiro() {
           <span className="nav-grupo">Ligado a outras áreas</span>
           <NavLink to="/cobrancas"><Icone nome="alerta" /> Dívidas (cobrança)</NavLink>
           <NavLink to="/comissoes"><Icone nome="comissoes" /> Comissões</NavLink>
+          <span className="nav-grupo">Ajustes</span>
+          <NavLink to="/financeiro/configuracoes"><Icone nome="equipe" /> Configurações</NavLink>
         </nav>
         <div className="lateral-rodape">
           <div className="avatar"><Icone nome="usuario" tam={20} /></div>
@@ -68,6 +71,8 @@ export default function AreaFinanceiro() {
           <Route path="receber" element={<AReceber />} />
           <Route path="despesas" element={<Despesas />} />
           <Route path="hotmart" element={<PaginaHotmart />} />
+          <Route path="configuracoes" element={<Configuracoes area="financeiro" />} />
+          <Route path="configuracoes/:aba" element={<Configuracoes area="financeiro" />} />
           <Route path="*" element={<Navigate to="/financeiro" replace />} />
         </Routes>
       </main>

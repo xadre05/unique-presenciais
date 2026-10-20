@@ -44,7 +44,7 @@ export default function AreaAgentes() {
           <NavLink to="/agentes/historico"><Icone nome="historico" /> Histórico</NavLink>
           <span className="nav-grupo">Gestão</span>
           <NavLink to="/agentes/marca"><Icone nome="livro" /> Base da marca</NavLink>
-          <NavLink to="/agentes/central"><Icone nome="atualizar" /> Configurações</NavLink>
+          <NavLink to="/agentes/central"><Icone nome="equipe" /> Configurações</NavLink>
         </nav>
         <div className="lateral-rodape">
           <div className="avatar"><Icone nome="usuario" tam={20} /></div>

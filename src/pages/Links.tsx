@@ -132,7 +132,7 @@ export default function Links() {
         ? <div className="nota pequeno">Os links da Hotmart que você copiar aqui já saem com o seu código (<code>src={meuCodigo}</code>): a venda cai no seu nome na Hotmart e na sua comissão.</div>
         : isAdmin && <p className="muted pequeno">Você está como administrador: o link sai sem código de vendedora. Cada vendedora, logada com o acesso dela, copia o link já com o código dela.</p>}
       {sinc.msg && <div className="aviso">{sinc.msg}</div>}
-      {sinc.erro && <div className="erro">{sinc.erro}{/credenciais/i.test(sinc.erro) && <> Veja o passo a passo em <Link to="/configuracoes/integracoes" className="link">Configurações → Integrações</Link>.</>}</div>}
+      {sinc.erro && <div className="erro">{sinc.erro}{/credenciais/i.test(sinc.erro) && <> Veja o passo a passo em <Link to="/controle/configuracoes/integracoes" className="link">Controle → Configurações → Integrações</Link>.</>}</div>}
 
       <label className="select-icone busca-larga"><Icone nome="busca" /><input placeholder="Buscar curso, turma, aluno ou link…" value={busca} onChange={(e) => setBusca(e.target.value)} /></label>
       <div className="filtros-comissoes">
@@ -182,7 +182,7 @@ export default function Links() {
               <h2><Icone nome="livro" className="ouro" /> {c.nome} <span className="muted pequeno">{ls.length} link(s)</span></h2>
               {isAdmin && <button className="btn btn-mini" onClick={() => setEditando({ tipo: 'hotmart', ativo: true, ordem: 10, finalidade: 'integral', origem: 'manual', curso_id: c.id })}><Icone nome="mais" tam={14} /> Link</button>}
             </div>
-            {ls.length === 0 ? <p className="muted pequeno">Nenhum link {mostrar === 'ativos' ? 'ativo ' : ''}para este curso.{isAdmin && ' Cadastre à mão ou ligue o produto da Hotmart a este curso em Configurações → Integrações.'}</p>
+            {ls.length === 0 ? <p className="muted pequeno">Nenhum link {mostrar === 'ativos' ? 'ativo ' : ''}para este curso.{isAdmin && ' Cadastre à mão ou ligue o produto da Hotmart a este curso em Controle → Configurações → Integrações.'}</p>
               : ls.map((l) => <Linha key={l.id} l={l} />)}
           </section>
         )
@@ -192,7 +192,7 @@ export default function Links() {
       )}
       {todos.length === 0 && !links.carregando && <Vazio>Nenhum link com esses filtros.</Vazio>}
 
-      {isAdmin && <p className="muted pequeno">Para os links da Hotmart virem sozinhos, ligue cada produto da Hotmart a um curso em <Link to="/configuracoes/integracoes" className="link">Configurações → Integrações</Link>.</p>}
+      {isAdmin && <p className="muted pequeno">Para os links da Hotmart virem sozinhos, ligue cada produto da Hotmart a um curso em <Link to="/controle/configuracoes/integracoes" className="link">Controle → Configurações → Integrações</Link>.</p>}
       <p className="muted pequeno">Cadastro e edição: administrador. Consulta e cópia: toda a equipe.</p>
 
       {isAdmin && <FormLink link={editando} cursos={cad.cursos} turmas={cad.turmas} alunos={alunos.dados ?? []} grupos={grupos.dados ?? []} onFechar={() => setEditando(null)} onSalvo={() => { setEditando(null); links.recarregar() }} />}

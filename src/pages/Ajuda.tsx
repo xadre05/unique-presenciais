@@ -118,7 +118,7 @@ export default function Ajuda() {
           <h2>Para o administrador: liberar alguém novo</h2>
           <ol>
             <li>A pessoa abre o sistema, clica em <b>Criar minha conta</b> e se cadastra com o e-mail dela.</li>
-            <li>Você vai em <b>Configurações → Equipe e acessos</b>, clica em <b>Liberar</b> e escolhe <b>Vendedora</b> ou <b>Administrador</b>.</li>
+            <li>Você vai em <b>Controle → Configurações → Equipe e acessos</b>, clica em <b>Liberar</b> e escolhe <b>Vendedora</b> ou <b>Administrador</b>.</li>
             <li>Se for vendedora, escolha na mesma tela a <b>Vendedora vinculada</b> — é isso que faz a matrícula sair no nome certo e a comissão aparecer para ela.</li>
             <li>Ela clica em "Já liberaram meu acesso — entrar" e pronto.</li>
           </ol>

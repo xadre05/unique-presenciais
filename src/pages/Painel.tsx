@@ -81,7 +81,7 @@ export default function Painel() {
       </div>
 
       {isAdmin && (pendentesAcesso.dados?.length ?? 0) > 0 && (
-        <div className="nota">{pendentesAcesso.dados!.length} pessoa(s) criaram conta e estão esperando você liberar o acesso. <Link to="/configuracoes/equipe" className="link">Liberar agora</Link></div>
+        <div className="nota">{pendentesAcesso.dados!.length} pessoa(s) criaram conta e estão esperando você liberar o acesso. <Link to="/controle/configuracoes/equipe" className="link">Liberar agora</Link></div>
       )}
 
       <h2 className="titulo-secao">Presencial <span className="muted pequeno">· {isAdmin ? 'turmas do filtro acima, valores da turma inteira' : 'só as suas vendas, nas turmas do filtro acima'} (desde a venda, sem recorte de mês) · <Link to="/pagamentos" className="link">ver pagamentos</Link></span></h2>
