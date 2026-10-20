@@ -228,3 +228,8 @@ language sql stable security definer set search_path = public as $$
 $$;
 revoke all on function public.cobrancas_para_negativar() from public, anon;
 grant execute on function public.cobrancas_para_negativar() to authenticated;
+
+-- (008e, 20/10) "vencida" passa a ser pela data: parcela que falta e cuja data já passou (a 1ª em aberto e as seguintes,
+-- mês a mês). Quando o plano é cancelado, a Hotmart para de listar as parcelas seguintes, mas a data delas passa do mesmo
+-- jeito; contar só a lista da Hotmart escondia R$ 146 mil já vencidos. valor_restante = tudo o que falta do contrato.
+-- (a versão em produção da v_cobranca_online é a de academy_008e_cobranca_vencido_por_data; esta acima foi a primeira)

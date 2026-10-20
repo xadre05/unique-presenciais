@@ -68,9 +68,9 @@ export default function FilaCobranca() {
 
       {tela === 'recebimentos' ? <RecebimentosCobranca cobrancas={cobrancas.dados ?? []} nomeVend={nomeVend} aoMudar={cobrancas.recarregar} /> : (<>
         <section className="kpis at-kpis-4">
-          <Kpi rotulo="Em aberto" valor={String(abertas.length)} sub={`${new Set(abertas.map((c) => c.email ?? c.chave)).size} pessoas`} />
-          <Kpi rotulo="Já vencido" valor={brl(somaVencido(abertas))} tom="erro" sub="parcelas que passaram da data" />
-          <Kpi rotulo="Falta do contrato" valor={brl(somaRestante(abertas))} sub="vencido + o que ainda ia vencer" />
+          <Kpi rotulo="Dívida total" valor={brl(somaRestante(abertas))} tom="erro" sub={`${new Set(abertas.map((c) => c.email ?? c.chave)).size} pessoas · tudo o que falta pagar do contrato`} />
+          <Kpi rotulo="Já venceu" valor={brl(somaVencido(abertas))} sub="parte da dívida com a data já passada" />
+          <Kpi rotulo="Ainda vai vencer" valor={brl(somaRestante(abertas) - somaVencido(abertas))} sub="parte da dívida com data no futuro" />
           <Kpi rotulo="Em acordo" valor={brl(emAcordo.reduce((s, c) => s + Number(c.acordo_valor ?? 0), 0))} tom="ok" sub={`${emAcordo.length} acordo(s)`} />
         </section>
 

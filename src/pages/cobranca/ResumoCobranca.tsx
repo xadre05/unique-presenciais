@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { brl } from '../../lib/format'
 import { Icone } from '../../components/Icone'
 import { aberta, useCobrancas, useRecebimentos } from './dados'
-import { somaVencido } from './filtros'
+import { somaRestante, somaVencido } from './filtros'
 
 export function ResumoCobranca({ origem, conta = '' }: { origem: 'online' | 'presencial'; conta?: string }) {
   const cobrancas = useCobrancas(), rec = useRecebimentos()
@@ -16,7 +16,8 @@ export function ResumoCobranca({ origem, conta = '' }: { origem: 'online' | 'pre
     <section className="bloco">
       <h2><Icone nome="sacola" className="ouro" /> Cobrança {origem === 'online' ? 'do online' : 'do presencial'}</h2>
       <dl className="resumo">
-        {linha('Em aberto', `${abertas.length} · ${brl(somaVencido(abertas))} vencido`, 'erro-txt')}
+        {linha('Dívida total', `${abertas.length} · ${brl(somaRestante(abertas))}`, 'erro-txt')}
+        {linha('Já venceu', brl(somaVencido(abertas)))}
         {linha('Ainda não contatados', abertas.filter((c) => c.etapa === 'a_contatar').length)}
         {linha('Aguardando resposta', abertas.filter((c) => c.etapa === 'aguardando').length)}
         {linha('Negociando ou em acordo', abertas.filter((c) => c.etapa === 'negociando' || c.etapa === 'acordo').length)}

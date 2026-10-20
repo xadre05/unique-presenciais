@@ -52,8 +52,7 @@ export function CartaoCobranca({ c, conta, responsavel, eu, hoje, isAdmin, marca
         <Badge tom={e.tom}>{e.rotulo}</Badge>
       </div>
       <div className="cob-valores">
-        <span><small className="muted">Vencido</small><b className="erro-txt">{brl(c.valor_vencido)}</b><small className="muted">{c.cobrancas_vencidas ?? 0} parcela(s)</small></span>
-        {Number(c.valor_restante) > Number(c.valor_vencido) && <span><small className="muted">Falta do contrato</small><b>{brl(c.valor_restante)}</b></span>}
+        <span><small className="muted">Deve no total</small><b className="erro-txt">{brl(c.valor_restante ?? c.valor_vencido)}</b><small className="muted">{Number(c.valor_restante) > Number(c.valor_vencido) ? `${brl(c.valor_vencido)} já venceu (${c.cobrancas_vencidas ?? 0} parc.)` : `${c.cobrancas_vencidas ?? 0} parcela(s), todas vencidas`}</small></span>
         <span><small className="muted">1ª parcela em aberto</small><b>{dataBR(c.parou_em)}</b>{c.ultimo_pagamento_em && <small className="muted">último pago {dataBR(c.ultimo_pagamento_em)}</small>}</span>
         {c.etapa === 'acordo' && c.acordo_valor != null && <span><small className="muted">Acordo</small><b className="ouro-txt">{brl(c.acordo_valor)}</b><small className="muted">{c.acordo_parcelas}x · 1º {dataBR(c.acordo_primeiro_venc)}</small></span>}
         {c.promessa_em && c.etapa === 'negociando' && <span><small className="muted">Prometeu até</small><b>{dataBR(c.promessa_em)}</b></span>}
