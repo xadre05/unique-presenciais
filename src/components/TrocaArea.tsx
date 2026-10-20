@@ -7,8 +7,8 @@ import { Icone } from './Icone'
 const AREAS = [
   { id: 'comercial', nome: 'Comercial', para: '/', icone: 'painel' },
   { id: 'atendimento', nome: 'Atendimento', para: '/atendimento', icone: 'whats' },
-  { id: 'agentes', nome: 'Agentes', para: '/agentes', icone: 'equipe', soAdmin: true },
   { id: 'financeiro', nome: 'Financeiro', para: '/financeiro', icone: 'dinheiro', soAdmin: true },
+  { id: 'agentes', nome: 'Agentes', para: '/agentes', icone: 'equipe', soAdmin: true },
 ] as const
 
 export function TrocaArea({ ativa }: { ativa: (typeof AREAS)[number]['id'] }) {
