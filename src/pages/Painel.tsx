@@ -7,6 +7,7 @@ import type { ParcelaV, Turma } from '../lib/types'
 import { Badge, KpiIcone, Vazio } from '../components/ui'
 import { Icone } from '../components/Icone'
 import { PainelOnline } from './Online'
+import { ResumoCobranca } from './cobranca/ResumoCobranca'
 import { useAuth } from '../auth'
 
 export default function Painel() {
@@ -43,6 +44,9 @@ export default function Painel() {
   }).filter((c) => c.turmas > 0)
   const pendentesCom = cs.filter((c) => c.status === 'pendente').length
   const [verDetalhe, setVerDetalhe] = useState(false)
+  const [area, setArea] = useState<'presencial' | 'online'>(() => { try { return sessionStorage.getItem('unique.painelArea') === 'online' ? 'online' : 'presencial' } catch { return 'presencial' } })
+  const mudarArea = (a: 'presencial' | 'online') => { setArea(a); try { sessionStorage.setItem('unique.painelArea', a) } catch { /* sem armazenamento */ } }
+  const verOnline = isAdmin && area === 'online'
 
   return (
     <div className="pagina painel">
@@ -53,6 +57,13 @@ export default function Painel() {
         </div>
         <Link to="/matricula/nova" className="btn btn-ouro btn-grande"><Icone nome="mais" /> Nova matrícula</Link>
       </header>
+
+      {isAdmin && <nav className="abas painel-areas" role="tablist">
+        <button type="button" role="tab" aria-selected={area === 'presencial'} className={area === 'presencial' ? 'ativa' : ''} onClick={() => mudarArea('presencial')}><Icone nome="turmas" tam={16} /> Presencial</button>
+        <button type="button" role="tab" aria-selected={area === 'online'} className={area === 'online' ? 'ativa' : ''} onClick={() => mudarArea('online')}><Icone nome="links" tam={16} /> Online (Hotmart)</button>
+      </nav>}
+
+      {verOnline ? <PainelOnline /> : (<>
 
       <div className="filtros-painel">
         <label className="select-icone"><Icone nome="turmas" />
@@ -82,13 +93,11 @@ export default function Painel() {
         <KpiIcone icone="alerta" rotulo="Em atraso" valor={brl(soma('atrasado'))} tom="erro" sub={`${atrasadas.length} parcela(s) vencida(s)`} subTom={atrasadas.length ? 'erro' : undefined} />
       </section>
 
-      {isAdmin && <PainelOnline />}
-
 
       <div className="painel-grade">
         <div className="painel-col">
           <section className="bloco">
-            <h2><Icone nome="sacola" className="ouro" /> Cobrar agora <Badge tom="erro">{atrasadas.length}</Badge></h2>
+            <h2><Icone nome="sacola" className="ouro" /> Parcelas atrasadas do presencial <Badge tom="erro">{atrasadas.length}</Badge></h2>
             {atrasadas.length === 0 ? <Vazio>Nenhuma parcela atrasada.</Vazio> : (
               <ul className="lista">
                 {atrasadas.map((p) => (
@@ -142,6 +151,8 @@ export default function Painel() {
         </div>
 
         <div className="painel-col">
+          <ResumoCobranca origem="presencial" />
+
           <section className="bloco">
             <h2><Icone nome="check" className={conferir.length ? 'info' : 'ok'} /> Conferência {conferir.length > 0 && <Badge tom="info">{conferir.length}</Badge>}</h2>
             {conferir.length === 0 ? (
@@ -215,6 +226,7 @@ export default function Painel() {
           </div>
         ))}
       </section>
+      </>)}
     </div>
   )
 }

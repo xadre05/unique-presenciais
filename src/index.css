@@ -3055,3 +3055,20 @@ a.sala-agente:hover { border-color: var(--ouro); transform: translateY(-2px); }
 .cob-historico { list-style: none; margin: 0; padding: 10px 0 0; border-top: 1px solid var(--borda); display: flex; flex-direction: column; gap: 8px; }
 .cob-historico li { display: flex; flex-direction: column; gap: 2px; font-size: .86rem; }
 .cob-historico small { white-space: pre-wrap; }
+
+/* Fila de cobrança (Atendimento → Cobranças) */
+.cob-item.marcado { border-color: var(--ouro); }
+.cob-quem { display: flex; gap: 10px; align-items: flex-start; }
+.cob-quem input[type="checkbox"] { margin-top: 4px; width: 16px; height: 16px; flex: none; }
+.cob-rodape span { white-space: nowrap; }
+.cob-filtros { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
+.cob-filtros .select-icone { flex: 1 1 180px; min-width: 0; }
+.cob-filtros .select-icone:first-child { flex: 2 1 260px; }
+.cob-selecao { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
+.cob-lote { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; background: var(--painel); border: 1px solid var(--ouro); border-radius: var(--raio); padding: 8px 12px; }
+.cob-lote .select-icone { min-width: 200px; }
+.cob-linha2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; align-items: end; }
+.cob-receb { display: flex; flex-direction: column; gap: 14px; }
+.cob-receb .cob-linha2 { max-width: 360px; }
+.painel-areas { margin-top: 0; }
+@media (max-width: 640px) { .cob-linha2 { grid-template-columns: 1fr; } .cob-quem b { word-break: break-word; } }

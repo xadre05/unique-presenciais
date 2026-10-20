@@ -19,6 +19,7 @@ import { AvisoNumeros, AvisosConversas } from '../../crm/Avisos'
 import Contatos from '../crm/Contatos'
 import Listas from '../crm/Listas'
 import ListaTrabalho from '../crm/ListaTrabalho'
+import FilaCobranca from '../cobranca/FilaCobranca'
 import { EMPRESA_UNIQUE, SEGMENTOS, STATUS_LISTA } from '../crm/comum'
 import { brl, dataBR } from '../../lib/format'
 
@@ -63,6 +64,7 @@ export default function AreaAtendimento() {
     <NavLink to="/atendimento" end><Icone nome="whats" /> Conversas</NavLink>
     <NavLink to="/atendimento/funil"><Icone nome="comissoes" /> Funil</NavLink>
     <NavLink to="/atendimento/listas"><Icone nome="lista" /> {isAdmin ? 'Listas manuais' : 'Minhas listas'}</NavLink>
+    <NavLink to="/atendimento/cobrancas"><Icone nome="moedas" /> Cobranças</NavLink>
     {isAdmin && <NavLink to="/atendimento/painel"><Icone nome="grafico" /> Painel</NavLink>}
     {isAdmin && <NavLink to="/atendimento/contatos"><Icone nome="contatos" /> Contatos</NavLink>}
     {isAdmin && <NavLink to="/atendimento/captura"><Icone nome="importar" /> Captura de leads</NavLink>}
@@ -107,6 +109,7 @@ export default function AreaAtendimento() {
           <Route path="funil" element={<div className="pagina larga at-pagina"><header className="pagina-topo at-titulo-pagina"><div><h1>Funil de vendas</h1><p className="muted">Acompanhe as oportunidades e as próximas ações.</p></div></header><Funil empresaId={EMPRESA_UNIQUE} base={base} painelExtra={extra} /></div>} />
           <Route path="listas" element={<Listas />} />
           <Route path="listas/:id" element={<ListaTrabalho />} />
+          <Route path="cobrancas" element={<FilaCobranca key={local.search} />} />
           {isAdmin && <Route path="contatos" element={<Contatos />} />}
           {isAdmin && <Route path="disparos" element={<div className="pagina"><header className="pagina-topo"><div><h1>Disparos</h1><p className="muted">Mensagem para muitos contatos pelo número da empresa, no ritmo seguro de cada número. Para criar um, filtre em <Link to="/atendimento/contatos" className="link">Contatos</Link> e clique em “Disparar”.</p></div></header><Disparos empresaId={EMPRESA_UNIQUE} base={base} /></div>} />}
           {isAdmin && <Route path="captura" element={<Captura empresaId={EMPRESA_UNIQUE} base={base} />} />}

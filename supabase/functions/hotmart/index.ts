@@ -1,5 +1,5 @@
 // Integração com a Hotmart (só leitura). Chamado pela tela (administrador) ou pela busca automática (cron).
-// Ações: testar · ofertas · pagamentos · membros · tudo. As credenciais ficam cifradas no banco (Vault), cadastradas pela tela.
+// Ações: testar · ofertas · pagamentos · assinaturas · membros · tudo. As credenciais ficam cifradas no banco (Vault), cadastradas pela tela.
 import { createClient, type SupabaseClient } from 'npm:@supabase/supabase-js@2.45.4'
 
 const cors = {
@@ -127,6 +127,54 @@ async function membros(db: SupabaseClient, tk: string, subdominio: string) {
   return { membros: users.length, status, formato, campos: users[0] ? Object.keys(users[0]) : [] }
 }
 
+// Parcelamento Hotmart e assinaturas (a área "Recuperação" da Hotmart): status de cada uma (em dia, em atraso, cancelada),
+// quantas cobranças tem o plano e a próxima data. É daqui que a fila de cobrança sabe quem está devendo. Só leitura.
+async function assinaturas(db: SupabaseClient, integ: Integ, tk: string) {
+  const agora = new Date().toISOString()
+  // o resumo traz o Parcelamento Hotmart (billing_type SMART_INSTALLMENT) com as cobranças não pagas; sem data só vem o recente
+  const its = await paginas(`${API}/payments/api/v1/subscriptions/summary`, tk, { accession_date: String(Date.UTC(2020, 0, 1)) }, 200)
+  // a Hotmart pode repetir a mesma assinatura entre páginas: fica a última
+  const unicas = [...new Map(its.map((a) => [String(a.subscription_id ?? a.subscriber_code), a])).values()]
+  const lote = unicas.map((a) => {
+    const naoPagas = (a.unpaid_recurrencies ?? []) as { number?: number; charge_date?: number }[]
+    return {
+      id: String(a.subscription_id ?? a.subscriber_code), integracao_id: integ.id, assinante: a.subscriber_code ?? null, status: a.status ?? null,
+      produto_id: a.product?.id ?? null, produto_nome: a.product?.name ?? null, oferta_codigo: a.offer?.code ?? null,
+      tipo: a.last_recurrency?.billing_type ?? null, ciclos: a.lifetime ?? null, ultima_parcela: a.last_recurrency?.number ?? null,
+      ultima_parcela_status: a.last_recurrency?.status ?? null, nao_pagas: naoPagas.length,
+      primeira_nao_paga: quando(naoPagas.map((x) => Number(x.charge_date ?? 0)).filter(Boolean).sort((x, y) => x - y)[0]),
+      adesao: quando(a.accession_date), proxima_cobranca: quando(a.date_next_charge),
+      email: a.subscriber?.email ? String(a.subscriber.email).toLowerCase() : null, nome: a.subscriber?.name ?? null, bruto: a, sincronizado_em: agora,
+    }
+  })
+  for (let i = 0; i < lote.length; i += 500) {
+    const { error } = await db.from('hotmart_assinaturas').upsert(lote.slice(i, i + 500), { onConflict: 'id' })
+    if (error) throw new Error(error.message)
+  }
+  const status: Record<string, number> = {}
+  for (const a of lote) status[String(a.status)] = (status[String(a.status)] ?? 0) + 1
+  return { assinaturas: lote.length, status }
+}
+
+// CPF e telefone de quem está devendo (para negociar e, se for o caso, negativar). Só leitura; busca só quem ainda não tem.
+async function compradores(db: SupabaseClient, integ: Integ, tk: string, limite = 150) {
+  const { data: faltam } = await db.rpc('compradores_sem_documento', { p_integracao: integ.id, p_limite: limite })
+  let achados = 0
+  for (const f of (faltam ?? []) as { email: string; transacao: string }[]) {
+    const r = await fetch(`${API}/payments/api/v1/sales/users?transaction=${encodeURIComponent(f.transacao)}`, { headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${tk}` } })
+    if (!r.ok) continue
+    const d = await r.json()
+    const users = ((d.items ?? [])[0]?.users ?? []) as Record<string, any>[]
+    const u = (users.find((x) => String(x.role).toUpperCase() === 'BUYER') ?? users[0])?.user ?? {}
+    const docs = (u.documents ?? []) as { value?: string; type?: string }[]
+    const doc = String((docs.find((x) => String(x.type).toUpperCase() === 'CPF') ?? docs[0])?.value ?? '').replace(/\D/g, '') || null
+    const fone = String(u.cellphone || u.phone || '').replace(/\D/g, '') || null
+    await db.from('hotmart_compradores').upsert({ email: f.email, documento: doc, telefone: fone, nome: u.name ?? null, consultado_em: new Date().toISOString() }, { onConflict: 'email' })
+    if (doc) achados++
+  }
+  return { consultados: (faltam ?? []).length, com_documento: achados }
+}
+
 // Status que a busca traz. Sem filtro a Hotmart só devolve aprovados; para ver reembolso e cancelamento é preciso pedir cada um.
 const APROVADOS = ['APPROVED', 'COMPLETE']
 const DESFEITOS = ['REFUNDED', 'CHARGEBACK', 'CANCELLED', 'PROTESTED', 'PARTIALLY_REFUNDED', 'DISPUTE']
@@ -212,6 +260,24 @@ Deno.serve(async (req) => {
         catch (e) { resultado[integ.id] = { ok: false, erro: (e as Error).message } }
         continue
       }
+      if (acao === 'sonda') {
+        // só leitura: mostra a forma da resposta de uma consulta (sem nomes, e-mails ou documentos) para ligar uma integração nova
+        const caminhos = ['/payments/api/v1/subscriptions', '/payments/api/v1/sales/users', '/payments/api/v1/subscriptions/summary']
+        if (!caminhos.includes(String(corpo.caminho))) { resultado[integ.id] = { ok: false, erro: 'Consulta não permitida.' }; continue }
+        const u = new URL(`${API}${corpo.caminho}`)
+        for (const [k, v] of Object.entries((corpo.params ?? {}) as Record<string, string>)) u.searchParams.set(k, String(v))
+        const rr = await fetch(u, { headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${tk}` } })
+        const d = await rr.json().catch(() => null)
+        const STATUS = /status|type|period|cycle|currency|recurr|trial|max|number|date|lifetime/i
+        const mascara = (v: unknown, k = ''): unknown => Array.isArray(v) ? v.slice(0, 2).map((x) => mascara(x, k))
+          : v && typeof v === 'object' ? Object.fromEntries(Object.entries(v as Record<string, unknown>).map(([kk, vv]) => [kk, mascara(vv, kk)]))
+          : typeof v === 'string' && (!STATUS.test(k) || /^\d{8,}$/.test(v)) ? `texto(${v.length})` : v
+        const its = (d?.items ?? []) as Record<string, any>[]
+        const st: Record<string, number> = {}
+        for (const it of its) { const s = String(it.status ?? it.subscription?.status ?? ''); st[s] = (st[s] ?? 0) + 1 }
+        resultado[integ.id] = { ok: rr.ok, http: rr.status, itens: its.length, proxima: !!d?.page_info?.next_page_token, total: d?.page_info?.total_results ?? null, status: st, exemplo: mascara(its[0] ?? d) }
+        continue
+      }
       if (acao === 'diagnostico') {
         const extra: Record<string, string> = {}
         if (corpo.inicio) extra.start_date = String(corpo.inicio)
@@ -225,6 +291,10 @@ Deno.serve(async (req) => {
         continue
       }
       if (acao === 'ofertas' || (acao === 'tudo' && integ.traz_ofertas)) r.ofertas = await ofertas(db, integ, tk)
+      if (acao === 'assinaturas' || (acao === 'tudo' && integ.traz_pagamentos)) {
+        try { r.assinaturas = await assinaturas(db, integ, tk) } catch (e) { r.assinaturas = { erro: (e as Error).message } }
+        try { r.compradores = await compradores(db, integ, tk) } catch (e) { r.compradores = { erro: (e as Error).message } }
+      }
       if (acao === 'pagamentos' || (acao === 'tudo' && integ.traz_pagamentos)) {
         // janela: datas exatas (histórico, mês a mês) ou os últimos N dias
         const fim = Number(corpo.fim) || Date.now()

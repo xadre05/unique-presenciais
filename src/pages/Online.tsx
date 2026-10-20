@@ -6,11 +6,11 @@ import { useConsulta, buscarTudo } from '../lib/dados'
 import { brl, dataBR, hojeISO, mesAno } from '../lib/format'
 import { Badge, Erro, KpiIcone, Vazio } from '../components/ui'
 import { Icone } from '../components/Icone'
-import { useAuth } from '../auth'
 import { SeletorConta } from './cobranca/SeletorConta'
 import { useContaEscolhida, useNomeConta } from './cobranca/conta'
-import { AcoesCobranca } from './cobranca/AcoesCobranca'
-import { chaveOnline, telefonesPorEmail, useCobrancas } from './cobranca/dados'
+import { CelulaCobranca } from './cobranca/CelulaCobranca'
+import { ResumoCobranca } from './cobranca/ResumoCobranca'
+import { chaveCobrancaOnline, cobrancaAberta, useCobrancas } from './cobranca/dados'
 
 export type CompraOnline = {
   em: string; produto_id: number | null; oferta_codigo: string | null; np: number; comprador_nome: string | null; produto_nome: string | null; integracao_id: string
@@ -49,6 +49,7 @@ const somaLiq = (xs: PagOnline[]) => xs.reduce((s, p) => s + Number(p.valor_liqu
 export function PainelOnline() {
   const { compras, previsao, pags, atrasos } = useOnline()
   const [conta, setConta] = useContaEscolhida()
+  const nomeConta = useNomeConta()
   const m = mesAtual()
   const todos = daConta(pags.dados, conta), comprasConta = daConta(compras.dados, conta)
   const doMes = todos.filter((p) => p.dia.startsWith(m))
@@ -62,7 +63,7 @@ export function PainelOnline() {
   const mesNome = mesAno(m + '-01').split(' ')[0]
   if (pags.carregando && !pags.dados) return null
   return (<>
-    <div className="cob-titulo-online"><h2 className="titulo-secao">Online <span className="muted pequeno">· pagamentos da Hotmart, valores líquidos, sem os cursos presenciais · <Link to="/pagamentos?area=online" className="link">ver tudo do online</Link></span></h2>
+    <div className="cob-titulo-online"><p className="muted pequeno">Pagamentos da Hotmart, valores líquidos, sem os cursos presenciais. O filtro de conta vale para tudo desta aba.</p>
       <SeletorConta valor={conta} aoMudar={setConta} /></div>
     <section className="kpis kpis-5">
       <KpiIcone icone="sacola" rotulo={`Vendido em ${mesNome}`} valor={brl(vendido)} sub={`${novas.length} compra(s) nova(s), valor do contrato`} destaque />
@@ -72,13 +73,27 @@ export function PainelOnline() {
       <KpiIcone icone="alerta" rotulo="Em atraso" valor={brl(at.reduce((s, a) => s + Number(a.valor_vencido), 0))} tom="erro" sub={`${at.reduce((s, a) => s + a.cobrancas_vencidas, 0)} cobrança(s) vencida(s) · ${at.length} aluno(s)`} subTom={at.length ? 'erro' : undefined} />
     </section>
     <Erro msg={compras.erro || previsao.erro || pags.erro || atrasos.erro} />
+    <div className="painel-grade">
+      <div className="painel-col"><ResumoCobranca origem="online" conta={conta} /></div>
+      <div className="painel-col">
+        <section className="bloco">
+          <h2><Icone nome="alerta" className="ouro" /> Atrasaram há pouco <span className="muted pequeno">· últimos 6 meses</span></h2>
+          {at.length === 0 ? <Vazio>Ninguém atrasado nos últimos meses.</Vazio> : (
+            <ul className="lista">{[...at].sort((a, b) => (b.parou_em ?? '').localeCompare(a.parou_em ?? '')).slice(0, 8).map((a) => (
+              <li key={a.em + a.produto_id + a.oferta_codigo + a.np}>
+                <div><span className="forte">{a.comprador_nome}</span><div className="muted pequeno">{a.produto_nome}{conta ? '' : ` · ${nomeConta(a.integracao_id)}`}</div></div>
+                <div className="direita"><div className="forte num-txt">{brl(a.valor_vencido)}</div><div className="erro-txt pequeno">{a.cobrancas_vencidas} parcela(s) · desde {dataBR(a.parou_em)}</div></div>
+              </li>))}</ul>)}
+          <Link to="/pagamentos?area=online" className="btn btn-contorno btn-bloco"><Icone nome="documento" tam={16} /> Ver pagamentos do online</Link>
+        </section>
+      </div>
+    </div>
   </>)
 }
 
 /* ───────── Pagamentos ───────── */
 export function PagamentosOnline() {
   const { compras, previsao, pags, atrasos } = useOnline()
-  const { perfil } = useAuth()
   const [conta, setConta] = useContaEscolhida()
   const nomeConta = useNomeConta()
   const cobrancas = useCobrancas()
@@ -87,8 +102,8 @@ export function PagamentosOnline() {
   const [busca, setBusca] = useState('')
   const [mes, setMes] = useState(mesAtual())
   const atrasados = daConta(atrasos.dados, conta)
-  const telefones = useConsulta<Map<string, string>>(async () => ({ data: await telefonesPorEmail((atrasos.dados ?? []).map((a) => a.em)), error: null }), [atrasos.dados])
-  const cobrancaDe = (c: CompraOnline) => (cobrancas.dados ?? []).find((x) => x.chave === chaveOnline(c) && !['paga', 'encerrada'].includes(x.situacao)) ?? null
+  const cobrancaDe = (c: CompraOnline) => cobrancaAberta(cobrancas.dados, chaveCobrancaOnline(c.em, c.produto_id))
+  const nomeVend = (id: string | null) => (vendedoras.dados ?? []).find((v) => v.id === id)?.nome ?? null
   const emDia = daConta(compras.dados, conta).filter((c) => c.situacao === 'em_dia')
   const futuro = (previsao.dados ?? []).filter((p) => p.mes.slice(0, 7) >= mesAtual())
   const t = busca.trim().toLowerCase()
@@ -124,8 +139,7 @@ export function PagamentosOnline() {
                   <td className="num forte">{brl(c.valor_vencido)}<div className="muted pequeno">{c.cobrancas_vencidas} cobrança(s) de {brl(c.liquido_parcela)}</div></td>
                   <td className="num">{brl(c.a_receber_liquido)}<div className="muted pequeno">{c.restantes} parcela(s)</div></td>
                   <td className="pequeno">{c.vendedora_nome ?? '—'}</td>
-                  <td><AcoesCobranca atraso={c} telefone={telefones.dados?.get(c.em) ?? null} cobranca={cobrancaDe(c)} vendedoras={vendedoras.dados ?? []}
-                    marca={nomeConta(c.integracao_id) || 'equipe'} eu={perfil?.nome || 'Equipe'} aoMudar={cobrancas.recarregar} /></td>
+                  <td><CelulaCobranca cobranca={cobrancaDe(c)} responsavel={nomeVend(cobrancaDe(c)?.responsavel_id ?? null)} /></td>
                 </tr>))}
             </Fragment>))}</tbody>
         </table>
