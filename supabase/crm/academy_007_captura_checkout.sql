@@ -41,4 +41,4 @@ create trigger crm_contatos_fechar_checkout after update of ganho_em on crm_cont
 -- formulário da página da Black (o endereço que a página usa)
 insert into crm_formularios (empresa_id, nome, slug, titulo, botao, pedir_email, interesse, etiquetas, obrigado, primeiro_contato_apos_min)
 values (empresa_unique(), 'Página da Black (foi ao pagamento)', 'black-2026', 'Black Friday Limited Edition', 'Ir para o pagamento', true,
-        'Black Friday Limited Edition', array['black-2026'], 'Seguindo para o pagamento.', 60);
+        'Black Friday Limited Edition', array['black-2026'], 'Seguindo para o pagamento.', 120);
