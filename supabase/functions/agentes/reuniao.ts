@@ -17,7 +17,7 @@ export type Dependencias = {
   prepararAgente: (db: SupabaseClient, empresa: string, agente: string) => Promise<{ chave: string; pa: Record<string, unknown>; modelo: string }>
   chamarClaude: (chave: string, modelo: string, sistema: string, usuario: string | unknown[], ferramenta: Ferramenta) => Promise<{ entrega: unknown; entrada: number; saida: number }>
   blocoEmpresa: (perfil: Record<string, string>, exemplos: never[]) => string[]
-  conhecimento: (db: SupabaseClient, empresa: string, consulta: string, limite?: number) => Promise<{ bloco: string; fontes: string[] }>
+  conhecimento: (db: SupabaseClient, empresa: string, consulta: string, limite?: number, campanhas?: string[]) => Promise<{ bloco: string; fontes: string[] }>
   contexto: (db: SupabaseClient) => Promise<string>
   custo: (modelo: string, entrada: number, saida: number) => number
   canais: (perfil: Record<string, unknown>) => string
@@ -133,7 +133,7 @@ export async function reunir(d: Dependencias, db: SupabaseClient, empresa: strin
   const campanhas = todas.filter((c) => !c.encerrada || c.id === e.campanha)
   const pauta = await levantarPauta(db, d, empresa, e, campanhas, corpo.id)
   const ultimas = mensagens.filter((m) => m.de === 'equipe').slice(-3).map((m) => m.texto)
-  const kn = await d.conhecimento(db, empresa, [e.texto, textoCampanha(campanha), ...ultimas].filter(Boolean).join(' '), 4)
+  const kn = await d.conhecimento(db, empresa, [e.texto, textoCampanha(campanha), ...ultimas].filter(Boolean).join(' '), 4, campanha ? [String((campanha as { id?: string }).id ?? '')] : [])
   const sistema = [SISTEMA, `CANAIS QUE A EMPRESA USA (só estes): ${d.canais(pa)}`, ...d.blocoEmpresa(pa as Record<string, string>, [])].join('\n')
   const usuario = [
     kn.bloco,

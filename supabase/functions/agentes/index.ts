@@ -42,6 +42,8 @@ const GUIA_FORMATO: Record<string, string> = {
   mensagem: 'Mensagem de WhatsApp: legenda = a mensagem, curta, pessoal, com no máximo 1 link e sem cara de spam; roteiro = 2 ou 3 variações da mesma mensagem; cta = a ação esperada. Sem hashtags.',
   pdf: 'Material PDF: titulo = título do material; roteiro = uma página por item (primeira linha = título da página; depois uma quebra de linha com o conteúdo); a primeira é a capa; legenda = texto de apresentação para enviar junto; observacao = orientação de diagramação (tamanho, hierarquia, cores da marca); prompt_imagem = capa. Sem hashtags.',
 }
+// peça marcada como anúncio (pacote de criativos da campanha): mesmos campos, outro jeito de escrever
+const GUIA_ANUNCIO = 'ANÚNCIO PAGO (Meta Ads: feed, stories e reels), quando o item diz "ANÚNCIO PAGO": quem vê não segue o perfil e decide em 2 segundos. titulo = título do anúncio (até 40 caracteres); legenda = texto principal do anúncio (3 a 6 linhas curtas: dor ou desejo, oferta, prova, chamada; a primeira linha precisa funcionar sozinha, porque o resto fica escondido em "Ver mais"); cta = o botão do anúncio (Saiba mais, Comprar agora, Inscreva-se ou Enviar mensagem); texto_arte = frase grande na tela (até 6 palavras). Vídeo de anúncio (reels): o PRIMEIRO item do roteiro se chama "Ganchos para testar" e traz 3 a 5 aberturas diferentes, numeradas, uma por linha (a equipe grava o corpo uma vez e troca só os 3 primeiros segundos); os itens seguintes são as cenas do corpo (até 30 s no total), com a fala e o texto na tela. Imagem de anúncio (post): roteiro = 3 a 5 variações da frase da arte para testar. observacao = formatos para exportar (9:16 para stories e reels; 4:5 para o feed), público sugerido e cuidados com as regras do conselho e da Meta (sem promessa de resultado, sem antes e depois). Sem hashtags.'
 const guiaFormatos = (tipos: string[]) => [...new Set(tipos)].map((t) => GUIA_FORMATO[t]).filter(Boolean).map((g) => `- ${g}`).join('\n')
 // como escrever em cada rede e o nome de cada formato nela ("reels" = vídeo curto vertical; "video" = vídeo longo)
 const REDES: Record<string, { nome: string; guia: string; nomes: Record<string, string> }> = {
@@ -208,7 +210,36 @@ function blocoEmpresa(perfil: Record<string, string>, exemplos: Exemplo[]) {
 }
 // Biblioteca da marca: trechos sobre o assunto do pedido (busca por texto). Vão no pedido com a fonte de cada um.
 type TrechoMarca = { fonte_titulo: string; conteudo: string }
-async function conhecimento(db: SupabaseClient, empresa: string, consulta: string, limite = 6) {
+// materiais de uma campanha (página de vendas, roteiros, copy): o texto inteiro, porque é a fonte da verdade dela
+async function materiaisCampanha(db: SupabaseClient, empresa: string, campanhas: string[]) {
+  const ids = [...new Set(campanhas.filter(Boolean))]
+  if (!ids.length) return { bloco: '', fontes: [] as string[] }
+  const { data: fs } = await db.from('marca_fontes').select('id,titulo,papel').eq('empresa_id', empresa).in('campanha_id', ids)
+    .eq('ativo', true).eq('aprovada', true).eq('status', 'pronta').order('criado_em')
+  if (!fs?.length) return { bloco: '', fontes: [] as string[] }
+  const { data: ts } = await db.from('marca_trechos').select('fonte_id,conteudo,ordem').in('fonte_id', fs.map((f) => f.id)).order('ordem').limit(3000)
+  const partes: string[] = [], usadas: string[] = []
+  let total = 0
+  for (const f of fs) {
+    const texto = (ts ?? []).filter((t) => t.fonte_id === f.id).map((t) => t.conteudo).join("\n\n").slice(0, 12000)
+    if (!texto || total + texto.length > 32000) continue
+    partes.push(`[Material: ${f.titulo}${f.papel ? ` · ${NOME_PAPEL[f.papel] ?? f.papel}` : ''}]\n${texto}`); usadas.push(f.titulo); total += texto.length
+  }
+  if (!partes.length) return { bloco: '', fontes: [] as string[] }
+  return {
+    bloco: `MATERIAIS DA CAMPANHA (já prontos e aprovados pela equipe; são a fonte da verdade desta campanha: use a mesma oferta, as mesmas promessas, palavras, argumentos e a estrutura dos roteiros e da copy; nunca contradiga; pode reaproveitar frases curtas e adaptar ao formato):\n${partes.join('\n---\n')}`,
+    fontes: usadas,
+  }
+}
+const NOME_PAPEL: Record<string, string> = { pagina: 'página de vendas', roteiro: 'roteiro de vídeo', copy: 'copy/texto de venda', apresentacao: 'apresentação', outro: 'material' }
+
+async function conhecimento(db: SupabaseClient, empresa: string, consulta: string, limite = 6, campanhas: string[] = []) {
+  const mat = await materiaisCampanha(db, empresa, campanhas)
+  const geral = await conhecimentoGeral(db, empresa, consulta, limite)
+  return { bloco: [mat.bloco, geral.bloco].filter(Boolean).join('\n\n'), fontes: [...mat.fontes, ...geral.fontes] }
+}
+
+async function conhecimentoGeral(db: SupabaseClient, empresa: string, consulta: string, limite = 6) {
   const q = consulta.replace(/\s+/g, ' ').trim().slice(0, 600)
   if (!q) return { bloco: '', fontes: [] as string[] }
   const { data } = await db.rpc('marca_buscar', { p_empresa: empresa, p_consulta: q, p_limite: limite })
@@ -321,7 +352,7 @@ async function ajustar(db: SupabaseClient, t: Trabalho, perfil: Record<string, s
     : lembrarIsso === false ? '\n\nEste ajuste vale só para esta peça: deixe "aprendizado" vazio.' : ''
   const guia = GUIA_FORMATO[tipoPedido] ? `\n\nCOMO PREENCHER ESTE FORMATO: ${GUIA_FORMATO[tipoPedido]}` : ''
   const usuario = `Esta é uma peça que você preparou:\n${JSON.stringify(atual, null, 2)}\n\nPedido de ajuste da equipe: ${String(t.pedido.instrucao ?? '')}${sobreMemoria}\n\nReescreva a peça inteira já com o ajuste (mantenha o que não foi pedido para mudar) e entregue OBRIGATORIAMENTE chamando a ferramenta entregar_peca.${guia}`
-  const kn = await conhecimento(db, t.empresa_id, `${peca.titulo} ${String((peca.conteudo ?? {}).objetivo ?? '')} ${String(t.pedido.instrucao ?? '')}`)
+  const kn = await conhecimento(db, t.empresa_id, `${peca.titulo} ${String((peca.conteudo ?? {}).objetivo ?? '')} ${String(t.pedido.instrucao ?? '')}`, 6, [String((peca.conteudo ?? {}).campanha ?? '')])
   const { entrega: p, entrada, saida } = await chamarClaude(chave, modelo, sistema, comBloco(kn.bloco, usuario), FERRAMENTA_AJUSTE)
   // marcado "lembrar": guarda sempre (se o agente não resumir, guarda o próprio pedido); desmarcado: nunca guarda
   const sugerido = String((p as Record<string, unknown>).aprendizado ?? '').trim()
@@ -359,7 +390,7 @@ async function guardarIdeias(db: SupabaseClient, t: Trabalho) {
 
 // ===== escrever: peças planejadas (ideias) viram rascunhos. Regra 5: planejar e gerar são passos separados =====
 type PecaBanco = { id: string; tipo: string; dia: string | null; titulo: string; conteudo: Record<string, unknown> }
-type Briefing = { objetivo?: string; publico?: string; telas?: number; duracao?: string; orientacao?: string }
+type Briefing = { objetivo?: string; publico?: string; telas?: number; duracao?: string; orientacao?: string; finalidade?: 'anuncio' | 'organico' }
 
 function pedidoEscrever(perfil: Record<string, unknown>, pecas: PecaBanco[], pedido: Record<string, unknown>, ctx: string, exemplos: Exemplo[]) {
   const ativas = redesAtivas(perfil)
@@ -372,6 +403,7 @@ function pedidoEscrever(perfil: Record<string, unknown>, pecas: PecaBanco[], ped
     const partes = [
       p.dia ?? 'sem dia',
       livre ? `canal e formato: ESCOLHA o mais indicado para a mensagem entre ${listaCanais(ativas)} e informe em "rede" e "tipo"` : `${r.nome} · ${r.nomes[p.tipo] ?? p.tipo} (tipo "${p.tipo}")`,
+      b.finalidade === 'anuncio' ? 'ANÚNCIO PAGO (siga o guia de anúncio)' : b.finalidade === 'organico' ? 'orgânico, para o perfil' : '',
       b.telas ? `exatamente ${b.telas} telas` : '', b.duracao ? `duração ${b.duracao}` : '',
       b.objetivo ? `objetivo: ${b.objetivo}` : '', b.publico ? `público: ${b.publico}` : '',
       camp ? `campanha: ${camp.nome}` : 'sem campanha (pode ser educativo ou de relacionamento, sem empurrar oferta)',
@@ -386,6 +418,7 @@ function pedidoEscrever(perfil: Record<string, unknown>, pecas: PecaBanco[], ped
     'Você escreve os rascunhos de peças que a equipe já planejou; a equipe aprova antes de publicar. Seja concreto.',
     `COMO ESCREVER EM CADA CANAL:\n${redes.map((r) => `- ${REDES[r].nome}: ${REDES[r].guia}`).join('\n')}`,
     'Vídeos: roteiro cena a cena (ou bloco a bloco no vídeo longo) com a fala e o que aparece na tela, respeitando a duração; dicas de gravação no campo observacao.',
+    pecas.some((p) => (p.conteudo.briefing as Briefing | undefined)?.finalidade === 'anuncio') ? GUIA_ANUNCIO : '',
     `COMO PREENCHER CADA FORMATO:\n${guiaFormatos([...pecas.filter((p) => p.conteudo.livre !== true).map((p) => p.tipo), ...(pecas.some((p) => p.conteudo.livre === true) ? ativas.flatMap((r) => Object.keys(REDES[r].nomes)) : [])])}`,
     ...blocoEmpresa(perfil as Record<string, string>, exemplos),
   ].filter(Boolean).join('\n')
@@ -429,7 +462,7 @@ async function escrever(db: SupabaseClient, t: Trabalho, perfil: Record<string, 
       const m = g[0].tipo === 'stories' && economico ? 'claude-haiku-5-5' : modelo
       const { sistema, usuario } = pedidoEscrever(perfil, g, t.pedido, ctx, (exemplos ?? []) as Exemplo[])
       const nomesCamp = (Array.isArray(perfil.campanhas) ? perfil.campanhas as Campanha[] : []).filter((c) => g.some((p) => p.conteudo.campanha === c.id)).map((c) => c.nome)
-      const kn = await conhecimento(db, t.empresa_id, [t.pedido.tema, ...nomesCamp, ...g.map((p) => `${p.titulo} ${p.conteudo.objetivo ?? ''}`)].filter(Boolean).join(' '), g.length > 3 ? 10 : 6)
+      const kn = await conhecimento(db, t.empresa_id, [t.pedido.tema, ...nomesCamp, ...g.map((p) => `${p.titulo} ${p.conteudo.objetivo ?? ''}`)].filter(Boolean).join(' '), g.length > 3 ? 10 : 6, g.map((p) => String(p.conteudo.campanha ?? '')))
       // referências de formato guardadas na Base da marca (mesmo formato das peças do grupo)
       const modelos = await blocoModelos(db, t.empresa_id, [...new Set(g.map((p) => p.tipo))])
       return { grupo: g, modelo: m, fontes: kn.fontes, ...(await chamarClaude(chave, m, sistema, comAnexos(comBloco(kn.bloco, [modelos, usuario].filter(Boolean).join('\n\n')), anexos))) }
@@ -493,13 +526,25 @@ const FERRAMENTA_PLANO = {
 }
 type CanalPlano = { rede: string; formatos: string[]; quantidade: number }
 
-// texto de uma página de referência (link enviado pela equipe), sem HTML, curto
-async function lerPagina(link: string) {
+// texto de uma página (link enviado pela equipe), sem HTML. Mantém a quebra entre blocos (títulos, parágrafos, itens),
+// que é o que separa os trechos quando a página vira material de campanha.
+async function lerPagina(link: string, limite = 6000) {
   try {
-    const r = await fetch(link, { signal: AbortSignal.timeout(8000), headers: { 'user-agent': 'Mozilla/5.0 (agente de marketing)' } })
-    const html = await r.text()
-    return html.replace(/<script[\s\S]*?<\/script>|<style[\s\S]*?<\/style>/gi, ' ').replace(/<[^>]+>/g, ' ').replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 6000)
+    const r = await fetch(link, { signal: AbortSignal.timeout(12000), headers: { 'user-agent': 'Mozilla/5.0 (agente de marketing)' } })
+    if (!r.ok) return ''
+    return textoDoHtml(await r.text()).slice(0, limite)
   } catch { return '' }
+}
+
+const ENTIDADES: Record<string, string> = { nbsp: ' ', amp: '&', quot: '"', apos: "'", lt: '<', gt: '>', ndash: '–', mdash: '—', hellip: '…', laquo: '«', raquo: '»', rsquo: '’', lsquo: '‘', rdquo: '”', ldquo: '“' }
+function textoDoHtml(html: string) {
+  return html
+    .replace(/<(script|style|noscript|svg|template)[\s\S]*?<\/\1>/gi, ' ')
+    .replace(/<br\s*\/?>/gi, '\n').replace(/<\/(p|div|section|h[1-6]|li|tr|blockquote|article|header|footer)>/gi, '\n\n')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&#(\d+);/g, (_, n) => String.fromCodePoint(Number(n))).replace(/&#x([0-9a-f]+);/gi, (_, n) => String.fromCodePoint(parseInt(n, 16)))
+    .replace(/&([a-z]+);/gi, (m, n) => ENTIDADES[n.toLowerCase()] ?? m)
+    .replace(/[ \t\u00a0]+/g, ' ').replace(/ *\n */g, '\n').replace(/\n{3,}/g, '\n\n').trim()
 }
 
 async function proporPlano(db: SupabaseClient, t: Trabalho, perfil: Record<string, unknown>, chave: string, modelo: string) {
@@ -534,7 +579,7 @@ async function proporPlano(db: SupabaseClient, t: Trabalho, perfil: Record<strin
   ].filter(Boolean).join('\n\n')
   const ctx = await contexto(db)
   const assuntos = ((pd.ata as { assuntos?: { tema: string }[] } | undefined)?.assuntos ?? []).map((a) => a.tema)
-  const kn = await conhecimento(db, t.empresa_id, [pd.tema, pd.objetivo, pd.publico, textoCampanha(campanha), plano.nome, ...assuntos].filter(Boolean).join(' '), 10)
+  const kn = await conhecimento(db, t.empresa_id, [pd.tema, pd.objetivo, pd.publico, textoCampanha(campanha), plano.nome, ...assuntos].filter(Boolean).join(' '), 10, [String((campanha as { id?: string } | null)?.id ?? '')])
   const { entrega, entrada, saida } = await chamarClaude(chave, modelo, sistema, comBloco(kn.bloco, `${usuario}\n\nInformações atuais do sistema:\n${ctx}`), FERRAMENTA_PLANO)
   const permitidos = new Map(canais.map((c) => [c.rede, c.formatos]))
   const itens = (entrega.itens ?? []).filter((i) => datas.includes(i.dia) && permitidos.get(i.rede)?.includes(i.tipo)).slice(0, total || 60)
@@ -813,7 +858,7 @@ async function executar(db: SupabaseClient, t: Trabalho) {
     const modeloDe = (pd: Record<string, unknown>) => (Number(pd.posts ?? 0) + Number(pd.reels ?? 0) === 0 && pa.stories_economico !== false ? 'claude-haiku-5-5' : modelo)
     const campanhaId = (t.pedido.campanha as Campanha | null)?.id
     const anexos = (Array.isArray(t.pedido.anexos) ? t.pedido.anexos : []) as Anexo[]
-    const kn = await conhecimento(db, t.empresa_id, [t.pedido.foco, textoCampanha(t.pedido.campanha as Campanha | null)].filter(Boolean).join(' '), 8)
+    const kn = await conhecimento(db, t.empresa_id, [t.pedido.foco, textoCampanha(t.pedido.campanha as Campanha | null)].filter(Boolean).join(' '), 8, [String(campanhaId ?? '')])
     const respostas = await Promise.all(pedidos.map(async (pd) => { const { sistema, usuario } = pedidoMarketing(perfil, pd, ctx, (exemplos ?? []) as Exemplo[]); const m = modeloDe(pd); return { ...(await chamarClaude(String(chave), m, sistema, comAnexos(comBloco(kn.bloco, usuario), anexos))), modelo: m } }))
     const entrega = { resumo: respostas.map((r) => r.entrega.resumo).filter(Boolean)[0] ?? null, pecas: respostas.flatMap((r) => r.entrega.pecas ?? []) }
     const entrada = respostas.reduce((s, r) => s + r.entrada, 0), saida = respostas.reduce((s, r) => s + r.saida, 0)
@@ -863,6 +908,13 @@ Deno.serve(async (req) => {
   }
   if (corpo.referencia) {
     try { return json(await analisarReferencia(DEPENDENCIAS, db, String(corpo.empresa ?? ''), String(corpo.referencia))) } catch (e) { return json({ erro: (e as Error).message }) }
+  }
+  // material de campanha a partir de um link: o texto da página (sem HTML) volta para a tela guardar na biblioteca
+  if (corpo.lerPagina) {
+    const link = String(corpo.lerPagina)
+    if (!/^https?:\/\//.test(link)) return json({ erro: 'O link precisa começar com https://' })
+    const texto = await lerPagina(link, 60000)
+    return json(texto.length > 80 ? { texto } : { erro: 'Não consegui ler essa página (pode precisar de login ou estar fora do ar). Envie o arquivo .html ou cole o texto.' })
   }
   if (corpo.reuniao) {
     try { return json(await reunir(DEPENDENCIAS, db, String(corpo.empresa ?? ''), corpo.reuniao)) } catch (e) { return json({ erro: (e as Error).message }) }

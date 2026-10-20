@@ -1,14 +1,15 @@
-// Lê o texto de um arquivo no navegador (PDF, Word, texto) e divide em trechos para a Biblioteca da marca.
+// Lê o texto de um arquivo no navegador (PDF, Word, texto, página salva .html) e divide em trechos para a Biblioteca da marca.
 // Os leitores de PDF e Word só são carregados quando alguém envia um desses arquivos.
 
 export type TipoFonte = 'pdf' | 'docx' | 'texto'
 export const ACEITOS = '.pdf,.docx,.txt,.md,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain,text/markdown'
+export const ACEITOS_COM_HTML = `${ACEITOS},.html,.htm,text/html`
 const TAM_TRECHO = 1400
 
 export function tipoDoArquivo(nome: string): TipoFonte | null {
   if (/\.pdf$/i.test(nome)) return 'pdf'
   if (/\.docx$/i.test(nome)) return 'docx'
-  if (/\.(txt|md)$/i.test(nome)) return 'texto'
+  if (/\.(txt|md|html?)$/i.test(nome)) return 'texto'
   return null
 }
 
@@ -36,8 +37,18 @@ export async function lerTexto(arquivo: File): Promise<string> {
   const tipo = tipoDoArquivo(arquivo.name)
   if (tipo === 'pdf') return lerPdf(arquivo)
   if (tipo === 'docx') return lerWord(arquivo)
-  if (tipo === 'texto') return arquivo.text()
-  throw new Error('Formato não aceito. Envie PDF, Word (.docx) ou texto (.txt).')
+  if (tipo === 'texto') return /\.html?$/i.test(arquivo.name) ? textoDoHtml(await arquivo.text()) : arquivo.text()
+  throw new Error('Formato não aceito. Envie PDF, Word (.docx), texto (.txt) ou a página salva (.html).')
+}
+
+// página salva no computador (Ctrl+S): só o texto visível, com uma linha em branco entre os blocos
+const BLOCOS = 'p,div,section,article,header,footer,h1,h2,h3,h4,h5,h6,li,tr,blockquote'
+export function textoDoHtml(html: string) {
+  const doc = new DOMParser().parseFromString(html, 'text/html')
+  doc.querySelectorAll('script,style,noscript,svg,template,iframe').forEach((n) => n.remove())
+  doc.querySelectorAll('br').forEach((n) => n.replaceWith('\n'))
+  doc.querySelectorAll(BLOCOS).forEach((n) => n.append('\n\n'))
+  return (doc.body?.textContent ?? '').replace(/[ \t\u00a0]+/g, ' ').replace(/ *\n */g, '\n').replace(/\n{3,}/g, '\n\n').trim()
 }
 
 // junta parágrafos até ~1400 caracteres; parágrafo maior que isso é quebrado nas frases

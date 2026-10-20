@@ -9,14 +9,22 @@ export type Achado = { trecho_id: string; fonte_id: string; fonte_titulo: string
 
 export function useFontes(empresa: string) {
   return useConsulta<Fonte[]>(() => supabase.from('marca_fontes').select('id,tipo,titulo,origem,status,erro,caracteres,trechos,criado_em,aprovada')
-    .eq('empresa_id', empresa).eq('ativo', true).order('criado_em', { ascending: false }), [empresa])
+    .eq('empresa_id', empresa).eq('ativo', true).is('campanha_id', null).order('criado_em', { ascending: false }), [empresa])
 }
 
+// materiais de uma campanha (página de vendas, roteiros, copy): o agente lê o texto inteiro deles nas peças da campanha
+export type Material = Fonte & { papel: string | null }
+export function useMateriais(empresa: string, campanha: string) {
+  return useConsulta<Material[]>(() => supabase.from('marca_fontes').select('id,tipo,titulo,origem,status,erro,caracteres,trechos,criado_em,aprovada,papel')
+    .eq('empresa_id', empresa).eq('campanha_id', campanha).eq('ativo', true).order('criado_em'), [empresa, campanha])
+}
+export type DaCampanha = { campanha: string; papel: string }
+
 // cria a fonte, grava os trechos em lotes e só então marca como pronta (a busca ignora fonte ainda processando)
-export async function guardarTexto(empresa: string, titulo: string, tipo: TipoFonte, texto: string, origem?: string, aprovada = true) {
+export async function guardarTexto(empresa: string, titulo: string, tipo: TipoFonte | 'link', texto: string, origem?: string, aprovada = true, da?: DaCampanha) {
   const trechos = dividirEmTrechos(texto)
   if (!trechos.length) throw new Error('Não encontrei texto neste arquivo. Se for um PDF escaneado (imagem), ele precisa ter o texto selecionável.')
-  const { data: fonte, error } = await supabase.from('marca_fontes').insert({ empresa_id: empresa, titulo: titulo.trim() || 'Sem título', tipo, origem, status: 'processando', aprovada }).select('id').single()
+  const { data: fonte, error } = await supabase.from('marca_fontes').insert({ empresa_id: empresa, titulo: titulo.trim() || 'Sem título', tipo, origem, status: 'processando', aprovada, campanha_id: da?.campanha, papel: da?.papel }).select('id').single()
   if (error) throw new Error(msgErro(error))
   try {
     for (let i = 0; i < trechos.length; i += 100) {
