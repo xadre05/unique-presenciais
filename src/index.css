@@ -1133,7 +1133,7 @@ pre.link-endereco { white-space: pre-wrap; margin: 6px 0; }
 .at-kpis-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .at-kpis-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 @media (max-width: 1100px) { .at-kpis-3, .at-kpis-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-@media (max-width: 560px) { .at-kpis-3, .at-kpis-4 { grid-template-columns: 1fr; } }
+@media (max-width: 560px) { .at-kpis-3 { grid-template-columns: 1fr; } .at-kpis-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 .at-duas-painel { grid-template-columns: 1.6fr 1fr; margin-bottom: 18px; }
 @media (max-width: 1100px) { .at-duas-painel { grid-template-columns: 1fr; } }
 .at-painel-topo .interruptor { font-size: .8rem; }

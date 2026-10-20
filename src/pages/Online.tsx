@@ -70,7 +70,7 @@ export function PainelOnline() {
       <KpiIcone icone="moedas" rotulo={`Recebido em ${mesNome}`} valor={brl(somaLiq(doMes))} tom="ok" sub={`${doMes.length} pagamento(s) até hoje`} />
       <KpiIcone icone="relogio" rotulo={`Ainda deve cair em ${mesNome}`} valor={brl(caiNoMes ? caiNoMes.reduce((s, c) => s + Number(c.liquido_parcela ?? 0), 0) : prevMes?.liquido_em_dia ?? 0)} tom="info" sub={`${caiNoMes ? caiNoMes.length : prevMes?.parcelas_em_dia ?? 0} parcela(s) de quem está em dia`} />
       <KpiIcone icone="documento" rotulo="A receber" valor={brl(emDia.reduce((s, c) => s + Number(c.a_receber_liquido), 0))} sub={`${emDia.length} parcelamento(s) em dia`} />
-      <KpiIcone icone="alerta" rotulo="Em atraso" valor={brl(at.reduce((s, a) => s + Number(a.valor_vencido), 0))} tom="erro" sub={`${at.reduce((s, a) => s + a.cobrancas_vencidas, 0)} cobrança(s) vencida(s) · ${at.length} aluno(s)`} subTom={at.length ? 'erro' : undefined} />
+      <KpiIcone icone="alerta" rotulo="Atraso recente (6 meses)" valor={brl(at.reduce((s, a) => s + Number(a.valor_vencido), 0))} tom="erro" sub={`${at.length} aluno(s) · as dívidas antigas estão na fila de cobrança`} subTom={at.length ? 'erro' : undefined} />
     </section>
     <Erro msg={compras.erro || previsao.erro || pags.erro || atrasos.erro} />
     <div className="painel-grade">
