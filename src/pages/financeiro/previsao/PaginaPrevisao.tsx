@@ -41,6 +41,7 @@ export default function PaginaPrevisao() {
   const pendentes = previstos.filter((p) => p.situacao !== 'a_vencer')
   const entrou = comPassado ? somar(entradas, (e) => e.liquido) : 0, vai = somar(vaiEntrar, (p) => p.valor), pend = somar(pendentes, (p) => p.valor)
   const auto = somar(vaiEntrar.filter((p) => p.automatico), (p) => p.valor)
+  const naHotmart = somar(entradas.filter((e) => jeitoEntrada(e) === 'parcelado_hotmart'), (e) => e.liquido)
   const segura = somar(vaiEntrar, (p) => p.valor_aluno - p.valor)
   const nomePeriodo = PERIODOS.find(([id]) => id === periodo)?.[1].toLowerCase() ?? ''
 
@@ -59,7 +60,7 @@ export default function PaginaPrevisao() {
       <Erro msg={prev.erro || ent.erro || parc.erro} />
 
       <section className="kpis">
-        {comPassado && <Kpi rotulo={`Já entrou (${nomePeriodo})`} valor={brl(entrou)} tom="ok" sub={`${entradas.length} pagamento(s) até hoje`} />}
+        {comPassado && <Kpi rotulo="Já pago este mês" valor={brl(entrou)} tom="ok" sub={naHotmart ? `${brl(naHotmart)} disso ainda está na Hotmart (libera dia 1º)` : `${entradas.length} pagamento(s) até hoje`} />}
         <Kpi rotulo="Ainda vai entrar" valor={brl(vai)} tom="info" sub={`${brl(auto)} automático · ${brl(vai - auto)} depende de cobrar`} />
         <Kpi rotulo="Pendente, sem data certa" valor={brl(pend)} tom={pend ? 'alerta' : undefined} sub={`${pendentes.length} parcela(s): atrasadas, sem data ou a conferir`} />
         <Kpi rotulo="Fica com a Hotmart (antecipação)" valor={brl(segura)} sub="parcelas que pagam o que ela já adiantou" />
