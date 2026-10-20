@@ -6,6 +6,11 @@ import { useConsulta, buscarTudo } from '../lib/dados'
 import { brl, dataBR, hojeISO, mesAno } from '../lib/format'
 import { Badge, Erro, KpiIcone, Vazio } from '../components/ui'
 import { Icone } from '../components/Icone'
+import { useAuth } from '../auth'
+import { SeletorConta } from './cobranca/SeletorConta'
+import { useContaEscolhida, useNomeConta } from './cobranca/conta'
+import { AcoesCobranca } from './cobranca/AcoesCobranca'
+import { chaveOnline, telefonesPorEmail, useCobrancas } from './cobranca/dados'
 
 export type CompraOnline = {
   em: string; produto_id: number | null; oferta_codigo: string | null; np: number; comprador_nome: string | null; produto_nome: string | null; integracao_id: string
@@ -13,7 +18,7 @@ export type CompraOnline = {
   valor_parcela: number | null; liquido_parcela: number | null; rastreio: string | null; forma: string | null; restantes: number; proxima_data: string | null
   situacao: 'em_dia' | 'atrasado' | 'quitado' | 'estornado' | 'desistiu'; a_receber_liquido: number; a_receber_bruto: number; vendedora_nome: string | null
 }
-type PagOnline = { id: string; comprador_nome: string | null; comprador_email: string; produto_nome: string | null; valor: number | null; valor_liquido: number | null; forma: string | null; parcelas_cartao: number | null; recorrencia: number | null; dia: string; rastreio: string | null; comissao: number | null; vendedora_nome: string | null }
+type PagOnline = { id: string; integracao_id: string; comprador_nome: string | null; comprador_email: string; produto_nome: string | null; valor: number | null; valor_liquido: number | null; forma: string | null; parcelas_cartao: number | null; recorrencia: number | null; dia: string; rastreio: string | null; comissao: number | null; vendedora_nome: string | null }
 type Previsao = { mes: string; parcelas: number; bruto: number; liquido: number; de_atrasados: number; liquido_em_dia: number; parcelas_em_dia: number }
 type Atraso = CompraOnline & { cobrancas_vencidas: number; valor_vencido: number; parou_em: string }
 
@@ -25,12 +30,15 @@ const mesAtual = () => hojeISO().slice(0, 7)
 const parcelaTxt = (c: CompraOnline) => c.ultima_cobranca ? `${c.ultima_cobranca}/${c.np}` : c.np > 1 ? `${c.np}x no cartão` : 'à vista'
 const dias = (iso: string | null) => iso ? Math.floor((Date.now() - new Date(iso + 'T12:00:00').getTime()) / 86400000) : 0
 
+// tudo do online filtrado pela conta da Hotmart escolhida ('' = as duas)
+const daConta = <T extends { integracao_id: string }>(xs: T[] | null, conta: string) => (xs ?? []).filter((x) => !conta || x.integracao_id === conta)
+
 function useOnline() {
   // compras com pagamento nos últimos 24 meses (o histórico inteiro tem milhares de linhas)
   const compras = useConsulta<CompraOnline[]>(() => buscarTudo<CompraOnline>((de, ate) => supabase.from('v_online_compras').select('*')
     .gte('ultima_data', new Date(Date.now() - 730 * 864e5).toISOString()).order('em').order('produto_id').order('oferta_codigo').order('np').range(de, ate)))
   const previsao = useConsulta<Previsao[]>(() => supabase.from('v_online_previsao').select('*').order('mes'))
-  const pags = useConsulta<PagOnline[]>(() => supabase.from('v_online_pagamentos').select('id,comprador_nome,comprador_email,produto_nome,valor,valor_liquido,forma,parcelas_cartao,recorrencia,dia,rastreio,comissao,vendedora_nome').gte('data_aprovacao', new Date(Date.now() - 400 * 864e5).toISOString()).order('data_aprovacao', { ascending: false }).limit(1000))
+  const pags = useConsulta<PagOnline[]>(() => supabase.from('v_online_pagamentos').select('id,integracao_id,comprador_nome,comprador_email,produto_nome,valor,valor_liquido,forma,parcelas_cartao,recorrencia,dia,rastreio,comissao,vendedora_nome').gte('data_aprovacao', new Date(Date.now() - 400 * 864e5).toISOString()).order('data_aprovacao', { ascending: false }).limit(1000))
   const atrasos = useConsulta<Atraso[]>(() => supabase.from('v_online_atrasos').select('*').order('proxima_data'))
   return { compras, previsao, pags, atrasos }
 }
@@ -40,22 +48,26 @@ const somaLiq = (xs: PagOnline[]) => xs.reduce((s, p) => s + Number(p.valor_liqu
 
 export function PainelOnline() {
   const { compras, previsao, pags, atrasos } = useOnline()
+  const [conta, setConta] = useContaEscolhida()
   const m = mesAtual()
-  const todos = pags.dados ?? []
+  const todos = daConta(pags.dados, conta), comprasConta = daConta(compras.dados, conta)
   const doMes = todos.filter((p) => p.dia.startsWith(m))
   const prevMes = (previsao.dados ?? []).find((p) => p.mes.startsWith(m))
-  const at = atrasos.dados ?? []
-  const novas = (compras.dados ?? []).filter((c) => (c.primeira_data ?? '').slice(0, 7) === m && (c.ultima_cobranca == null || c.ultima_cobranca <= c.pagas))
+  const at = daConta(atrasos.dados, conta)
+  const novas = comprasConta.filter((c) => (c.primeira_data ?? '').slice(0, 7) === m && (c.ultima_cobranca == null || c.ultima_cobranca <= c.pagas))
   const vendido = novas.reduce((s, c) => s + (c.ultima_cobranca != null ? Number(c.liquido_parcela ?? 0) * c.np : Number(c.total_liquido ?? 0)), 0)
-  const emDia = (compras.dados ?? []).filter((c) => c.situacao === 'em_dia')
+  const emDia = comprasConta.filter((c) => c.situacao === 'em_dia')
+  // com uma conta escolhida, o que ainda cai no mês sai das compras em dia dessa conta (a previsão pronta soma as duas)
+  const caiNoMes = conta ? emDia.filter((c) => (c.proxima_data ?? '').startsWith(m)) : null
   const mesNome = mesAno(m + '-01').split(' ')[0]
   if (pags.carregando && !pags.dados) return null
   return (<>
-    <h2 className="titulo-secao">Online <span className="muted pequeno">· pagamentos da Hotmart, valores líquidos, sem os cursos presenciais · <Link to="/pagamentos?area=online" className="link">ver tudo do online</Link></span></h2>
+    <div className="cob-titulo-online"><h2 className="titulo-secao">Online <span className="muted pequeno">· pagamentos da Hotmart, valores líquidos, sem os cursos presenciais · <Link to="/pagamentos?area=online" className="link">ver tudo do online</Link></span></h2>
+      <SeletorConta valor={conta} aoMudar={setConta} /></div>
     <section className="kpis kpis-5">
       <KpiIcone icone="sacola" rotulo={`Vendido em ${mesNome}`} valor={brl(vendido)} sub={`${novas.length} compra(s) nova(s), valor do contrato`} destaque />
       <KpiIcone icone="moedas" rotulo={`Recebido em ${mesNome}`} valor={brl(somaLiq(doMes))} tom="ok" sub={`${doMes.length} pagamento(s) até hoje`} />
-      <KpiIcone icone="relogio" rotulo={`Ainda deve cair em ${mesNome}`} valor={brl(prevMes?.liquido_em_dia ?? 0)} tom="info" sub={`${prevMes?.parcelas_em_dia ?? 0} parcela(s) de quem está em dia`} />
+      <KpiIcone icone="relogio" rotulo={`Ainda deve cair em ${mesNome}`} valor={brl(caiNoMes ? caiNoMes.reduce((s, c) => s + Number(c.liquido_parcela ?? 0), 0) : prevMes?.liquido_em_dia ?? 0)} tom="info" sub={`${caiNoMes ? caiNoMes.length : prevMes?.parcelas_em_dia ?? 0} parcela(s) de quem está em dia`} />
       <KpiIcone icone="documento" rotulo="A receber" valor={brl(emDia.reduce((s, c) => s + Number(c.a_receber_liquido), 0))} sub={`${emDia.length} parcelamento(s) em dia`} />
       <KpiIcone icone="alerta" rotulo="Em atraso" valor={brl(at.reduce((s, a) => s + Number(a.valor_vencido), 0))} tom="erro" sub={`${at.reduce((s, a) => s + a.cobrancas_vencidas, 0)} cobrança(s) vencida(s) · ${at.length} aluno(s)`} subTom={at.length ? 'erro' : undefined} />
     </section>
@@ -66,23 +78,32 @@ export function PainelOnline() {
 /* ───────── Pagamentos ───────── */
 export function PagamentosOnline() {
   const { compras, previsao, pags, atrasos } = useOnline()
+  const { perfil } = useAuth()
+  const [conta, setConta] = useContaEscolhida()
+  const nomeConta = useNomeConta()
+  const cobrancas = useCobrancas()
+  const vendedoras = useConsulta<{ id: string; nome: string }[]>(() => supabase.from('vendedoras').select('id,nome').eq('ativa', true).order('nome'))
   const [aba, setAba] = useState<'atrasados' | 'previsao' | 'recebidos'>('atrasados')
   const [busca, setBusca] = useState('')
   const [mes, setMes] = useState(mesAtual())
-  const atrasados = atrasos.dados ?? []
-  const emDia = (compras.dados ?? []).filter((c) => c.situacao === 'em_dia')
+  const atrasados = daConta(atrasos.dados, conta)
+  const telefones = useConsulta<Map<string, string>>(async () => ({ data: await telefonesPorEmail((atrasos.dados ?? []).map((a) => a.em)), error: null }), [atrasos.dados])
+  const cobrancaDe = (c: CompraOnline) => (cobrancas.dados ?? []).find((x) => x.chave === chaveOnline(c) && !['paga', 'encerrada'].includes(x.situacao)) ?? null
+  const emDia = daConta(compras.dados, conta).filter((c) => c.situacao === 'em_dia')
   const futuro = (previsao.dados ?? []).filter((p) => p.mes.slice(0, 7) >= mesAtual())
   const t = busca.trim().toLowerCase()
-  const meses = [...new Set((pags.dados ?? []).map((p) => p.dia.slice(0, 7)))].sort().reverse()
-  const recebidos = (pags.dados ?? []).filter((p) => (!mes || p.dia.startsWith(mes)) && (!t || `${p.comprador_nome} ${p.comprador_email} ${p.produto_nome}`.toLowerCase().includes(t)))
+  const doFiltro = daConta(pags.dados, conta)
+  const meses = [...new Set(doFiltro.map((p) => p.dia.slice(0, 7)))].sort().reverse()
+  const recebidos = doFiltro.filter((p) => (!mes || p.dia.startsWith(mes)) && (!t || `${p.comprador_nome} ${p.comprador_email} ${p.produto_nome}`.toLowerCase().includes(t)))
   const maxPrev = Math.max(1, ...futuro.map((p) => Number(p.liquido_em_dia)))
 
   return (<>
-    <div className="faixa-info"><Icone nome="info" tam={18} /><span>Vendas do online lidas da Hotmart (as duas contas), sem os cursos presenciais. Valores <b>líquidos</b> (o que cai para você). A previsão considera as cobranças mensais dos parcelamentos da Hotmart; cartão parcelado comum já caiu inteiro.</span></div>
+    <SeletorConta valor={conta} aoMudar={setConta} />
+    <div className="faixa-info"><Icone nome="info" tam={18} /><span>Vendas do online lidas da Hotmart ({conta ? `só a conta ${nomeConta(conta)}` : 'as duas contas'}), sem os cursos presenciais. Valores <b>líquidos</b> (o que cai para você). A previsão considera as cobranças mensais dos parcelamentos da Hotmart; cartão parcelado comum já caiu inteiro.</span></div>
     <section className="resumo-com">
       <button className={`resumo-card rc-pend${aba === 'atrasados' ? ' ativo' : ''}`} onClick={() => setAba('atrasados')}><span className="resumo-icone ic-erro"><Icone nome="alerta" tam={22} /></span><div><div>Vencido sem pagamento</div><b>{brl(atrasados.reduce((s, c) => s + Number(c.valor_vencido), 0))}</b><small>{atrasados.length} aluno(s) · {atrasados.reduce((s, c) => s + c.cobrancas_vencidas, 0)} cobrança(s)</small></div><Icone nome="seta" /></button>
       <button className={`resumo-card rc-lib${aba === 'previsao' ? ' ativo' : ''}`} onClick={() => setAba('previsao')}><span className="resumo-icone ic-info"><Icone nome="agenda" tam={22} /></span><div><div>Ainda a receber de quem está em dia</div><b>{brl(emDia.reduce((s, c) => s + Number(c.a_receber_liquido), 0))}</b><small>{emDia.length} parcelamento(s), de {mesAno(mesAtual() + '-01')} em diante</small></div><Icone nome="seta" /></button>
-      <button className={`resumo-card rc-paga${aba === 'recebidos' ? ' ativo' : ''}`} onClick={() => setAba('recebidos')}><span className="resumo-icone ic-ok"><Icone nome="check" tam={22} /></span><div><div>Recebido em {mesAno(mesAtual() + '-01')}</div><b>{brl((pags.dados ?? []).filter((p) => p.dia.startsWith(mesAtual())).reduce((s, p) => s + Number(p.valor_liquido ?? 0), 0))}</b><small>líquido</small></div><Icone nome="seta" /></button>
+      <button className={`resumo-card rc-paga${aba === 'recebidos' ? ' ativo' : ''}`} onClick={() => setAba('recebidos')}><span className="resumo-icone ic-ok"><Icone nome="check" tam={22} /></span><div><div>Recebido em {mesAno(mesAtual() + '-01')}</div><b>{brl(doFiltro.filter((p) => p.dia.startsWith(mesAtual())).reduce((s, p) => s + Number(p.valor_liquido ?? 0), 0))}</b><small>líquido</small></div><Icone nome="seta" /></button>
     </section>
     <Erro msg={compras.erro || previsao.erro || pags.erro} />
 
@@ -90,19 +111,21 @@ export function PagamentosOnline() {
       <div className="tabela-wrap bloco sem-padding">
         <p className="muted pequeno" style={{ padding: '12px 16px 0', margin: 0 }}><b>Vencido</b> = cobranças que já deviam ter caído e não caíram. <b>Restante do plano</b> = tudo que falta, se a pessoa voltar a pagar até o fim. “Atrasado” só depois de 5 dias da data esperada.</p>
         <table className="tabela">
-          <thead><tr><th>Aluno</th><th>Produto</th><th>Última paga</th><th>Parou em</th><th className="num">Vencido</th><th className="num">Restante do plano</th><th>Vendedora</th></tr></thead>
+          <thead><tr><th>Aluno</th><th>Produto</th><th>Última paga</th><th>Parou em</th><th className="num">Vencido</th><th className="num">Restante do plano</th><th>Vendedora</th><th>Cobrança</th></tr></thead>
           <tbody>{[...new Set(atrasados.map((a) => a.parou_em))].sort().map((mm) => (
             <Fragment key={mm}>
-              <tr className="linha-grupo"><td colSpan={7}>Pararam de pagar em <b>{mesAno(mm)}</b> · {atrasados.filter((a) => a.parou_em === mm).length} aluno(s) · vencido {brl(atrasados.filter((a) => a.parou_em === mm).reduce((s, a) => s + Number(a.valor_vencido), 0))}</td></tr>
+              <tr className="linha-grupo"><td colSpan={8}>Pararam de pagar em <b>{mesAno(mm)}</b> · {atrasados.filter((a) => a.parou_em === mm).length} aluno(s) · vencido {brl(atrasados.filter((a) => a.parou_em === mm).reduce((s, a) => s + Number(a.valor_vencido), 0))}</td></tr>
               {atrasados.filter((a) => a.parou_em === mm).map((c) => (
                 <tr key={c.em + c.produto_id + c.oferta_codigo + c.np}>
                   <td><div className="forte">{c.comprador_nome}</div><div className="muted pequeno">{c.em}</div></td>
-                  <td className="pequeno">{c.produto_nome}</td>
+                  <td className="pequeno">{c.produto_nome}<div className="muted">{nomeConta(c.integracao_id)}</div></td>
                   <td className="pequeno">parcela {parcelaTxt(c)}<div className="muted">em {dataBR(c.ultima_data)}</div></td>
                   <td><b className="erro-txt">{dataBR(c.proxima_data)}</b><div className="muted pequeno">{dias(c.proxima_data)} dias</div></td>
                   <td className="num forte">{brl(c.valor_vencido)}<div className="muted pequeno">{c.cobrancas_vencidas} cobrança(s) de {brl(c.liquido_parcela)}</div></td>
                   <td className="num">{brl(c.a_receber_liquido)}<div className="muted pequeno">{c.restantes} parcela(s)</div></td>
                   <td className="pequeno">{c.vendedora_nome ?? '—'}</td>
+                  <td><AcoesCobranca atraso={c} telefone={telefones.dados?.get(c.em) ?? null} cobranca={cobrancaDe(c)} vendedoras={vendedoras.dados ?? []}
+                    marca={nomeConta(c.integracao_id) || 'equipe'} eu={perfil?.nome || 'Equipe'} aoMudar={cobrancas.recarregar} /></td>
                 </tr>))}
             </Fragment>))}</tbody>
         </table>
@@ -144,7 +167,7 @@ export function PagamentosOnline() {
           <tbody>{recebidos.map((p) => (
             <tr key={p.id}><td className="pequeno">{dataBR(p.dia)}</td><td><div className="forte">{p.comprador_nome}</div><div className="muted pequeno">{p.comprador_email}</div></td>
               <td className="pequeno">{p.produto_nome}{p.recorrencia ? <div className="muted">cobrança {p.recorrencia}{p.parcelas_cartao ? `/${p.parcelas_cartao}` : ''}</div> : (p.parcelas_cartao ?? 1) > 1 ? <div className="muted">{p.parcelas_cartao}x no cartão</div> : null}</td>
-              <td className="pequeno">{FORMA[p.forma ?? ''] ?? p.forma}</td><td className="num">{brl(p.valor)}</td><td className="num">{brl(p.valor_liquido)}</td>
+              <td className="pequeno">{FORMA[p.forma ?? ''] ?? p.forma}<div className="muted">{nomeConta(p.integracao_id)}</div></td><td className="num">{brl(p.valor)}</td><td className="num">{brl(p.valor_liquido)}</td>
               <td className="pequeno">{p.vendedora_nome ? <>{p.vendedora_nome} <span className="muted">({brl(p.comissao)})</span></> : p.rastreio ? <span className="muted">{p.rastreio}</span> : '—'}</td></tr>))}</tbody>
         </table>
       </div>
@@ -155,12 +178,13 @@ export function PagamentosOnline() {
 /* ───────── Alunos ───────── */
 export function AlunosOnline() {
   const { compras } = useOnline()
+  const [conta, setConta] = useContaEscolhida()
   const [busca, setBusca] = useState('')
   const [situacao, setSituacao] = useState('')
   const t = busca.trim().toLowerCase()
   const alunos = useMemo(() => {
     const g = new Map<string, CompraOnline[]>()
-    for (const c of compras.dados ?? []) g.set(c.em, [...(g.get(c.em) ?? []), c])
+    for (const c of daConta(compras.dados, conta)) g.set(c.em, [...(g.get(c.em) ?? []), c])
     const ordem = ['atrasado', 'em_dia', 'estornado', 'desistiu', 'quitado']
     return [...g.entries()].map(([em, cs]) => ({
       em, nome: cs[0].comprador_nome ?? em, compras: cs,
@@ -171,11 +195,12 @@ export function AlunosOnline() {
       vendedora: [...new Set(cs.map((c) => c.vendedora_nome).filter(Boolean))].join(', '),
     })).filter((a) => (!t || `${a.nome} ${a.em} ${a.compras.map((c) => c.produto_nome).join(' ')}`.toLowerCase().includes(t)) && (!situacao || a.situacao === situacao))
       .sort((a, b) => b.ultima.localeCompare(a.ultima))
-  }, [compras.dados, t, situacao])
+  }, [compras.dados, t, situacao, conta])
   return (<>
     <p className="muted">Quem comprou no online (Hotmart) com pagamento nos últimos 2 anos, juntando as duas contas. Uma linha por pessoa; valores líquidos.</p>
     <div className="filtros-alunos">
       <label className="select-icone"><Icone nome="busca" /><input placeholder="Buscar por nome, e-mail ou produto" value={busca} onChange={(e) => setBusca(e.target.value)} /></label>
+      <SeletorConta valor={conta} aoMudar={setConta} />
       <label className="select-icone"><select value={situacao} onChange={(e) => setSituacao(e.target.value)}><option value="">Todas as situações</option>{Object.entries(SITUACAO_ONLINE).map(([k, v]) => <option key={k} value={k}>{v.rotulo}</option>)}</select></label>
     </div>
     <Erro msg={compras.erro} />

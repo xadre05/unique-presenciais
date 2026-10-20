@@ -3032,3 +3032,26 @@ a.sala-agente:hover { border-color: var(--ouro); transform: translateY(-2px); }
 .au-vendedora .pp-check { font-weight: 400; }
 .au-subir { align-self: flex-start; cursor: pointer; }
 @media (max-width: 600px) { .au-vendedora { grid-template-columns: 1fr; } }
+
+/* ── Cobranças (online: filtro por conta da Hotmart, cobrar pelo sistema) ── */
+.cob-titulo-online { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; }
+.cob-titulo-online .titulo-secao { margin-bottom: 0; }
+.cob-conta { max-width: 320px; margin-bottom: 10px; }
+.cob-celula { display: flex; flex-direction: column; gap: 6px; min-width: 190px; }
+.cob-passar select { width: 100%; font-size: .82rem; padding-top: 5px; padding-bottom: 5px; }
+.cob-botoes { display: flex; flex-wrap: wrap; gap: 6px; }
+.cob-form { display: flex; flex-direction: column; gap: 8px; }
+.cob-form textarea, .cob-form input { width: 100%; }
+.cob-rotulo { display: flex; flex-direction: column; gap: 4px; font-weight: 600; margin-top: 4px; }
+.cob-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.cob-acoes { display: flex; justify-content: flex-end; gap: 8px; margin-top: 12px; }
+.cob-topo { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-bottom: 12px; }
+.cob-topo .re-abas { margin: 0; }
+.cob-lista { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 12px; }
+.cob-cartao { display: flex; flex-direction: column; gap: 10px; margin: 0; }
+.cob-cartao-topo { display: flex; justify-content: space-between; gap: 10px; align-items: flex-start; }
+.cob-valores { display: flex; flex-wrap: wrap; gap: 14px; }
+.cob-valores > span { display: flex; flex-direction: column; gap: 2px; }
+.cob-historico { list-style: none; margin: 0; padding: 10px 0 0; border-top: 1px solid var(--borda); display: flex; flex-direction: column; gap: 8px; }
+.cob-historico li { display: flex; flex-direction: column; gap: 2px; font-size: .86rem; }
+.cob-historico small { white-space: pre-wrap; }

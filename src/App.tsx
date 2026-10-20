@@ -10,6 +10,7 @@ import MatriculaDetalhe from './pages/MatriculaDetalhe'
 import NovaMatricula from './pages/NovaMatricula'
 import Pagamentos from './pages/Pagamentos'
 import Comissoes from './pages/Comissoes'
+import Cobrancas from './pages/Cobrancas'
 import Alunos from './pages/Alunos'
 import AlunoPerfil from './pages/AlunoPerfil'
 import Historico from './pages/Historico'
@@ -70,6 +71,7 @@ function Layout() {
           <NavLink to="/turmas"><Icone nome="turmas" /> Turmas</NavLink>
           <NavLink to="/agenda"><Icone nome="agenda" /> Agenda</NavLink>
           <NavLink to="/pagamentos"><Icone nome="pagamentos" /> Pagamentos</NavLink>
+          <NavLink to="/cobrancas"><Icone nome="moedas" /> Cobranças</NavLink>
           <NavLink to="/alunos"><Icone nome="alunos" /> Alunos</NavLink>
           <NavLink to="/comissoes"><Icone nome="comissoes" /> {isAdmin ? 'Comissões' : 'Minhas comissões'}</NavLink>
           <NavLink to="/links"><Icone nome="links" /> Links de pagamento</NavLink>
@@ -106,6 +108,7 @@ function Layout() {
           <Route path="/alunos" element={<Alunos />} />
           <Route path="/alunos/:id" element={<AlunoPerfil />} />
           <Route path="/comissoes" element={<Comissoes />} />
+          <Route path="/cobrancas" element={<Cobrancas />} />
           <Route path="/links" element={<Links />} />
           <Route path="/agenda" element={<Agenda />} />
           <Route path="/listas/*" element={<Navigate to="/atendimento/listas" replace />} />
