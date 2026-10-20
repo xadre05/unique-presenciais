@@ -9,7 +9,8 @@ import { Erro, Kpi } from '../../components/ui'
 import { Icone } from '../../components/Icone'
 import { Barras, type Ponto } from './Barras'
 import { FiltroTopo } from './FiltroTopo'
-import { buscarTudo, comoConsulta, intervaloMes, mesDe, nomeMes, somaMes, somar, type AReceber, type Entrada, type Saida } from './dados'
+import { buscarTudo, comoConsulta, intervaloMes, mesDe, nomeMes, somaMes, somar, type Entrada, type Saida } from './dados'
+import { quando, type Previsto } from './previsao/regras'
 
 type Leve = Pick<Entrada, 'data' | 'liquido' | 'taxa' | 'bruto' | 'conta_id' | 'origem'>
 type Divida = { valor_restante: number | null; valor_vencido: number | null; email: string | null; chave: string; integracao_id: string | null }
@@ -24,7 +25,8 @@ export default function VisaoGeral() {
     .gte('data', desde).order('data').order('id').range(de, ate))), [desde])
   const integracoes = useConsulta<{ id: string; conta_id: string | null }[]>(() => supabase.from('integracoes').select('id,conta_id'), [])
   const saidas = useConsulta<Saida[]>(() => supabase.from('v_fin_saidas').select('*'), [])
-  const receber = useConsulta<AReceber[]>(() => supabase.from('v_fin_a_receber').select('*'), [])
+  // o que vai entrar, no mês em que o dinheiro fica disponível (Parcelado Hotmart: dia 1º do mês seguinte) e já sem o que paga a antecipação
+  const receber = useConsulta<Previsto[]>(() => supabase.from('v_fin_previsao').select('*'), [])
   const dividas = useConsulta<Divida[]>(() => supabase.from('cobrancas').select('valor_restante,valor_vencido,email,chave,integracao_id').not('etapa', 'in', '(paga,sem_acordo,encerrada)'), [])
 
   const daConta = <T extends { conta_id: string | null }>(xs: T[]) => (conta ? xs.filter((x) => x.conta_id === conta) : xs)
@@ -46,11 +48,11 @@ export default function VisaoGeral() {
 
   const proximos = Array.from({ length: 6 }, (_, i) => {
     const m = somaMes(mesDe(hoje), i)
-    const rec = somar(daConta(receber.dados ?? []).filter((r) => r.data && mesDe(r.data) === m), (r) => r.valor)
+    const rec = somar(daConta(receber.dados ?? []).filter((r) => r.situacao === 'a_vencer' && !!quando(r) && mesDe(quando(r)!) === m), (r) => r.valor)
     const pag = somar(saidasConta.filter((s) => !s.pago_em && s.vencimento && mesDe(s.vencimento) === m), (s) => s.valor)
     return { m, rec, pag }
   })
-  const semData = somar(daConta(receber.dados ?? []).filter((r) => !r.data), (r) => r.valor)
+  const semData = somar(daConta(receber.dados ?? []).filter((r) => r.situacao !== 'a_vencer'), (r) => r.valor)
   const atrasadoPagar = somar(saidasConta.filter((s) => !s.pago_em && s.vencimento && s.vencimento < hoje), (s) => s.valor)
   // a dívida não tem conta bancária; filtrando por uma conta Hotmart, mostra só as dívidas daquela conta
   const contaDaIntegracao = (i: string | null) => (integracoes.dados ?? []).find((x) => x.id === i)?.conta_id ?? null
@@ -82,7 +84,7 @@ export default function VisaoGeral() {
             <thead><tr><th>Mês</th><th className="num">Vai entrar</th><th className="num">Vai sair</th><th className="num">Sobra</th></tr></thead>
             <tbody>{proximos.map((p) => <tr key={p.m}><td>{nomeMes(p.m)}</td><td className="num ok-txt">{brl(p.rec)}</td><td className="num">{brl(p.pag)}</td><td className={`num forte ${p.rec - p.pag < 0 ? 'erro-txt' : ''}`}>{brl(p.rec - p.pag)}</td></tr>)}</tbody>
           </table>
-          <p className="muted pequeno">Vai entrar: parcelas dos contratos em dia na Hotmart (valor líquido), parcelas do presencial e acordos de dívida.{semData > 0 && ` Mais ${brl(semData)} do presencial sem data de vencimento.`} Vai sair: despesas lançadas e comissões liberadas ainda não pagas.</p>
+          <p className="muted pequeno">Vai entrar: no mês em que o dinheiro fica disponível (o Parcelado Hotmart libera no dia 1º do mês seguinte, já sem o que paga a antecipação), parcelas do presencial e acordos.{semData > 0 && ` Mais ${brl(semData)} pendente (atrasado, sem data ou a conferir): veja em Previsão de caixa.`} Vai sair: despesas lançadas e comissões liberadas ainda não pagas.</p>
         </section>
         <section className="bloco">
           <div className="fin-titulo"><h2>Dinheiro na rua</h2><Link className="link pequeno" to="/cobrancas">Abrir a cobrança</Link></div>
