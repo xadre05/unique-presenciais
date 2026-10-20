@@ -13,6 +13,8 @@ import CriarLista from './CriarLista'
 import { NovoDisparo } from '../../crm/Disparos'
 import { useBaseCRM } from '../../crm/tipos'
 import { EMPRESA_UNIQUE } from './comum'
+import { FAIXAS_NOTA, faixaDaNota, PAGADOR, TEMPERATURA } from './nota'
+import { SeloNota } from './SeloNota'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 
 const POR_PAGINA = 50
@@ -48,6 +50,10 @@ export default function Contatos() {
   const nomesProdutos = useMemo(() => [...new Set((produtos.dados ?? []).map((p) => p.nome))], [produtos.dados])
 
   const mudar = (k: keyof Filtro, v: string | boolean) => { setF((x) => ({ ...x, [k]: v })); setPagina(1) }
+  const mudarFaixa = (v: string) => {
+    const fx = FAIXAS_NOTA.find((x) => x.valor === v)
+    setF((x) => ({ ...x, nota_min: fx?.min != null ? String(fx.min) : '', nota_max: fx?.max != null ? String(fx.max) : '' })); setPagina(1)
+  }
   const c = cont.dados ?? {}
   const soma = (k: 'total' | 'com_whats' | 'livres') => Object.values(c).reduce((s, x) => s + x[k], 0)
   const total = res.dados?.total ?? 0
@@ -110,6 +116,16 @@ export default function Contatos() {
           <option value="">Acesso: todos</option><option value="tem">Com acesso (vitalício ou em dia)</option><option value="vencido">Acesso vencido (qualquer)</option>
           {Object.entries(ACESSO).map(([k, a]) => <option key={k} value={k}>{a.rotulo}</option>)}
         </select></label>
+        <label className="select-icone"><Icone nome="grafico" tam={16} /><select value={faixaDaNota(f.nota_min, f.nota_max)} onChange={(e) => mudarFaixa(e.target.value)} title="Nota de 0 a 100: junta histórico de pagamento, interesse recente e quanto já comprou">
+          <option value="">Nota: todas</option>{FAIXAS_NOTA.map((x) => <option key={x.valor} value={x.valor}>{x.rotulo}</option>)}
+        </select></label>
+        <label className="select-icone"><Icone nome="raio" tam={16} /><select value={f.temperatura ?? ''} onChange={(e) => mudar('temperatura', e.target.value)}>
+          <option value="">Temperatura: todas</option>{Object.entries(TEMPERATURA).map(([k, t]) => <option key={k} value={k} title={t.explica}>{t.rotulo}</option>)}
+        </select></label>
+        <label className="select-icone"><Icone nome="dinheiro" tam={16} /><select value={f.pagador ?? ''} onChange={(e) => mudar('pagador', e.target.value)}>
+          <option value="">Pagador: todos</option><option value="sem_divida">Sem dívida</option><option value="com_divida">Com dívida (devendo ou negativado)</option>
+          {Object.entries(PAGADOR).map(([k, t]) => <option key={k} value={k} title={t.explica}>{t.rotulo}</option>)}
+        </select></label>
         <button className={`btn${maisFiltros || temFiltroExtra ? ' btn-contorno-ouro' : ''}`} onClick={() => setMaisFiltros(!maisFiltros)}><Icone nome="filtro" tam={16} /> Mais filtros {maisFiltros ? '▴' : '▾'}</button>
       </div>
       {maisFiltros && <div className="at-filtros">
@@ -150,7 +166,8 @@ export default function Contatos() {
                     <div className="muted pequeno at-corta">{x.nao_contatar ? <span className="erro-txt">Não quer receber</span> : x.telefone_invalido ? <span className="erro-txt">Número errado</span> : telefoneLegivel(x.telefone)}</div>
                     {x.emails[0] && <div className="muted pequeno at-corta">{x.emails[0]}</div>}
                   </div></div></td>
-                  <td><Badge tom={SEGMENTOS[x.segmento ?? 'frio']?.tom}>{SEGMENTOS[x.segmento ?? 'frio']?.rotulo}</Badge>{x.arquivado_em && <div><Badge tom="apagado">Arquivado</Badge></div>}</td>
+                  <td><Badge tom={SEGMENTOS[x.segmento ?? 'frio']?.tom}>{SEGMENTOS[x.segmento ?? 'frio']?.rotulo}</Badge>{x.arquivado_em && <div><Badge tom="apagado">Arquivado</Badge></div>}
+                    <div className="at-nota"><SeloNota n={{ nota: x.nota ?? null, temperatura: x.temperatura ?? null, pagador: x.pagador ?? null, motivos: x.nota_motivos }} compacto /></div></td>
                   <td>{tipoAluno(x.aluno_online, x.aluno_presencial)
                     ? <span className={`at-tipo-aluno${x.aluno_presencial ? ' presencial' : ''}`} title={x.cursos_presenciais?.length ? `Presencial: ${x.cursos_presenciais.join(', ')}` : undefined}>{tipoAluno(x.aluno_online, x.aluno_presencial)}</span>
                     : <span className="muted">—</span>}
@@ -190,7 +207,7 @@ export default function Contatos() {
 type Ficha = {
   contato: ContatoLinha & { observacoes: string | null; instagram: string | null; nao_contatar_motivo: string | null; criado_em: string }
   tentativas: number
-  resumo: { segmento: string; produtos: string[]; total_liquido: number; primeira_compra: string | null; ultima_compra: string | null; reembolsou: boolean; aluno_presencial: boolean; aluno_online?: boolean; vendido_por?: string | null; cursos_presenciais?: string[]; acesso?: string | null; acesso_ate?: string | null } | null
+  resumo: { segmento: string; produtos: string[]; total_liquido: number; primeira_compra: string | null; ultima_compra: string | null; reembolsou: boolean; aluno_presencial: boolean; aluno_online?: boolean; vendido_por?: string | null; cursos_presenciais?: string[]; acesso?: string | null; acesso_ate?: string | null; nota?: number | null; temperatura?: string | null; pagador?: string | null; nota_motivos?: string[] | null } | null
   compras: { data_aprovacao: string | null; produto_nome: string | null; valor_liquido: number | null; status: string; recorrencia: number | null; parcelas_cartao: number | null }[]
   listas: { campanha: string; status: string; vendedora: string | null; nota: string | null; atualizado_em: string }[]
   eventos: { tipo: string; texto: string | null; dados: { status?: string } | null; criado_em: string; autor: string | null }[]
@@ -231,6 +248,8 @@ function FichaContato({ id, onFechar, onMudou }: { id: string; onFechar: () => v
         <Erro msg={q.erro || erro} />
         {k && (<>
           <dl className="gaveta-dados">
+            {d.resumo?.nota != null && <><dt>Nota</dt><dd><SeloNota n={{ nota: d.resumo.nota, temperatura: d.resumo.temperatura ?? null, pagador: d.resumo.pagador ?? null, motivos: d.resumo.nota_motivos }} />
+              {(d.resumo.nota_motivos ?? []).length > 0 && <ul className="nota-motivos">{d.resumo.nota_motivos!.map((m) => <li key={m}>{m}</li>)}</ul>}</dd></>}
             <dt>WhatsApp</dt><dd>{telefoneLegivel(k.telefone)}</dd>
             <dt>E-mail</dt><dd className="pequeno">{k.emails.join(', ') || '—'}</dd>
             <dt>Cidade</dt><dd>{k.cidade ? `${k.cidade}${k.uf ? '/' + k.uf : ''}` : '—'}</dd>

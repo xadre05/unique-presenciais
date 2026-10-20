@@ -43,6 +43,7 @@ export const STATUS_LISTA: Record<string, { rotulo: string; tom: string; grupo: 
 export type Filtro = {
   busca?: string; segmento?: string; compra?: string; produto?: string; sem_produto?: string; ano_compra?: string; ano_entrada?: string
   tag?: string; so_whats?: boolean; fora_de_lista?: boolean; arquivados?: '' | 'true' | 'so'; acesso?: string
+  temperatura?: string; pagador?: string; nota_min?: string; nota_max?: string
 }
 export const limparFiltro = (f: Filtro) => Object.fromEntries(Object.entries(f).filter(([, v]) => v !== '' && v !== undefined && v !== false)) as Filtro
 
@@ -52,6 +53,9 @@ export function descreverFiltro(f: Filtro) {
   else if (f.segmento) p.push(SEGMENTOS[f.segmento]?.rotulo ?? f.segmento)
   if (f.compra) p.push(({ sim: 'já comprou', nao: 'nunca comprou', online: 'aluno do online', presencial: 'aluno do presencial', so_online: 'só online', so_presencial: 'só presencial', ambos: 'online + presencial' } as Record<string, string>)[f.compra] ?? f.compra)
   if (f.acesso) p.push(`acesso: ${ACESSO[f.acesso]?.rotulo.toLowerCase() ?? f.acesso}`)
+  if (f.nota_min || f.nota_max) p.push(`nota ${f.nota_min ?? 0} a ${f.nota_max ?? 100}`)
+  if (f.temperatura) p.push(`temperatura ${f.temperatura}`)
+  if (f.pagador) p.push(({ com_divida: 'com dívida', sem_divida: 'sem dívida', bom: 'bom pagador', atrasou_pagou: 'atrasou e pagou', sem_historico: 'sem compra', reembolsou: 'pediu reembolso', devendo: 'devendo', negativado: 'negativado' } as Record<string, string>)[f.pagador] ?? f.pagador)
   if (f.produto) p.push(`comprou ${f.produto}`)
   if (f.sem_produto) p.push(`não comprou ${f.sem_produto}`)
   if (f.ano_compra) p.push(`comprou em ${f.ano_compra}`)
@@ -70,6 +74,7 @@ export type ContatoLinha = {
   segmento: string | null; produtos: string[] | null; total_liquido: number | null; ultima_compra: string | null
   aluno_presencial: boolean | null; reembolsou: boolean | null; lista_ativa: string | null
   aluno_online?: boolean | null; vendido_por?: string | null; cursos_presenciais?: string[] | null; acesso?: string | null; acesso_ate?: string | null
+  nota?: number | null; temperatura?: string | null; pagador?: string | null; divida?: number | null; nota_motivos?: string[] | null
 }
 
 export type ItemLista = {

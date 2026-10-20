@@ -21,8 +21,9 @@ import Listas from '../crm/Listas'
 import ListaTrabalho from '../crm/ListaTrabalho'
 import { EMPRESA_UNIQUE, SEGMENTOS, STATUS_LISTA } from '../crm/comum'
 import { brl, dataBR } from '../../lib/format'
+import { SeloNota } from '../crm/SeloNota'
 
-type Resumo = { segmento: string | null; produtos: string[] | null; ultima_compra: string | null; aluno_presencial: boolean | null; reembolsou: boolean | null; total_liquido: number | null; listas: { campanha: string; status: string; vendedora: string | null; nota: string | null }[] }
+type Resumo = { segmento: string | null; produtos: string[] | null; ultima_compra: string | null; aluno_presencial: boolean | null; reembolsou: boolean | null; total_liquido: number | null; nota?: number | null; temperatura?: string | null; pagador?: string | null; nota_motivos?: string[] | null; listas: { campanha: string; status: string; vendedora: string | null; nota: string | null }[] }
 
 // o que é da Unique no painel do contato: o que comprou, se é aluno, em que listas está
 function ResumoUnique({ contatoId }: { contatoId: string }) {
@@ -33,6 +34,8 @@ function ResumoUnique({ contatoId }: { contatoId: string }) {
   return (
     <div className="resumo-unique">
       <h3>Na Unique</h3>
+      {r.nota != null && <div><SeloNota n={{ nota: r.nota, temperatura: r.temperatura ?? null, pagador: r.pagador ?? null, motivos: r.nota_motivos }} />
+        {(r.nota_motivos ?? []).length > 0 && <ul className="nota-motivos">{r.nota_motivos!.map((m) => <li key={m}>{m}</li>)}</ul>}</div>}
       <div><Badge tom={seg?.tom}>{seg?.rotulo}</Badge>{r.aluno_presencial && <> <Badge tom="ouro">Aluno(a) presencial</Badge></>}{r.reembolsou && <> <Badge tom="erro">Já pediu reembolso</Badge></>}</div>
       {(r.produtos ?? []).length > 0
         ? <div className="pequeno">Comprou: <span className="muted">{(r.produtos ?? []).join(', ')}</span>{r.ultima_compra && <div className="muted">última compra em {dataBR(r.ultima_compra)}{r.total_liquido != null ? ` · ${brl(r.total_liquido)} no total` : ''}</div>}</div>

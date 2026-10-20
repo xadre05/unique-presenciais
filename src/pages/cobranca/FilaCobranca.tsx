@@ -11,6 +11,7 @@ import { Icone } from '../../components/Icone'
 import { aberta, distribuir, nomeCurtoConta, useCobrancas, useContasHotmart } from './dados'
 import { ABAS, IDADES, naAba, ordenar, passaFiltro, somaRestante, somaVencido, type Aba, type Filtro, type Ordem } from './filtros'
 import { CartaoCobranca } from './CartaoCobranca'
+import { TEMPERATURA, useNotasDePessoas } from '../crm/nota'
 import { RecebimentosCobranca } from './RecebimentosCobranca'
 import { PainelNotificacao } from './notificacao/PainelNotificacao'
 
@@ -38,6 +39,7 @@ export default function FilaCobranca() {
   const [f, setF] = useState<Filtro>({ origem: '', conta: '', idade: '', quem: '', busca: qs.get('busca') ?? '' })
   const [marcadas, setMarcadas] = useState<Set<string>>(new Set())
   const [qtd, setQtd] = useState(POR_VEZ)
+  const [temperatura, setTemperatura] = useState('')
   const [erro, setErro] = useState<string | null>(null)
   const hoje = hojeISO(), eu = perfil?.nome || perfil?.email || 'Equipe'
   const nomeConta = (id: string | null) => nomeCurtoConta((contas.dados ?? []).find((x) => x.id === id)?.nome ?? '')
@@ -45,7 +47,10 @@ export default function FilaCobranca() {
 
   // encerradas pelo sistema sem ninguém ter trabalhado (não eram dívida) não poluem a fila
   const todas = useMemo(() => (cobrancas.dados ?? []).filter((c) => aberta(c) || c.tentativas > 0 || c.responsavel_id || c.etapa === 'paga'), [cobrancas.dados])
-  const doFiltro = useMemo(() => todas.filter((c) => passaFiltro(c, f)), [todas, f])
+  // nota e temperatura da pessoa (quem mostrou interesse há pouco tende a atender e pagar)
+  const pessoas = useMemo(() => todas.map((c) => ({ k: c.id, email: c.email, tel: c.telefone })), [todas])
+  const notas = useNotasDePessoas(pessoas)
+  const doFiltro = useMemo(() => todas.filter((c) => passaFiltro(c, f) && (!temperatura || notas[c.id]?.temperatura === temperatura)), [todas, f, temperatura, notas])
   const visiveis = useMemo(() => ordenar(doFiltro.filter((c) => naAba(c, aba, hoje)), ordem), [doFiltro, aba, ordem, hoje])
   const abertas = doFiltro.filter(aberta)
   const emAcordo = abertas.filter((c) => c.etapa === 'acordo')
@@ -83,6 +88,8 @@ export default function FilaCobranca() {
           <label className="select-icone"><Icone nome="links" /><select value={f.conta} onChange={(e) => mudarF({ conta: e.target.value })} aria-label="Conta da Hotmart"><option value="">Todas as contas</option>{(contas.dados ?? []).map((c) => <option key={c.id} value={c.id}>{nomeCurtoConta(c.nome)}</option>)}</select></label>
           <label className="select-icone"><Icone nome="relogio" /><select value={f.idade} onChange={(e) => mudarF({ idade: e.target.value as Filtro['idade'] })} aria-label="Há quanto tempo parou">{IDADES.map(([k, r]) => <option key={k} value={k}>{r}</option>)}</select></label>
           {isAdmin && <label className="select-icone"><Icone nome="usuario" tam={16} /><select value={f.quem} onChange={(e) => mudarF({ quem: e.target.value })} aria-label="Responsável"><option value="">Qualquer responsável</option><option value="ninguem">Sem responsável</option>{(vendedoras.dados ?? []).map((v) => <option key={v.id} value={v.id}>{v.nome}</option>)}</select></label>}
+          <label className="select-icone"><Icone nome="raio" tam={16} /><select value={temperatura} onChange={(e) => { setTemperatura(e.target.value); setQtd(POR_VEZ); setMarcadas(new Set()) }} aria-label="Temperatura" title="Quente: mandou mensagem, entrou como lead ou tentou comprar nos últimos 30 dias">
+            <option value="">Qualquer temperatura</option>{Object.entries(TEMPERATURA).map(([k, t]) => <option key={k} value={k}>{t.rotulo}</option>)}</select></label>
           <label className="select-icone"><Icone nome="filtro" /><select value={ordem} onChange={(e) => setOrdem(e.target.value as Ordem)} aria-label="Ordem"><option value="antigas">Mais antigas primeiro</option><option value="valor">Maior valor primeiro</option><option value="recentes">Mais recentes primeiro</option></select></label>
         </div>
         {isAdmin && visiveis.length > 0 && <div className="cob-selecao">
@@ -92,7 +99,7 @@ export default function FilaCobranca() {
         <Erro msg={erro || cobrancas.erro} />
         {!cobrancas.carregando && !visiveis.length ? <Vazio>{aba === 'a_contatar' ? (isAdmin ? 'Ninguém para contatar com esses filtros.' : 'Nenhuma cobrança passada para você nesta etapa.') : 'Nada nesta aba.'}</Vazio> : (
           <div className="itens-lista">
-            {visiveis.slice(0, qtd).map((c) => <CartaoCobranca key={c.id} c={c} conta={nomeConta(c.integracao_id)} responsavel={nomeVend(c.responsavel_id)} eu={eu} hoje={hoje} isAdmin={isAdmin}
+            {visiveis.slice(0, qtd).map((c) => <CartaoCobranca key={c.id} c={c} nota={notas[c.id]} conta={nomeConta(c.integracao_id)} responsavel={nomeVend(c.responsavel_id)} eu={eu} hoje={hoje} isAdmin={isAdmin}
               marcado={marcadas.has(c.id)} aoMarcar={isAdmin ? (v) => marcar(c.id, v) : null} aoMudar={cobrancas.recarregar} />)}
             {visiveis.length > qtd && <button className="btn btn-bloco" onClick={() => setQtd(qtd + POR_VEZ)}>Mostrar mais ({visiveis.length - qtd})</button>}
           </div>

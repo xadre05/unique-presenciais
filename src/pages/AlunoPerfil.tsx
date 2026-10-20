@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useCadastros, useConsulta } from '../lib/dados'
@@ -10,6 +10,8 @@ import { useAuth } from '../auth'
 import { EditarAluno, Historia } from './MatriculaDetalhe'
 import { BotaoWhats, pior } from './Alunos'
 import { turmaCurta } from './Agenda'
+import { useNotasDePessoas } from './crm/nota'
+import { SeloNota } from './crm/SeloNota'
 
 type Hist = Parameters<typeof Historia>[0]['itens']
 
@@ -24,6 +26,8 @@ export default function AlunoPerfil() {
     ? supabase.from('historico').select('*').in('registro_id', [id!, ...ms.map((m) => m.id)]).order('em', { ascending: false }).limit(40)
     : Promise.resolve({ data: [], error: null }), [id, ms.length, isAdmin])
   const [editando, setEditando] = useState(false)
+  const pessoa = useMemo(() => aluno.dados ? [{ k: 'p', email: aluno.dados.email, tel: aluno.dados.whatsapp }] : [], [aluno.dados])
+  const nota = useNotasDePessoas(pessoa).p
 
   const a = aluno.dados
   if (aluno.erro) return <div className="pagina"><Erro msg={aluno.erro} /></div>
@@ -41,7 +45,7 @@ export default function AlunoPerfil() {
       <header className="pagina-topo">
         <div>
           <h1>{a.nome}</h1>
-          <p className="muted">{ativas.length} curso(s) · <Badge tom={SITUACAO_ALUNO[situacao]?.tom}>{SITUACAO_ALUNO[situacao]?.rotulo}</Badge></p>
+          <p className="muted">{ativas.length} curso(s) · <Badge tom={SITUACAO_ALUNO[situacao]?.tom}>{SITUACAO_ALUNO[situacao]?.rotulo}</Badge>{nota && <> · <SeloNota n={nota} /></>}</p>
         </div>
         <div className="acoes">
           <BotaoWhats tel={a.whatsapp} />

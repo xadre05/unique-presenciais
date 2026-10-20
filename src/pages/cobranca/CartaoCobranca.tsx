@@ -10,6 +10,8 @@ import { prazoNegativar } from './filtros'
 import { MensagemWhats } from './MensagemWhats'
 import { RegistrarContato } from './RegistrarContato'
 import { ModalAcordo, ModalRecebimento } from './ModaisAcordo'
+import type { NotaPessoa } from '../crm/nota'
+import { SeloNota } from '../crm/SeloNota'
 
 const quando = (iso: string) => new Date(iso).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' })
 const ETAPAS_MANUAIS: Etapa[] = ['a_contatar', 'aguardando', 'negociando', 'acordo', 'negativar', 'negativado', 'sem_acordo']
@@ -26,11 +28,11 @@ function Historico({ id }: { id: string }) {
 }
 
 type Props = {
-  c: Cobranca; conta: string; responsavel: string | null; eu: string; hoje: string; isAdmin: boolean
+  c: Cobranca; nota?: NotaPessoa; conta: string; responsavel: string | null; eu: string; hoje: string; isAdmin: boolean
   marcado: boolean; aoMarcar: ((v: boolean) => void) | null; aoMudar: () => void
 }
 
-export function CartaoCobranca({ c, conta, responsavel, eu, hoje, isAdmin, marcado, aoMarcar, aoMudar }: Props) {
+export function CartaoCobranca({ c, nota, conta, responsavel, eu, hoje, isAdmin, marcado, aoMarcar, aoMudar }: Props) {
   const [aberto, setAberto] = useState<'whats' | 'registrar' | 'acordo' | 'pagamento' | 'historico' | null>(null)
   const [erro, setErro] = useState<string | null>(null)
   const e = ETAPAS[c.etapa]
@@ -45,7 +47,7 @@ export function CartaoCobranca({ c, conta, responsavel, eu, hoje, isAdmin, marca
         <div className="cob-quem">
           {aoMarcar && <input type="checkbox" checked={marcado} onChange={(x) => aoMarcar(x.target.checked)} aria-label="Selecionar" />}
           <div>
-            <b>{c.aluno_nome || 'Sem nome'}</b> <Badge tom={c.origem === 'online' ? 'info' : 'ouro'}>{c.origem === 'online' ? conta || 'Online' : 'Presencial'}</Badge>
+            <b>{c.aluno_nome || 'Sem nome'}</b> <Badge tom={c.origem === 'online' ? 'info' : 'ouro'}>{c.origem === 'online' ? conta || 'Online' : 'Presencial'}</Badge> <SeloNota n={nota} compacto semPagador />
             <div className="muted pequeno">{c.produto}{c.telefone ? '' : ' · sem telefone'}{isAdmin && responsavel ? ` · com ${responsavel}` : isAdmin ? ' · sem responsável' : ''}</div>
           </div>
         </div>
