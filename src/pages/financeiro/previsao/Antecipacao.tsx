@@ -19,7 +19,7 @@ export function Antecipacao({ contratos }: { contratos: Parcelado[] }) {
       <p className="muted pequeno">No Parcelado Hotmart, a Hotmart adianta uma parte do contrato logo depois da venda. Depois, as parcelas que o aluno paga ficam com ela até cobrir esse adiantamento; só o que passar disso cai na sua conta. Estimativa pelo percentual de cada conta (<Link className="link" to="/financeiro/receber">ajustar em A receber</Link>).</p>
       {!lista.length ? <Vazio>Nenhum contrato com antecipação em aberto.</Vazio> : (
         <div className="tabela-wrap"><table className="tabela">
-          <thead><tr><th>Aluno</th><th className="num">Parcelas pagas</th><th className="num">Contrato</th><th className="num">Hotmart adiantou</th><th className="num">Já recuperou</th><th className="num">Ainda segura</th><th className="num">Ainda chega para vocês</th></tr></thead>
+          <thead><tr><th>Aluno</th><th className="num">Parcelas pagas</th><th className="num">Contrato</th><th className="num">Vocês já receberam adiantado</th><th className="num">Já devolvido pelas parcelas</th><th className="num">Falta devolver</th><th className="num">Ainda chega para vocês</th></tr></thead>
           <tbody>{lista.map((c) => (
             <tr key={c.id}>
               <td className="pequeno"><b>{c.nome ?? c.email}</b><div className="muted at-corta">{c.produto_nome}</div></td>

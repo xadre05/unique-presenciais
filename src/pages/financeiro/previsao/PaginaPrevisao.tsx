@@ -68,7 +68,7 @@ export default function PaginaPrevisao() {
         <Kpi rotulo={`Vai entrar (${nomePeriodo})`} valor={brl(vai)} tom="info" sub={`${brl(auto)} pela Hotmart · ${brl(vai - auto)} presencial e acordos`} />
         <Kpi rotulo="Pendente, sem data certa" valor={brl(pend)} tom={pend ? 'alerta' : undefined} sub={`${brl(pendPresencial)} presencial · ${brl(pend - pendPresencial)} Hotmart atrasado`} />
         {comPassado && <Kpi rotulo="Pago pelos alunos este mês" valor={brl(entrou)} sub={naHotmart ? `${brl(naHotmart)} disso ainda está na Hotmart (cai dia 1º)` : `${entradas.length} pagamento(s)`} />}
-        <Kpi rotulo="Fica com a Hotmart (antecipação)" valor={brl(segura)} sub="parcelas que pagam o que ela já adiantou" />
+        <Kpi rotulo="Já recebido antes (adiantamento)" valor={brl(segura)} sub="parcelas que devolvem à Hotmart o que ela já adiantou a vocês; não é taxa" />
       </section>
       <p className="fin-total">Até {dataBR(fim)}: <b>{brl(disponivel + vai)}</b> com o que já está disponível e o que vai entrar{pend > 0 && <> (ou <b>{brl(disponivel + vai + pend)}</b> se as pendências forem pagas)</>}.</p>
 

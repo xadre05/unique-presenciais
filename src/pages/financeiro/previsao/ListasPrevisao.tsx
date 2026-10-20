@@ -16,7 +16,7 @@ function Linha({ p, mostrarSituacao }: { p: Previsto; mostrarSituacao?: boolean 
       <td><Badge tom={p.automatico ? 'info' : 'neutro'}>{NOME_JEITO[jeitoPrevisto(p)]}</Badge></td>
       {mostrarSituacao && <td className="pequeno"><Badge tom={TOM_SITUACAO[p.situacao]}>{NOME_SITUACAO[p.situacao]}</Badge>
         {ACAO_SITUACAO[p.situacao] && <div className="muted">{ACAO_SITUACAO[p.situacao]}</div>}</td>}
-      <td className="num"><b>{brl(p.valor)}</b>{segura > 0.5 && <div className="muted pequeno">aluno paga {brl(p.valor_aluno)}; {brl(segura)} fica com a Hotmart</div>}</td>
+      <td className="num"><b>{brl(p.valor)}</b>{segura > 0.5 && <div className="muted pequeno">aluno paga {brl(p.valor_aluno)}; {brl(segura)} devolve o adiantamento que vocês já receberam</div>}</td>
     </tr>
   )
 }
