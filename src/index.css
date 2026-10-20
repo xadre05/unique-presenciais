@@ -3167,3 +3167,10 @@ a.sala-agente:hover { border-color: var(--ouro); transform: translateY(-2px); }
 .fin-antecipa-conta { display: flex; flex-direction: column; gap: 8px; padding: 12px 14px; border: 1px solid var(--borda); border-radius: 12px; background: var(--painel-2); }
 @media (max-width: 860px) { .fin-duas { grid-template-columns: 1fr; } .fin-barras { gap: 2px; height: 160px; } .fin-rua { grid-template-columns: 1fr 1fr; } }
 .not-libera { margin: 6px 0 14px; padding: 10px 12px; border: 1px solid var(--borda); border-radius: 10px; background: var(--painel-2); }
+/* Previsão de caixa (financeiro/previsao) */
+.fin-periodos { margin-bottom: 12px; }
+.fin-total { margin: -4px 0 18px; font-size: 0.95rem; }
+.fin-semana td { background: var(--painel-2); font-weight: 600; font-size: 0.85rem; }
+.fin-busca { max-width: 240px; }
+.fin-saldo-editar { display: flex; flex-direction: column; gap: 8px; }
+.fin-saldo-parcelas { padding-top: 8px; border-top: 1px dashed var(--borda); }

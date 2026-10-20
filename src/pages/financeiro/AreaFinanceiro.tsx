@@ -7,6 +7,7 @@ import { Marca } from '../../components/ui'
 import { Icone } from '../../components/Icone'
 import { TrocaArea } from '../../components/TrocaArea'
 import VisaoGeral from './VisaoGeral'
+import PaginaPrevisao from './previsao/PaginaPrevisao'
 import Entradas from './Entradas'
 import AReceber from './AReceber'
 import Despesas from './Despesas'
@@ -32,7 +33,8 @@ export default function AreaFinanceiro() {
         <TrocaArea ativa="financeiro" />
         <nav>
           <span className="nav-grupo">Dinheiro</span>
-          <NavLink to="/financeiro" end><Icone nome="grafico" /> Visão geral</NavLink>
+          <NavLink to="/financeiro" end><Icone nome="agenda" /> Previsão de caixa</NavLink>
+          <NavLink to="/financeiro/geral"><Icone nome="grafico" /> Visão geral</NavLink>
           <NavLink to="/financeiro/entradas"><Icone nome="moedas" /> Entradas</NavLink>
           <NavLink to="/financeiro/receber"><Icone nome="agenda" /> A receber</NavLink>
           <NavLink to="/financeiro/despesas"><Icone nome="dinheiro" /> Despesas</NavLink>
@@ -50,14 +52,16 @@ export default function AreaFinanceiro() {
         </div>
       </aside>
       <nav className="barra-inferior">
-        <NavLink to="/financeiro" end><Icone nome="grafico" /><span>Geral</span></NavLink>
+        <NavLink to="/financeiro" end><Icone nome="agenda" /><span>Previsão</span></NavLink>
+        <NavLink to="/financeiro/geral"><Icone nome="grafico" /><span>Geral</span></NavLink>
         <NavLink to="/financeiro/entradas"><Icone nome="moedas" /><span>Entradas</span></NavLink>
         <NavLink to="/financeiro/receber"><Icone nome="agenda" /><span>A receber</span></NavLink>
         <NavLink to="/financeiro/despesas"><Icone nome="dinheiro" /><span>Despesas</span></NavLink>
       </nav>
       <main className="conteudo">
         <Routes>
-          <Route index element={<VisaoGeral />} />
+          <Route index element={<PaginaPrevisao />} />
+          <Route path="geral" element={<VisaoGeral />} />
           <Route path="entradas" element={<Entradas />} />
           <Route path="receber" element={<AReceber />} />
           <Route path="despesas" element={<Despesas />} />
