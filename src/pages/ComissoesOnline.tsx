@@ -314,6 +314,9 @@ export function RegrasOnline() {
   const contagem = useMemo(() => { const m = new Map<string, number>(); for (const v of vistos.dados ?? []) if (v.rastreio) m.set(v.rastreio.toLowerCase(), (m.get(v.rastreio.toLowerCase()) ?? 0) + 1); return m }, [vistos.dados])
   const conhecidos = new Set((rast.dados ?? []).map((r) => r.valor.toLowerCase()))
   const novos = [...contagem.keys()].filter((k) => !conhecidos.has(k))
+  // códigos automáticos de anúncio (Facebook/Instagram: "id|id|placement…", "{{campaign.name}}") nunca são de vendedora
+  const novosAnuncio = novos.filter(ehCodigoDeAnuncio)
+  const novosNomes = novos.filter((k) => !ehCodigoDeAnuncio(k))
 
   const recalcular = async () => { const { error } = await supabase.rpc('recalcular_comissoes_online'); if (error) setErro(msgErro(error)); else setMsg('Comissões do online recalculadas (as já aprovadas ou pagas não mudam).') }
   const salvarRast = async (r: Partial<Rastreio> & { valor: string }) => {
@@ -321,6 +324,14 @@ export function RegrasOnline() {
     const reg = { valor: r.valor, vendedora_id: r.nao_e_vendedora ? null : r.vendedora_id ?? null, tipo_lead: r.nao_e_vendedora ? null : r.tipo_lead ?? 'proprio', nao_e_vendedora: !!r.nao_e_vendedora, observacao: r.observacao ?? null }
     const { error } = r.id ? await supabase.from('rastreios').update(reg).eq('id', r.id) : await supabase.from('rastreios').insert(reg)
     if (error) return setErro(msgErro(error))
+    rast.recarregar(); await recalcular()
+  }
+  const marcarAnuncios = async () => {
+    setErro(null); setMsg(null)
+    const linhas = novosAnuncio.map((valor) => ({ valor, vendedora_id: null, tipo_lead: null, nao_e_vendedora: true, observacao: 'Código automático de anúncio' }))
+    const { error } = await supabase.from('rastreios').insert(linhas)
+    if (error) return setErro(msgErro(error))
+    setMsg(`${linhas.length} código(s) de anúncio marcados como campanha.`)
     rast.recarregar(); await recalcular()
   }
   const salvarRegra = async () => {
@@ -351,12 +362,14 @@ export function RegrasOnline() {
 
       <h3>Nomes nos links (rastreio)</h3>
       <p className="muted pequeno">Cada valor que aparece no link da Hotmart e de quem ele é. Mudou aqui, as comissões ainda em conferência são recalculadas.</p>
-      {novos.length > 0 && <div className="faixa-alerta"><Icone nome="alerta" tam={18} /><span><b>{novos.length} nome(s) novo(s) nos links</b>, ainda sem dono: {novos.join(', ')}. Diga de quem é cada um na tabela abaixo.</span></div>}
+      {novosNomes.length > 0 && <div className="faixa-alerta"><Icone nome="alerta" tam={18} /><span><b>{novosNomes.length} nome(s) novo(s) nos links</b>, ainda sem dono. Diga de quem é cada um na tabela abaixo.</span></div>}
+      {novosAnuncio.length > 0 && <div className="faixa-alerta"><Icone nome="info" tam={18} /><span><b>{novosAnuncio.length} código(s) automático(s) de anúncio</b> (Facebook/Instagram). Não são de vendedora.</span>
+        <button className="btn btn-mini btn-contorno-ouro" onClick={marcarAnuncios}>Marcar todos como campanha</button></div>}
       <div className="tabela-wrap">
         <table className="tabela compacta">
           <thead><tr><th>No link</th><th className="num">Pagamentos</th><th>Vendedora</th><th>Tipo de lead</th><th>Observação</th></tr></thead>
           <tbody>
-            {novos.map((k) => <LinhaRastreio key={'n' + k} r={{ valor: k, vendedora_id: null, tipo_lead: null, nao_e_vendedora: false, observacao: null }} n={contagem.get(k) ?? 0} vendedoras={cad.vendedoras} onSalvar={salvarRast} novo />)}
+            {novosNomes.map((k) => <LinhaRastreio key={'n' + k} r={{ valor: k, vendedora_id: null, tipo_lead: null, nao_e_vendedora: false, observacao: null }} n={contagem.get(k) ?? 0} vendedoras={cad.vendedoras} onSalvar={salvarRast} novo />)}
             {(rast.dados ?? []).map((r) => <LinhaRastreio key={r.id} r={r} n={contagem.get(r.valor.toLowerCase()) ?? 0} vendedoras={cad.vendedoras} onSalvar={salvarRast} />)}
           </tbody>
         </table>
@@ -367,11 +380,15 @@ export function RegrasOnline() {
   )
 }
 
+function ehCodigoDeAnuncio(codigo: string) {
+  return codigo.includes('|') || codigo.includes('{{') || codigo.length > 60
+}
+
 function LinhaRastreio({ r, n, vendedoras, onSalvar, novo }: { r: Partial<Rastreio> & { valor: string }; n: number; vendedoras: { id: string; nome: string; ativa: boolean }[]; onSalvar: (r: Partial<Rastreio> & { valor: string }) => void; novo?: boolean }) {
   const dono = r.nao_e_vendedora ? 'nao' : r.vendedora_id ?? ''
   return (
     <tr className={novo ? 'linha-nova' : ''}>
-      <td><code>{r.valor}</code>{novo && <> <Badge tom="alerta">novo</Badge></>}</td>
+      <td><code title={r.valor}>{r.valor.length > 40 ? r.valor.slice(0, 40) + '…' : r.valor}</code>{novo && <> <Badge tom="alerta">novo</Badge></>}</td>
       <td className="num">{n}</td>
       <td><select value={dono} onChange={(e) => onSalvar({ ...r, vendedora_id: e.target.value === 'nao' ? null : e.target.value || null, nao_e_vendedora: e.target.value === 'nao' })}>
         <option value="">— escolher —</option><option value="nao">Não é vendedora (campanha, stories…)</option>
