@@ -1,10 +1,9 @@
-// Agente de Marketing → Automações: comentário → direct (o "ManyChat nosso"). Lista das automações (ligar, editar,
+// Automações (menu próprio da área de Agentes, vale para todos os agentes): comentário → direct (o "ManyChat nosso"). Lista das automações (ligar, editar,
 // excluir), o registro do que foi enviado e o botão para conferir os comentários agora. O sistema confere sozinho a
 // cada 2 minutos; com os avisos instantâneos da Meta, a mensagem sai na hora.
 import { useState } from 'react'
 import { Erro } from '../../../components/ui'
 import { Icone } from '../../../components/Icone'
-import { CabecalhoAba } from '../marketing/BarraFiltros'
 import { AvisosInstantaneos } from './AvisosInstantaneos'
 import { FormAutomacao } from './FormAutomacao'
 import { NOME_ALVO, NOME_DESTINO, excluirAutomacao, ligarAutomacao, useAutomacoes, useEnvios, usePecasAlvo, usePostsRecentes, useVendedoras, verificarAgora, type Automacao, type Envio, type PecaAlvo, type PostAlvo } from './dados'
@@ -75,7 +74,6 @@ export function AbaAutomacoes({ empresa }: { empresa: string }) {
 
   return (
     <section className="mk-plano au-aba">
-      <CabecalhoAba titulo="Automações" sub="Quem comenta a palavra-chave recebe uma mensagem no direct com um link, um PDF ou o caminho para o WhatsApp da equipe. Hoje: Instagram." />
       <div className="mk-painel au-como">
         <div><b>Como funciona</b>
           <span className="muted pequeno">O sistema confere os comentários dos posts escolhidos a cada 2 minutos e responde no direct (uma vez por comentário). Até a Meta aprovar o app, só quem tem papel no app recebe a mensagem: dá para testar com a sua conta.</span></div>

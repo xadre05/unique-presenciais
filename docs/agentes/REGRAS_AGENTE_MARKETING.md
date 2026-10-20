@@ -344,7 +344,7 @@ Capa, thumbnail e legenda são materiais dentro da peça, não peças separadas.
 
 ## Automações: comentário → direct (19/10/2026)
 
-- Aba **Automações** do Agente de Marketing. Cada automação diz onde vale (um post publicado, uma peça do agente, que
+- Menu **Automações** na barra lateral da área de Agentes (fica no espaço de trabalho, não dentro de um agente). Cada automação diz onde vale (um post publicado, uma peça do agente, que
   passa a valer quando for publicada, ou qualquer post dos últimos 7 dias), as palavras-chave (inteiras, sem ligar para
   acento ou maiúscula) ou "qualquer comentário", a mensagem do direct (`{nome}` vira o @), o link (pode ficar em branco
   até a página subir) e até 3 respostas públicas, sorteadas.

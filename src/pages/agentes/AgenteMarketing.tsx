@@ -20,18 +20,17 @@ import { NovaCampanha } from './marketing/Campanhas'
 import { etapaDe } from './marketing/etapas'
 import { RedesAtivas, redesAtivas } from './marketing/redes'
 import { CabecalhoAba } from './marketing/BarraFiltros'
-import { AbaAutomacoes } from './automacoes/AbaAutomacoes'
 import { aplicar, filtrosIniciais, filtrosProducaoIniciais, intervaloDe, type Filtros, type FiltrosProducao } from './marketing/filtros'
 import type { Plano } from './marketing/planos'
 
-type Aba = 'conteudos' | 'producao' | 'resultados' | 'automacoes' | 'config'
+type Aba = 'conteudos' | 'producao' | 'resultados' | 'config'
 // páginas que tomam a tela inteira (sem as abas), com o caminho no topo
 type Pagina = { tipo: 'reuniao'; id?: string; escopo: TipoEscopo; data: string } | { tipo: 'planejar'; modo: ModoPlano; data: string; revisar: Plano | null } | null
 const ESCOPO_DO_MODO: Record<ModoPlano, TipoEscopo> = { dia: 'dia', semana: 'semana', mes: 'mes', periodo: 'dias' }
 
 export default function AgenteMarketing() {
   const local = useLocation()
-  const [aba, setAba] = useState<Aba>(() => { const a = new URLSearchParams(local.search).get('aba'); return a === 'config' || a === 'resultados' || a === 'producao' || a === 'automacoes' ? a : 'conteudos' })
+  const [aba, setAba] = useState<Aba>(() => { const a = new URLSearchParams(local.search).get('aba'); return a === 'config' || a === 'resultados' || a === 'producao' ? a : 'conteudos' })
   // filtros moram aqui: continuam iguais ao trocar Quadro/Calendário e ao ir à Produção e voltar (regra 6)
   // ?campanha=id (atalho de Base da marca → Campanhas) já abre filtrado; ?data= leva o calendário ao mês da campanha
   const [f, setF] = useState<Filtros>(() => { const q = new URLSearchParams(local.search), d = q.get('data'); return { ...filtrosIniciais(), campanha: q.get('campanha') ?? '', ...(d ? { periodo: 'mes' as const, data: d, visao: 'calendario' as const } : {}) } })
@@ -63,7 +62,6 @@ export default function AgenteMarketing() {
       <button className={aba === 'conteudos' ? 'ativa' : ''} onClick={() => setAba('conteudos')}>Conteúdos</button>
       <button className={aba === 'producao' ? 'ativa' : ''} onClick={() => { setAba('producao'); setAberta(null) }}>Produção{aguardando ? <span className="mk-conta">{aguardando}</span> : null}</button>
       <button className={aba === 'resultados' ? 'ativa' : ''} onClick={() => setAba('resultados')}>Resultados</button>
-      <button className={aba === 'automacoes' ? 'ativa' : ''} onClick={() => setAba('automacoes')}>Automações</button>
       <button className={aba === 'config' ? 'ativa' : ''} onClick={() => setAba('config')}>Configurar agente</button>
     </nav>
   )
@@ -117,7 +115,6 @@ export default function AgenteMarketing() {
           trabalhos={trabalhos.dados ?? []} aoMudar={recarregar} campanhas={campanhas} planos={planos} abasTopo={abasTopo} f={fp} mudar={(c) => setFp((x) => ({ ...x, ...c }))} />
       )}
       {aba === 'resultados' && <ResultadosInstagram empresa={EMPRESA} aoAbrirPeca={(id) => { recarregar(); setAberta(id); setAba('producao') }} />}
-      {aba === 'automacoes' && <AbaAutomacoes empresa={EMPRESA} />}
       {aba === 'config' && (
         <section className="mk-plano">
           <CabecalhoAba titulo="Funcionamento e preferências" sub="Defina como este agente trabalha e revise o que ele deve lembrar." />
