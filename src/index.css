@@ -3072,3 +3072,49 @@ a.sala-agente:hover { border-color: var(--ouro); transform: translateY(-2px); }
 .cob-receb .cob-linha2 { max-width: 360px; }
 .painel-areas { margin-top: 0; }
 @media (max-width: 640px) { .cob-linha2 { grid-template-columns: 1fr; } .cob-quem b { word-break: break-word; } }
+
+/* Pagamentos (modelo de out/2026) */
+.pg-pagina .pagina-topo .acoes { display: flex; gap: 10px; flex-wrap: wrap; }
+.pg-resumo { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-bottom: 14px; }
+.pg-cartao { display: flex; align-items: center; gap: 14px; text-align: left; background: var(--painel); border: 1px solid var(--borda); border-radius: 12px; padding: 16px 18px; color: var(--texto); font: inherit; cursor: pointer; transition: border-color .15s; }
+.pg-cartao:hover { border-color: var(--ouro); }
+.pg-cartao > svg:last-child { margin-left: auto; color: var(--muted); flex: none; }
+.pg-cartao-texto { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.pg-rotulo { color: var(--muted); font-size: .9rem; }
+.pg-valor { font-family: 'JetBrains Mono', monospace; font-size: 1.35rem; white-space: nowrap; }
+.pg-cartao small { color: var(--muted); font-size: .78rem; line-height: 1.3; }
+.pg-erro .pg-valor, .pg-erro small { color: var(--erro); }
+.pg-info .pg-valor { color: var(--info); }
+.resumo-icone.ic-ouro { color: var(--ouro); }
+.pg-filtros { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 10px; }
+.pg-busca { flex: 1 1 280px; min-width: 0; }
+.pg-rotulado { flex: 0 1 auto; gap: 6px; }
+.pg-rotulado > span { color: var(--muted); white-space: nowrap; font-size: .9rem; }
+.pg-rotulado select { min-width: 110px; }
+.pg-filtros-2 .pg-rotulado { flex: 1 1 200px; }
+.pg-filtros-2 .link { white-space: nowrap; }
+.pg-atalhos { display: flex; flex-wrap: wrap; gap: 8px; }
+.pg-atalho { background: transparent; border: 1px solid var(--borda); color: var(--texto); border-radius: 999px; padding: 8px 16px; font: inherit; font-size: .9rem; cursor: pointer; white-space: nowrap; }
+.pg-atalho:hover { border-color: var(--ouro); }
+.pg-atalho.ativo { background: var(--ouro); border-color: var(--ouro); color: #1a1408; font-weight: 600; }
+.pg-periodo { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
+.pg-periodo .select-icone { gap: 8px; }
+.pg-periodo input { color-scheme: dark; }
+.tabela-pag th.direita { text-align: right; }
+.pg-acoes { display: flex; align-items: center; justify-content: flex-end; gap: 6px; }
+.pg-acoes .btn { min-width: 118px; }
+.menu-linha { position: relative; }
+.menu-linha-lista { position: absolute; right: 0; top: calc(100% + 4px); z-index: 20; min-width: 200px; background: var(--painel-2, var(--painel)); border: 1px solid var(--borda); border-radius: 10px; padding: 6px; display: flex; flex-direction: column; box-shadow: 0 10px 30px rgba(0,0,0,.45); }
+.menu-linha-lista button { background: none; border: 0; color: var(--texto); text-align: left; font: inherit; font-size: .9rem; padding: 8px 10px; border-radius: 6px; cursor: pointer; white-space: nowrap; }
+.menu-linha-lista button:hover { background: rgba(255,255,255,.06); color: var(--ouro); }
+.pg-paginas { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.pg-num { min-width: 34px; height: 34px; border-radius: 8px; border: 1px solid var(--borda); background: transparent; color: var(--texto); font: inherit; cursor: pointer; }
+.pg-num.ativo { background: var(--ouro); border-color: var(--ouro); color: #1a1408; font-weight: 700; }
+.pg-escolher { max-height: 420px; overflow-y: auto; margin-top: 10px; }
+.pg-escolher li { padding: 0; }
+.pg-escolher button { width: 100%; display: flex; justify-content: space-between; align-items: center; gap: 12px; background: none; border: 0; color: var(--texto); font: inherit; text-align: left; padding: 10px 6px; cursor: pointer; border-radius: 8px; }
+.pg-escolher button:hover { background: rgba(255,255,255,.05); }
+.pg-escolher button > span:first-child { display: flex; flex-direction: column; gap: 2px; }
+.pg-escolher .direita { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+@media (max-width: 1100px) { .pg-resumo { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 560px) { .pg-resumo { grid-template-columns: 1fr; } .pg-valor { font-size: 1.15rem; } .pg-filtros-2 .pg-rotulado { flex-basis: 100%; } }

@@ -23,7 +23,7 @@ export function ResumoCobranca({ origem, conta = '' }: { origem: 'online' | 'pre
         {linha('Recuperado (acordos conferidos)', brl(recuperado), 'ok-txt')}
         {linha('Voltaram a pagar sozinhos', daqui.filter((c) => c.etapa === 'paga').length)}
       </dl>
-      <Link to={`/atendimento/cobrancas`} className="btn btn-contorno btn-bloco"><Icone nome="moedas" tam={16} /> Abrir a fila de cobrança</Link>
+      <Link to="/cobrancas" className="btn btn-contorno btn-bloco"><Icone nome="moedas" tam={16} /> Abrir a fila de cobrança</Link>
     </section>
   )
 }

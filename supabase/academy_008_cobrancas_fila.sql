@@ -120,10 +120,12 @@ grant execute on function public.distribuir_cobrancas(uuid[], uuid) to authentic
 create or replace view public.v_cobranca_online with (security_invoker = true) as
 with ass as (
   select a.integracao_id, a.email, a.produto_id, max(a.produto_nome) as produto_nome, max(a.nome) as nome, max(a.oferta_codigo) as oferta_codigo,
-    sum(a.nao_pagas)::bigint as nao_pagas, min(a.primeira_nao_paga)::date as primeira_nao_paga,
-    string_agg(distinct a.status, ', ') as status, bool_and(a.status = 'ACTIVE') as so_ativa
+    max(a.nao_pagas)::bigint as nao_pagas, min(a.primeira_nao_paga)::date as primeira_nao_paga,
+    string_agg(distinct a.status, ', ') as status, false as so_ativa
   from public.hotmart_assinaturas a
-  where a.tipo is distinct from 'SUBSCRIPTION' and a.email is not null and a.nao_pagas > 0
+  -- só o que a própria Hotmart chama de "Atraso" ou "Cancelado"; plano "Ativo" (inclusive quem renegociou pela Recuperação)
+  -- não é dívida, mesmo que a lista de parcelas não pagas ainda mostre parcelas antigas
+  where a.tipo is distinct from 'SUBSCRIPTION' and a.email is not null and a.nao_pagas > 0 and (a.status = 'DELAYED' or a.status like 'CANCELLED%')
   group by 1, 2, 3
 ), parc as (
   -- cada cobrança do parcelamento (recorrência): quantas foram pagas, o valor da parcela e o total de parcelas
@@ -138,11 +140,10 @@ with ass as (
   select a.integracao_id, a.email, a.produto_id, a.produto_nome as produto,
     coalesce(a.nome, (select max(h.comprador_nome) from public.hotmart_pagamentos h where lower(h.comprador_email) = a.email)) as nome,
     a.status as status_hotmart, p.parcela as valor_parcela, p.pagas, p.np, p.ultima_data,
-    a.nao_pagas as vencidas, a.primeira_nao_paga as parou_em, false as valor_estimado
+    least(a.nao_pagas, coalesce(p.np - p.pagas, a.nao_pagas)) as vencidas, a.primeira_nao_paga as parou_em, false as valor_estimado
   from ass a
   join parc p on p.email = a.email and p.produto_id = a.produto_id
   where p.estornos = 0 and p.pagas >= 1 and p.pagas < coalesce(p.np, p.pagas + 1)       -- pagou ao menos 1 parcela e não terminou
-    and not (a.so_ativa and a.primeira_nao_paga > current_date - 5)                       -- a Hotmart ainda está tentando cobrar
 )
 select 'online|' || b.email || '|' || coalesce(b.produto_id::text, '') as chave,
   b.integracao_id, b.email, b.produto_id, b.produto, b.nome, b.status_hotmart, b.valor_parcela, b.pagas, b.np, b.ultima_data, b.vencidas, b.parou_em,

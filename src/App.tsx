@@ -4,6 +4,7 @@ import { AuthProvider, useAuth } from './auth'
 import { supabase } from './lib/supabase'
 import Login from './pages/Login'
 import Painel from './pages/Painel'
+import FilaCobranca from './pages/cobranca/FilaCobranca'
 import Turmas from './pages/Turmas'
 import TurmaDetalhe from './pages/TurmaDetalhe'
 import MatriculaDetalhe from './pages/MatriculaDetalhe'
@@ -70,7 +71,7 @@ function Layout() {
           <NavLink to="/turmas"><Icone nome="turmas" /> Turmas</NavLink>
           <NavLink to="/agenda"><Icone nome="agenda" /> Agenda</NavLink>
           <NavLink to="/pagamentos"><Icone nome="pagamentos" /> Pagamentos</NavLink>
-          <NavLink to="/atendimento/cobrancas"><Icone nome="moedas" /> Cobranças</NavLink>
+          <NavLink to="/cobrancas"><Icone nome="moedas" /> Cobranças</NavLink>
           <NavLink to="/alunos"><Icone nome="alunos" /> Alunos</NavLink>
           <NavLink to="/comissoes"><Icone nome="comissoes" /> {isAdmin ? 'Comissões' : 'Minhas comissões'}</NavLink>
           <NavLink to="/links"><Icone nome="links" /> Links de pagamento</NavLink>
@@ -107,7 +108,7 @@ function Layout() {
           <Route path="/alunos" element={<Alunos />} />
           <Route path="/alunos/:id" element={<AlunoPerfil />} />
           <Route path="/comissoes" element={<Comissoes />} />
-          <Route path="/cobrancas" element={<Navigate to="/atendimento/cobrancas" replace />} />
+          <Route path="/cobrancas" element={<FilaCobranca key={local.search} />} />
           <Route path="/links" element={<Links />} />
           <Route path="/agenda" element={<Agenda />} />
           <Route path="/listas/*" element={<Navigate to="/atendimento/listas" replace />} />

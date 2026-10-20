@@ -1,4 +1,4 @@
-// Fila de cobrança (área de Atendimento): todo mundo que deve, online e presencial, já na fila. A cobradora vê só o que
+// Fila de cobrança (Comercial, ao lado de Pagamentos): todo mundo que deve, online e presencial, já na fila. A cobradora vê só o que
 // foi passado para ela; o administrador vê tudo, filtra e distribui em lote. Abas por etapa, mais antigas primeiro.
 import { useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
@@ -57,8 +57,8 @@ export default function FilaCobranca() {
   }
 
   return (
-    <div className="pagina larga at-pagina">
-      <header className="pagina-topo at-titulo-pagina"><div><h1>Cobranças</h1>
+    <div className="pagina larga">
+      <header className="pagina-topo"><div><h1>Cobranças</h1>
         <p className="muted">{isAdmin ? 'Todo mundo que deve, do online (Hotmart) e do presencial. A fila se atualiza sozinha de hora em hora e tira quem voltou a pagar.' : 'Quem você precisa cobrar. Quando a pessoa paga, sai da fila sozinha.'}</p></div>
         {isAdmin && <div className="re-abas" role="tablist">
           <button type="button" role="tab" aria-selected={tela === 'fila'} className={tela === 'fila' ? 'ativa' : ''} onClick={() => setTela('fila')}>Fila</button>
