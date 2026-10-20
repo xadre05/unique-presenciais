@@ -3204,3 +3204,14 @@ a.sala-agente:hover { border-color: var(--ouro); transform: translateY(-2px); }
 .ctl-cartao header { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 4px; }
 .ctl-cartao p { margin: 0; overflow-wrap: anywhere; }
 .ctl-cartao .link { margin-top: auto; padding-top: 6px; }
+.ctl-monitor { margin-bottom: 18px; }
+.ctl-monitor-cab { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap; margin-bottom: 10px; }
+.ctl-monitor-cab h2 { margin: 0 0 4px; }
+.ctl-monitor-lista { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.ctl-mon { display: grid; grid-template-columns: minmax(150px, 1fr) 2.2fr auto; gap: 12px; align-items: center; padding: 10px 0; border-top: 1px solid var(--borda); }
+.ctl-mon-nome { display: flex; flex-direction: column; }
+.ctl-mon-detalhe { font-size: .9rem; overflow-wrap: anywhere; }
+.ctl-mon-estado { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+.ctl-mon-erro .ctl-mon-detalhe { color: var(--erro); }
+.ctl-sub { margin: 8px 0 12px; font-size: 1.05rem; }
+@media (max-width: 640px) { .ctl-mon { grid-template-columns: 1fr auto; } .ctl-mon-detalhe { grid-column: 1 / -1; grid-row: 2; } }

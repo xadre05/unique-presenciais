@@ -30,8 +30,8 @@ export default function AreaControle() {
         <TrocaArea ativa="controle" />
         <nav>
           <span className="nav-grupo">Controle</span>
-          <NavLink to="/controle" end><Icone nome="moedas" /> Serviços pagos</NavLink>
-          <NavLink to="/controle/conexoes"><Icone nome="links" /> Conexões do sistema</NavLink>
+          <NavLink to="/controle" end><Icone nome="links" /> Está tudo no ar?</NavLink>
+          <NavLink to="/controle/servicos"><Icone nome="moedas" /> Serviços pagos</NavLink>
         </nav>
         <div className="lateral-rodape">
           <div className="avatar"><Icone nome="usuario" tam={20} /></div>
@@ -43,13 +43,14 @@ export default function AreaControle() {
         </div>
       </aside>
       <nav className="barra-inferior">
-        <NavLink to="/controle" end><Icone nome="moedas" /><span>Serviços</span></NavLink>
-        <NavLink to="/controle/conexoes"><Icone nome="links" /><span>Conexões</span></NavLink>
+        <NavLink to="/controle" end><Icone nome="links" /><span>No ar?</span></NavLink>
+        <NavLink to="/controle/servicos"><Icone nome="moedas" /><span>Serviços</span></NavLink>
       </nav>
       <main className="conteudo">
         <Routes>
-          <Route index element={<PaginaServicos />} />
-          <Route path="conexoes" element={<PaginaConexoes />} />
+          <Route index element={<PaginaConexoes />} />
+          <Route path="servicos" element={<PaginaServicos />} />
+          <Route path="conexoes" element={<Navigate to="/controle" replace />} />
           <Route path="*" element={<Navigate to="/controle" replace />} />
         </Routes>
       </main>

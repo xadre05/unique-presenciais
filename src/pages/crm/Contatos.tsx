@@ -22,14 +22,15 @@ type Contagem = Record<string, { total: number; com_whats: number; livres: numbe
 const ANOS = Array.from({ length: new Date().getFullYear() - 2020 }, (_, i) => String(2021 + i)).reverse()
 
 export default function Contatos() {
-  const [f, setF] = useState<Filtro>({ so_whats: true })
+  const [params] = useSearchParams()
+  const [f, setF] = useState<Filtro>(() => ({ so_whats: true, ...(params.get('tag') ? { tag: params.get('tag')! } : {}) }))
   const [buscaTxt, setBuscaTxt] = useState('')
   const [pagina, setPagina] = useState(1)
-  const [params] = useSearchParams()
   const [aberto, setAberto] = useState<string | null>(params.get('abrir'))
   const [importar, setImportar] = useState(false)
   const [criar, setCriar] = useState(false)
   const [versao, setVersao] = useState(0)
+  const etiquetas = useConsulta<{ tag: string; contatos: number }[]>(() => supabase.rpc('crm_etiquetas_em_uso', { p_empresa: EMPRESA_UNIQUE }), [versao])
   const [disparo, setDisparo] = useState<string[] | null>(null)
   const [maisFiltros, setMaisFiltros] = useState(false)
   const [erroDisparo, setErroDisparo] = useState<string | null>(null)
@@ -125,6 +126,11 @@ export default function Contatos() {
         <label className="select-icone"><Icone nome="dinheiro" tam={16} /><select value={f.pagador ?? ''} onChange={(e) => mudar('pagador', e.target.value)}>
           <option value="">Pagador: todos</option><option value="sem_divida">Sem dívida</option><option value="com_divida">Com dívida (devendo ou negativado)</option>
           {Object.entries(PAGADOR).map(([k, t]) => <option key={k} value={k} title={t.explica}>{t.rotulo}</option>)}
+        </select></label>
+        <label className="select-icone"><Icone nome="links" tam={16} /><select value={f.tag ?? ''} onChange={(e) => mudar('tag', e.target.value)} title="Etiquetas que o sistema põe sozinho (ex.: black-2026 = lead da página da Black) ou que a equipe pôs à mão">
+          <option value="">Etiqueta: todas</option>
+          {f.tag && !(etiquetas.dados ?? []).some((x) => x.tag === f.tag) && <option value={f.tag}>{f.tag}</option>}
+          {(etiquetas.dados ?? []).map((x) => <option key={x.tag} value={x.tag}>{x.tag} ({x.contatos.toLocaleString('pt-BR')})</option>)}
         </select></label>
         <button className={`btn${maisFiltros || temFiltroExtra ? ' btn-contorno-ouro' : ''}`} onClick={() => setMaisFiltros(!maisFiltros)}><Icone nome="filtro" tam={16} /> Mais filtros {maisFiltros ? '▴' : '▾'}</button>
       </div>

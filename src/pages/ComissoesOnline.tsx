@@ -306,14 +306,19 @@ export function RegrasOnline() {
   const cad = useCadastros()
   const regras = useConsulta<RegraOnline[]>(() => supabase.from('comissao_online_regras').select('*').order('vigente_desde', { ascending: false }))
   const rast = useConsulta<Rastreio[]>(() => supabase.from('rastreios').select('*').order('valor'))
-  const vistos = useConsulta<{ rastreio: string | null }[]>(() => supabase.from('hotmart_pagamentos').select('rastreio').not('rastreio', 'is', null))
+  const vistos = useConsulta<{ rastreio: string | null; data_aprovacao: string | null }[]>(() => supabase.from('hotmart_pagamentos').select('rastreio,data_aprovacao').not('rastreio', 'is', null).order('data_aprovacao', { ascending: false, nullsFirst: false }).limit(5000))
   const [nova, setNova] = useState<{ vigente_desde: string; pct_proprio: number | null; pct_campanha: number | null } | null>(null)
   const [erro, setErro] = useState<string | null>(null)
   const [msg, setMsg] = useState<string | null>(null)
   const atual = regras.dados?.find((r) => r.vigente_desde <= hojeISO())
   const contagem = useMemo(() => { const m = new Map<string, number>(); for (const v of vistos.dados ?? []) if (v.rastreio) m.set(v.rastreio.toLowerCase(), (m.get(v.rastreio.toLowerCase()) ?? 0) + 1); return m }, [vistos.dados])
   const conhecidos = new Set((rast.dados ?? []).map((r) => r.valor.toLowerCase()))
-  const novos = [...contagem.keys()].filter((k) => !conhecidos.has(k))
+  // só pede para classificar o que apareceu em vendas dos últimos 60 dias (códigos antigos de posts, eventos e vendedoras que saíram não importam mais)
+  const recentes = useMemo(() => {
+    const corte = new Date(Date.now() - 60 * 86400000).toISOString()
+    return new Set((vistos.dados ?? []).filter((v) => v.rastreio && (v.data_aprovacao ?? '') >= corte).map((v) => v.rastreio!.toLowerCase()))
+  }, [vistos.dados])
+  const novos = [...recentes].filter((k) => !conhecidos.has(k))
   // códigos automáticos de anúncio (Facebook/Instagram: "id|id|placement…", "{{campaign.name}}") nunca são de vendedora
   const novosAnuncio = novos.filter(ehCodigoDeAnuncio)
   const novosNomes = novos.filter((k) => !ehCodigoDeAnuncio(k))
@@ -361,8 +366,8 @@ export function RegrasOnline() {
       )}
 
       <h3>Nomes nos links (rastreio)</h3>
-      <p className="muted pequeno">Cada valor que aparece no link da Hotmart e de quem ele é. Mudou aqui, as comissões ainda em conferência são recalculadas.</p>
-      {novosNomes.length > 0 && <div className="faixa-alerta"><Icone nome="alerta" tam={18} /><span><b>{novosNomes.length} nome(s) novo(s) nos links</b>, ainda sem dono. Diga de quem é cada um na tabela abaixo.</span></div>}
+      <p className="muted pequeno">Os nomes que reconhecem a vendedora no link da Hotmart. Só precisa mexer quando entrar uma vendedora nova; códigos de posts, eventos e anúncios antigos não precisam de nada.</p>
+      {novosNomes.length > 0 && <div className="faixa-alerta"><Icone nome="alerta" tam={18} /><span><b>{novosNomes.length} nome(s) novo(s) em vendas dos últimos 60 dias</b>, ainda sem dono. Se for de uma vendedora, escolha quem na tabela; se não, deixe como está.</span></div>}
       {novosAnuncio.length > 0 && <div className="faixa-alerta"><Icone nome="info" tam={18} /><span><b>{novosAnuncio.length} código(s) automático(s) de anúncio</b> (Facebook/Instagram). Não são de vendedora.</span>
         <button className="btn btn-mini btn-contorno-ouro" onClick={marcarAnuncios}>Marcar todos como campanha</button></div>}
       <div className="tabela-wrap">

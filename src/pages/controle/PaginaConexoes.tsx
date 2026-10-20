@@ -6,6 +6,7 @@ import { useConsulta } from '../../lib/dados'
 import { dataHoraBR, hojeISO } from '../../lib/format'
 import { Badge, Erro, Vazio } from '../../components/ui'
 import { diasAte } from './dados'
+import { QuadroMonitor } from './QuadroMonitor'
 
 type Integ = { id: string; nome: string; ativa: boolean; credenciais_em: string | null; ultimo_teste_ok: boolean | null; ultimo_erro: string | null; ultima_sinc_em: string | null; ultimo_aviso_em: string | null }
 type Rede = { rede: string; status: string | null; usuario: string | null; token_expira_em: string | null; erro: string | null; sincronizado_em: string | null }
@@ -53,7 +54,9 @@ export default function PaginaConexoes() {
   const carregando = integ.carregando || redes.carregando || canais.carregando
   return (
     <div className="pagina larga">
-      <header className="pagina-topo"><div><h1>Conexões do sistema</h1><p className="muted">O que o sistema enxerga das ligações com Hotmart, Instagram, WhatsApp e IA. Se alguma cair, aparece aqui.</p></div></header>
+      <header className="pagina-topo"><div><h1>Está tudo no ar?</h1><p className="muted">Sites, domínios, inteligência artificial, banco de dados e as ligações com Hotmart, Instagram e WhatsApp. Se alguma coisa cair, aparece aqui.</p></div></header>
+      <QuadroMonitor />
+      <h2 className="ctl-sub">Ligações do sistema</h2>
       <Erro msg={integ.erro || redes.erro || canais.erro || ia.erro} />
       {carregando && !cartoes.length ? <Vazio>Carregando…</Vazio> : !cartoes.length ? <Vazio>Nenhuma conexão encontrada.</Vazio> : (
         <div className="ctl-cartoes">{cartoes.map((c) => (
