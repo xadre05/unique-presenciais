@@ -26,11 +26,15 @@ export function Pendencias({ linhas }: { linhas: Previsto[] }) {
   return (
     <section className="bloco">
       <div className="fin-titulo"><h2>Pendências</h2><span className="muted">{brl(somar(linhas, (p) => p.valor))} sem data certa para entrar</span></div>
-      <p className="muted pequeno">Dinheiro que pode entrar logo se alguém agir: parcela atrasada, parcela sem data combinada ou aluno que avisou que pagou e ninguém conferiu no banco.</p>
-      <table className="tabela">
-        <thead><tr><th>Data</th><th>Quem</th><th>Forma</th><th>Situação</th><th className="num">Valor</th></tr></thead>
-        <tbody>{linhas.map((p) => <Linha key={p.id} p={p} mostrarSituacao />)}</tbody>
-      </table>
+      {[['Presencial: depende de vocês', linhas.filter((p) => p.origem !== 'hotmart')], ['Parcelado Hotmart atrasado: a Hotmart continua cobrando sozinha; se o aluno pagar, cai no dia 1º', linhas.filter((p) => p.origem === 'hotmart')]]
+        .filter(([, l]) => (l as Previsto[]).length).map(([titulo, l]) => (
+          <div key={titulo as string}>
+            <h3 className="fin-pend-grupo">{titulo as string} · {brl(somar(l as Previsto[], (p) => p.valor))}</h3>
+            <table className="tabela">
+              <thead><tr><th>Data</th><th>Quem</th><th>Forma</th><th>Situação</th><th className="num">Valor</th></tr></thead>
+              <tbody>{(l as Previsto[]).map((p) => <Linha key={p.id} p={p} mostrarSituacao />)}</tbody>
+            </table>
+          </div>))}
     </section>
   )
 }

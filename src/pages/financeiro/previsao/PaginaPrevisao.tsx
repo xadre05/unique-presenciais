@@ -5,7 +5,7 @@ import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../../../lib/supabase'
 import { useConsulta } from '../../../lib/dados'
-import { brl, hojeISO } from '../../../lib/format'
+import { brl, dataBR, hojeISO } from '../../../lib/format'
 import { Erro, Kpi } from '../../../components/ui'
 import { Icone } from '../../../components/Icone'
 import { FiltroTopo } from '../FiltroTopo'
@@ -14,6 +14,7 @@ import { NOME_JEITO, PERIODOS, intervaloDo, jeitoEntrada, jeitoPrevisto, quando,
 import { ComoEntra } from './ComoEntra'
 import { Pendencias, LinhaDoTempo, JaEntrou } from './ListasPrevisao'
 import { SaldoHotmart } from './SaldoHotmart'
+import { useSaldos } from './saldos'
 import { Antecipacao } from './Antecipacao'
 
 type Cobra = '' | 'auto' | 'manual'
@@ -29,6 +30,7 @@ export default function PaginaPrevisao() {
   // o que já entrou neste mês (só o período "Este mês" começa antes de hoje)
   const ent = useConsulta<Entrada[]>(() => comoConsulta(entradasEntre(intervaloMes(mesDe(hoje))[0], hoje, '')), [hoje])
   const comPassado = periodo === 'mes'
+  const saldos = useSaldos()
   const parc = useConsulta<Parcelado[]>(() => supabase.from('v_fin_parcelado').select('*').order('nome'), [])
 
   const passa = (conta_id: string | null, j: Jeito, auto: boolean) =>
@@ -41,6 +43,8 @@ export default function PaginaPrevisao() {
   const pendentes = previstos.filter((p) => !entra(p))
   const entrou = comPassado ? somar(entradas, (e) => e.liquido) : 0, vai = somar(vaiEntrar, (p) => p.valor), pend = somar(pendentes, (p) => p.valor)
   const auto = somar(vaiEntrar.filter((p) => p.automatico), (p) => p.valor)
+  const disponivel = saldos.contas.filter((c) => !conta || c.conta_id === conta).reduce((t, c) => t + Number(saldos.saldos[c.id]?.disponivel ?? 0), 0)
+  const pendPresencial = somar(pendentes.filter((p) => p.origem !== 'hotmart'), (p) => p.valor)
   const naHotmart = somar(entradas.filter((e) => jeitoEntrada(e) === 'parcelado_hotmart'), (e) => e.liquido)
   const segura = somar(vaiEntrar, (p) => p.valor_aluno - p.valor)
   const nomePeriodo = PERIODOS.find(([id]) => id === periodo)?.[1].toLowerCase() ?? ''
@@ -60,15 +64,16 @@ export default function PaginaPrevisao() {
       <Erro msg={prev.erro || ent.erro || parc.erro} />
 
       <section className="kpis">
-        {comPassado && <Kpi rotulo="Já pago este mês" valor={brl(entrou)} tom="ok" sub={naHotmart ? `${brl(naHotmart)} disso ainda está na Hotmart (libera dia 1º)` : `${entradas.length} pagamento(s) até hoje`} />}
-        <Kpi rotulo="Ainda vai entrar" valor={brl(vai)} tom="info" sub={`${brl(auto)} automático · ${brl(vai - auto)} depende de cobrar`} />
-        <Kpi rotulo="Pendente, sem data certa" valor={brl(pend)} tom={pend ? 'alerta' : undefined} sub={`${pendentes.length} parcela(s): atrasadas, sem data ou a conferir`} />
+        <Kpi rotulo="Disponível agora na Hotmart" valor={brl(disponivel)} tom="ok" sub="pronto para sacar (saldo informado)" />
+        <Kpi rotulo={`Vai entrar (${nomePeriodo})`} valor={brl(vai)} tom="info" sub={`${brl(auto)} pela Hotmart · ${brl(vai - auto)} presencial e acordos`} />
+        <Kpi rotulo="Pendente, sem data certa" valor={brl(pend)} tom={pend ? 'alerta' : undefined} sub={`${brl(pendPresencial)} presencial · ${brl(pend - pendPresencial)} Hotmart atrasado`} />
+        {comPassado && <Kpi rotulo="Pago pelos alunos este mês" valor={brl(entrou)} sub={naHotmart ? `${brl(naHotmart)} disso ainda está na Hotmart (cai dia 1º)` : `${entradas.length} pagamento(s)`} />}
         <Kpi rotulo="Fica com a Hotmart (antecipação)" valor={brl(segura)} sub="parcelas que pagam o que ela já adiantou" />
       </section>
-      {comPassado && <p className="fin-total">Se tudo que está previsto entrar, {nomePeriodo} fecha com <b>{brl(entrou + vai)}</b>{pend > 0 && <> (ou <b>{brl(entrou + vai + pend)}</b> se as pendências forem pagas)</>}.</p>}
+      <p className="fin-total">Até {dataBR(fim)}: <b>{brl(disponivel + vai)}</b> com o que já está disponível e o que vai entrar{pend > 0 && <> (ou <b>{brl(disponivel + vai + pend)}</b> se as pendências forem pagas)</>}.</p>
 
       <ComoEntra entradas={comPassado ? entradas : []} previstos={vaiEntrar} pendentes={pendentes} jeito={jeito} aoEscolher={setJeito} />
-      <SaldoHotmart pagasNoMes={ent.dados ?? []} />
+      <SaldoHotmart pagasNoMes={ent.dados ?? []} s={saldos} />
       <Pendencias linhas={pendentes} />
       <LinhaDoTempo linhas={vaiEntrar} titulo={`O que vai entrar (${nomePeriodo})`} />
       {comPassado && <JaEntrou linhas={entradas} />}

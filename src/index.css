@@ -3174,3 +3174,15 @@ a.sala-agente:hover { border-color: var(--ouro); transform: translateY(-2px); }
 .fin-busca { max-width: 240px; }
 .fin-saldo-editar { display: flex; flex-direction: column; gap: 8px; }
 .fin-saldo-parcelas { padding-top: 8px; border-top: 1px dashed var(--borda); }
+/* Materiais da campanha (agentes/campanhas) */
+.mat-form { display: flex; flex-direction: column; gap: 10px; }
+.mat-form .abas-mini { flex-wrap: wrap; }
+.mat-form textarea { width: 100%; font-size: .88rem; line-height: 1.5; }
+.mat-linha { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.mat-linha input { flex: 1 1 260px; }
+.mat-texto { margin: 0; max-height: 320px; overflow: auto; white-space: pre-wrap; font: inherit; font-size: .85rem; line-height: 1.5; padding: 10px 12px; border-radius: 8px; background: var(--painel); border: 1px solid var(--borda); }
+.fin-lanc { display: grid; grid-template-columns: 140px 140px 1fr auto; gap: 6px; align-items: center; }
+.fin-lancs { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; font-size: .85rem; }
+.fin-lancs li { display: grid; grid-template-columns: 44px 1fr auto; gap: 8px; }
+.fin-pend-grupo { margin: 14px 0 6px; font-size: .95rem; }
+@media (max-width: 600px) { .fin-lanc { grid-template-columns: 1fr 1fr; } }

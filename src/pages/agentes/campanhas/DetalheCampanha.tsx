@@ -1,5 +1,5 @@
 // Detalhe de uma campanha: objetivo, período, o que vende (com o preço do produto), oferta, comunicação, mensagem,
-// materiais e os conteúdos ligados a ela (planejamentos e peças), com atalho para vê-los no Agente de Marketing.
+// os materiais prontos que o agente lê (página de vendas, roteiros, copy) e os conteúdos ligados a ela (planejamentos e peças), com atalho para vê-los no Agente de Marketing.
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../../../lib/supabase'
@@ -9,6 +9,7 @@ import type { Peca } from '../comum'
 import { ETAPAS, etapaDe } from '../marketing/etapas'
 import { precoDe, textoSituacao, type Produto } from '../marca/dados'
 import { NOME_SITUACAO, TOM_SITUACAO, dataBR, periodoCampanha, situacaoCampanha, type CampanhaGuardada } from './dados'
+import { MateriaisCampanha } from './MateriaisCampanha'
 
 type Props = { empresa: string; c: CampanhaGuardada; produtos: Produto[]; aoEditar: () => void; aoEncerrar: (encerrada: boolean) => void }
 
@@ -76,11 +77,12 @@ export function DetalheCampanha({ empresa, c, produtos, aoEditar, aoEncerrar }: 
       {c.oferta && <Item titulo="Oferta da campanha">{c.oferta}</Item>}
       {c.comunicacao && <Item titulo="Nome e comunicação">{c.comunicacao}</Item>}
       {c.descricao && <Item titulo="Mensagem, fases e regras"><TextoLongo texto={c.descricao} /></Item>}
-      <Item titulo="Materiais e condições">
-        {c.link ? <a className="link" href={c.link} target="_blank" rel="noreferrer"><Icone nome="links" tam={14} /> Consultar materiais da campanha</a> : <span className="muted">Sem link de materiais.</span>}
+      <Item titulo="Condições">
+        {c.link && <a className="link" href={c.link} target="_blank" rel="noreferrer"><Icone nome="links" tam={14} /> Pasta de materiais (link)</a>}
         <small className="muted bloco-linha">Preço e pagamento vêm dos produtos ligados (A marca → Produtos e condições).</small>
       </Item>
     </section>
+    <MateriaisCampanha empresa={empresa} campanha={c.id} />
     <ConteudosVinculados empresa={empresa} c={c} />
   </>)
 }

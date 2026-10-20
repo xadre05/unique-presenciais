@@ -5,7 +5,7 @@
 --    sem data ou a conferir (aluno avisou que pagou e ninguém conferiu no banco);
 --    forma (cartão, Pix, boleto…) e automatico = a Hotmart cobra sozinha todo mês (Parcelado Hotmart / recuperação);
 --    data_credito = quando o dinheiro fica disponível (Hotmart: dia 1º do mês seguinte ao pagamento da parcela);
---    situacao 'na_hotmart' = parcela já paga neste mês, esperando o dia 1º.
+--    situacao 'na_hotmart' = já é de vocês e está na Hotmart esperando a data (parcela paga no mês ou "a receber" da Carteira).
 alter table public.financeiro_config
   add column if not exists saldos jsonb not null default '{}'::jsonb;
 
@@ -60,6 +60,15 @@ create or replace view public.v_fin_previsao with (security_invoker = true) as
       coalesce((select (c.antecipacao ->> h.integracao_id)::numeric from financeiro_config c), 0) pct
     from hotmart_pagamentos h
     where h.recorrencia > 1 and h.status in ('APPROVED', 'COMPLETE') and h.data_aprovacao >= date_trunc('month', current_date)
-  ) x left join integracoes i on i.id = x.integracao_id;
+  ) x left join integracoes i on i.id = x.integracao_id
+  union all
+  -- 012e: lançamentos futuros da Carteira da Hotmart (Saldo a receber, com data), informados em financeiro_config.saldos
+  select 'c:' || s.key || ':' || l.ord, (l.v ->> 'data')::date, 'hotmart', s.key, i.conta_id,
+    coalesce(nullif(l.v ->> 'descricao', ''), 'Saldo a receber na Carteira'), 'Carteira da Hotmart', null, null,
+    (l.v ->> 'valor')::numeric, (l.v ->> 'valor')::numeric, 'na_hotmart', 'carteira', true, null, (l.v ->> 'data')::date
+  from financeiro_config c cross join lateral jsonb_each(c.saldos) s
+    cross join lateral jsonb_array_elements(coalesce(s.value -> 'lancamentos', '[]'::jsonb)) with ordinality l(v, ord)
+    left join integracoes i on i.id = s.key
+  where case when (l.v ->> 'data') ~ '^\d{4}-\d{2}-\d{2}$' then (l.v ->> 'data')::date end >= current_date;
 revoke all on public.v_fin_previsao from anon;
 grant select on public.v_fin_previsao to authenticated;

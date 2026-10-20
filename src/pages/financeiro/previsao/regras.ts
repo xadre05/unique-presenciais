@@ -32,12 +32,13 @@ export function somaDias(iso: string, n: number) {
 }
 
 // como o dinheiro entra, em poucas famílias que dá para filtrar
-export type Jeito = 'parcelado_hotmart' | 'cartao' | 'pix' | 'boleto' | 'dinheiro' | 'acordo' | 'outro'
+export type Jeito = 'parcelado_hotmart' | 'carteira' | 'cartao' | 'pix' | 'boleto' | 'dinheiro' | 'acordo' | 'outro'
 export const NOME_JEITO: Record<Jeito, string> = {
-  parcelado_hotmart: 'Parcelado Hotmart', cartao: 'Cartão', pix: 'Pix', boleto: 'Boleto', dinheiro: 'Dinheiro', acordo: 'Acordo de dívida', outro: 'Outro',
+  parcelado_hotmart: 'Parcelado Hotmart', carteira: 'Carteira Hotmart (a receber)', cartao: 'Cartão', pix: 'Pix', boleto: 'Boleto', dinheiro: 'Dinheiro', acordo: 'Acordo de dívida', outro: 'Outro',
 }
 export const DICA_JEITO: Record<Jeito, string> = {
   parcelado_hotmart: 'A Hotmart cobra o aluno sozinha todo mês',
+  carteira: 'Já está na Hotmart, com data para liberar (vendas e antecipações)',
   cartao: 'Venda no cartão (Hotmart ou maquininha)', pix: 'Pix', boleto: 'Boleto à vista', dinheiro: 'Em espécie',
   acordo: 'Parcelas de acordos de dívida', outro: 'Transferência ou forma não informada',
 }
@@ -51,7 +52,7 @@ function jeitoDaForma(forma: string | null): Jeito {
   if (f === 'acordo') return 'acordo'
   return 'outro'
 }
-export const jeitoPrevisto = (p: Previsto): Jeito => (p.origem === 'hotmart' ? 'parcelado_hotmart' : p.origem === 'acordo' ? 'acordo' : jeitoDaForma(p.forma))
+export const jeitoPrevisto = (p: Previsto): Jeito => (p.forma === 'carteira' ? 'carteira' : p.origem === 'hotmart' ? 'parcelado_hotmart' : p.origem === 'acordo' ? 'acordo' : jeitoDaForma(p.forma))
 export const jeitoEntrada = (e: Entrada): Jeito => (e.origem === 'hotmart' && e.tipo === 'parcela' ? 'parcelado_hotmart' : jeitoDaForma(e.forma))
 
 export const NOME_SITUACAO: Record<Situacao, string> = { a_vencer: 'A vencer', na_hotmart: 'Já pago, na Hotmart', atrasada: 'Atrasada', sem_data: 'Sem data combinada', a_conferir: 'Aluno avisou que pagou' }
