@@ -10,6 +10,7 @@ import { useRedes } from '../redes'
 import type { Campanha } from '../useMarketing'
 import { periodoDe, tituloDe, type Escopo, type Reuniao, type TipoEscopo } from './dados'
 import { DecidirDireto } from './DecidirDireto'
+import { PacoteCriativos } from './PacoteCriativos'
 import { NestePlanejamento, Retomar } from './LadoPlanejar'
 import { CanaisPlanejar } from './CanaisPlanejar'
 
@@ -24,7 +25,7 @@ const dm = (iso: string) => `${iso.slice(8, 10)}/${iso.slice(5, 7)}`
 const NOME_ESCOPO: Record<TipoEscopo, string> = { dia: 'Dia', dias: 'Dias', semana: 'Semana', mes: 'Mês', campanha: 'Campanha' }
 
 type Props = {
-  tipoInicial: TipoEscopo; dataInicial: string; campanhas: Campanha[]; recentes: Reuniao[]
+  tipoInicial: TipoEscopo; dataInicial: string; campanhas: Campanha[]; recentes: Reuniao[]; campanhaInicial?: string; caminhoInicial?: 'pacote'
   aoComecar: (escopo: Escopo, titulo: string) => Promise<void>; aoContinuar: (id: string) => void; aoGuardou: () => void; aoEscreveu: (ids: string[]) => void; aoCriarCampanha: () => void
   aoReaproveitar: (contexto: ContextoPlanejar) => void
 }
@@ -33,14 +34,14 @@ export type ContextoPlanejar = { campanha?: Campanha; inicio: string; fim: strin
 export function EscolhaEscopo(pr: Props) {
   const ativas = useRedes()
   const [tipo, setTipo] = useState<TipoEscopo>(pr.tipoInicial)
-  const [campanha, setCampanha] = useState(pr.tipoInicial === 'campanha' ? pr.campanhas[0]?.id ?? '' : '')
-  const [periodo, setPeriodo] = useState(() => periodoDe(pr.tipoInicial, pr.dataInicial || hojeISO()))
+  const [campanha, setCampanha] = useState(pr.campanhaInicial ?? (pr.tipoInicial === 'campanha' ? pr.campanhas[0]?.id ?? '' : ''))
+  const [periodo, setPeriodo] = useState(() => periodoDe(pr.tipoInicial, pr.dataInicial || hojeISO(), pr.campanhas.find((c) => c.id === pr.campanhaInicial)))
   const [digitado, setDigitado] = useState(periodo.inicio)
   const [canais, setCanais] = useState<string[]>(ativas)
   const [agenteDefine, setAgenteDefine] = useState(false)
   const [comecando, setComecando] = useState(false)
   const [erro, setErro] = useState<string | null>(null)
-  const [caminho, setCaminho] = useState<'escolher' | 'direto'>('escolher')
+  const [caminho, setCaminho] = useState<'escolher' | 'direto' | 'pacote'>(pr.caminhoInicial ?? 'escolher')
   const camp = pr.campanhas.find((c) => c.id === campanha)
   const ativa = camp ? situacaoCampanha(camp) === 'ativa' : false
 
@@ -74,6 +75,9 @@ export function EscolhaEscopo(pr: Props) {
     { id: 'direto', icone: 'documento', nome: 'Já sei o que quero postar', acao: 'Descrever pedido', aoClicar: () => setCaminho('direto'), gasta: false,
       texto: 'Você informa tema, canal, formato e dia de cada peça, sem conversa.',
       custo: 'Abrir não gasta. Só gasta quando você mandar o agente escrever' },
+    ...(camp ? [{ id: 'pacote', icone: 'floco', nome: 'Pacote de criativos da campanha', acao: 'Montar pacote', gasta: false, aoClicar: () => setCaminho('pacote'),
+      texto: 'Anúncios com ganchos para testar, stories com link, reels para gravar e carrosséis, escritos com os materiais da campanha.',
+      custo: 'Abrir não gasta. Só gasta quando você mandar criar' }] : []),
     { id: 'reaproveitar', icone: 'trocar', nome: 'Reaproveitar um post com resultado', acao: 'Escolher post', gasta: false,
       aoClicar: () => pr.aoReaproveitar({ campanha: camp, inicio: periodo.inicio, fim: periodo.fim, canais: canaisDosCaminhos }),
       texto: 'Escolha um post do Instagram que foi bem e diga o que manter ou mudar.',
@@ -113,7 +117,9 @@ export function EscolhaEscopo(pr: Props) {
         <hr className="pl-divisao" />
         <h3 className="pl-passo"><span>2</span> Como você quer começar?</h3>
         <p className="muted pl-passo-sub">Escolha a forma de iniciar. Cada opção leva a um próximo passo diferente.</p>
-        {caminho === 'direto'
+        {caminho === 'pacote' && camp
+          ? <PacoteCriativos campanha={camp} inicio={periodo.inicio} fim={periodo.fim} aoEscreveu={pr.aoEscreveu} aoVoltar={() => setCaminho('escolher')} />
+          : caminho === 'direto'
           ? <DecidirDireto canais={canaisDosCaminhos} inicio={periodo.inicio} fim={periodo.fim} campanha={camp} aoEscreveu={pr.aoEscreveu} aoGuardou={pr.aoGuardou} aoVoltar={() => setCaminho('escolher')} />
           : <>
             <div className="pl-caminhos">{caminhos.map((c) => (

@@ -17,6 +17,7 @@ import { Caminho } from './marketing/Caminho'
 import { ResultadosInstagram } from './instagram/ResultadosInstagram'
 import { PaginaPlanejar } from './marketing/PaginaPlanejar'
 import { NovaCampanha } from './marketing/Campanhas'
+import { CampanhasAtivas } from './marketing/CampanhasAtivas'
 import { etapaDe } from './marketing/etapas'
 import { RedesAtivas, redesAtivas } from './marketing/redes'
 import { CabecalhoAba } from './marketing/BarraFiltros'
@@ -25,7 +26,7 @@ import type { Plano } from './marketing/planos'
 
 type Aba = 'conteudos' | 'producao' | 'resultados' | 'config'
 // páginas que tomam a tela inteira (sem as abas), com o caminho no topo
-type Pagina = { tipo: 'reuniao'; id?: string; escopo: TipoEscopo; data: string } | { tipo: 'planejar'; modo: ModoPlano; data: string; revisar: Plano | null } | null
+type Pagina = { tipo: 'reuniao'; id?: string; escopo: TipoEscopo; data: string; campanha?: string; caminho?: 'pacote' } | { tipo: 'planejar'; modo: ModoPlano; data: string; revisar: Plano | null } | null
 const ESCOPO_DO_MODO: Record<ModoPlano, TipoEscopo> = { dia: 'dia', semana: 'semana', mes: 'mes', periodo: 'dias' }
 
 export default function AgenteMarketing() {
@@ -70,7 +71,7 @@ export default function AgenteMarketing() {
     <RedesAtivas.Provider value={redes}>
     <div className="pagina larga mk">
       {pagina.tipo === 'reuniao' && (
-        <PaginaReuniao key={pagina.id ?? `${pagina.escopo}-${pagina.data}`} reuniaoId={pagina.id} tipoInicial={pagina.escopo} dataInicial={pagina.data} campanhas={campanhas} planos={planos}
+        <PaginaReuniao key={pagina.id ?? `${pagina.escopo}-${pagina.data}-${pagina.campanha ?? ''}-${pagina.caminho ?? ''}`} reuniaoId={pagina.id} tipoInicial={pagina.escopo} dataInicial={pagina.data} campanhas={campanhas} planos={planos} campanhaInicial={pagina.campanha} caminhoInicial={pagina.caminho}
           aoVoltar={fecharPagina} aoMudou={recarregar} aoAbrirReuniao={(id) => setPagina({ ...pagina, id })} aoCriarCampanha={() => setCampanhaAberta(true)}
           aoIrProducao={(id) => { setPagina(null); setAberta(id ?? null); setAba('producao'); recarregar() }} />
       )}
@@ -101,6 +102,7 @@ export default function AgenteMarketing() {
         </div>
       </header>
       </>}
+      {!detalhe && <CampanhasAtivas campanhas={campanhas} aoPlanejar={(id) => setPagina({ tipo: 'reuniao', escopo: 'campanha', data: hojeISO(), campanha: id })} aoPacote={(id) => setPagina({ tipo: 'reuniao', escopo: 'campanha', data: hojeISO(), campanha: id, caminho: 'pacote' })} />}
       {!detalhe && abasTopo}
       {ocupado && !detalhe && <div className="progresso"><div className="indeterminado" /><span>O agente está trabalhando (uma peça leva uns 20 segundos; um plano, até 2 minutos). Pode sair da tela: o trabalho continua.</span></div>}
       {erro && <div className="erro agente-erro"><span>{erro.erro}</span></div>}

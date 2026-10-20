@@ -35,7 +35,8 @@ export function CampanhasMarca({ empresa, perfil, aoSalvar }: Props) {
   const produtos = produtosDe(perfil)
   const [busca, setBusca] = useState('')
   const [filtro, setFiltro] = useState<Filtro>('')
-  const [abertaId, setAbertaId] = useState<string | undefined>()
+  // ?campanha=id (atalho do Agente de Marketing → Materiais) já abre a campanha
+  const [abertaId, setAbertaId] = useState<string | undefined>(() => new URLSearchParams(window.location.search).get('campanha') ?? undefined)
   const [editando, setEditando] = useState<{ c: CampanhaGuardada; nova: boolean } | null>(null)
   const [erro, setErro] = useState<string | null>(null)
   const termo = busca.trim().toLowerCase()

@@ -55,7 +55,8 @@ export function CartaoPeca({ peca, aoAbrir, modo, trabalhando, aoMover, aoTirar 
         <MenuPeca etapa={etapa} aoAbrir={aoAbrir} aoMover={aoMover} aoTirar={aoTirar} />
       </div>
       <b className="mk-cartao-titulo">{peca.titulo}</b>
-      <span className="mk-cartao-formato"><Icone nome={info.icone} tam={14} />{livre ? info.nome : nomeFormato(peca.tipo, rede)}{tamanho(peca) && <i>· {tamanho(peca)}</i>}</span>
+      <span className="mk-cartao-formato"><Icone nome={info.icone} tam={14} />{livre ? info.nome : nomeFormato(peca.tipo, rede)}{tamanho(peca) && <i>· {tamanho(peca)}</i>}
+        {(peca.conteudo.briefing as { finalidade?: string } | undefined)?.finalidade === 'anuncio' && <i className="mk-anuncio">Anúncio</i>}</span>
       {trabalhando
         ? <span className="mk-cartao-situacao mk-agente-escrevendo">O agente está escrevendo…</span>
         : e && <span className="mk-cartao-situacao" style={{ ['--cor-etapa' as string]: e.cor }}>{nomeSituacao(peca)}</span>}

@@ -20,7 +20,7 @@ import { BriefingReuniao } from './BriefingReuniao'
 const dm = (iso: string) => `${iso.slice(8, 10)}/${iso.slice(5, 7)}`
 
 type Props = {
-  reuniaoId?: string; tipoInicial: TipoEscopo; dataInicial: string; campanhas: Campanha[]; planos: Plano[]
+  reuniaoId?: string; tipoInicial: TipoEscopo; dataInicial: string; campanhas: Campanha[]; planos: Plano[]; campanhaInicial?: string; caminhoInicial?: 'pacote'
   aoVoltar: () => void; aoMudou: () => void; aoAbrirReuniao: (id: string) => void; aoCriarCampanha: () => void; aoIrProducao: (pecaId?: string) => void
 }
 
@@ -68,7 +68,7 @@ export function PaginaReuniao(pr: Props) {
           <button type="button" className="link rc-alterar" onClick={r.novaReuniao}>Alterar contexto <Icone nome="seta_dir" tam={13} /></button>
         </div>
       )}
-      {!reu && <EscolhaEscopo tipoInicial={pr.tipoInicial} dataInicial={pr.dataInicial} campanhas={pr.campanhas} recentes={recentes.dados ?? []}
+      {!reu && <EscolhaEscopo tipoInicial={pr.tipoInicial} dataInicial={pr.dataInicial} campanhas={pr.campanhas} recentes={recentes.dados ?? []} campanhaInicial={pr.campanhaInicial} caminhoInicial={pr.caminhoInicial}
         aoComecar={async (e, t) => { await r.comecar(e, t); recentes.recarregar() }} aoContinuar={pr.aoAbrirReuniao} aoGuardou={() => { pr.aoMudou(); pr.aoVoltar() }}
         aoEscreveu={(ids) => { pr.aoMudou(); pr.aoIrProducao(ids.length === 1 ? ids[0] : undefined) }} aoCriarCampanha={pr.aoCriarCampanha} aoReaproveitar={setReaproveitar} />}
       {reu && r.conversando && (

@@ -3187,3 +3187,12 @@ a.sala-agente:hover { border-color: var(--ouro); transform: translateY(-2px); }
 .fin-pend-grupo { margin: 14px 0 6px; font-size: .95rem; }
 @media (max-width: 600px) { .fin-lanc { grid-template-columns: 1fr 1fr; } }
 .fin-neg { color: var(--erro); }
+/* Pacote de criativos (agentes/marketing/reuniao) */
+.pac-lista { list-style: none; margin: 0 0 10px; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.pac-lista li { display: grid; grid-template-columns: 84px 1fr 120px; gap: 10px; align-items: center; padding: 8px 10px; border: 1px solid var(--borda); border-radius: 10px; background: var(--painel-2); }
+.pac-txt { display: flex; flex-direction: column; min-width: 0; }
+@media (max-width: 600px) { .pac-lista li { grid-template-columns: 1fr 110px; } .pac-lista li .badge { grid-column: 1 / -1; justify-self: start; } }
+.mk-camp-ativas { display: flex; flex-direction: column; gap: 8px; margin: 0 0 14px; }
+.mk-camp-ativa { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; padding: 10px 14px; border: 1px solid var(--ouro); border-radius: 12px; background: var(--ouro-fundo); }
+.mk-camp-ativa-txt { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; min-width: 0; }
+.mk-anuncio { font-style: normal; margin-left: 6px; padding: 0 6px; border-radius: 6px; background: var(--ouro-fundo); color: var(--ouro-forte); font-size: .72rem; font-weight: 600; }
