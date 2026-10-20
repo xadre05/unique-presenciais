@@ -1,4 +1,4 @@
-// "Área de trabalho": lista suspensa para andar entre Comercial, Atendimento e Agentes (Agentes só para o administrador).
+// "Área de trabalho": lista suspensa para andar entre Comercial, Atendimento, Agentes e Financeiro (os dois últimos só para o administrador).
 import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../auth'
@@ -8,6 +8,7 @@ const AREAS = [
   { id: 'comercial', nome: 'Comercial', para: '/', icone: 'painel' },
   { id: 'atendimento', nome: 'Atendimento', para: '/atendimento', icone: 'whats' },
   { id: 'agentes', nome: 'Agentes', para: '/agentes', icone: 'equipe', soAdmin: true },
+  { id: 'financeiro', nome: 'Financeiro', para: '/financeiro', icone: 'dinheiro', soAdmin: true },
 ] as const
 
 export function TrocaArea({ ativa }: { ativa: (typeof AREAS)[number]['id'] }) {

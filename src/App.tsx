@@ -21,6 +21,7 @@ import Agenda from './pages/Agenda'
 import PaginaCaptura from './pages/publico/PaginaCaptura'
 import AreaAtendimento from './pages/atendimento/AreaAtendimento'
 import AreaAgentes from './pages/agentes/AreaAgentes'
+import AreaFinanceiro from './pages/financeiro/AreaFinanceiro'
 import { TrocaArea } from './components/TrocaArea'
 import { Icone } from './components/Icone'
 import { Marca } from './components/ui'
@@ -160,6 +161,7 @@ function Portao() {
     <Routes>
       <Route path="/atendimento/*" element={<AreaAtendimento />} />
       <Route path="/agentes/*" element={<AreaAgentes />} />
+      <Route path="/financeiro/*" element={<AreaFinanceiro />} />
       <Route path="*" element={<Layout />} />
     </Routes>
   )

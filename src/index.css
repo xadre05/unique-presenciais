@@ -3138,3 +3138,31 @@ a.sala-agente:hover { border-color: var(--ouro); transform: translateY(-2px); }
 .selo-temp-morna { color: var(--alerta); } .selo-temp-morna::before { background: var(--alerta); }
 .nota-motivos { margin: 4px 0 0; padding-left: 18px; font-size: 0.8rem; color: var(--muted); }
 .at-nota { margin-top: 5px; } .at-nota .badge { font-size: 0.7rem; }
+
+/* Financeiro */
+.fin-filtros { align-items: center; }
+.fin-mes { display: flex; align-items: center; gap: 6px; }
+.fin-mes input[type="month"] { min-width: 150px; }
+.fin-titulo { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 10px; }
+.fin-titulo h2 { margin: 0; }
+.fin-barras { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 6px; height: 200px; align-items: end; }
+.fin-barra-mes { display: flex; flex-direction: column; align-items: center; gap: 6px; height: 100%; background: none; border: 0; padding: 4px 0 0; cursor: pointer; border-radius: 8px; color: inherit; }
+.fin-barra-mes:hover, .fin-barra-mes.ativo { background: var(--painel-2); }
+.fin-barra-par { flex: 1; display: flex; align-items: flex-end; gap: 3px; width: 100%; justify-content: center; }
+.fin-barra { width: 38%; max-width: 18px; min-height: 2px; border-radius: 4px 4px 0 0; }
+.fin-barra-entrou { background: var(--ok); }
+.fin-barra-saiu { background: var(--erro); opacity: .85; }
+.fin-barra-rotulo { font-size: 0.72rem; color: var(--muted); }
+.fin-leg { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin: 0 4px 0 8px; vertical-align: -1px; }
+.fin-leg-entrou { background: var(--ok); } .fin-leg-saiu { background: var(--erro); }
+.fin-duas { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+.fin-duas > .bloco { margin-bottom: 0; }
+.fin-rua { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-bottom: 8px; }
+.fin-rua > div { display: flex; flex-direction: column; gap: 2px; }
+.fin-rua b { font-size: 1.25rem; }
+.fin-aviso { display: flex; gap: 10px; align-items: flex-start; margin-top: 12px; padding: 10px 12px; border-radius: 10px; background: var(--info-fundo); color: var(--texto); font-size: 0.85rem; }
+.fin-aviso .icone { color: var(--info); flex-shrink: 0; margin-top: 2px; }
+.fin-linha-ativa td { background: var(--ouro-fundo); }
+.fin-antecipa { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; }
+.fin-antecipa-conta { display: flex; flex-direction: column; gap: 8px; padding: 12px 14px; border: 1px solid var(--borda); border-radius: 12px; background: var(--painel-2); }
+@media (max-width: 860px) { .fin-duas { grid-template-columns: 1fr; } .fin-barras { gap: 2px; height: 160px; } .fin-rua { grid-template-columns: 1fr 1fr; } }
