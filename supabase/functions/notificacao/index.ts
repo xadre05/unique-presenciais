@@ -1,8 +1,10 @@
 // Notificação extrajudicial das cobranças: boleto no Asaas (prazo de N dias), carta por e-mail (Resend), negativação no
 // Serasa pelo Asaas, e o aviso do Asaas quando o boleto é pago. Cada passo fica no histórico da cobrança (prova).
 // Ações (administrador): testar · enviar {ids} · negativar {ids}. Aviso do Asaas: POST com o cabeçalho asaas-access-token.
+// Travas (orientação do advogado): só depois de ele liberar a carta, só compras até a data de corte, só parcelas vencidas
+// (+ multa e juros), uma carta e um boleto por CPF, só em horário comercial, Hotmart lida há menos de 2 horas.
 import { createClient, type SupabaseClient } from 'npm:@supabase/supabase-js@2.45.4'
-import { campos, preencher, type Dados } from './modelo.ts'
+import { campos, contaItem, horarioComercial, preencher, type Dados, type Item } from './modelo.ts'
 
 const cors = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type', 'Access-Control-Allow-Methods': 'POST, OPTIONS' }
 const json = (corpo: unknown, status = 200) => new Response(JSON.stringify(corpo), { status, headers: { ...cors, 'Content-Type': 'application/json' } })
@@ -51,74 +53,125 @@ async function enviarEmail(cred: Cred, para: string, assunto: string, texto: str
 const registrar = (db: SupabaseClient, id: unknown, canal: string, resultado: string, observacao: string | null, quem: string) =>
   db.from('cobranca_contatos').insert({ cobranca_id: id, canal, resultado, observacao, quem_nome: quem })
 
-// dados extras de cada cobrança (CPF, endereço, compra) — a mesma conta da função cobrancas_para_notificar
-async function extras(db: SupabaseClient, c: Dados) {
-  const [{ data: hc }, { data: o }, { data: pg }] = await Promise.all([
-    db.from('hotmart_compradores').select('documento,endereco').eq('email', String(c.email ?? '')).maybeSingle(),
-    db.from('v_cobranca_online').select('np,pagas,valor_parcela').eq('chave', String(c.chave)).maybeSingle(),
-    db.from('hotmart_pagamentos').select('data_aprovacao').ilike('comprador_email', String(c.email ?? '')).eq('produto_id', c.produto_id ?? -1).order('data_aprovacao').limit(1),
+const FECHADAS = ['paga', 'sem_acordo', 'encerrada']
+type Linha = { c: Dados; item: Item; cpf: string; end: End | null }
+
+// junta tudo o que a carta e o boleto precisam de cada cobrança, e diz por que ela não pode ser notificada (se for o caso)
+async function preparar(db: SupabaseClient, cs: Dados[], cfg: Dados) {
+  const ids = cs.map((c) => String(c.id))
+  const chaves = cs.map((c) => String(c.chave))
+  const emails = [...new Set(cs.map((c) => String(c.email ?? '').toLowerCase()).filter(Boolean))]
+  const [{ data: conf }, { data: on }, { data: hc }, { data: pg }] = await Promise.all([
+    db.from('v_cobranca_conferencia').select('*').in('cobranca_id', ids),
+    db.from('v_cobranca_online').select('chave,np,pagas,valor_parcela,vencidas,parou_em').in('chave', chaves),
+    db.from('hotmart_compradores').select('email,documento,endereco').in('email', emails),
+    db.from('hotmart_pagamentos').select('comprador_email,produto_id,data_aprovacao').in('comprador_email', emails).not('recorrencia', 'is', null).order('data_aprovacao').limit(5000),
   ])
-  return { documento: hc?.documento ?? null, endereco: (hc?.endereco ?? null) as End | null, parcelas_total: o?.np ?? null, parcelas_pagas: o?.pagas ?? null, valor_parcela: o?.valor_parcela ?? null, data_compra: pg?.[0]?.data_aprovacao ?? null }
+  const cMap = new Map((conf ?? []).map((x) => [String(x.cobranca_id), x]))
+  const oMap = new Map((on ?? []).map((x) => [String(x.chave), x]))
+  const hMap = new Map((hc ?? []).map((x) => [String(x.email), x]))
+  const ok: Linha[] = [], fora: { c: Dados; motivo: string }[] = []
+  for (const c of cs) {
+    const k = cMap.get(String(c.id)), o = oMap.get(String(c.chave)), h = hMap.get(String(c.email ?? '').toLowerCase())
+    const doc = digitos(k?.cpf ?? h?.documento)
+    const motivo = FECHADAS.includes(String(c.etapa)) ? 'já está resolvida'
+      : c.origem !== 'online' ? 'presencial: aguardando o contrato assinado ir para o advogado'
+      : c.fase_legal ? 'já foi notificada'
+      : !o ? 'não está mais em aberto na Hotmart (pode ter pago): conferir'
+      : !k?.compra_em || String(k.compra_em) > String(cfg.compra_ate) ? `compra depois de ${String(cfg.compra_ate).split('-').reverse().join('/')}: aguardando a posição da Hotmart`
+      : (k?.duvidas ?? []).length && !c.conferido_hotmart_em ? `conferir na Hotmart: ${(k.duvidas as string[]).join('; ')}`
+      : doc.length !== 11 && doc.length !== 14 ? 'sem CPF'
+      : !c.email ? 'sem e-mail'
+      : !(Number(o.vencidas) > 0) ? 'nenhuma parcela vencida'
+      : null
+    if (motivo || !o) { fora.push({ c, motivo: motivo ?? 'sem dados' }); continue }
+    const primeira = (pg ?? []).find((p) => String(p.comprador_email).toLowerCase() === String(c.email).toLowerCase() && p.produto_id === c.produto_id)
+    ok.push({ c, cpf: doc, end: (h?.endereco ?? null) as End | null, item: {
+      produto: String(c.produto ?? 'curso'), data_compra: primeira?.data_aprovacao ?? k?.compra_em ?? null, parcelas_total: o.np, parcelas_pagas: o.pagas,
+      valor_parcela: Number(o.valor_parcela), parou_em: o.parou_em, vencidas: Number(o.vencidas),
+    } })
+  }
+  return { ok, fora }
 }
 
-// boleto (se ainda não tem) + carta por e-mail; muda a fase para "notificada" com o prazo
-async function notificar(db: SupabaseClient, c: Dados, cfg: Dados, kAsaas: string, email: Cred, quem: string) {
-  const ex = await extras(db, c)
-  const doc = digitos(ex.documento)
-  if (doc.length !== 11 && doc.length !== 14) throw new Error('sem CPF')
-  if (!c.email) throw new Error('sem e-mail')
-  const prazo = somaDias(hoje(), Number(cfg.prazo_dias ?? 5))
-  let boleto = { id: c.boleto_id as string | null, url: c.boleto_url as string | null, valor: c.boleto_valor as number | null }
-  if (!boleto.id) {
-    const cliente = await clienteAsaas(kAsaas, c, doc, ex.endereco)
-    const valor = Math.round(Number(c.valor_restante ?? c.valor_vencido ?? 0) * 100) / 100
-    if (!(valor > 0)) throw new Error('sem valor')
-    const p = await asaas(kAsaas, '/payments', 'POST', { customer: cliente, billingType: 'UNDEFINED', value: valor, dueDate: prazo, description: `Débito em aberto — ${c.produto}`, externalReference: c.id })
-    boleto = { id: p.id, url: p.invoiceUrl ?? p.bankSlipUrl, valor }
-  }
-  const v = campos({ ...c, boleto_url: boleto.url, boleto_valor: boleto.valor, prazo_ate: prazo }, cfg, { ...ex, endereco: null } as Dados)
+// uma carta e um boleto por CPF, somando os cursos; muda a fase de todas para "notificada" com o prazo
+async function notificarPessoa(db: SupabaseClient, grupo: Linha[], cfg: Dados, kAsaas: string, email: Cred, quem: string) {
+  const p = grupo[0].c
+  const dia = hoje(), prazo = somaDias(dia, Number(cfg.prazo_dias ?? 5))
+  const m = Number(cfg.multa_pct ?? 2), j = Number(cfg.juros_mes_pct ?? 1)
+  const contas = grupo.map((g) => contaItem(g.item, dia, m, j))
+  const total = Math.round(contas.reduce((s, x) => s + x.total, 0) * 100) / 100
+  if (!(total > 0)) throw new Error('sem valor')
+  const cliente = await clienteAsaas(kAsaas, p, grupo[0].cpf, grupo[0].end)
+  const grupoId = crypto.randomUUID()
+  const pag = await asaas(kAsaas, '/payments', 'POST', { customer: cliente, billingType: 'UNDEFINED', value: total, dueDate: prazo,
+    description: `Débito em aberto — ${grupo.map((g) => g.item.produto).join(', ')}`.slice(0, 480), externalReference: grupoId })
+  const url = (pag.invoiceUrl ?? pag.bankSlipUrl) as string
+  const v = campos({ ...p, documento: grupo[0].cpf, boleto_url: url, boleto_valor: total, prazo_ate: prazo }, grupo.map((g) => g.item), cfg, dia)
   const assunto = preencher(String(cfg.carta_assunto ?? 'Notificação extrajudicial'), v)
   const texto = preencher(String(cfg.carta_modelo ?? ''), v)
-  const emailId = await enviarEmail(email, String(c.email), assunto, texto, (cfg.email_contato as string) ?? null)
-  await db.from('cobrancas').update({
-    fase_legal: 'notificada', notificado_em: new Date().toISOString(), prazo_ate: prazo, boleto_id: boleto.id, boleto_url: boleto.url, boleto_valor: boleto.valor,
-    email_id: emailId, email_status: 'enviado', atualizado_em: new Date().toISOString(),
-  }).eq('id', c.id)
-  await registrar(db, c.id, 'email', `Notificação extrajudicial enviada por e-mail para ${c.email} (prazo ${prazo.split('-').reverse().join('/')})`, `Assunto: ${assunto}\n\n${texto}`, quem)
+  const emailId = await enviarEmail(email, String(p.email), assunto, texto, (cfg.email_contato as string) ?? null)
+  const agora = new Date().toISOString()
+  for (let i = 0; i < grupo.length; i++) {
+    const c = grupo[i].c
+    await db.from('cobrancas').update({
+      fase_legal: 'notificada', notificado_em: agora, prazo_ate: prazo, boleto_id: pag.id, boleto_url: url, boleto_valor: contas[i].total,
+      boleto_principal: contas[i].principal, boleto_encargos: contas[i].encargos, notificacao_grupo: grupoId, email_id: emailId, email_status: 'enviado', atualizado_em: agora,
+    }).eq('id', c.id)
+    await registrar(db, c.id, 'email', `Notificação extrajudicial enviada por e-mail para ${p.email} (prazo ${prazo.split('-').reverse().join('/')}; boleto de ${total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}${grupo.length > 1 ? `, somando ${grupo.length} cursos` : ''})`, `Assunto: ${assunto}\n\n${texto}`, quem)
+  }
 }
 
-async function negativar(db: SupabaseClient, c: Dados, kAsaas: string, quem: string) {
-  if (!c.boleto_id) throw new Error('sem boleto')
-  const ex = await extras(db, c)
-  const e = ex.endereco
+// negativação: uma por boleto (o boleto já soma os cursos da pessoa); antes, confere de novo se continua em aberto na Hotmart
+async function negativarBoleto(db: SupabaseClient, grupo: Dados[], kAsaas: string, quem: string) {
+  const c = grupo[0]
+  const limite = somaDias(hoje(), -5)
+  if (grupo.some((x) => x.fase_legal !== 'prazo_vencido' || !x.prazo_ate || String(x.prazo_ate) > limite)) throw new Error('o prazo ainda não venceu há 5 dias')
+  const { data: on } = await db.from('v_cobranca_online').select('chave,vencidas,valor_parcela').in('chave', grupo.map((x) => String(x.chave)))
+  for (const x of grupo) {
+    const o = (on ?? []).find((y) => y.chave === x.chave)
+    if (!o) throw new Error('não está mais em aberto na Hotmart: conferir antes de negativar')
+    if (Math.round(Number(o.vencidas) * Number(o.valor_parcela) * 100) < Math.round(Number(x.boleto_principal ?? 0) * 100)) throw new Error('pagou alguma parcela na Hotmart depois da notificação: conferir antes de negativar')
+  }
+  const { data: hc } = await db.from('hotmart_compradores').select('documento,endereco').eq('email', String(c.email ?? '').toLowerCase()).maybeSingle()
+  const e = (hc?.endereco ?? null) as End | null
   if (!digitos(e?.zip_code) || !e?.address || !e?.neighborhood) throw new Error('sem endereço completo')
   const d = await asaas(kAsaas, '/paymentDunnings', 'POST', {
-    payment: c.boleto_id, type: 'CREDIT_BUREAU', description: `Curso ${c.produto}`, customerName: c.aluno_nome, customerCpfCnpj: digitos(ex.documento),
+    payment: c.boleto_id, type: 'CREDIT_BUREAU', description: `Curso(s): ${grupo.map((x) => x.produto).join(', ')}`.slice(0, 480), customerName: c.aluno_nome, customerCpfCnpj: digitos(hc?.documento),
     customerPrimaryPhone: digitos(c.telefone).replace(/^55(?=\d{10,11}$)/, ''), customerPostalCode: digitos(e.zip_code), customerAddress: e.address,
     customerAddressNumber: e.number || 'S/N', customerComplement: e.complement || undefined, customerProvince: e.neighborhood,
   })
-  await db.from('cobrancas').update({ fase_legal: 'negativacao_pedida', negativacao_id: d.id, negativacao_status: d.status ?? 'PENDING', negativacao_pedida_em: new Date().toISOString(), atualizado_em: new Date().toISOString() }).eq('id', c.id)
-  await registrar(db, c.id, 'sistema', 'Negativação pedida ao Serasa pelo Asaas', `Pedido ${d.id}. O Serasa envia carta ao endereço do devedor antes de incluir o nome.`, quem)
+  const agora = new Date().toISOString()
+  for (const x of grupo) {
+    await db.from('cobrancas').update({ fase_legal: 'negativacao_pedida', negativacao_id: d.id, negativacao_status: d.status ?? 'PENDING', negativacao_pedida_em: agora, atualizado_em: agora }).eq('id', x.id)
+    await registrar(db, x.id, 'sistema', 'Negativação pedida ao Serasa pelo Asaas', `Pedido ${d.id}. O Serasa envia carta ao endereço do devedor antes de incluir o nome.`, quem)
+  }
 }
 
 // aviso do Asaas: boleto pago → cobrança paga (e o dinheiro entra como recebimento já conferido); negativação concluída
 async function aviso(db: SupabaseClient, ev: Dados & { payment?: Dados; paymentDunning?: Dados }) {
   const tipo = String(ev.event ?? '')
   if (['PAYMENT_RECEIVED', 'PAYMENT_CONFIRMED'].includes(tipo) && ev.payment?.id) {
-    const { data: c } = await db.from('cobrancas').select('id,etapa').eq('boleto_id', String(ev.payment.id)).maybeSingle()
-    if (!c || c.etapa === 'paga') return
-    const valor = Number(ev.payment.netValue ?? ev.payment.value ?? 0)
-    await db.from('cobranca_recebimentos').insert({ cobranca_id: c.id, valor: Number(ev.payment.value ?? valor), recebido_em: String(ev.payment.paymentDate ?? ev.payment.clientPaymentDate ?? hoje()), forma: 'boleto', observacao: `Pago pelo Asaas (líquido ${valor})`, informado_nome: 'Asaas', conferido: true, conferido_em: new Date().toISOString() })
-    await db.from('cobrancas').update({ etapa: 'paga', fase_legal: 'paga', atualizado_em: new Date().toISOString() }).eq('id', c.id)
-    await registrar(db, c.id, 'sistema', 'Pagou o boleto da notificação (Asaas confirmou)', 'Lembrete: dar baixa na Hotmart, se a compra ainda estiver sendo cobrada lá.', 'Asaas')
+    const { data: cs } = await db.from('cobrancas').select('id,etapa,boleto_valor').eq('boleto_id', String(ev.payment.id))
+    const pendentes = (cs ?? []).filter((c) => c.etapa !== 'paga')
+    if (!pendentes.length) return
+    const pago = Number(ev.payment.value ?? 0), liquido = Number(ev.payment.netValue ?? pago)
+    const soma = pendentes.reduce((s, c) => s + Number(c.boleto_valor ?? 0), 0) || pendentes.length
+    for (const c of pendentes) {
+      const parte = Math.round(pago * (Number(c.boleto_valor ?? 0) || 1) / soma * 100) / 100
+      await db.from('cobranca_recebimentos').insert({ cobranca_id: c.id, valor: parte, recebido_em: String(ev.payment.paymentDate ?? ev.payment.clientPaymentDate ?? hoje()), forma: 'boleto', observacao: `Pago pelo Asaas (boleto de ${pago}, líquido ${liquido})`, informado_nome: 'Asaas', conferido: true, conferido_em: new Date().toISOString() })
+      await db.from('cobrancas').update({ etapa: 'paga', fase_legal: 'paga', atualizado_em: new Date().toISOString() }).eq('id', c.id)
+      await registrar(db, c.id, 'sistema', 'Pagou o boleto da notificação (Asaas confirmou)', 'Lembrete: dar baixa na Hotmart, se a compra ainda estiver sendo cobrada lá.', 'Asaas')
+    }
   }
   const dun = ev.paymentDunning
   if (tipo.startsWith('PAYMENT_DUNNING') && dun?.id) {
-    const { data: c } = await db.from('cobrancas').select('id').eq('negativacao_id', String(dun.id)).maybeSingle()
-    if (!c) return
+    const { data: cs } = await db.from('cobrancas').select('id').eq('negativacao_id', String(dun.id))
     const feita = tipo === 'PAYMENT_DUNNING_RECEIVED'
-    await db.from('cobrancas').update({ negativacao_status: String(dun.status ?? tipo), ...(feita ? { fase_legal: 'negativada', etapa: 'negativado', negativado_em: hoje() } : {}), atualizado_em: new Date().toISOString() }).eq('id', c.id)
-    await registrar(db, c.id, 'sistema', feita ? 'Nome negativado no Serasa' : `Negativação: ${dun.status ?? tipo}`, null, 'Asaas')
+    for (const c of cs ?? []) {
+      await db.from('cobrancas').update({ negativacao_status: String(dun.status ?? tipo), ...(feita ? { fase_legal: 'negativada', etapa: 'negativado', negativado_em: hoje() } : {}), atualizado_em: new Date().toISOString() }).eq('id', c.id)
+      await registrar(db, c.id, 'sistema', feita ? 'Nome negativado no Serasa' : `Negativação: ${dun.status ?? tipo}`, null, 'Asaas')
+    }
   }
 }
 
@@ -152,22 +205,51 @@ Deno.serve(async (req) => {
 
   const ids = (corpo.ids ?? []) as string[]
   if (!ids.length || ids.length > 300) return json({ erro: 'Escolha de 1 a 300 cobranças.' }, 400)
-  const [{ data: lista }, { data: cfg }] = await Promise.all([
+  if (!kAsaas) return json({ erro: 'Cadastre a chave do Asaas em Integrações.' }, 400)
+  const [{ data: escolhidas }, { data: cfg }, { data: sinc }] = await Promise.all([
     db.from('cobrancas').select('*').in('id', ids),
     db.from('cobranca_config').select('*').eq('id', true).single(),
+    db.from('integracoes').select('id,ultima_sinc_em').eq('tipo', 'hotmart').eq('ativa', true),
   ])
-  if (!kAsaas) return json({ erro: 'Cadastre a chave do Asaas em Integrações.' }, 400)
+  // os números têm que estar frescos: a Hotmart precisa ter sido lida há menos de 2 horas
+  const velha = (sinc ?? []).find((x) => !x.ultima_sinc_em || Date.now() - Date.parse(x.ultima_sinc_em) > 2 * 3600e3)
+  if (velha) return json({ erro: 'Os dados da Hotmart estão desatualizados. Atualize a Hotmart em Integrações e tente de novo.' }, 400)
   const feitos: string[] = [], falhas: { id: string; nome: string; motivo: string }[] = []
-  for (const c of (lista ?? []) as Dados[]) {
-    try {
-      if (acao === 'enviar') {
-        if (!email.api_key || !email.remetente) throw new Error('cadastre o e-mail em Integrações')
-        if (!cfg?.razao_social || !cfg?.cnpj) throw new Error('preencha os dados da empresa')
-        await notificar(db, c, cfg as Dados, kAsaas, email, quem)
-      } else if (acao === 'negativar') await negativar(db, c, kAsaas, quem)
-      else throw new Error('ação desconhecida')
-      feitos.push(String(c.id))
-    } catch (e) { falhas.push({ id: String(c.id), nome: String(c.aluno_nome ?? ''), motivo: (e as Error).message }) }
-  }
+  const falhar = (c: Dados, motivo: string) => falhas.push({ id: String(c.id), nome: String(c.aluno_nome ?? ''), motivo })
+
+  if (acao === 'enviar') {
+    if (!horarioComercial()) return json({ erro: 'Notificação só em horário comercial: segunda a sexta, das 9h às 18h.' }, 400)
+    if (!cfg?.advogado_liberou_em) return json({ erro: 'O advogado ainda não liberou a carta. Marque a liberação em "dados e modelos" depois que ele revisar.' }, 400)
+    if (!cfg?.razao_social || !cfg?.cnpj) return json({ erro: 'Preencha os dados da empresa em "dados e modelos".' }, 400)
+    if (!email.api_key || !email.remetente) return json({ erro: 'Cadastre o e-mail em Integrações.' }, 400)
+    // entram também as outras dívidas abertas da mesma pessoa (mesmo CPF), para sair uma carta e um boleto só
+    const docs = new Set<string>()
+    const { data: confEsc } = await db.from('v_cobranca_conferencia').select('cobranca_id,cpf').in('cobranca_id', ids)
+    for (const x of confEsc ?? []) if (x.cpf) docs.add(String(x.cpf))
+    const { data: confMesmo } = docs.size ? await db.from('v_cobranca_conferencia').select('cobranca_id').in('cpf', [...docs]) : { data: [] }
+    const extrasIds = (confMesmo ?? []).map((x) => String(x.cobranca_id)).filter((id) => !ids.includes(id))
+    const { data: extrasCs } = extrasIds.length ? await db.from('cobrancas').select('*').in('id', extrasIds).not('etapa', 'in', '(paga,sem_acordo,encerrada)') : { data: [] }
+    const { ok, fora } = await preparar(db, [...(escolhidas ?? []), ...(extrasCs ?? [])] as Dados[], cfg as Dados)
+    for (const f of fora) if (ids.includes(String(f.c.id))) falhar(f.c, f.motivo)
+    const porCpf = new Map<string, Linha[]>()
+    for (const g of ok) porCpf.set(g.cpf, [...(porCpf.get(g.cpf) ?? []), g])
+    for (const grupo of porCpf.values()) {
+      try { await notificarPessoa(db, grupo, cfg as Dados, kAsaas, email, quem); feitos.push(...grupo.map((g) => String(g.c.id))) }
+      catch (e) { for (const g of grupo) falhar(g.c, (e as Error).message) }
+    }
+  } else if (acao === 'negativar') {
+    const porBoleto = new Map<string, Dados[]>()
+    for (const c of (escolhidas ?? []) as Dados[]) {
+      if (!c.boleto_id) { falhar(c, 'sem boleto'); continue }
+      porBoleto.set(String(c.boleto_id), [...(porBoleto.get(String(c.boleto_id)) ?? []), c])
+    }
+    // o boleto vale para todos os cursos da pessoa: negativa todos juntos
+    for (const [boleto, grupo] of porBoleto) {
+      const { data: todos } = await db.from('cobrancas').select('*').eq('boleto_id', boleto).not('etapa', 'in', '(paga,sem_acordo,encerrada)')
+      const g = (todos ?? grupo) as Dados[]
+      try { await negativarBoleto(db, g, kAsaas, quem); feitos.push(...g.map((c) => String(c.id))) }
+      catch (e) { for (const c of g) falhar(c, (e as Error).message) }
+    }
+  } else return json({ erro: 'ação desconhecida' }, 400)
   return json({ ok: true, feitos: feitos.length, falhas })
 })
