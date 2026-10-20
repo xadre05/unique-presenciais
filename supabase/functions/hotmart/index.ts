@@ -156,7 +156,7 @@ async function assinaturas(db: SupabaseClient, integ: Integ, tk: string) {
   return { assinaturas: lote.length, status }
 }
 
-// CPF e telefone de quem está devendo (para negociar e, se for o caso, negativar). Só leitura; busca só quem ainda não tem.
+// CPF, telefone e endereço de quem está devendo (para notificar e, se for o caso, negativar). Só leitura; busca só quem ainda não tem.
 async function compradores(db: SupabaseClient, integ: Integ, tk: string, limite = 150) {
   const { data: faltam } = await db.rpc('compradores_sem_documento', { p_integracao: integ.id, p_limite: limite })
   let achados = 0
@@ -169,7 +169,8 @@ async function compradores(db: SupabaseClient, integ: Integ, tk: string, limite 
     const docs = (u.documents ?? []) as { value?: string; type?: string }[]
     const doc = String((docs.find((x) => String(x.type).toUpperCase() === 'CPF') ?? docs[0])?.value ?? '').replace(/\D/g, '') || null
     const fone = String(u.cellphone || u.phone || '').replace(/\D/g, '') || null
-    await db.from('hotmart_compradores').upsert({ email: f.email, documento: doc, telefone: fone, nome: u.name ?? null, consultado_em: new Date().toISOString() }, { onConflict: 'email' })
+    const end = u.address && typeof u.address === 'object' ? u.address : null
+    await db.from('hotmart_compradores').upsert({ email: f.email, documento: doc, telefone: fone, nome: u.name ?? null, endereco: end ?? {}, consultado_em: new Date().toISOString() }, { onConflict: 'email' })
     if (doc) achados++
   }
   return { consultados: (faltam ?? []).length, com_documento: achados }

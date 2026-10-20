@@ -60,7 +60,7 @@ export function CartaoCobranca({ c, conta, responsavel, eu, hoje, isAdmin, marca
       <div className="muted pequeno cob-rodape">
         {c.tentativas > 0 ? `${c.tentativas} mensagem(ns)` : 'Nenhuma mensagem ainda'}{c.ultimo_contato_em && ` · último contato ${quando(c.ultimo_contato_em)}`}
         {c.retornar_em && aberta(c) && <span className={retornarAtrasado ? ' ouro-txt forte' : ''}> · retornar em {dataBR(c.retornar_em)}</span>}
-        {prazo && aberta(c) && <span className={prazo.tom === 'erro' ? ' erro-txt' : ''}> · {prazo.texto}</span>}
+        {prazo && aberta(c) && <span className={prazo.tom === 'erro' ? ' erro-txt' : prazo.tom === 'alerta' ? ' alerta-txt' : ''}> · {prazo.texto}</span>}
         {c.negativado_em && <span> · negativado em {dataBR(c.negativado_em)}</span>}
       </div>
       {erro && <p className="erro-txt pequeno">{erro}</p>}

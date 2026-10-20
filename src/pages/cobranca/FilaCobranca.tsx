@@ -12,6 +12,7 @@ import { aberta, distribuir, nomeCurtoConta, useCobrancas, useContasHotmart } fr
 import { ABAS, IDADES, naAba, ordenar, passaFiltro, somaRestante, somaVencido, type Aba, type Filtro, type Ordem } from './filtros'
 import { CartaoCobranca } from './CartaoCobranca'
 import { RecebimentosCobranca } from './RecebimentosCobranca'
+import { PainelNotificacao } from './notificacao/PainelNotificacao'
 
 const POR_VEZ = 40
 
@@ -31,7 +32,7 @@ export default function FilaCobranca() {
   const cobrancas = useCobrancas(), contas = useContasHotmart()
   const vendedoras = useConsulta<{ id: string; nome: string }[]>(() => supabase.from('vendedoras').select('id,nome').eq('ativa', true).order('nome'), [])
   const [qs] = useSearchParams()
-  const [tela, setTela] = useState<'fila' | 'recebimentos'>('fila')
+  const [tela, setTela] = useState<'fila' | 'notificacao' | 'recebimentos'>('fila')
   const [aba, setAba] = useState<Aba>(qs.get('busca') ? 'todas' : 'a_contatar')
   const [ordem, setOrdem] = useState<Ordem>('antigas')
   const [f, setF] = useState<Filtro>({ origem: '', conta: '', idade: '', quem: '', busca: qs.get('busca') ?? '' })
@@ -62,11 +63,12 @@ export default function FilaCobranca() {
         <p className="muted">{isAdmin ? 'Todo mundo que deve, do online (Hotmart) e do presencial. A fila se atualiza sozinha de hora em hora e tira quem voltou a pagar.' : 'Quem você precisa cobrar. Quando a pessoa paga, sai da fila sozinha.'}</p></div>
         {isAdmin && <div className="re-abas" role="tablist">
           <button type="button" role="tab" aria-selected={tela === 'fila'} className={tela === 'fila' ? 'ativa' : ''} onClick={() => setTela('fila')}>Fila</button>
+          <button type="button" role="tab" aria-selected={tela === 'notificacao'} className={tela === 'notificacao' ? 'ativa' : ''} onClick={() => setTela('notificacao')}>Notificação extrajudicial</button>
           <button type="button" role="tab" aria-selected={tela === 'recebimentos'} className={tela === 'recebimentos' ? 'ativa' : ''} onClick={() => setTela('recebimentos')}>Recebimentos e comissão</button>
         </div>}
       </header>
 
-      {tela === 'recebimentos' ? <RecebimentosCobranca cobrancas={cobrancas.dados ?? []} nomeVend={nomeVend} aoMudar={cobrancas.recarregar} /> : (<>
+      {tela === 'notificacao' ? <PainelNotificacao lista={todas} nomeConta={nomeConta} aoMudar={cobrancas.recarregar} eu={eu} /> : tela === 'recebimentos' ? <RecebimentosCobranca cobrancas={cobrancas.dados ?? []} nomeVend={nomeVend} aoMudar={cobrancas.recarregar} /> : (<>
         <section className="kpis at-kpis-4">
           <Kpi rotulo="Dívida total" valor={brl(somaRestante(abertas))} tom="erro" sub={`${new Set(abertas.map((c) => c.email ?? c.chave)).size} pessoas · tudo o que falta pagar do contrato`} />
           <Kpi rotulo="Já venceu" valor={brl(somaVencido(abertas))} sub="parte da dívida com a data já passada" />

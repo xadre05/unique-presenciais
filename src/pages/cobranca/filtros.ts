@@ -44,7 +44,7 @@ export function ordenar(xs: Cobranca[], ordem: Ordem) {
 // prazo para negativar: a lei só permite até 5 anos depois de a dívida vencer
 export function prazoNegativar(c: Pick<Cobranca, 'negativar_ate'>, hoje: string) {
   if (!c.negativar_ate) return null
-  if (c.negativar_ate < hoje) return { tom: 'neutro', texto: 'Prazo para negativar já passou' }
+  if (c.negativar_ate < hoje) return { tom: 'alerta', texto: 'Mais de 5 anos: confirmar com o advogado se ainda dá para negativar' }
   const dias = Math.round((new Date(c.negativar_ate).getTime() - new Date(hoje).getTime()) / 864e5)
   return { tom: dias <= 180 ? 'erro' : 'neutro', texto: `Negativar até ${c.negativar_ate.split('-').reverse().join('/')}` }
 }

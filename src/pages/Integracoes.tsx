@@ -5,6 +5,7 @@ import { msgErro, useCadastros, useConsulta } from '../lib/dados'
 import { brl, dataBR, dataHoraBR } from '../lib/format'
 import { Badge, Campo, Erro, Modal, Vazio } from '../components/ui'
 import { Icone } from '../components/Icone'
+import { CartoesNotificacao } from './integracoes/CartaoNotificacao'
 
 type Integ = {
   id: string; nome: string; tipo: string; descricao: string | null; conta_id: string | null; traz_ofertas: boolean; traz_pagamentos: boolean; ativa: boolean; baixa_automatica: boolean
@@ -43,6 +44,7 @@ export function AbaIntegracoes() {
     <p className="muted pequeno">Todas as integrações do sistema ficam aqui. Elas só <b>leem</b> os outros sistemas: nada é alterado lá. As credenciais ficam cifradas no banco; depois de salvas, ninguém consegue ver de volta pela tela, só trocar.</p>
     <Erro msg={lista.erro} />
     {integs.filter((i) => i.tipo === 'hotmart').map((i) => <CartaoHotmart key={i.id} i={i} onMudou={recarregar} />)}
+    <CartoesNotificacao />
     <PagamentosHotmart pags={pags.dados ?? []} integs={integs} onMudou={recarregar} />
     <ProdutosHotmart integs={integs} />
     <section className="bloco">

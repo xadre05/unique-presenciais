@@ -14,6 +14,7 @@ export type Cobranca = {
   responsavel_id: string | null; etapa: Etapa; promessa_em: string | null; retornar_em: string | null; tentativas: number
   ultimo_contato_em: string | null; acordo_valor: number | null; acordo_forma: string | null; acordo_parcelas: number | null
   acordo_primeiro_venc: string | null; acordo_obs: string | null; acordo_em: string | null; criado_em: string
+  fase_legal: string | null; notificado_em: string | null; prazo_ate: string | null; boleto_url: string | null; boleto_valor: number | null; whatsapp_avisado_em: string | null
 }
 export type Contato = { id: string; cobranca_id: string; canal: string; resultado: string | null; observacao: string | null; quem_nome: string | null; criado_em: string }
 export type Recebimento = {

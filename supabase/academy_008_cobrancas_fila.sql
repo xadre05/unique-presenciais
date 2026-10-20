@@ -233,3 +233,7 @@ grant execute on function public.cobrancas_para_negativar() to authenticated;
 -- mês a mês). Quando o plano é cancelado, a Hotmart para de listar as parcelas seguintes, mas a data delas passa do mesmo
 -- jeito; contar só a lista da Hotmart escondia R$ 146 mil já vencidos. valor_restante = tudo o que falta do contrato.
 -- (a versão em produção da v_cobranca_online é a de academy_008e_cobranca_vencido_por_data; esta acima foi a primeira)
+
+-- (008f, 20/10) plano cancelado pelo vendedor ou pela Hotmart (ex.: mentoria encerrada): deve só o que não pagou até o
+-- cancelamento (a lista de parcelas não pagas da Hotmart), não o contrato inteiro. Plano em atraso continua devendo tudo.
+-- Versão em produção da v_cobranca_online: academy_008f_cobranca_cancelado_ate_cancelamento.

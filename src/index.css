@@ -3118,3 +3118,9 @@ a.sala-agente:hover { border-color: var(--ouro); transform: translateY(-2px); }
 .pg-escolher .direita { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
 @media (max-width: 1100px) { .pg-resumo { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 560px) { .pg-resumo { grid-template-columns: 1fr; } .pg-valor { font-size: 1.15rem; } .pg-filtros-2 .pg-rotulado { flex-basis: 100%; } }
+
+/* Notificação extrajudicial */
+.not-painel { display: flex; flex-direction: column; gap: 12px; }
+.not-config { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 14px; }
+.not-carta { white-space: pre-wrap; font-family: inherit; font-size: .92rem; line-height: 1.55; background: var(--painel-2); border: 1px solid var(--borda); border-radius: 10px; padding: 16px; max-height: 60vh; overflow-y: auto; }
+@media (max-width: 640px) { .not-config { grid-template-columns: 1fr; } }
