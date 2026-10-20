@@ -1,7 +1,7 @@
 // Pacote de criativos de uma campanha: anúncios (vídeo com 3 a 5 ganchos para testar e imagem), sequências de stories
 // com link, reels para gravar e carrosséis, cada peça marcada como Anúncio ou Orgânico. O agente escreve tudo de uma vez
 // lendo os materiais da campanha (página de vendas, roteiros, copy). Os orgânicos são espalhados pelos dias do período.
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Erro, InputNumero } from '../../../../components/ui'
 import { Icone } from '../../../../components/Icone'
 import { somaDias } from '../../comum'
@@ -26,6 +26,9 @@ export function PacoteCriativos({ campanha, inicio, fim, aoEscreveu, aoVoltar }:
   const [enviando, setEnviando] = useState(false)
   const [erro, setErro] = useState<string | null>(null)
   const total = Object.values(qtd).reduce((s, n) => s + n, 0)
+  // aberto pelo atalho da campanha: no celular o pacote fica abaixo da escolha do período
+  const caixa = useRef<HTMLElement>(null)
+  useEffect(() => { caixa.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }) }, [])
 
   const criar = async () => {
     if (!total) return setErro('Escolha pelo menos uma peça.')
@@ -50,7 +53,7 @@ export function PacoteCriativos({ campanha, inicio, fim, aoEscreveu, aoVoltar }:
   }
 
   return (
-    <section className="mk-painel reu-direto">
+    <section ref={caixa} className="mk-painel reu-direto">
       <header className="mk-painel-cab"><span className="mk-convite-icone"><Icone nome="floco" tam={22} /></span>
         <div><h3>Pacote de criativos · {campanha.nome}</h3><span className="muted pequeno">O agente escreve tudo de uma vez, lendo os materiais da campanha (página de vendas, roteiros e copy). Você revisa cada peça na Produção.</span></div></header>
       <ul className="pac-lista">{ITENS.map((it) => (
