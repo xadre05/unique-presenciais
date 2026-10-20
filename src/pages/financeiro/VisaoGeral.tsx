@@ -10,7 +10,7 @@ import { Icone } from '../../components/Icone'
 import { Barras, type Ponto } from './Barras'
 import { FiltroTopo } from './FiltroTopo'
 import { buscarTudo, comoConsulta, intervaloMes, mesDe, nomeMes, somaMes, somar, type Entrada, type Saida } from './dados'
-import { quando, type Previsto } from './previsao/regras'
+import { quando, vaiEntrar, type Previsto } from './previsao/regras'
 
 type Leve = Pick<Entrada, 'data' | 'liquido' | 'taxa' | 'bruto' | 'conta_id' | 'origem'>
 type Divida = { valor_restante: number | null; valor_vencido: number | null; email: string | null; chave: string; integracao_id: string | null }
@@ -48,11 +48,11 @@ export default function VisaoGeral() {
 
   const proximos = Array.from({ length: 6 }, (_, i) => {
     const m = somaMes(mesDe(hoje), i)
-    const rec = somar(daConta(receber.dados ?? []).filter((r) => r.situacao === 'a_vencer' && !!quando(r) && mesDe(quando(r)!) === m), (r) => r.valor)
+    const rec = somar(daConta(receber.dados ?? []).filter((r) => vaiEntrar(r) && !!quando(r) && mesDe(quando(r)!) === m), (r) => r.valor)
     const pag = somar(saidasConta.filter((s) => !s.pago_em && s.vencimento && mesDe(s.vencimento) === m), (s) => s.valor)
     return { m, rec, pag }
   })
-  const semData = somar(daConta(receber.dados ?? []).filter((r) => r.situacao !== 'a_vencer'), (r) => r.valor)
+  const semData = somar(daConta(receber.dados ?? []).filter((r) => !vaiEntrar(r)), (r) => r.valor)
   const atrasadoPagar = somar(saidasConta.filter((s) => !s.pago_em && s.vencimento && s.vencimento < hoje), (s) => s.valor)
   // a dívida não tem conta bancária; filtrando por uma conta Hotmart, mostra só as dívidas daquela conta
   const contaDaIntegracao = (i: string | null) => (integracoes.dados ?? []).find((x) => x.id === i)?.conta_id ?? null

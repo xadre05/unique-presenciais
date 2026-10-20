@@ -11,7 +11,7 @@ function Linha({ p, mostrarSituacao }: { p: Previsto; mostrarSituacao?: boolean 
   const segura = p.valor_aluno - p.valor
   return (
     <tr>
-      <td className="pequeno">{dm(mostrarSituacao ? p.data : quando(p))}{!mostrarSituacao && p.data_credito && p.data_credito !== p.data && <div className="muted">aluno paga {dm(p.data)}</div>}</td>
+      <td className="pequeno">{dm(mostrarSituacao ? p.data : quando(p))}{!mostrarSituacao && p.data_credito && p.data_credito !== p.data && <div className="muted">{p.situacao === 'na_hotmart' ? 'aluno pagou' : 'aluno paga'} {dm(p.data)}</div>}</td>
       <td className="pequeno"><b>{p.pessoa ?? '—'}</b><div className="muted at-corta">{p.descricao}{p.parcela ? ` · parcela ${p.parcela}` : ''}</div></td>
       <td><Badge tom={p.automatico ? 'info' : 'neutro'}>{NOME_JEITO[jeitoPrevisto(p)]}</Badge></td>
       {mostrarSituacao && <td className="pequeno"><Badge tom={TOM_SITUACAO[p.situacao]}>{NOME_SITUACAO[p.situacao]}</Badge>

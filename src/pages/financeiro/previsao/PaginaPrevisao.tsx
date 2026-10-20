@@ -10,7 +10,7 @@ import { Erro, Kpi } from '../../../components/ui'
 import { Icone } from '../../../components/Icone'
 import { FiltroTopo } from '../FiltroTopo'
 import { comoConsulta, entradasEntre, intervaloMes, mesDe, somar, type Entrada, type Parcelado } from '../dados'
-import { NOME_JEITO, PERIODOS, intervaloDo, jeitoEntrada, jeitoPrevisto, quando, type Jeito, type Periodo, type Previsto } from './regras'
+import { NOME_JEITO, PERIODOS, intervaloDo, jeitoEntrada, jeitoPrevisto, quando, vaiEntrar as entra, type Jeito, type Periodo, type Previsto } from './regras'
 import { ComoEntra } from './ComoEntra'
 import { Pendencias, LinhaDoTempo, JaEntrou } from './ListasPrevisao'
 import { SaldoHotmart } from './SaldoHotmart'
@@ -37,8 +37,8 @@ export default function PaginaPrevisao() {
   const entradas = useMemo(() => (ent.dados ?? []).filter((e) => passa(e.conta_id, jeitoEntrada(e), jeitoEntrada(e) === 'parcelado_hotmart')), [ent.dados, conta, jeito, cobra]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const desde = ini > hoje ? ini : hoje
-  const vaiEntrar = previstos.filter((p) => { const q = quando(p); return p.situacao === 'a_vencer' && !!q && q >= desde && q <= fim })
-  const pendentes = previstos.filter((p) => p.situacao !== 'a_vencer')
+  const vaiEntrar = previstos.filter((p) => { const q = quando(p); return entra(p) && !!q && q >= desde && q <= fim })
+  const pendentes = previstos.filter((p) => !entra(p))
   const entrou = comPassado ? somar(entradas, (e) => e.liquido) : 0, vai = somar(vaiEntrar, (p) => p.valor), pend = somar(pendentes, (p) => p.valor)
   const auto = somar(vaiEntrar.filter((p) => p.automatico), (p) => p.valor)
   const naHotmart = somar(entradas.filter((e) => jeitoEntrada(e) === 'parcelado_hotmart'), (e) => e.liquido)

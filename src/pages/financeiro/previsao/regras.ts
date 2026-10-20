@@ -2,7 +2,9 @@
 // O banco entrega cada entrada esperada em v_fin_previsao (academy_012) e o que já entrou em v_fin_entradas.
 import { intervaloMes, mesDe, somaMes, type Entrada } from '../dados'
 
-export type Situacao = 'a_vencer' | 'atrasada' | 'sem_data' | 'a_conferir'
+export type Situacao = 'a_vencer' | 'na_hotmart' | 'atrasada' | 'sem_data' | 'a_conferir'
+// a_vencer e na_hotmart (já pago, esperando o dia 1º) contam como "vai entrar"; o resto é pendência
+export const vaiEntrar = (p: Previsto) => p.situacao === 'a_vencer' || p.situacao === 'na_hotmart'
 export type Previsto = {
   id: string; data: string | null; origem: 'hotmart' | 'presencial' | 'acordo'; integracao_id: string | null; conta_id: string | null
   descricao: string | null; pessoa: string | null; email: string | null; parcela: string | null
@@ -52,11 +54,11 @@ function jeitoDaForma(forma: string | null): Jeito {
 export const jeitoPrevisto = (p: Previsto): Jeito => (p.origem === 'hotmart' ? 'parcelado_hotmart' : p.origem === 'acordo' ? 'acordo' : jeitoDaForma(p.forma))
 export const jeitoEntrada = (e: Entrada): Jeito => (e.origem === 'hotmart' && e.tipo === 'parcela' ? 'parcelado_hotmart' : jeitoDaForma(e.forma))
 
-export const NOME_SITUACAO: Record<Situacao, string> = { a_vencer: 'A vencer', atrasada: 'Atrasada', sem_data: 'Sem data combinada', a_conferir: 'Aluno avisou que pagou' }
-export const TOM_SITUACAO: Record<Situacao, string> = { a_vencer: 'info', atrasada: 'erro', sem_data: 'alerta', a_conferir: 'ouro' }
+export const NOME_SITUACAO: Record<Situacao, string> = { a_vencer: 'A vencer', na_hotmart: 'Já pago, na Hotmart', atrasada: 'Atrasada', sem_data: 'Sem data combinada', a_conferir: 'Aluno avisou que pagou' }
+export const TOM_SITUACAO: Record<Situacao, string> = { a_vencer: 'info', na_hotmart: 'ok', atrasada: 'erro', sem_data: 'alerta', a_conferir: 'ouro' }
 // o que fazer com cada pendência, em uma frase
 export const ACAO_SITUACAO: Record<Situacao, string> = {
-  a_vencer: '', atrasada: 'Cobrar o aluno', sem_data: 'Combinar a data com o aluno', a_conferir: 'Conferir no banco e dar baixa',
+  a_vencer: '', na_hotmart: '', atrasada: 'Cobrar o aluno', sem_data: 'Combinar a data com o aluno', a_conferir: 'Conferir no banco e dar baixa',
 }
 
 // semana (segunda a domingo) de uma data, para a linha do tempo
