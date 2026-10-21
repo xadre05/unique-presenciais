@@ -31,7 +31,8 @@ function usarMusica(musica?: Musica) {
   return url
 }
 
-export function PreviaVideo({ url, linha, vertical, apoio = [], musica, cor }: { url: string; linha: LinhaTempo; vertical: boolean; apoio?: (File | undefined)[]; musica?: Musica; cor?: string }) {
+// aoTempo: avisa o tempo do vídeo editado (para a linha do tempo do Estúdio acompanhar)
+export function PreviaVideo({ url, linha, vertical, apoio = [], musica, cor, aoTempo }: { url: string; linha: LinhaTempo; vertical: boolean; apoio?: (File | undefined)[]; musica?: Musica; cor?: string; aoTempo?: (t: number) => void }) {
   const video = useRef<HTMLVideoElement>(null)
   const tela = useRef<HTMLCanvasElement>(null)
   const som = useRef<HTMLAudioElement>(null)
@@ -81,6 +82,7 @@ export function PreviaVideo({ url, linha, vertical, apoio = [], musica, cor }: {
     efeitos.current?.posicionar(v.currentTime)
   }
   const final = tempoFinal(t, linha.trechos)
+  useEffect(() => { aoTempo?.(final) }, [final]) // eslint-disable-line react-hooks/exhaustive-deps
   const [L, A] = TAM_PREVIA[vertical ? 'vertical' : 'horizontal']
 
   return (

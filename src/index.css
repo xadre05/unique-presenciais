@@ -3342,3 +3342,128 @@ a.sala-agente:hover { border-color: var(--ouro); transform: translateY(-2px); }
 .cu-ajuda:hover { color: var(--ouro, #b8924a); }
 .estilos-ref { list-style: none; margin: 8px 0 12px; padding: 0; display: grid; gap: 6px; }
 .estilos-ref li { display: flex; align-items: center; gap: 8px; }
+
+/* ===== Estúdio de edição (Agente Editor de Vídeo) ===== */
+.estudio { max-width: none; padding-bottom: 96px; }
+.es-topo { display: flex; align-items: center; gap: 14px; margin-bottom: 14px; flex-wrap: wrap; }
+.es-topo > div { flex: 1; min-width: 220px; }
+.es-topo h1 { margin: 0; font-size: 1.45rem; }
+.es-topo h1 .muted { font-weight: 400; }
+.es-topo p { margin: 2px 0 0; }
+.es-finalidade select { min-width: 0; }
+.es-pilula { padding: 6px 12px; border-radius: 999px; border: 1px solid var(--borda); font-size: 0.85rem; color: var(--muted); white-space: nowrap; }
+.es-pilula.ok { border-color: var(--ok); color: var(--ok); background: var(--ok-fundo); }
+.es-grade { display: grid; grid-template-columns: minmax(230px, 280px) minmax(0, 1fr) minmax(280px, 340px); gap: 14px; align-items: start; }
+.es-etapas, .es-centro, .es-ajustes { background: var(--painel); border: 1px solid var(--borda); border-radius: 14px; padding: 16px; }
+.es-etapas h3, .es-ajustes h3, .es-centro-topo h3 { margin: 0 0 4px; font-size: 1.05rem; }
+.es-etapas ol { list-style: none; margin: 12px 0 0; padding: 0; display: grid; gap: 10px; }
+.es-etapa { border: 1px solid var(--borda); border-radius: 12px; padding: 10px 12px; background: var(--painel-2); }
+.es-etapa.aberta { border-color: var(--ouro); background: var(--ouro-fundo); }
+.es-etapa-topo { display: flex; align-items: center; gap: 8px; width: 100%; background: none; border: 0; color: inherit; padding: 0; cursor: pointer; font: inherit; text-align: left; }
+.es-etapa-topo b { flex: 1; }
+.es-num { width: 26px; height: 26px; border-radius: 50%; border: 1.5px solid var(--ouro); color: var(--ouro); display: inline-grid; place-items: center; font-size: 0.85rem; flex: none; }
+.es-ok { width: 18px; height: 18px; border-radius: 50%; background: var(--ok); color: #0c1a10; display: inline-grid; place-items: center; }
+.es-falta { width: 10px; height: 10px; border-radius: 50%; background: var(--alerta); }
+.es-etapa-resumo { display: flex; gap: 8px; align-items: center; margin-top: 8px; font-size: 0.86rem; color: var(--muted); word-break: break-word; }
+.es-etapa-resumo svg { flex: none; }
+.es-centro { min-height: 420px; }
+.es-centro-topo { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+.es-centro .ev-previa { max-width: 380px; margin: 0 auto; }
+.es-vazio { min-height: 380px; display: grid; place-items: center; align-content: center; gap: 10px; text-align: center; color: var(--muted); border: 1px dashed var(--borda); border-radius: 12px; padding: 24px; }
+.es-vazio p { margin: 0; max-width: 340px; }
+.es-trilha { position: relative; margin-top: 14px; border-top: 1px solid var(--borda); padding-top: 22px; font-size: 0.72rem; }
+.es-trilha-regua { position: absolute; top: 4px; left: 64px; right: 0; height: 14px; color: var(--muted); }
+.es-trilha-regua span { position: absolute; transform: translateX(-50%); }
+.es-faixa { display: flex; align-items: center; height: 26px; margin-bottom: 4px; }
+.es-faixa-nome { width: 64px; flex: none; color: var(--muted); }
+.es-faixa-corpo { position: relative; flex: 1; height: 100%; background: var(--painel-2); border-radius: 6px; overflow: hidden; }
+.es-bloco { position: absolute; top: 3px; bottom: 3px; border-radius: 4px; font-style: normal; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; padding: 0 4px; line-height: 20px; color: #1a1408; }
+.es-bloco.corte { background: #4b6fd1; border-right: 2px solid var(--painel-2); }
+.es-bloco.imagem { background: #8a6ad8; }
+.es-bloco.imagem.cartao { background: #b48ae8; }
+.es-bloco.texto { background: var(--ouro); }
+.es-ponto { position: absolute; top: 8px; width: 10px; height: 10px; border-radius: 50%; background: var(--ok); transform: translateX(-50%); }
+.es-agulha { position: absolute; top: 18px; bottom: 0; width: 2px; background: #fff; pointer-events: none; }
+.es-ajustes { display: grid; gap: 10px; }
+.es-ajustes > p { margin: 0; }
+.es-versoes { display: flex; gap: 6px; }
+.es-versoes button { flex: 1; padding: 8px; border-radius: 8px; border: 1px solid var(--borda); background: var(--painel-2); color: inherit; cursor: pointer; font: inherit; }
+.es-versoes button.ativa { border-color: var(--ouro); color: var(--ouro); background: var(--ouro-fundo); }
+.es-conversa { display: grid; gap: 10px; max-height: 360px; overflow: auto; }
+.es-msg { display: flex; gap: 8px; }
+.es-msg img { width: 34px; height: 34px; border-radius: 50%; object-fit: cover; flex: none; }
+.es-msg p { margin: 4px 0 0; background: var(--painel-2); border: 1px solid var(--borda); border-radius: 10px; padding: 8px 10px; font-size: 0.9rem; }
+.es-msg.atual p { border-color: var(--ouro); }
+.es-msg.eu { justify-content: flex-end; flex-direction: column; align-items: flex-end; }
+.es-msg.eu p { background: var(--ouro-fundo); border-color: var(--ouro); }
+.es-msg-quem { font-size: 0.78rem; color: var(--muted); }
+.es-pedido { display: grid; gap: 8px; border: 1px solid var(--borda); border-radius: 12px; padding: 10px; background: var(--painel-2); }
+.es-pedido textarea { width: 100%; background: transparent; border: 0; resize: vertical; color: inherit; font: inherit; }
+.es-pedido .btn { justify-self: end; }
+.es-regra { display: flex; gap: 8px; align-items: center; }
+.es-qualidade { border: 1px solid var(--borda); border-radius: 12px; padding: 10px 12px; }
+.es-qualidade h4 { margin: 0 0 6px; }
+.es-q { display: flex; gap: 8px; align-items: center; margin: 4px 0; font-size: 0.88rem; }
+.es-q svg { color: var(--ok); }
+.es-q.alerta, .es-q.alerta svg { color: var(--alerta); cursor: pointer; }
+.es-qualidade ul { margin: 6px 0 0; padding-left: 18px; }
+.es-barra { position: fixed; left: 230px; right: 0; bottom: 0; z-index: 30; display: flex; align-items: center; gap: 12px; padding: 12px 20px; background: var(--painel); border-top: 1px solid var(--ouro); flex-wrap: wrap; }
+.es-barra-versao { border: 1px solid var(--borda); border-radius: 8px; padding: 6px 10px; font-weight: 600; }
+.es-barra-status { font-weight: 600; color: var(--muted); }
+.es-barra-status.ok { color: var(--ok); }
+.es-barra-progresso { flex: 1; min-width: 120px; height: 6px; background: var(--painel-2); border-radius: 3px; overflow: hidden; }
+.es-barra-progresso span { display: block; height: 100%; background: var(--ouro); }
+.es-barra-acoes { margin-left: auto; display: flex; gap: 8px; flex-wrap: wrap; }
+.es-painel-etapa { display: grid; gap: 14px; }
+.es-painel-etapa .ev-passo { border: 0; padding: 0; background: none; }
+.es-painel-pe { display: flex; justify-content: space-between; gap: 10px; border-top: 1px solid var(--borda); padding-top: 14px; }
+.es-conteudo h2, .es-estilo h2 { margin: 0 0 4px; font-family: 'Playfair Display', Georgia, serif; font-size: 1.6rem; }
+.es-conteudo textarea { width: 100%; }
+.es-estilo-opcoes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-top: 14px; }
+.es-opcao { border: 1px solid var(--borda); border-radius: 14px; padding: 14px; background: var(--painel-2); cursor: pointer; display: grid; gap: 8px; align-content: start; }
+.es-opcao.marcada { border: 2px solid var(--ouro); background: var(--ouro-fundo); }
+.es-opcao header { display: flex; justify-content: space-between; align-items: center; }
+.es-opcao h3 { margin: 0; font-size: 1.05rem; }
+.es-opcao p { margin: 0; }
+.es-radio { width: 18px; height: 18px; border-radius: 50%; border: 2px solid var(--muted); }
+.es-opcao.marcada .es-radio { border-color: var(--ouro); box-shadow: inset 0 0 0 4px var(--painel-2); background: var(--ouro); }
+.es-opcao .selo-neutro, .es-destino .selo-neutro { justify-self: start; font-size: 0.78rem; padding: 3px 8px; border-radius: 6px; background: var(--painel); border: 1px solid var(--borda); }
+.es-nova { display: grid; gap: 8px; cursor: default; }
+.es-arquivo { justify-content: center; }
+.es-aviso { display: flex; gap: 8px; align-items: center; margin-top: 12px; padding: 10px 12px; border: 1px solid var(--alerta); background: var(--alerta-fundo); border-radius: 10px; }
+.es-ref-pronta p { margin: 0 0 4px; }
+.es-abas-movel { display: none; }
+.es-concluir { display: grid; gap: 14px; }
+.es-concluir h2 { margin: 6px 0 0; }
+.es-concluir > p { margin: 0; }
+.es-final { display: grid; grid-template-columns: 160px 1fr minmax(220px, 300px); gap: 18px; align-items: center; background: var(--painel); border: 1px solid var(--borda); border-radius: 14px; padding: 16px; }
+.es-final video { width: 160px; border-radius: 10px; background: #000; }
+.es-final h3 { display: flex; gap: 8px; align-items: center; margin: 0; }
+.es-checks { list-style: none; margin: 0; padding: 0 0 0 18px; border-left: 1px solid var(--borda); display: grid; gap: 10px; }
+.es-checks li { display: grid; grid-template-columns: 20px 1fr; column-gap: 8px; }
+.es-checks li svg { color: var(--ok); grid-row: span 2; margin-top: 2px; }
+.es-destinos { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.es-destino { border: 1px solid var(--borda); border-radius: 14px; padding: 14px; background: var(--painel); opacity: 0.6; display: grid; gap: 6px; align-content: start; }
+.es-destino.marcado { opacity: 1; border: 2px solid var(--ouro); }
+.es-destino header { display: flex; justify-content: space-between; gap: 8px; align-items: center; }
+.es-destino h3, .es-destino p { margin: 0; }
+.es-concluir-pe { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; background: var(--painel); border: 1px solid var(--ouro); border-radius: 14px; padding: 14px 16px; }
+.es-concluir-pe > span:first-child { display: flex; gap: 8px; align-items: center; flex: 1; }
+@media (max-width: 1250px) {
+  .es-grade { grid-template-columns: minmax(220px, 260px) minmax(0, 1fr); }
+  .es-ajustes { grid-column: 1 / -1; }
+}
+@media (max-width: 900px) {
+  .es-barra { left: 0; bottom: 64px; padding: 10px 14px; }
+  .es-barra-dica { display: none; }
+  .es-abas-movel { display: flex; gap: 6px; margin-bottom: 10px; }
+  .es-abas-movel button { flex: 1; padding: 9px; border-radius: 10px; border: 1px solid var(--borda); background: var(--painel); color: inherit; font: inherit; }
+  .es-abas-movel button.ativa { border-color: var(--ouro); color: var(--ouro); background: var(--ouro-fundo); }
+  .es-grade { grid-template-columns: 1fr; }
+  .es-grade > * { display: none; }
+  .es-grade.mostra-previa > .es-centro, .es-grade.mostra-etapas > .es-etapas, .es-grade.mostra-ajustes > .es-ajustes { display: grid; }
+  .es-grade.mostra-etapas > .es-centro:has(.es-painel-etapa) { display: block; }
+  .es-estilo-opcoes, .es-destinos, .es-final { grid-template-columns: 1fr; }
+  .es-checks { border-left: 0; padding-left: 0; }
+  .estudio { padding-bottom: 170px; }
+}
