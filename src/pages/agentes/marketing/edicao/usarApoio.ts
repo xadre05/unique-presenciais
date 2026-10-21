@@ -6,12 +6,12 @@ import { supabase } from '../../../../lib/supabase'
 import { guardarEdicao, type Edicao, type MidiaParaAgente } from './dados'
 import { miniatura, tipoDoArquivo, type MidiaApoio } from './midias'
 import type { Musica } from './montagem'
-import type { ItemBanco } from '../../BancoImagens'
+import { descricaoParaAgente, type ItemBanco } from '../../BancoImagens'
 
 const VOLUME_PADRAO = 0.12
 const NENHUMA: MidiaApoio[] = []
 export const chaveDe = (m: Pick<MidiaApoio, 'nome' | 'tamanho' | 'caminho'>) => (m.caminho ? `banco:${m.caminho}` : `${m.nome}|${m.tamanho}`)
-const doBanco = (b: ItemBanco): MidiaApoio => ({ nome: b.nome, tamanho: 0, tipo: b.tipo, descricao: b.descricao, caminho: b.caminho })
+const doBanco = (b: ItemBanco): MidiaApoio => ({ nome: b.nome, tamanho: 0, tipo: b.tipo, descricao: descricaoParaAgente(b), caminho: b.caminho })
 
 async function baixar(m: MidiaApoio) {
   const { data } = await supabase.storage.from('arquivos').download(m.caminho!)
@@ -76,7 +76,9 @@ export function usarApoio(pecaId: string, edicao: Edicao, banco: ItemBanco[], ao
     const arquivosDe = await Promise.all(lista.map(async (m) => arquivos.get(chaveDe(m)) ?? (m.caminho ? await baixar(m).catch(() => undefined) : undefined)))
     const prontas = await Promise.all(lista.map(async (m, n) => {
       const f = arquivosDe[n]
-      return f ? { n, tipo: m.tipo, descricao: m.descricao, miniatura: await miniatura(f).catch(() => undefined) } : null
+      // mídia do banco: a descrição mais recente de lá (a equipe pode ter melhorado depois)
+      const doBancoAgora = m.caminho ? banco.find((b) => b.caminho === m.caminho) : undefined
+      return f ? { n, tipo: m.tipo, descricao: doBancoAgora ? descricaoParaAgente(doBancoAgora) : m.descricao, miniatura: await miniatura(f).catch(() => undefined) } : null
     }))
     return prontas.filter((x): x is NonNullable<typeof x> => !!x)
   }

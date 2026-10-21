@@ -39,6 +39,8 @@ export default function AgenteEditor() {
   const perfilMarca = marca.dados?.perfil ?? {}
   const todasCampanhas = (Array.isArray(perfilMarca.campanhas) ? perfilMarca.campanhas : []) as { id: string; nome: string; encerrada?: boolean }[]
   const campanhas = todasCampanhas.filter((c) => !c.encerrada)
+  // em quantos vídeos cada mídia do banco já entrou (para o painel de detalhes)
+  const usos = (pecas.dados ?? []).reduce<Record<string, number>>((m, p) => { for (const x of edicaoDa(p.conteudo).midias ?? []) if (x.caminho && (edicaoDa(p.conteudo).receitas?.length)) m[x.caminho] = (m[x.caminho] ?? 0) + 1; return m }, {})
   const nomeCampanha = (p: Peca) => todasCampanhas.find((c) => c.id === p.conteudo.campanha)?.nome
 
   return (
@@ -84,8 +86,8 @@ export default function AgenteEditor() {
       {tem.dados && marca.dados && aba === 'banco' && (
         <section className="bloco">
           <h2>Mídias de apoio</h2>
-          <p className="muted pequeno">Fotos, prints e clipes para complementar a edição. O vídeo a editar vai sempre em Vídeos → "Arraste um vídeo para editar".</p>
-          <BancoImagens empresaId={EMPRESA} perfil={perfilMarca} aoSalvar={marca.recarregar} />
+          <p className="muted pequeno">Fotos, prints e clipes para complementar a edição.</p>
+          <BancoImagens empresaId={EMPRESA} perfil={perfilMarca} aoSalvar={marca.recarregar} usos={usos} />
         </section>
       )}
     </div>
