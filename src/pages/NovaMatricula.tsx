@@ -6,6 +6,7 @@ import { brl, dataBR, FORMAS, hojeISO, ORIGENS, somaMeses } from '../lib/format'
 import type { Aluno } from '../lib/types'
 import { Badge, Campo, Erro, InputMoeda, InputNumero } from '../components/ui'
 import { Icone } from '../components/Icone'
+import { CampoCampanha } from './CampoCampanha'
 import { useAuth } from '../auth'
 import { turmaCurta } from './Agenda'
 
@@ -57,6 +58,8 @@ export default function NovaMatricula() {
   const [desconto, setDesconto] = useState<number | null>(null)
   const [condicao, setCondicao] = useState('')
   const [origem, setOrigem] = useState('venda')
+  const [campanhaId, setCampanhaId] = useState('')
+  const [encontroId, setEncontroId] = useState('')
 
   // 3. pagamento
   const [plano, setPlano] = useState<Plano>('parcelado')
@@ -109,8 +112,8 @@ export default function NovaMatricula() {
   useEffect(() => { setContaId(forma ? contaPadrao(forma, contas) : '') }, [forma, contas])
   useEffect(() => { if (!entradaForma && forma) setEntradaForma(forma) }, [forma, entradaForma])
 
-  const encontros = useConsulta<{ titulo: string; data_inicio: string; data_fim: string | null }[]>(
-    () => turmaId ? supabase.from('encontros').select('titulo,data_inicio,data_fim').eq('turma_id', turmaId).eq('cancelado', false).order('data_inicio') : Promise.resolve({ data: [], error: null }), [turmaId])
+  const encontros = useConsulta<{ id: string; titulo: string; data_inicio: string; data_fim: string | null }[]>(
+    () => turmaId ? supabase.from('encontros').select('id,titulo,data_inicio,data_fim').eq('turma_id', turmaId).eq('cancelado', false).order('data_inicio') : Promise.resolve({ data: [], error: null }), [turmaId])
 
   const turmasDoCurso = turmas.filter((t) => (!cursoId || t.curso_id === cursoId) &&
     (((t.status === 'confirmada' || t.status === 'planejada') && (t.vendas_abertas || isAdmin)) || t.id === turmaId))
@@ -197,6 +200,7 @@ export default function NovaMatricula() {
         aluno_id: alunoId, turma_id: turmaId, vendedora_id: vendedoraId || null, data_venda: dataVenda, origem, status: 'reservada',
         valor_tabela: valorTabela, desconto: desconto ?? 0, valor_fechado: total, condicao_comercial: condicao.trim() || null,
         plano_pagamento: total > 0 ? plano : null, observacoes: obs.trim() || null,
+        campanha_id: campanhaId || null, encontro_id: encontroId || null,
       }).select('id').single()
       if (em) throw em
       if (parcelas.length) {
@@ -323,6 +327,7 @@ export default function NovaMatricula() {
                 <select value={origem} onChange={(e) => setOrigem(e.target.value)}>{Object.entries(ORIGENS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select>
               </Campo>
             </div>
+            <CampoCampanha campanhaId={campanhaId} aoMudarCampanha={setCampanhaId} encontros={encontros.dados ?? []} encontroId={encontroId} aoMudarEncontro={setEncontroId} />
           </section>
 
           {/* 3 */}

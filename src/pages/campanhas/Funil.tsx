@@ -1,7 +1,7 @@
 // Funil da campanha: cada passo com quantas pessoas e quanto passou do passo anterior.
 import { pct, type Funil as F } from './dados'
 
-const PASSOS: { k: keyof F; nome: string; dica: string }[] = [
+const PASSOS: { k: Exclude<keyof F, 'fora_hotmart' | 'desfeitas'>; nome: string; dica: string }[] = [
   { k: 'visitantes', nome: 'Entraram na página', dica: 'Pessoas diferentes que abriram a página' },
   { k: 'abriram_escolha', nome: 'Abriram a escolha', dica: 'Clicaram para escolher curso e data' },
   { k: 'escolheram', nome: 'Escolheram a turma', dica: 'Escolheram curso e data' },

@@ -5,7 +5,7 @@ export type Campanha = {
 }
 export const CAMPANHA_NOVA: Campanha = { nome: '', inicio: null, fim: null, formulario_slug: null, etiqueta: null, ofertas: [], meta_vendas: null, meta_receita: null, observacao: null }
 
-export type Funil = { visitantes: number; abriram_escolha: number; escolheram: number; foram_pagamento: number; pix_ou_abandono: number; compraram: number; desfeitas: number }
+export type Funil = { fora_hotmart?: number; visitantes: number; abriram_escolha: number; escolheram: number; foram_pagamento: number; pix_ou_abandono: number; compraram: number; desfeitas: number }
 export type Origem = { origem: string; leads: number; vendas: number; liquido: number }
 export type Vendedora = { nome: string; vendas: number; comissao: number | null }
 export type Pendente = { id: string; nome: string | null; telefone: string | null; origem: string; quando: string; dona: string | null; gerou_pix: boolean }
@@ -13,13 +13,13 @@ export type Vaga = { codigo: string; modulo: string; data_inicio: string; lugare
 export type Venda = { nome: string | null; data: string; valor: number | null; forma: string | null; origem: string; turma: string }
 export type Painel = {
   campanha: { id: string; nome: string; inicio: string | null; fim: string | null; meta_vendas: number | null; meta_receita: number | null }
-  funil: Funil; receita: { bruto: number; liquido: number }; por_origem: Origem[]; por_vendedora: Vendedora[]
+  funil: Funil; receita: { bruto: number; liquido: number; fora_hotmart?: number }; por_origem: Origem[]; por_vendedora: Vendedora[]
   por_dia: { dia: string; vendas: number }[]; pendentes: Pendente[]; vagas: Vaga[]; ultimas: Venda[]
 }
 
 const ORIGENS: Record<string, string> = {
   'whatsapp-grupo': 'Grupos de WhatsApp', whatsapp: 'WhatsApp do time', instagram: 'Instagram', youtube: 'YouTube',
-  email: 'E-mail', facebook: 'Anúncio (Meta/Google)', direto: 'Direto (sem link)', 'hotmart-direto': 'Direto na Hotmart',
+  email: 'E-mail', facebook: 'Anúncio (Meta/Google)', 'pix-direto': 'Pix direto (fora da Hotmart)', direto: 'Direto (sem link)', 'hotmart-direto': 'Direto na Hotmart',
 }
 export function nomeOrigem(codigo: string) {
   if (codigo.startsWith('zap-')) { const n = codigo.slice(4); return `Vendedora: ${n.charAt(0).toUpperCase()}${n.slice(1)}` }

@@ -21,10 +21,10 @@ function Placar({ p }: { p: Painel }) {
   return (
     <section className="kpis">
       <div className="kpi"><div className="kpi-rotulo">Vendas</div><div className="kpi-valor">{p.funil.compraram}{mv ? <span className="muted pequeno"> de {mv}</span> : null}</div>
-        {mv ? <Barra valor={p.funil.compraram} meta={mv} /> : null}<div className="kpi-sub">{mv ? `${pct(p.funil.compraram, mv)}% da meta` : 'sem meta'}{p.funil.desfeitas ? ` · ${p.funil.desfeitas} reembolso(s)` : ''}</div></div>
+        {mv ? <Barra valor={p.funil.compraram} meta={mv} /> : null}<div className="kpi-sub">{mv ? `${pct(p.funil.compraram, mv)}% da meta` : 'sem meta'}{p.funil.fora_hotmart ? ` · ${p.funil.fora_hotmart} por Pix direto` : ''}{p.funil.desfeitas ? ` · ${p.funil.desfeitas} reembolso(s)` : ''}</div></div>
       <div className="kpi"><div className="kpi-rotulo">Faturamento bruto</div><div className="kpi-valor">{brl(p.receita.bruto)}</div>
         {mr ? <Barra valor={p.receita.bruto} meta={mr} /> : null}<div className="kpi-sub">{mr ? `meta ${brl(mr)}` : 'sem meta'}</div></div>
-      <Kpi rotulo="Líquido da Hotmart" valor={brl(p.receita.liquido)} sub="o que a Hotmart repassa" />
+      <Kpi rotulo="Líquido" valor={brl(p.receita.liquido)} sub={p.receita.fora_hotmart ? `Hotmart + ${brl(p.receita.fora_hotmart)} de Pix direto` : 'o que a Hotmart repassa'} />
       <Kpi rotulo="Foram ao pagamento e não compraram" valor={String(p.pendentes.length)} tom={p.pendentes.length ? 'alerta' : undefined} sub="lista embaixo, para o time chamar" />
     </section>
   )
