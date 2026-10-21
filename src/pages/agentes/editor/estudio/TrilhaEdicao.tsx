@@ -18,6 +18,7 @@ export function TrilhaEdicao({ linha, agora }: { linha: LinhaTempo; agora: numbe
       </div></div>
       <div className="es-faixa"><span className="es-faixa-nome">Imagens</span><div className="es-faixa-corpo">
         {linha.coberturas.map((c, k) => <i key={k} className={`es-bloco imagem ${c.layout}`} style={{ left: pos(c.ini), width: larg(c) }} title={`Mídia ${c.midia + 1} · ${c.layout}`} />)}
+        {linha.cenas.map((c, k) => <i key={`c${k}`} className="es-bloco cena" style={{ left: pos(c.ini), width: larg(c) }} title="Cena animada">✦</i>)}
       </div></div>
       <div className="es-faixa"><span className="es-faixa-nome">Texto</span><div className="es-faixa-corpo">
         {linha.textos.map((x, k) => <i key={k} className="es-bloco texto" style={{ left: pos(x.ini), width: larg(x) }} title={x.texto}>{x.texto}</i>)}

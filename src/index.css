@@ -3536,3 +3536,4 @@ a.sala-agente:hover { border-color: var(--ouro); transform: translateY(-2px); }
   .ed-atalhos, .est-casa { grid-template-columns: 1fr; }
   .est-novo { justify-items: start; }
 }
+.es-bloco.cena { background: linear-gradient(90deg, var(--ouro), #f0d9a4); color: #1a1408; text-align: center; font-size: 0.7rem; }

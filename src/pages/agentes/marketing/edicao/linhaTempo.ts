@@ -21,7 +21,10 @@ export type Plano = {
   efeitos_automaticos?: boolean
   // onde está o rosto da pessoa no vídeo bruto (0 a 1, da esquerda e do topo): o zoom e a tela dividida centram nele
   enquadramento?: { x?: number; y?: number }
+  // cenas animadas (motion graphics) por cima da fala: o agente descreve, depois escreve o código de cada uma (cenas.ts)
+  cenas?: CenaPlano[]
 }
+export type CenaPlano = { de: number; ate: number; layout?: Layout; descricao: string; codigo?: string; erro?: string; nota?: number }
 // como o texto grande entra na tela
 export type Animacao = 'pop' | 'deslizar' | 'digitar'
 export type EstiloLegenda = 'palavras' | 'chave' | 'nenhuma'
@@ -34,10 +37,11 @@ export type Sobreposicao = Intervalo & { texto: string; posicao: 'topo' | 'meio'
 export type Rosto = { x: number; y: number }
 export type Zoom = Intervalo & { escala: number }
 export type Cobertura = Intervalo & { midia: number; layout: Layout; movimento: Movimento }
+export type CenaLinha = Intervalo & { n: number; layout: Layout }
 export type Chave = Intervalo & { texto: string }
 export type LinhaTempo = {
   trechos: Intervalo[]; duracao: number; legendas: GrupoLegenda[]; textos: Sobreposicao[]; zooms: Zoom[]; caixaAlta: boolean; posicaoLegenda: 'baixo' | 'meio'
-  estiloLegenda: EstiloLegenda; chaves: Chave[]; coberturas: Cobertura[]; efeitos: Efeito[]; rosto: Rosto
+  estiloLegenda: EstiloLegenda; chaves: Chave[]; coberturas: Cobertura[]; efeitos: Efeito[]; rosto: Rosto; cenas: CenaLinha[]
 }
 
 // folga antes e depois da fala, e a pausa que vira corte dentro de um trecho
@@ -98,7 +102,7 @@ export function montarLinhaTempo(palavras: Palavra[], plano: Plano, duracaoBruto
     legendas.push({ ini: g[0].i, fim: g.at(-1)!.f, palavras: g.map((w) => ({ texto: correcao.get(w.n) ?? w.p, ini: w.i, fim: w.f, destaque: destaques.has(w.n) })) })
   }
   const tempo = (de: number, ate: number) => ({ ini: palavras[Math.max(0, de)]?.i ?? 0, fim: palavras[Math.min(palavras.length - 1, ate)]?.f ?? 0 })
-  const linha: Omit<LinhaTempo, 'efeitos' | 'rosto'> = {
+  const linha: Omit<LinhaTempo, 'efeitos' | 'rosto' | 'cenas'> = {
     trechos,
     duracao: trechos.reduce((s, t) => s + t.fim - t.ini, 0),
     legendas,
@@ -114,7 +118,11 @@ export function montarLinhaTempo(palavras: Palavra[], plano: Plano, duracaoBruto
   }
   const entre = (v: unknown, padrao: number) => (typeof v === 'number' && v >= 0 && v <= 1 ? v : padrao)
   const rosto = { x: entre(plano.enquadramento?.x, 0.5), y: entre(plano.enquadramento?.y, 0.35) }
-  return { ...linha, efeitos: montarEfeitos(palavras, plano, trechos, linha), rosto }
+  // cena sem código (ainda escrevendo, ou deu erro) não entra; no mínimo 1,5 s na tela
+  const cenas = (plano.cenas ?? []).map((c, n) => ({ c, n })).filter(({ c }) => c.codigo && !c.erro)
+    .map(({ c, n }) => { const t = tempo(c.de, c.ate); return { ini: t.ini, fim: Math.max(t.fim, t.ini + 1.5), n, layout: c.layout ?? 'cheia' } })
+  const comCenas = { ...linha, coberturas: [...linha.coberturas, ...cenas.map((c) => ({ ini: c.ini, fim: c.fim, midia: -1, layout: c.layout, movimento: 'parado' as Movimento }))] }
+  return { ...linha, efeitos: montarEfeitos(palavras, plano, trechos, comCenas), rosto, cenas }
 }
 
 // onde o vídeo bruto deve estar: dentro de um trecho segue; fora, pula para o próximo; depois do último, acabou (null)

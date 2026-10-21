@@ -50,7 +50,7 @@ function Previa({ e, peca, aoTempo }: { e: Estudio; peca: Peca; aoTempo: (t: num
     <div className="es-vazio"><Icone nome="video" tam={30} /><p>Para ver a prévia, escolha neste computador o mesmo vídeo bruto{e.edicao.arquivo ? ` (${e.edicao.arquivo.nome})` : ''}.</p>
       <button type="button" className="btn btn-ouro btn-mini" onClick={() => e.setPasso('video')}>Escolher o vídeo</button></div>
   )
-  return <PreviaVideo url={e.url} linha={e.linha} vertical={peca.tipo !== 'video'} apoio={e.apoio.apoio} musica={e.apoio.musica} cor={e.cor} aoTempo={aoTempo} />
+  return <PreviaVideo url={e.url} linha={e.linha} vertical={peca.tipo !== 'video'} apoio={e.apoio.apoio} musica={e.apoio.musica} cor={e.cor} aoTempo={aoTempo} codigos={e.codigos} />
 }
 
 function Barra({ e, aoConcluir }: { e: Estudio; aoConcluir: () => void }) {

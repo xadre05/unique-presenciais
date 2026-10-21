@@ -4,7 +4,7 @@ import type { Cobertura } from './linhaTempo'
 
 // caminho = mídia do banco de imagens da marca (guardada no sistema; abre sozinha, sem escolher o arquivo de novo)
 export type MidiaApoio = { nome: string; tamanho: number; tipo: 'imagem' | 'video'; descricao?: string; caminho?: string }
-export type MidiaPronta = { tipo: 'imagem' | 'video'; el: HTMLImageElement | HTMLVideoElement; largura: number; altura: number }
+export type MidiaPronta = { tipo: 'imagem' | 'video'; el: HTMLImageElement | HTMLVideoElement | ImageBitmap; largura: number; altura: number }
 
 export const tipoDoArquivo = (f: File): 'imagem' | 'video' | null => (f.type.startsWith('image/') ? 'imagem' : f.type.startsWith('video/') ? 'video' : null)
 export const mesmaMidia = (m: MidiaApoio, f: File) => m.nome === f.name && m.tamanho === f.size
@@ -33,7 +33,7 @@ export async function prepararMidias(arquivos: (File | undefined)[]) {
 }
 
 export function liberarMidias(prontas: (MidiaPronta | undefined)[]) {
-  for (const m of prontas) { if (!m) continue; if (m.tipo === 'video') (m.el as HTMLVideoElement).pause(); URL.revokeObjectURL(m.el.src) }
+  for (const m of prontas) { if (!m || m.el instanceof ImageBitmap) continue; if (m.tipo === 'video') (m.el as HTMLVideoElement).pause(); URL.revokeObjectURL(m.el.src) }
 }
 
 // clipe de apoio toca só enquanto cobre a fala, sempre do começo

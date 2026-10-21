@@ -1,7 +1,8 @@
 // Desenho de um quadro do vídeo editado num canvas. A prévia e a montagem usam exatamente esta função, então o que
 // aparece na prévia é o que sai no arquivo: a pessoa (com zoom centrado no rosto), a mídia de apoio (tela cheia, tela
 // dividida ou cartão por cima da pessoa, com entrada animada), o texto grande e a legenda (legenda.ts).
-import { ativo, type Cobertura, type LinhaTempo, type Rosto } from './linhaTempo'
+import { ativo, tempoFinal, type Cobertura, type LinhaTempo, type Rosto } from './linhaTempo'
+import type { Cenas } from './cenas'
 import type { MidiaPronta } from './midias'
 import { caixaArredondada, desenharChave, desenharLegenda, desenharTexto } from './legenda'
 
@@ -64,14 +65,17 @@ function desenharCartao(ctx: CanvasRenderingContext2D, m: MidiaPronta, c: Cobert
 }
 
 // cor = filtro aplicado só à imagem da pessoa (ex.: correção de vídeo HDR de celular, que no canvas sai estourado)
-export function desenharQuadro(ctx: CanvasRenderingContext2D, v: HTMLVideoElement, linha: LinhaTempo, midias: (MidiaPronta | undefined)[], cor?: string) {
+// cenas = o desenhista das cenas animadas (cenas.ts); a cena ativa ganha da mídia de apoio no mesmo momento
+export function desenharQuadro(ctx: CanvasRenderingContext2D, v: HTMLVideoElement, linha: LinhaTempo, midias: (MidiaPronta | undefined)[], cor?: string, cenas?: Cenas) {
   const comCor = (fazer: () => void) => { ctx.filter = cor ?? 'none'; fazer(); ctx.filter = 'none' }
   const t = v.currentTime
   const { width: L, height: A } = ctx.canvas
   ctx.fillStyle = '#000'; ctx.fillRect(0, 0, L, A)
   const zoom = ativo(linha.zooms, t)?.escala ?? 1
-  const cob = ativo(linha.coberturas, t)
-  const m = cob ? midias[cob.midia] : undefined
+  const cena = cenas ? ativo(linha.cenas, t) : undefined
+  const quadroCena = cena && cenas ? cenas.quadro(cena.n, tempoFinal(t, linha.trechos) - tempoFinal(cena.ini, linha.trechos), tempoFinal(cena.fim, linha.trechos) - tempoFinal(cena.ini, linha.trechos)) : null
+  const cob: Cobertura | undefined = cena && quadroCena ? { ini: cena.ini, fim: cena.fim, midia: -1, layout: cena.layout, movimento: 'parado' } : ativo(linha.coberturas, t)
+  const m: MidiaPronta | undefined = cena && quadroCena ? { tipo: 'imagem', el: quadroCena, largura: quadroCena.width, altura: quadroCena.height } : cob ? midias[cob.midia] : undefined
   const tela = { x: 0, y: 0, w: L, h: A }
   const layout = m && cob ? cob.layout : null
   if (layout === 'cheia') desenharMidia(ctx, m!, cob!, t, tela)
@@ -82,6 +86,8 @@ export function desenharQuadro(ctx: CanvasRenderingContext2D, v: HTMLVideoElemen
     comCor(() => pessoa(ctx, v, tela, zoom, linha.rosto))
     if (layout === 'cartao') desenharCartao(ctx, m!, cob!, t)
   }
+  // cena animada em tela cheia: ela já traz os textos; legenda e texto grande saem enquanto ela está na tela
+  if (cena && quadroCena && layout === 'cheia') return
   const texto = ativo(linha.textos, t)
   if (texto) desenharTexto(ctx, texto.texto, texto.posicao, texto.animacao, t - texto.ini)
   const dividida = layout === 'dividida'

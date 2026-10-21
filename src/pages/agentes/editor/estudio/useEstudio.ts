@@ -10,6 +10,7 @@ import { edicaoDa, guardarEdicao, mesmoArquivo, pedirEdicao, transcrever, useTem
 import { CORRECAO_HDR, ehHdr, quadrosDoBruto } from '../../marketing/edicao/midias'
 import { montarLinhaTempo } from '../../marketing/edicao/linhaTempo'
 import { montarVideo } from '../../marketing/edicao/montagem'
+import { escreverCenas } from '../../marketing/edicao/escreverCenas'
 import { usarApoio } from '../../marketing/edicao/usarApoio'
 import { pegarArquivo } from '../arquivoPendente'
 import { usePerfilEditor } from '../dados'
@@ -55,6 +56,7 @@ export function useEstudio(peca: Peca, aoMudar: () => void) {
   const duracaoBruto = duracao || edicao.arquivo?.duracao || 0
   const linha = useMemo(() => (receita && edicao.palavras?.length ? montarLinhaTempo(edicao.palavras, receita.plano, duracaoBruto, apoio.midias.length) : null), [receita, edicao.palavras, duracaoBruto, apoio.midias.length])
 
+  const codigos = useMemo(() => (receita?.plano.cenas ?? []).map((c) => c.codigo), [receita])
   const escolher = (f: File) => {
     setErro(null); setArquivo(f); setUrl(URL.createObjectURL(f)); setFinal(null); setHdr(false); void ehHdr(f).then(setHdr)
     // capa do cartão na entrada do Editor (uma foto pequena do bruto)
@@ -76,13 +78,17 @@ export function useEstudio(peca: Peca, aoMudar: () => void) {
     if (!palavras.length) throw new Error('Não encontrei fala neste vídeo.')
     await guardarEdicao(peca.id, (e) => ({ ...e, arquivo: { nome: arquivo.name, tamanho: arquivo.size, duracao: d }, palavras, receitas: [] }))
     setOcupado('O agente está editando…')
-    const { plano } = await pedirEdicao(peca.id, palavras, d, await apoio.paraAgente(), { modeloRef, quadros: await quadrosDoBruto(arquivo), referencia: edicao.referencia })
+    const { plano: rascunho } = await pedirEdicao(peca.id, palavras, d, await apoio.paraAgente(), { modeloRef, quadros: await quadrosDoBruto(arquivo), referencia: edicao.referencia })
+    if (rascunho.cenas?.length) setOcupado(`Animando ${rascunho.cenas.length} cena(s)…`)
+    const plano = await escreverCenas(peca.id, rascunho, palavras, peca.tipo !== 'video')
     await guardarEdicao(peca.id, (e) => comReceita(e, { plano, em: new Date().toISOString() }))
     setPasso(null); setFinal(null)
   })
   const ajustar = (pedido: string, regra: boolean) => executar('O agente está ajustando…', async () => {
     if (!edicao.palavras || !pedido.trim()) return
-    const { plano } = await pedirEdicao(peca.id, edicao.palavras, duracaoBruto, await apoio.paraAgente(), { pedido: pedido.trim(), lembrar: regra ? pedido.trim() : '', anterior: receita?.plano, modeloRef, quadros: arquivo ? await quadrosDoBruto(arquivo) : undefined, referencia: edicao.referencia })
+    const { plano: rascunho } = await pedirEdicao(peca.id, edicao.palavras, duracaoBruto, await apoio.paraAgente(), { pedido: pedido.trim(), lembrar: regra ? pedido.trim() : '', anterior: receita?.plano, modeloRef, quadros: arquivo ? await quadrosDoBruto(arquivo) : undefined, referencia: edicao.referencia })
+    if (rascunho.cenas?.some((c) => !receita?.plano.cenas?.some((x) => x.descricao.trim() === c.descricao.trim()))) setOcupado('Animando as cenas…')
+    const plano = await escreverCenas(peca.id, rascunho, edicao.palavras, peca.tipo !== 'video', receita?.plano)
     await guardarEdicao(peca.id, (e) => comReceita(e, { plano, pedido: pedido.trim(), em: new Date().toISOString() }))
     setFinal(null)
   })
@@ -90,7 +96,7 @@ export function useEstudio(peca: Peca, aoMudar: () => void) {
     if (!arquivo || !linha) return
     setErro(null); setFinal(null); setProgresso(0)
     try {
-      const blob = await montarVideo(arquivo, linha, peca.tipo !== 'video', setProgresso, apoio.apoio, apoio.musica, cor)
+      const blob = await montarVideo(arquivo, linha, peca.tipo !== 'video', setProgresso, apoio.apoio, apoio.musica, cor, codigos)
       const ext = blob.type.includes('mp4') ? 'mp4' : 'webm'
       const nome = `${peca.titulo.replace(/[^\p{L}\p{N} -]/gu, '').trim().slice(0, 60) || 'video'} - V${versao + 1}.${ext}`
       setFinal({ url: URL.createObjectURL(blob), nome, arquivo: new File([blob], nome, { type: blob.type }) })
@@ -100,7 +106,7 @@ export function useEstudio(peca: Peca, aoMudar: () => void) {
   return {
     edicao, temEditor: temEditor.dados, apoio, arquivo, url, confere, escolher, hdr, corrigirHdr, setCorrigirHdr, cor,
     modeloRef, escolherEstilo, receitas, versao, setVersao, receita, linha, duracaoBruto,
-    passo, setPasso, ocupado, erro, progresso, final, editar, ajustar, gerarFinal,
+    passo, setPasso, ocupado, erro, progresso, final, editar, ajustar, gerarFinal, codigos,
   }
 }
 export type Estudio = ReturnType<typeof useEstudio>

@@ -97,6 +97,9 @@ const FERRAMENTA = {
       efeitos_automaticos: { type: 'boolean', description: 'true (padrão): woosh em cada zoom e imagem em tela cheia, clique em cada texto na tela, pop na tela dividida. false só se a equipe pedir vídeo sem efeitos.' },
       enquadramento: { type: 'object', description: 'Olhando os quadros do vídeo bruto: onde fica o centro do rosto da pessoa, de 0 a 1 (x da esquerda, y do topo). O zoom e a tela dividida centram nele.',
         properties: { x: { type: 'number' }, y: { type: 'number' } } },
+      cenas: { type: 'array', description: 'Cenas animadas (motion graphics) por cima da fala, de 1 a 3 num reels: nos momentos em que um gráfico explica melhor que o rosto (lista de itens, número ou resultado dito, passo a passo, comparação, data de turma, oferta com o preço falado). Cada uma de 2 a 6 segundos. Um designer escreve a animação a partir da sua descrição.',
+        items: { type: 'object', properties: { de: { type: 'integer', description: 'palavra em que a cena entra' }, ate: { type: 'integer', description: 'palavra em que sai' }, layout: { type: 'string', enum: ['cheia', 'dividida', 'cartao'] },
+          descricao: { type: 'string', description: 'O que a cena mostra e como anima, com os TEXTOS EXATOS (só o que a pessoa falou). Ex.: "Lista de 3 itens entrando um a um: 1. Anatomia aplicada 2. Prática em paciente real 3. Mentoria pós-curso; título no topo: O que você leva"' } }, required: ['de', 'ate', 'descricao'] } },
       roteiro_identificado: { type: 'string', description: 'Só quando vieram os roteiros da campanha: o título ou a primeira frase do roteiro que foi gravado, ou "nenhum".' },
       faltou: { type: 'string', description: 'Se alguma cena do roteiro não foi gravada ou ficou ruim, diga qual. Senão, vazio.' },
       checagem: { type: 'string', description: 'Conferência do padrão de qualidade, item por item, em uma linha cada: gancho, legenda com destaques, textos na tela, quanto do vídeo tem imagem por cima (%), zoom, variedade (cheia/dividida/cartão), efeitos, chamada final. Diga o que não deu para cumprir e por quê (ex.: faltam imagens da plataforma).' },
@@ -113,6 +116,7 @@ const QUALIDADE = [
   '- textos na tela: no mínimo 3 num reels de 30 a 60 s (gancho, número ou prova, oferta ou chamada), variando a animação',
   '- com mídias de apoio enviadas: cubra no mínimo 30% do vídeo, alternando cheia, dividida e cartao; nunca a mesma mídia duas vezes seguidas',
   '- movimento: um zoom a cada 4 a 6 segundos nos trechos de rosto, intensidade 1.08 a 1.18',
+  '- cenas animadas: 1 a 3 num reels (2 a 6 s cada), onde um gráfico explica melhor que o rosto; não use em vídeo só de relacionamento curto se não houver lista, número ou passo a passo falado',
   '- fim: a chamada para ação com texto na tela',
 ].join('\n')
 
@@ -235,7 +239,7 @@ async function editar(db: SupabaseClient, corpo: Record<string, unknown>) {
     c.roteiro?.length ? `ROTEIRO USADO NA GRAVAÇÃO:\n${c.roteiro.map((x, i) => `${i + 1}. ${x.replace(/\n/g, ' — ')}`).join('\n')}`
       : roteirosCampanha ? `ROTEIROS DA CAMPANHA (a pessoa gravou UM deles, talvez com pequenas mudanças). Descubra qual pela transcrição, siga esse roteiro (ordem, ganchos e textos na tela) e diga qual foi em "roteiro_identificado". Se nenhum bater, edite pelo que foi falado:\n${roteirosCampanha}`
       : 'Sem roteiro: edite pelo que foi falado.',
-    corpo.anterior ? `EDIÇÃO ANTERIOR (a equipe viu e pediu ajuste: parta dela e mude só o que foi pedido):\n${JSON.stringify(corpo.anterior)}` : '',
+    corpo.anterior ? `EDIÇÃO ANTERIOR (a equipe viu e pediu ajuste: parta dela e mude só o que foi pedido; mantenha a descricao das cenas que não mudam, igual, palavra por palavra):\n${JSON.stringify(corpo.anterior, (k, v) => (k === 'codigo' || k === 'erro' ? undefined : v))}` : '',
     corpo.pedido ? `PEDIDO DA EQUIPE PARA ESTA EDIÇÃO: ${String(corpo.pedido)}` : '',
     midias.length ? `MÍDIAS DE APOIO (as imagens acima, na mesma ordem):\n${midias.map((m) => `${m.n} · ${m.tipo === 'video' ? 'clipe' : 'imagem'}${m.descricao ? ` · ${m.descricao}` : ''}`).join('\n')}` : 'Sem mídias de apoio: não use "coberturas".',
     c.briefing?.finalidade === 'anuncio' ? 'ESTA PEÇA É UM CRIATIVO DE ANÚNCIO PAGO: ritmo rápido, gancho fortíssimo, mais coberturas.' : '',

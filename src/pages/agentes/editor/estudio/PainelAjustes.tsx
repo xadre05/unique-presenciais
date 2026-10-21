@@ -15,6 +15,9 @@ function Qualidade({ e }: { e: Estudio }) {
       <h4>Qualidade da prévia</h4>
       <p className="es-q"><Icone nome="check" tam={14} /> Áudio com limitador (sem estouro)</p>
       <p className="es-q">{e.hdr ? <><Icone nome="alerta" tam={14} /> Vídeo em HDR: <label><input type="checkbox" checked={e.corrigirHdr} onChange={(x) => e.setCorrigirHdr(x.target.checked)} /> corrigir brilho e cor</label></> : <><Icone nome="check" tam={14} /> Imagem sem ajuste necessário</>}</p>
+      {(e.receita?.plano.cenas ?? []).map((c, k) => (
+        <p key={k} className={`es-q${c.erro ? ' alerta' : ''}`} title={c.descricao}><Icone nome={c.erro ? 'alerta' : 'check'} tam={14} /> Cena animada {k + 1}: {c.erro ? `não entrou (${c.erro.slice(0, 80)})` : c.nota ? `nota ${c.nota} na revisão` : 'pronta'}</p>
+      ))}
       {linhas.length > 0 && (
         <details>
           <summary className={pontos ? 'es-q alerta' : 'es-q'}><Icone nome={pontos ? 'alerta' : 'check'} tam={14} /> {pontos ? `${pontos} ponto(s) para revisar` : 'Padrão de edição conferido'}</summary>

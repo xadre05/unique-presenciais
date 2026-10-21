@@ -7,6 +7,7 @@ import { desenharQuadro } from './desenho'
 import { liberarMidias, prepararMidias, sincronizarClipes, type MidiaPronta } from './midias'
 import type { Musica } from './montagem'
 import { TocadorEfeitos } from './efeitos'
+import { Cenas } from './cenas'
 
 const mmss = (s: number) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`
 const TAM_PREVIA = { vertical: [540, 960], horizontal: [960, 540] } as const
@@ -32,13 +33,21 @@ function usarMusica(musica?: Musica) {
 }
 
 // aoTempo: avisa o tempo do vídeo editado (para a linha do tempo do Estúdio acompanhar)
-export function PreviaVideo({ url, linha, vertical, apoio = [], musica, cor, aoTempo }: { url: string; linha: LinhaTempo; vertical: boolean; apoio?: (File | undefined)[]; musica?: Musica; cor?: string; aoTempo?: (t: number) => void }) {
+// codigos = o código das cenas animadas da versão (na ordem de plano.cenas)
+export function PreviaVideo({ url, linha, vertical, apoio = [], musica, cor, aoTempo, codigos = [] }: { url: string; linha: LinhaTempo; vertical: boolean; apoio?: (File | undefined)[]; musica?: Musica; cor?: string; aoTempo?: (t: number) => void; codigos?: (string | undefined)[] }) {
   const video = useRef<HTMLVideoElement>(null)
   const tela = useRef<HTMLCanvasElement>(null)
   const som = useRef<HTMLAudioElement>(null)
   const [t, setT] = useState(0)
   const [tocando, setTocando] = useState(false)
   const midias = usarMidias(apoio)
+  const cenas = useRef<Cenas | null>(null)
+  const chaveCenas = codigos.map((c) => c?.length ?? 0).join(',') + codigos.join('').length
+  useEffect(() => {
+    const [l, a] = TAM_PREVIA[vertical ? 'vertical' : 'horizontal']
+    cenas.current = codigos.some(Boolean) ? new Cenas(codigos, l, a) : null
+    return () => { cenas.current?.fechar(); cenas.current = null }
+  }, [chaveCenas, vertical]) // eslint-disable-line react-hooks/exhaustive-deps
   const urlMusica = usarMusica(musica)
   // os efeitos sonoros tocam por um AudioContext criado no primeiro "Tocar" (o navegador exige um clique)
   const audio = useRef<AudioContext | null>(null)
@@ -57,7 +66,7 @@ export function PreviaVideo({ url, linha, vertical, apoio = [], musica, cor, aoT
         else efeitos.current?.passo(v.currentTime)
         setT(v.currentTime)
       }
-      if (v && ctx && v.readyState >= 2) { sincronizarClipes(midias, v.paused ? undefined : ativo(linha.coberturas, v.currentTime)); desenharQuadro(ctx, v, linha, midias, cor) }
+      if (v && ctx && v.readyState >= 2) { sincronizarClipes(midias, v.paused ? undefined : ativo(linha.coberturas, v.currentTime)); desenharQuadro(ctx, v, linha, midias, cor, cenas.current ?? undefined) }
       quadro = requestAnimationFrame(passo)
     }
     quadro = requestAnimationFrame(passo)
