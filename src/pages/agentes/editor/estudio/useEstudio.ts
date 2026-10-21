@@ -57,10 +57,11 @@ export function useEstudio(peca: Peca, aoMudar: () => void) {
   const linha = useMemo(() => (receita && edicao.palavras?.length ? montarLinhaTempo(edicao.palavras, receita.plano, duracaoBruto, apoio.midias.length) : null), [receita, edicao.palavras, duracaoBruto, apoio.midias.length])
 
   const codigos = useMemo(() => (receita?.plano.cenas ?? []).map((c) => c.codigo), [receita])
+  const corte = (peca.conteudo as { corte?: { de: number; ate: number } }).corte
   const escolher = (f: File) => {
     setErro(null); setArquivo(f); setUrl(URL.createObjectURL(f)); setFinal(null); setHdr(false); void ehHdr(f).then(setHdr)
     // capa do cartão na entrada do Editor (uma foto pequena do bruto)
-    if (!edicao.capa) void quadrosDoBruto(f, 1).then((q) => q[0] && guardarEdicao(peca.id, (x) => ({ ...x, capa: q[0].miniatura })))
+    if (!edicao.capa) void quadrosDoBruto(f, 1, corte?.de, corte?.ate).then((q) => q[0] && guardarEdicao(peca.id, (x) => ({ ...x, capa: q[0].miniatura })))
   }
   // o vídeo escolhido antes (na entrada do Editor ou antes de trocar de tela) volta escolhido
   useEffect(() => { const f = pegarArquivo(peca.id); if (f) escolher(f) }, [peca.id]) // eslint-disable-line react-hooks/exhaustive-deps
@@ -72,13 +73,18 @@ export function useEstudio(peca: Peca, aoMudar: () => void) {
   const escolherEstilo = async (id: string) => { setEscolhido(id); await guardarEdicao(peca.id, (e) => ({ ...e, estilo_ref: id })); aoMudar() }
   const editar = () => executar('Lendo o áudio do vídeo…', async () => {
     if (!arquivo) return
-    const { wav, duracao: d } = await audioDoVideo(arquivo)
-    setDuracao(d); setOcupado('Transcrevendo a fala…')
-    const { palavras } = await transcrever(peca.id, wav)
-    if (!palavras.length) throw new Error('Não encontrei fala neste vídeo.')
-    await guardarEdicao(peca.id, (e) => ({ ...e, arquivo: { nome: arquivo.name, tamanho: arquivo.size, duracao: d }, palavras, receitas: [] }))
+    // corte de vídeo longo: a fala do trecho já veio transcrita (não lê o áudio de novo)
+    let palavras = corte && edicao.palavras?.length && confere ? edicao.palavras : null
+    let d = corte ? corte.ate - corte.de : 0
+    if (!palavras) {
+      const audio = await audioDoVideo(arquivo)
+      d = audio.duracao; setDuracao(d); setOcupado('Transcrevendo a fala…')
+      palavras = (await transcrever(peca.id, audio.wav)).palavras
+      if (!palavras.length) throw new Error('Não encontrei fala neste vídeo.')
+      await guardarEdicao(peca.id, (e) => ({ ...e, arquivo: { nome: arquivo.name, tamanho: arquivo.size, duracao: d }, palavras: palavras!, receitas: [] }))
+    }
     setOcupado('O agente está editando…')
-    const { plano: rascunho } = await pedirEdicao(peca.id, palavras, d, await apoio.paraAgente(), { modeloRef, quadros: await quadrosDoBruto(arquivo), referencia: edicao.referencia })
+    const { plano: rascunho } = await pedirEdicao(peca.id, palavras, d, await apoio.paraAgente(), { modeloRef, quadros: await quadrosDoBruto(arquivo, 4, corte?.de, corte?.ate), referencia: edicao.referencia })
     if (rascunho.cenas?.length) setOcupado(`Animando ${rascunho.cenas.length} cena(s)…`)
     const plano = await escreverCenas(peca.id, rascunho, palavras, peca.tipo !== 'video')
     await guardarEdicao(peca.id, (e) => comReceita(e, { plano, em: new Date().toISOString() }))
@@ -86,7 +92,7 @@ export function useEstudio(peca: Peca, aoMudar: () => void) {
   })
   const ajustar = (pedido: string, regra: boolean) => executar('O agente está ajustando…', async () => {
     if (!edicao.palavras || !pedido.trim()) return
-    const { plano: rascunho } = await pedirEdicao(peca.id, edicao.palavras, duracaoBruto, await apoio.paraAgente(), { pedido: pedido.trim(), lembrar: regra ? pedido.trim() : '', anterior: receita?.plano, modeloRef, quadros: arquivo ? await quadrosDoBruto(arquivo) : undefined, referencia: edicao.referencia })
+    const { plano: rascunho } = await pedirEdicao(peca.id, edicao.palavras, duracaoBruto, await apoio.paraAgente(), { pedido: pedido.trim(), lembrar: regra ? pedido.trim() : '', anterior: receita?.plano, modeloRef, quadros: arquivo ? await quadrosDoBruto(arquivo, 4, corte?.de, corte?.ate) : undefined, referencia: edicao.referencia })
     if (rascunho.cenas?.some((c) => !receita?.plano.cenas?.some((x) => x.descricao.trim() === c.descricao.trim()))) setOcupado('Animando as cenas…')
     const plano = await escreverCenas(peca.id, rascunho, edicao.palavras, peca.tipo !== 'video', receita?.plano)
     await guardarEdicao(peca.id, (e) => comReceita(e, { plano, pedido: pedido.trim(), em: new Date().toISOString() }))

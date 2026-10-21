@@ -66,7 +66,8 @@ export async function miniatura(f: File): Promise<string> {
 export const duracaoDe = (m: MidiaPronta | undefined) => (m?.tipo === 'video' ? (m.el as HTMLVideoElement).duration : undefined)
 
 // quadros do vídeo bruto (pequenos) para o agente ver o enquadramento: onde está o rosto, o cenário, se a pessoa se mexe
-export async function quadrosDoBruto(f: File, n = 4): Promise<{ t: number; miniatura: string }[]> {
+// de/ate: só um trecho do vídeo (o corte de um vídeo longo)
+export async function quadrosDoBruto(f: File, n = 4, de?: number, ate?: number): Promise<{ t: number; miniatura: string }[]> {
   const url = URL.createObjectURL(f)
   const v = Object.assign(document.createElement('video'), { src: url, muted: true, playsInline: true, preload: 'auto' })
   try {
@@ -76,7 +77,8 @@ export async function quadrosDoBruto(f: File, n = 4): Promise<{ t: number; minia
     const ctx = c.getContext('2d')!
     const lista: { t: number; miniatura: string }[] = []
     for (let k = 0; k < n; k++) {
-      const t = Math.max(0.5, (v.duration * (k + 0.5)) / n)
+      const ini = de ?? 0, fim = ate ?? v.duration
+      const t = Math.max(0.5, ini + ((fim - ini) * (k + 0.5)) / n)
       v.currentTime = t
       await esperar(v, 'seeked')
       ctx.drawImage(v, 0, 0, c.width, c.height)

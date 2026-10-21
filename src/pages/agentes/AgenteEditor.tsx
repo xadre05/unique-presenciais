@@ -56,7 +56,9 @@ export default function AgenteEditor() {
         <button key={x.id} type="button" className={aba === x.id ? 'ativa' : ''} onClick={() => trocar(x.id)}><Icone nome={x.icone} tam={17} /> {x.nome}{x.id === 'banco' ? ` · ${bancoDe(perfilMarca).length}` : ''}</button>))}</nav>}
 
       {/* fica montado ao trocar de aba: o vídeo e o roteiro escolhidos não somem */}
-      {tem.dados && <section className="bloco ed-entrada" hidden={aba !== 'videos'}><NovoVideo campanhas={campanhas} /></section>}
+      {tem.dados && <section className="bloco ed-entrada" hidden={aba !== 'videos'}><NovoVideo campanhas={campanhas} />
+        <Link to="/agentes/editor/cortes" className="ed-longo"><Icone nome="live" tam={20} /><span><b>Tem um vídeo longo?</b><small className="muted">Aula, live ou podcast: o agente acha os melhores trechos e transforma em vários reels.</small></span><Icone nome="seta_dir" tam={16} /></Link>
+      </section>}
       {tem.dados && aba === 'videos' && (
         <section className="bloco">
           <div className="ed-lista-topo">
