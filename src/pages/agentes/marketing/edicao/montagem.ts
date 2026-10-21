@@ -4,6 +4,7 @@
 import { ativo, type LinhaTempo } from './linhaTempo'
 import { desenharQuadro } from './desenho'
 import { liberarMidias, prepararMidias, sincronizarClipes } from './midias'
+import { TocadorEfeitos } from './efeitos'
 
 // 4,5 Mbps: qualidade de Reels (o Instagram recomprime) e arquivo pequeno (~35 MB por minuto) para caber no envio
 const TAMANHO = { vertical: [1080, 1920], horizontal: [1920, 1080] } as const
@@ -51,11 +52,13 @@ export async function montarVideo(arquivo: File, linha: LinhaTempo, vertical: bo
   gravador.ondataavailable = (e) => { if (e.data.size) partes.push(e.data) }
   let feito = 0
   let fundo: AudioBufferSourceNode | undefined
-  const quadro = () => { sincronizarClipes(midias, ativo(linha.coberturas, v.currentTime)); desenharQuadro(ctx, v, linha, midias) }
+  const efeitos = new TocadorEfeitos(audio, saida, linha.efeitos)
+  const quadro = () => { sincronizarClipes(midias, ativo(linha.coberturas, v.currentTime)); desenharQuadro(ctx, v, linha, midias); efeitos.passo(v.currentTime) }
   try {
     for (const [k, trecho] of linha.trechos.entries()) {
       v.currentTime = trecho.ini
       await esperar(v, 'seeked')
+      efeitos.posicionar(trecho.ini)
       quadro()
       if (k === 0) { gravador.start(1000); if (musica) fundo = await tocarMusica(audio, saida, musica, linha.duracao) } else gravador.resume()
       await v.play()

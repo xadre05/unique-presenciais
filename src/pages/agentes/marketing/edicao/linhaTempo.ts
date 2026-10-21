@@ -1,3 +1,5 @@
+import { DURACAO_RISER, SONS, type Efeito, type Som } from './efeitos'
+
 // Receita da edição → linha do tempo. A receita do agente aponta palavras (pelo número); aqui elas viram tempos do
 // vídeo bruto: trechos que ficam, legenda em grupos, textos na tela e zooms. A prévia e a montagem usam o mesmo cálculo.
 export type Palavra = { p: string; i: number; f: number }
@@ -13,6 +15,10 @@ export type Plano = {
   coberturas?: { de: number; ate: number; midia: number; layout?: Layout; movimento?: Movimento }[]
   // legenda de palavra-chave: frases curtas escolhidas pelo agente (estilo "chave")
   chaves?: { de: number; ate: number; texto: string }[]
+  // efeitos sonoros marcados pelo agente (hit, riser, ding…) na palavra; os automáticos (woosh no zoom, clique no
+  // texto, pop/woosh na imagem) entram sozinhos, a não ser que efeitos_automaticos seja false
+  efeitos?: { palavra: number; som: Som }[]
+  efeitos_automaticos?: boolean
 }
 export type EstiloLegenda = 'palavras' | 'chave' | 'nenhuma'
 export type Layout = 'cheia' | 'dividida'
@@ -25,7 +31,7 @@ export type Cobertura = Intervalo & { midia: number; layout: Layout; movimento: 
 export type Chave = Intervalo & { texto: string }
 export type LinhaTempo = {
   trechos: Intervalo[]; duracao: number; legendas: GrupoLegenda[]; textos: Sobreposicao[]; zooms: Zoom[]; caixaAlta: boolean; posicaoLegenda: 'baixo' | 'meio'
-  estiloLegenda: EstiloLegenda; chaves: Chave[]; coberturas: Cobertura[]
+  estiloLegenda: EstiloLegenda; chaves: Chave[]; coberturas: Cobertura[]; efeitos: Efeito[]
 }
 
 // folga antes e depois da fala, e a pausa que vira corte dentro de um trecho
@@ -55,6 +61,25 @@ function trechosEmTempo(palavras: Palavra[], plano: Plano, duracaoBruto: number)
 
 const dentro = (t: number, lista: Intervalo[]) => lista.some((x) => t >= x.ini && t < x.fim)
 
+// efeitos que caem dentro do que fica no vídeo, sem dois sons colados (o marcado pelo agente ganha do automático)
+function montarEfeitos(palavras: Palavra[], plano: Plano, trechos: Intervalo[], l: Pick<LinhaTempo, 'zooms' | 'textos' | 'coberturas'>): Efeito[] {
+  const marcados = (plano.efeitos ?? []).filter((e) => SONS.includes(e.som) && palavras[e.palavra])
+    .map((e) => ({ t: e.som === 'hit' || e.som === 'ding' ? palavras[e.palavra].f : palavras[e.palavra].i, som: e.som }))
+  const automaticos = plano.efeitos_automaticos === false ? [] : [
+    ...l.zooms.map((z) => ({ t: z.ini, som: 'woosh' as Som })),
+    ...l.textos.map((x) => ({ t: x.ini, som: 'clique' as Som })),
+    ...l.coberturas.map((c) => ({ t: c.ini, som: (c.layout === 'cheia' ? 'woosh' : 'pop') as Som })),
+  ]
+  const lista: { t: number; som: Som }[] = []
+  for (const e of [...marcados, ...automaticos]) {
+    if (!dentro(e.t, trechos) && !dentro(e.t + 0.05, trechos)) continue
+    if (lista.some((x) => Math.abs(x.t - e.t) < 0.3)) continue
+    lista.push(e)
+  }
+  // o riser começa 1,4 s antes no vídeo FINAL (pode atravessar um corte)
+  return lista.sort((a, b) => a.t - b.t).map((e) => ({ ...e, gatilho: e.som === 'riser' ? tempoBruto(Math.max(0, tempoFinal(e.t, trechos) - DURACAO_RISER), trechos) : e.t }))
+}
+
 export function montarLinhaTempo(palavras: Palavra[], plano: Plano, duracaoBruto: number, totalMidias = 0): LinhaTempo {
   const trechos = trechosEmTempo(palavras, plano, duracaoBruto)
   const correcao = new Map((plano.correcoes ?? []).map((c) => [c.palavra, c.texto]))
@@ -67,7 +92,7 @@ export function montarLinhaTempo(palavras: Palavra[], plano: Plano, duracaoBruto
     legendas.push({ ini: g[0].i, fim: g.at(-1)!.f, palavras: g.map((w) => ({ texto: correcao.get(w.n) ?? w.p, ini: w.i, fim: w.f, destaque: destaques.has(w.n) })) })
   }
   const tempo = (de: number, ate: number) => ({ ini: palavras[Math.max(0, de)]?.i ?? 0, fim: palavras[Math.min(palavras.length - 1, ate)]?.f ?? 0 })
-  return {
+  const linha: Omit<LinhaTempo, 'efeitos'> = {
     trechos,
     duracao: trechos.reduce((s, t) => s + t.fim - t.ini, 0),
     legendas,
@@ -81,6 +106,7 @@ export function montarLinhaTempo(palavras: Palavra[], plano: Plano, duracaoBruto
     coberturas: (plano.coberturas ?? []).filter((x) => x.midia >= 0 && x.midia < totalMidias)
       .map((x) => { const t = tempo(x.de, x.ate); return { ini: t.ini, fim: Math.max(t.fim, t.ini + 1), midia: x.midia, layout: x.layout ?? 'cheia', movimento: x.movimento ?? 'aproximar' } }),
   }
+  return { ...linha, efeitos: montarEfeitos(palavras, plano, trechos, linha) }
 }
 
 // onde o vídeo bruto deve estar: dentro de um trecho segue; fora, pula para o próximo; depois do último, acabou (null)

@@ -6,6 +6,7 @@ import { ativo, proximoTempo, tempoBruto, tempoFinal, type LinhaTempo } from './
 import { desenharQuadro } from './desenho'
 import { liberarMidias, prepararMidias, sincronizarClipes, type MidiaPronta } from './midias'
 import type { Musica } from './montagem'
+import { TocadorEfeitos } from './efeitos'
 
 const mmss = (s: number) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`
 const TAM_PREVIA = { vertical: [540, 960], horizontal: [960, 540] } as const
@@ -38,6 +39,11 @@ export function PreviaVideo({ url, linha, vertical, apoio = [], musica }: { url:
   const [tocando, setTocando] = useState(false)
   const midias = usarMidias(apoio)
   const urlMusica = usarMusica(musica)
+  // os efeitos sonoros tocam por um AudioContext criado no primeiro "Tocar" (o navegador exige um clique)
+  const audio = useRef<AudioContext | null>(null)
+  const efeitos = useRef<TocadorEfeitos | null>(null)
+  useEffect(() => { efeitos.current = audio.current ? new TocadorEfeitos(audio.current, audio.current.destination, linha.efeitos) : null }, [linha])
+  useEffect(() => () => { audio.current?.close() }, [])
 
   useEffect(() => {
     let quadro = 0
@@ -45,8 +51,9 @@ export function PreviaVideo({ url, linha, vertical, apoio = [], musica }: { url:
       const v = video.current, ctx = tela.current?.getContext('2d')
       if (v && !v.paused) {
         const alvo = proximoTempo(v.currentTime, linha.trechos)
-        if (alvo === null) { v.pause(); v.currentTime = linha.trechos[0]?.ini ?? 0 }
-        else if (alvo - v.currentTime > 0.03) v.currentTime = alvo
+        if (alvo === null) { v.pause(); v.currentTime = linha.trechos[0]?.ini ?? 0; efeitos.current?.reiniciar() }
+        else if (alvo - v.currentTime > 0.03) { v.currentTime = alvo; efeitos.current?.posicionar(alvo) }
+        else efeitos.current?.passo(v.currentTime)
         setT(v.currentTime)
       }
       if (v && ctx && v.readyState >= 2) { sincronizarClipes(midias, v.paused ? undefined : ativo(linha.coberturas, v.currentTime)); desenharQuadro(ctx, v, linha, midias) }
@@ -61,12 +68,17 @@ export function PreviaVideo({ url, linha, vertical, apoio = [], musica }: { url:
 
   const alternar = () => {
     const v = video.current; if (!v) return
-    if (v.paused) { v.play(); som.current?.play().catch(() => undefined) } else { v.pause(); som.current?.pause() }
+    if (v.paused) {
+      if (!audio.current) { audio.current = new AudioContext(); efeitos.current = new TocadorEfeitos(audio.current, audio.current.destination, linha.efeitos) }
+      efeitos.current?.posicionar(v.currentTime)
+      v.play(); som.current?.play().catch(() => undefined)
+    } else { v.pause(); som.current?.pause() }
   }
   const irPara = (e: React.MouseEvent<HTMLDivElement>) => {
     const v = video.current, caixa = e.currentTarget.getBoundingClientRect()
     if (!v) return
     v.currentTime = tempoBruto(((e.clientX - caixa.left) / caixa.width) * linha.duracao, linha.trechos); setT(v.currentTime)
+    efeitos.current?.posicionar(v.currentTime)
   }
   const final = tempoFinal(t, linha.trechos)
   const [L, A] = TAM_PREVIA[vertical ? 'vertical' : 'horizontal']
