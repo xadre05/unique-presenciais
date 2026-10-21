@@ -7,11 +7,21 @@ import { Campo, Erro, Modal, Vazio } from './ui'
 import { Icone } from './Icone'
 import { linkGoogle } from '../pages/Agenda'
 
+type Black = { codigo: string; encontro_id: string | null; lugares: number; compraram: number; matriculados: number }
+// vagas da Black naquela data: lugares − alunos já matriculados na turma − compradores da Black com aquele código
+const livres = (b: Black) => Math.max(0, b.lugares - b.matriculados - b.compraram)
+function SeloBlack({ b }: { b: Black }) {
+  const l = livres(b)
+  return <span className={`badge ${l === 0 ? 'badge-erro' : 'badge-ouro'}`} title={`Código da página: ${b.codigo}`}>Black: {b.compraram} compraram · {l === 0 ? 'lotado' : `${l} livre${l > 1 ? 's' : ''}`}</span>
+}
+
 type Encontro = { id: string; turma_id: string; titulo: string; data_inicio: string; data_fim: string | null; horario: string | null; local: string | null; observacao: string | null; cancelado: boolean }
 
 export function Encontros({ turma, onMudou }: { turma: { id: string; nome: string; curso_nome: string; local: string | null; status: string }; onMudou: () => void }) {
   const { isAdmin } = useAuth()
   const lista = useConsulta<Encontro[]>(() => supabase.from('encontros').select('*').eq('turma_id', turma.id).eq('cancelado', false).order('data_inicio'), [turma.id])
+  const black = useConsulta<Black[]>(() => supabase.from('v_black_turmas').select('codigo,encontro_id,lugares,compraram,matriculados').eq('turma_id', turma.id), [turma.id])
+  const blackDa = (encontroId: string | null) => (black.dados ?? []).filter((b) => b.encontro_id === encontroId)
   const [editando, setEditando] = useState<Partial<Encontro> | null>(null)
   const [erro, setErro] = useState<string | null>(null)
   const es = lista.dados ?? []
@@ -51,12 +61,13 @@ export function Encontros({ turma, onMudou }: { turma: { id: string; nome: strin
         {isAdmin && <button className="btn btn-mini btn-ouro" onClick={novo}><Icone nome="mais" tam={14} /> {ehResidencia ? 'Adicionar módulo' : 'Adicionar data'}</button>}
       </div>
       <Erro msg={erro && !editando ? erro : null} />
+      {blackDa(null).length > 0 && <p className="pequeno">{blackDa(null).map((b) => <SeloBlack key={b.codigo} b={b} />)}</p>}
       {es.length === 0 ? <Vazio>{ehResidencia ? 'Nenhum módulo com data ainda. A Mini Residência tem 4 módulos — cadastre cada um.' : 'Nenhuma data cadastrada.'}</Vazio> : (
         <ul className="lista">
           {es.map((e) => (
             <li key={e.id}>
               <div>
-                <div className="forte">{e.titulo}</div>
+                <div className="forte">{e.titulo} {blackDa(e.id).map((b) => <SeloBlack key={b.codigo} b={b} />)}</div>
                 <div className="muted pequeno">{dataBR(e.data_inicio)}{e.data_fim && e.data_fim !== e.data_inicio && ` a ${dataBR(e.data_fim)}`}{e.horario && ` · ${e.horario}`}{(e.local ?? turma.local) && ` · ${e.local ?? turma.local}`}</div>
                 {e.observacao && <div className="muted pequeno">{e.observacao}</div>}
               </div>
