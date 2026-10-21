@@ -3307,3 +3307,6 @@ a.sala-agente:hover { border-color: var(--ouro); transform: translateY(-2px); }
 .vend-nome small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .vend-num { text-align: right; }
 @media (max-width: 700px) { .vend-linha { grid-template-columns: 28px minmax(0, 1fr) auto; } .vend-num { display: none; } }
+.vend-post { grid-template-columns: 28px 44px minmax(0, 1fr) auto auto; }
+.vend-mini { width: 44px; height: 56px; object-fit: cover; border-radius: 6px; background: var(--painel); display: block; }
+@media (max-width: 700px) { .vend-post { grid-template-columns: 28px 44px minmax(0, 1fr) auto; } .vend-post > a { display: none; } }

@@ -7,6 +7,7 @@ import { Icone } from '../../../components/Icone'
 import { brl } from '../../../lib/format'
 import { guardarCampeao, useCampeoes, type Campeao, type NovoCampeao } from './campeoes'
 import type { Referencia } from './dados'
+import { PostsCampeoes } from './PostsCampeoes'
 
 const dia = (d: string) => d.split('-').reverse().slice(0, 2).join('/')
 const MOSTRAR = 12
@@ -43,12 +44,19 @@ export function CriativosCampeoes({ empresa, referencias, aoMudou }: Props) {
   const ranking = useCampeoes()
   const [aberto, setAberto] = useState<string | null>(null)
   const [todos, setTodos] = useState(false)
+  const [aba, setAba] = useState<'posts' | 'anuncios'>('posts')
   const lista = (ranking.dados ?? []).slice(0, todos ? 60 : MOSTRAR)
   const estudado = (anuncio: string) => referencias.find((r) => r.categoria === 'nosso' && r.nome === anuncio)
   return (
     <section className="bm-cartao ref">
-      <div><h2>Nossos criativos que venderam</h2>
-        <p className="muted pequeno">Anúncios do Facebook e do Instagram que mais venderam, pelas vendas da Hotmart (código de rastreio). Ensine o roteiro dos campeões: o Agente de Marketing parte deles para escrever os roteiros de venda, e pode reaproveitar as nossas frases.</p></div>
+      <div><h2>Nossos criativos que deram resultado</h2>
+        <p className="muted pequeno">O que a própria marca já fez e funcionou: os posts do Instagram que mais performaram em toda a história e os anúncios que mais venderam. Ensine o roteiro dos campeões: o Agente de Marketing parte deles para escrever, e pode reaproveitar as nossas frases.</p></div>
+      <div className="ia-linha">
+        <button type="button" className={`mk-chip${aba === 'posts' ? ' ativo' : ''}`} onClick={() => setAba('posts')}>Posts do Instagram</button>
+        <button type="button" className={`mk-chip${aba === 'anuncios' ? ' ativo' : ''}`} onClick={() => setAba('anuncios')}>Anúncios que venderam</button>
+      </div>
+      {aba === 'posts' ? <PostsCampeoes empresa={empresa} referencias={referencias} aoMudou={aoMudou} /> : <>
+      <p className="muted pequeno">Pelas vendas da Hotmart (o código de rastreio guarda qual anúncio vendeu).</p>
       <Erro msg={ranking.erro} />
       {ranking.carregando && !ranking.dados ? <p className="muted pequeno">Carregando…</p> : !lista.length ? <p className="muted pequeno">Nenhuma venda com código de anúncio ainda.</p> : (
         <ul className="vend-lista">
@@ -71,7 +79,9 @@ export function CriativosCampeoes({ empresa, referencias, aoMudou }: Props) {
         </ul>
       )}
       {(ranking.dados?.length ?? 0) > MOSTRAR && <button type="button" className="link pequeno" onClick={() => setTodos(!todos)}>{todos ? 'Mostrar só os primeiros' : `Ver todos (${ranking.dados!.length})`}</button>}
-      <p className="nota-neutra pequeno"><Icone nome="info" tam={14} /> Vendas sem código de anúncio (link de vendedora, bio, direct) não entram aqui. O roteiro ensinado aparece em Referências de criação, em "Nossos que venderam".</p>
+      <p className="nota-neutra pequeno"><Icone nome="info" tam={14} /> Vendas sem código de anúncio (link de vendedora, bio, direct) não entram aqui.</p>
+      </>}
+      <p className="nota-neutra pequeno"><Icone nome="info" tam={14} /> O que for ensinado aparece em Referências de criação, em "Nossos que deram resultado", e na memória do Agente de Marketing.</p>
     </section>
   )
 }

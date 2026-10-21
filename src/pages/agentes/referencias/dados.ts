@@ -25,7 +25,7 @@ export type Referencia = {
 export type NovaRef = { nome: string; canal: string; categoria: Categoria; formato: Formato; autor: string; link: string; por_que: string; texto: string }
 
 export const CATEGORIAS: { id: Categoria; nome: string; dica: string }[] = [
-  { id: 'nosso', nome: 'Nossos que venderam', dica: 'Anúncios da própria empresa, com as vendas medidas' },
+  { id: 'nosso', nome: 'Nossos que deram resultado', dica: 'Posts e anúncios da própria empresa que funcionaram' },
   { id: 'concorrente', nome: 'Concorrentes', dica: 'Quem disputa o mesmo cliente' },
   { id: 'outro_nicho', nome: 'Outros nichos', dica: 'Formato bom de qualquer área, para trazer para a nossa' },
   { id: 'admiro', nome: 'Quem admiramos', dica: 'Profissionais e marcas que são inspiração' },
