@@ -3296,3 +3296,5 @@ a.sala-agente:hover { border-color: var(--ouro); transform: translateY(-2px); }
 .banco { display: grid; gap: 10px; justify-items: start; }
 .banco .ev-midias { width: 100%; }
 .banco .pp-mini { width: 100%; aspect-ratio: 1; }
+.canal-videos { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.canal-videos li { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 8px; padding: 6px 8px; border: 1px solid var(--borda); border-radius: 8px; }

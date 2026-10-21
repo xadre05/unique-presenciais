@@ -5,9 +5,12 @@ import { BibliotecaMarca } from '../biblioteca/BibliotecaMarca'
 import { TestarConhecimento } from '../biblioteca/TestarConhecimento'
 import { ReferenciasMarca } from '../referencias/ReferenciasMarca'
 import { NovaReferencia } from '../referencias/NovaReferencia'
+import { NovoCanal } from '../referencias/NovoCanal'
 import { useReferencias } from '../referencias/dados'
 
-type Props = { empresa: string; novaReferencia: boolean; aoNovaReferencia: (aberta: boolean) => void }
+// pagina = 'nova' (nova referência), 'canal' (estudar um canal) ou nada (a aba)
+export type PaginaRef = 'nova' | 'canal' | null
+type Props = { empresa: string; pagina: PaginaRef; aoPagina: (p: PaginaRef) => void }
 
 function ComoUsa() {
   return (
@@ -22,9 +25,10 @@ function ComoUsa() {
   )
 }
 
-export function AbaConhecimento({ empresa, novaReferencia, aoNovaReferencia }: Props) {
+export function AbaConhecimento({ empresa, pagina, aoPagina }: Props) {
   const refs = useReferencias(empresa)
-  if (novaReferencia) return <NovaReferencia empresa={empresa} aoGuardar={refs.recarregar} aoVoltar={() => aoNovaReferencia(false)} />
+  if (pagina === 'nova') return <NovaReferencia empresa={empresa} aoGuardar={refs.recarregar} aoVoltar={() => aoPagina(null)} />
+  if (pagina === 'canal') return <NovoCanal empresa={empresa} aoGuardar={refs.recarregar} aoVoltar={() => aoPagina(null)} />
   return (
     <div className="conh">
       <div className="bm-grade sem-barra">
@@ -32,7 +36,7 @@ export function AbaConhecimento({ empresa, novaReferencia, aoNovaReferencia }: P
         <aside className="bm-lado-col"><ComoUsa /></aside>
       </div>
       <TestarConhecimento empresa={empresa} />
-      <ReferenciasMarca empresa={empresa} lista={refs.dados ?? []} carregando={refs.carregando} erro={refs.erro} aoMudou={refs.recarregar} aoNova={() => aoNovaReferencia(true)} />
+      <ReferenciasMarca empresa={empresa} lista={refs.dados ?? []} carregando={refs.carregando} erro={refs.erro} aoMudou={refs.recarregar} aoNova={() => aoPagina('nova')} aoCanal={() => aoPagina('canal')} />
     </div>
   )
 }

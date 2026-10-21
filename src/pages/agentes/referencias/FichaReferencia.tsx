@@ -2,7 +2,7 @@
 import type { Ficha } from './dados'
 
 const CAMPOS: [keyof Ficha, string][] = [
-  ['gancho', 'Gancho'], ['visual', 'Visual'], ['texto_na_tela', 'Texto na tela'], ['ritmo', 'Ritmo e edição'],
+  ['edicao', 'Como editar neste estilo'], ['variacoes', 'Tipos de vídeo do canal'], ['gancho', 'Gancho'], ['visual', 'Visual'], ['texto_na_tela', 'Texto na tela'], ['ritmo', 'Ritmo e edição'],
   ['linguagem', 'Linguagem'], ['por_que_funciona', 'Por que funciona'], ['como_usar', 'Como usar na marca'], ['nao_copiar', 'O que não copiar'],
 ]
 

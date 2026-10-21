@@ -10,11 +10,15 @@ export type Formato = 'carrossel' | 'reels' | 'post' | 'stories' | 'video' | 'te
 export type Ficha = {
   resumo: string; gancho?: string; estrutura?: string[]; visual?: string; texto_na_tela?: string; ritmo?: string
   linguagem?: string; por_que_funciona?: string; como_usar?: string; nao_copiar?: string
+  variacoes?: string; edicao?: string // só na ficha de canal
 }
+// cada vídeo estudado de um canal: medidas tiradas no navegador, caminhos dos quadros e a análise do agente
+export type VideoCanal = { nome: string; duracao: number; quadros: string[]; cortes_por_min?: number; palavras_por_min?: number; fala?: string; ficha?: Ficha; erro?: string }
 export type Arquivo = { caminho: string; nome: string; quadro?: boolean }
 export type Referencia = {
   id: string; nome: string | null; canal: string | null; categoria: Categoria; autor: string | null; link: string | null; formato: Formato; por_que: string | null; texto: string | null
   arquivos: Arquivo[]; ficha: Ficha | null; status: 'nova' | 'analisando' | 'pronta' | 'erro'; erro: string | null; criado_em: string
+  tipo: 'peca' | 'canal'; videos: VideoCanal[]
 }
 export type NovaRef = { nome: string; canal: string; categoria: Categoria; formato: Formato; autor: string; link: string; por_que: string; texto: string }
 
@@ -35,7 +39,7 @@ export const nomeFormato = (f: string) => FORMATOS.find((x) => x.id === f)?.nome
 export const nomeCategoria = (c: string) => CATEGORIAS.find((x) => x.id === c)?.nome ?? c
 
 export function useReferencias(empresa: string) {
-  return useConsulta<Referencia[]>(() => supabase.from('marca_referencias').select('id,nome,canal,categoria,autor,link,formato,por_que,texto,arquivos,ficha,status,erro,criado_em')
+  return useConsulta<Referencia[]>(() => supabase.from('marca_referencias').select('id,nome,canal,categoria,autor,link,formato,por_que,texto,arquivos,ficha,status,erro,criado_em,tipo,videos')
     .eq('empresa_id', empresa).eq('ativo', true).order('criado_em', { ascending: false }), [empresa])
 }
 

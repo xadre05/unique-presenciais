@@ -5,7 +5,9 @@
 //   POST multipart { acao: 'transcrever', empresa, peca, audio (wav) } → { palavras, duracao, idioma }
 //   POST json { acao: 'editar', empresa, peca, palavras, duracao, midias?, pedido?, modelo_ref? } → { plano }
 //   midias = imagens e clipes de apoio que a equipe escolheu (número, tipo, o que é e uma miniatura pequena)
+//   POST json { acao: 'canal_video', empresa, canal, n } e { acao: 'canal', empresa, canal } → estudar um canal (canal.ts)
 import { createClient, type SupabaseClient } from 'npm:@supabase/supabase-js@2.45.4'
+import { estudarVideo, fecharCanal, type Ia } from './canal.ts'
 
 const cors = {
   'Access-Control-Allow-Origin': '*',
@@ -110,6 +112,43 @@ async function roteirosDaCampanha(db: SupabaseClient, empresa: string, campanha?
   return texto.slice(0, 40000)
 }
 
+// chamada simples ao Claude com uma ferramenta, já registrando o custo no agente 'editor' (usada pelo estudo de canal)
+async function prepararIa(db: SupabaseClient, empresa: string) {
+  const [{ data: chave }, { data: cfg }, { data: ag }] = await Promise.all([
+    db.rpc('agentes_ler_chave', { p_empresa: empresa }),
+    db.from('agentes_config').select('modelo').eq('empresa_id', empresa).maybeSingle(),
+    db.from('agentes_empresa').select('perfil,ativo').eq('empresa_id', empresa).eq('agente_id', 'editor').maybeSingle(),
+  ])
+  if (!chave) throw new Error('Falta cadastrar a chave do Claude em Agentes → Configurações.')
+  if (!ag?.ativo) throw new Error('A empresa não tem o Agente Editor de Vídeo ligado.')
+  const pa = (ag.perfil ?? {}) as Record<string, unknown>
+  const modelo = (typeof pa.modelo === 'string' && PRECO[pa.modelo] ? pa.modelo : null) ?? (cfg?.modelo && PRECO[cfg.modelo] ? cfg.modelo : 'claude-sonnet-5-5')
+  const ia: Ia = async (sistema, conteudo, ferramenta, tipo, resumo) => {
+    const r = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'x-api-key': String(chave), 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
+      body: JSON.stringify({ model: modelo, max_tokens: 4000, system: sistema, messages: [{ role: 'user', content: conteudo }], tools: [ferramenta], tool_choice: { type: 'tool', name: ferramenta.name } }),
+    })
+    const resp = await r.json().catch(() => ({}))
+    if (!r.ok) {
+      const msg = String(resp?.error?.message ?? `erro ${r.status}`)
+      if (/credit|balance/i.test(msg)) throw new Error('A conta da Anthropic está sem crédito.')
+      throw new Error(`O agente respondeu ${r.status}: ${msg}`)
+    }
+    const entrega = (resp.content ?? []).find((b: { type: string }) => b.type === 'tool_use')?.input as Record<string, unknown> | undefined
+    const ent = Number(resp.usage?.input_tokens ?? 0), sai = Number(resp.usage?.output_tokens ?? 0)
+    await registrar(db, empresa, tipo, '', entrega ? resumo(entrega) : 'Sem resposta', (ent * PRECO[modelo].entrada + sai * PRECO[modelo].saida) / 1_000_000, modelo, ent, sai)
+    return entrega
+  }
+  return ia
+}
+
+async function descricaoEmpresa(db: SupabaseClient, empresa: string) {
+  const { data } = await db.from('agentes_empresa').select('perfil').eq('empresa_id', empresa).eq('agente_id', 'marketing').maybeSingle()
+  const p = (data?.perfil ?? {}) as Record<string, unknown>
+  return `${String(p.empresa ?? '')}. Vende: ${String(p.o_que_vende ?? '').slice(0, 400)}. Para quem: ${String(p.publico ?? '').slice(0, 300)}.`
+}
+
 async function editar(db: SupabaseClient, corpo: Record<string, unknown>) {
   const empresa = String(corpo.empresa ?? ''), pecaId = String(corpo.peca ?? '')
   const palavras = (Array.isArray(corpo.palavras) ? corpo.palavras : []) as Palavra[]
@@ -135,7 +174,7 @@ async function editar(db: SupabaseClient, corpo: Record<string, unknown>) {
   const escolhida = (refs ?? []).find((r) => r.id === corpo.modelo_ref || (r.nome && r.nome === corpo.modelo_ref))
   const modelos = (escolhida ? [escolhida] : (refs ?? []).slice(0, 3)).map((r) => {
     const f = (r.ficha ?? {}) as Record<string, string | string[]>
-    return `- ${r.nome ?? 'modelo'}${r.autor ? ` (${r.autor})` : ''}: ${f.resumo ?? ''}${f.gancho ? ` · gancho: ${f.gancho}` : ''}${f.ritmo ? ` · ritmo: ${f.ritmo}` : ''}${f.visual ? ` · visual: ${f.visual}` : ''}${f.texto_na_tela ? ` · texto na tela: ${f.texto_na_tela}` : ''}`
+    return `- ${r.nome ?? 'modelo'}${r.autor ? ` (${r.autor})` : ''}: ${f.resumo ?? ''}${f.gancho ? ` · gancho: ${f.gancho}` : ''}${f.ritmo ? ` · ritmo: ${f.ritmo}` : ''}${f.visual ? ` · visual: ${f.visual}` : ''}${f.texto_na_tela ? ` · texto na tela: ${f.texto_na_tela}` : ''}${f.edicao ? ` · como editar: ${f.edicao}` : ''}`
   })
   const memoria = ((Array.isArray(pa.memoria) ? pa.memoria : []) as { texto: string }[]).filter((m) => m.texto.startsWith('Edição:')).map((m) => `- ${m.texto}`)
   // estilo da casa (página do Agente Editor): vale para todo vídeo, sem a equipe pedir; padrão = criativo que vende
@@ -217,6 +256,8 @@ Deno.serve(async (req) => {
     if ((req.headers.get('content-type') ?? '').includes('multipart/form-data')) return json(await transcrever(db, await req.formData()))
     const corpo = await req.json().catch(() => ({}))
     if (corpo.acao === 'editar') return json(await editar(db, corpo))
+    if (corpo.acao === 'canal_video') return json(await estudarVideo(db, await prepararIa(db, String(corpo.empresa)), String(corpo.empresa), String(corpo.canal), Number(corpo.n)))
+    if (corpo.acao === 'canal') return json(await fecharCanal(db, await prepararIa(db, String(corpo.empresa)), String(corpo.empresa), String(corpo.canal), await descricaoEmpresa(db, String(corpo.empresa))))
     return json({ erro: 'Ação desconhecida.' }, 400)
   } catch (e) {
     return json({ erro: (e as Error).message })

@@ -58,7 +58,7 @@ export default function CentralMarca() {
 
       {aba === 'campanhas' && pronto && <CampanhasMarca empresa={EMPRESA_UNIQUE} perfil={dados} aoSalvar={perfil.recarregar} />}
 
-      {aba === 'conhecimento' && <AbaConhecimento empresa={EMPRESA_UNIQUE} novaReferencia={params.get('ref') === 'nova'} aoNovaReferencia={(v) => setParams(v ? { aba: 'conhecimento', ref: 'nova' } : { aba: 'conhecimento' })} />}
+      {aba === 'conhecimento' && <AbaConhecimento empresa={EMPRESA_UNIQUE} pagina={params.get('ref') === 'nova' || params.get('ref') === 'canal' ? params.get('ref') as 'nova' | 'canal' : null} aoPagina={(p) => setParams(p ? { aba: 'conhecimento', ref: p } : { aba: 'conhecimento' })} />}
 
       {aba === 'canais' && <section className="bloco"><h2>Redes sociais</h2><p className="muted pequeno">Os canais que a empresa usa. Só os ligados aparecem para planejar e criar peças.</p>
         {pronto && <RedesEmpresa empresaId={EMPRESA_UNIQUE} perfil={dados} aoSalvar={perfil.recarregar} />}

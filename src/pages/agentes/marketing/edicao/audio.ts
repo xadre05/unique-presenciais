@@ -2,7 +2,8 @@
 // O vídeo em si nunca sai do computador de quem edita.
 const TAXA = 16000
 
-export async function audioDoVideo(arquivo: File): Promise<{ wav: Blob; duracao: number }> {
+// maxSegundos: só o começo do áudio (estudo de canal com vídeo longo: basta uma parte da fala para ver o estilo)
+export async function audioDoVideo(arquivo: File, maxSegundos = Infinity): Promise<{ wav: Blob; duracao: number }> {
   const bruto = await arquivo.arrayBuffer()
   const ctx = new AudioContext()
   let decodificado: AudioBuffer
@@ -13,7 +14,7 @@ export async function audioDoVideo(arquivo: File): Promise<{ wav: Blob; duracao:
   } finally {
     ctx.close()
   }
-  const quadros = Math.ceil(decodificado.duration * TAXA)
+  const quadros = Math.ceil(Math.min(decodificado.duration, maxSegundos) * TAXA)
   const off = new OfflineAudioContext(1, quadros, TAXA)
   const fonte = off.createBufferSource()
   fonte.buffer = decodificado
