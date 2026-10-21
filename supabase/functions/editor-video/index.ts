@@ -6,8 +6,10 @@
 //   POST json { acao: 'editar', empresa, peca, palavras, duracao, midias?, pedido?, modelo_ref? } → { plano }
 //   midias = imagens e clipes de apoio que a equipe escolheu (número, tipo, o que é e uma miniatura pequena)
 //   POST json { acao: 'canal_video', empresa, canal, n } e { acao: 'canal', empresa, canal } → estudar um canal (canal.ts)
+//   POST json { acao: 'criativo', empresa, id } → roteiro de um criativo nosso que vendeu (criativo.ts)
 import { createClient, type SupabaseClient } from 'npm:@supabase/supabase-js@2.45.4'
 import { estudarVideo, fecharCanal, type Ia } from './canal.ts'
+import { estudarCriativo } from './criativo.ts'
 
 const cors = {
   'Access-Control-Allow-Origin': '*',
@@ -258,6 +260,7 @@ Deno.serve(async (req) => {
     if (corpo.acao === 'editar') return json(await editar(db, corpo))
     if (corpo.acao === 'canal_video') return json(await estudarVideo(db, await prepararIa(db, String(corpo.empresa)), String(corpo.empresa), String(corpo.canal), Number(corpo.n)))
     if (corpo.acao === 'canal') return json(await fecharCanal(db, await prepararIa(db, String(corpo.empresa)), String(corpo.empresa), String(corpo.canal), await descricaoEmpresa(db, String(corpo.empresa))))
+    if (corpo.acao === 'criativo') return json(await estudarCriativo(db, await prepararIa(db, String(corpo.empresa)), String(corpo.empresa), String(corpo.id)))
     return json({ erro: 'Ação desconhecida.' }, 400)
   } catch (e) {
     return json({ erro: (e as Error).message })

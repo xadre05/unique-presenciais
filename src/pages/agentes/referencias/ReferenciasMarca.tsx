@@ -9,6 +9,7 @@ import { REDES, type Rede } from '../marketing/redes'
 import { CATEGORIAS, mudarReferencia, nomeCategoria, nomeFormato, pedirFicha, tituloReferencia, type Categoria, type Referencia } from './dados'
 import { FichaReferencia } from './FichaReferencia'
 import { retomarCanal } from './canal'
+import { estudarCriativo } from './campeoes'
 
 const STATUS: Record<Referencia['status'], string> = { nova: 'Ainda não estudada', analisando: 'O agente está estudando…', pronta: 'Aprendido', erro: 'Não deu certo' }
 
@@ -19,7 +20,7 @@ function Cartao({ empresa, r, aoMudou }: { empresa: string; r: Referencia; aoMud
   const [erro, setErro] = useState<string | null>(null)
   const estudar = async () => {
     setErro(null); setEstudando(true)
-    try { await (r.tipo === 'canal' ? retomarCanal(empresa, r) : pedirFicha(empresa, r.id)); setAberta(true) } catch (e) { setErro((e as Error).message) }
+    try { await (r.tipo === 'canal' ? retomarCanal(empresa, r) : r.categoria === 'nosso' ? estudarCriativo(empresa, r.id) : pedirFicha(empresa, r.id)); setAberta(true) } catch (e) { setErro((e as Error).message) }
     setEstudando(false); aoMudou()
   }
   const confirmarTirar = async () => { try { await mudarReferencia(r.id, { ativo: false }); aoMudou() } catch (e) { setErro((e as Error).message) } }
@@ -33,7 +34,8 @@ function Cartao({ empresa, r, aoMudou }: { empresa: string; r: Referencia; aoMud
           <span className={`badge ${r.status === 'pronta' ? 'badge-ok' : r.status === 'erro' ? 'badge-erro' : 'badge-info'}`}>{estudando ? STATUS.analisando : STATUS[r.status]}</span></div>
         <small className="muted">{[r.canal && REDES[r.canal as Rede]?.nome, nomeFormato(r.formato), r.nome && r.autor, r.tipo === 'canal' && `${r.videos.filter((v) => v.ficha).length} de ${r.videos.length} vídeos estudados`].filter(Boolean).join(' · ')}</small>
         {r.ficha?.resumo && <p>{r.ficha.resumo}</p>}
-        {r.por_que && <small className="muted">Copiar daqui: {r.por_que}</small>}
+        {r.resultado?.vendas != null && <small className="muted">Vendeu: {r.resultado.vendas} compradores{r.resultado.receita ? `, R$ ${Math.round(r.resultado.receita).toLocaleString('pt-BR')} líquidos` : ''}</small>}
+        {r.por_que && <small className="muted">{r.categoria === 'nosso' ? 'Por que vendeu' : 'Copiar daqui'}: {r.por_que}</small>}
         {r.status === 'erro' && r.erro && <small className="ref-erro">{r.erro}</small>}
         {aberta && r.ficha && <FichaReferencia ficha={r.ficha} />}
         <div className="ia-linha">

@@ -50,8 +50,9 @@ const base64 = (bytes: Uint8Array) => {
 }
 const segundo = (caminho: string) => Number(/_(\d+(?:\.\d+)?)s\.jpg$/.exec(caminho)?.[1] ?? NaN)
 
-async function quadrosDo(db: SupabaseClient, video: Video) {
-  const blocos = await Promise.all(video.quadros.slice(0, MAX_QUADROS).map(async (caminho) => {
+// quadros (imagens guardadas) como blocos para o agente, cada um com o segundo em que foi tirado
+export async function blocosDeQuadros(db: SupabaseClient, caminhos: string[]) {
+  const blocos = await Promise.all(caminhos.slice(0, MAX_QUADROS).map(async (caminho) => {
     const { data } = await db.storage.from('arquivos').download(caminho)
     if (!data) return []
     const s = segundo(caminho)
@@ -78,7 +79,7 @@ export async function estudarVideo(db: SupabaseClient, ia: Ia, empresa: string, 
     v.fala ? `TRANSCRIÇÃO DA FALA (com o segundo):\n${v.fala}` : 'Sem transcrição da fala (não deu para tirar o áudio).',
     'Analise este vídeo chamando a ferramenta entregar_video.',
   ].join('\n\n')
-  const ficha = await ia(SISTEMA, [...await quadrosDo(db, v), { type: 'text', text: usuario }], FERRAMENTA_VIDEO, 'canal_video', (e) => `Canal ${c.nome ?? ''}, vídeo ${n + 1}: ${String(e.resumo ?? '')}`)
+  const ficha = await ia(SISTEMA, [...await blocosDeQuadros(db, v.quadros), { type: 'text', text: usuario }], FERRAMENTA_VIDEO, 'canal_video', (e) => `Canal ${c.nome ?? ''}, vídeo ${n + 1}: ${String(e.resumo ?? '')}`)
   if (!ficha?.resumo) throw new Error('O agente não devolveu a análise do vídeo. Tente de novo.')
   const atual = await lerCanal(db, empresa, id) // outro vídeo pode ter sido salvo enquanto este era estudado
   const videos = atual.videos.map((x, k) => (k === n ? { ...x, ficha, erro: undefined } : x))

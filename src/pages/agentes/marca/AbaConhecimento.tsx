@@ -6,6 +6,7 @@ import { TestarConhecimento } from '../biblioteca/TestarConhecimento'
 import { ReferenciasMarca } from '../referencias/ReferenciasMarca'
 import { NovaReferencia } from '../referencias/NovaReferencia'
 import { NovoCanal } from '../referencias/NovoCanal'
+import { CriativosCampeoes } from '../referencias/CriativosCampeoes'
 import { useReferencias } from '../referencias/dados'
 
 // pagina = 'nova' (nova referência), 'canal' (estudar um canal) ou nada (a aba)
@@ -36,6 +37,7 @@ export function AbaConhecimento({ empresa, pagina, aoPagina }: Props) {
         <aside className="bm-lado-col"><ComoUsa /></aside>
       </div>
       <TestarConhecimento empresa={empresa} />
+      <CriativosCampeoes empresa={empresa} referencias={refs.dados ?? []} aoMudou={refs.recarregar} />
       <ReferenciasMarca empresa={empresa} lista={refs.dados ?? []} carregando={refs.carregando} erro={refs.erro} aoMudou={refs.recarregar} aoNova={() => aoPagina('nova')} aoCanal={() => aoPagina('canal')} />
     </div>
   )

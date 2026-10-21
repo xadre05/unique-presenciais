@@ -3298,3 +3298,12 @@ a.sala-agente:hover { border-color: var(--ouro); transform: translateY(-2px); }
 .banco .pp-mini { width: 100%; aspect-ratio: 1; }
 .canal-videos { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
 .canal-videos li { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 8px; padding: 6px 8px; border: 1px solid var(--borda); border-radius: 8px; }
+.vend-lista { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.vend-item { padding: 10px 0; border-top: 1px solid var(--borda); display: flex; flex-direction: column; gap: 8px; }
+.vend-linha { display: grid; grid-template-columns: 28px minmax(0, 1fr) 90px 110px auto; align-items: center; gap: 10px; }
+.vend-pos { display: grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; background: rgba(201,168,106,.14); color: var(--ouro); font-weight: 600; font-size: .8rem; }
+.vend-nome, .vend-num { display: flex; flex-direction: column; min-width: 0; }
+.vend-nome b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.vend-nome small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.vend-num { text-align: right; }
+@media (max-width: 700px) { .vend-linha { grid-template-columns: 28px minmax(0, 1fr) auto; } .vend-num { display: none; } }

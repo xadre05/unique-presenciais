@@ -5,12 +5,13 @@ import { msgErro, useConsulta } from '../../../lib/dados'
 import { enviarArquivo } from '../../../components/ui'
 import { tirarQuadros } from './quadros'
 
-export type Categoria = 'concorrente' | 'outro_nicho' | 'admiro' | 'material' | 'outro'
+export type Categoria = 'nosso' | 'concorrente' | 'outro_nicho' | 'admiro' | 'material' | 'outro'
 export type Formato = 'carrossel' | 'reels' | 'post' | 'stories' | 'video' | 'texto' | 'outro'
 export type Ficha = {
   resumo: string; gancho?: string; estrutura?: string[]; visual?: string; texto_na_tela?: string; ritmo?: string
   linguagem?: string; por_que_funciona?: string; como_usar?: string; nao_copiar?: string
   variacoes?: string; edicao?: string // só na ficha de canal
+  argumento?: string; prova?: string; oferta?: string // só nos criativos nossos que venderam
 }
 // cada vídeo estudado de um canal: medidas tiradas no navegador, caminhos dos quadros e a análise do agente
 export type VideoCanal = { nome: string; duracao: number; quadros: string[]; cortes_por_min?: number; palavras_por_min?: number; fala?: string; ficha?: Ficha; erro?: string }
@@ -19,10 +20,12 @@ export type Referencia = {
   id: string; nome: string | null; canal: string | null; categoria: Categoria; autor: string | null; link: string | null; formato: Formato; por_que: string | null; texto: string | null
   arquivos: Arquivo[]; ficha: Ficha | null; status: 'nova' | 'analisando' | 'pronta' | 'erro'; erro: string | null; criado_em: string
   tipo: 'peca' | 'canal'; videos: VideoCanal[]
+  resultado: { vendas?: number; receita?: number; campanha?: string; de?: string; ate?: string } | null
 }
 export type NovaRef = { nome: string; canal: string; categoria: Categoria; formato: Formato; autor: string; link: string; por_que: string; texto: string }
 
 export const CATEGORIAS: { id: Categoria; nome: string; dica: string }[] = [
+  { id: 'nosso', nome: 'Nossos que venderam', dica: 'Anúncios da própria empresa, com as vendas medidas' },
   { id: 'concorrente', nome: 'Concorrentes', dica: 'Quem disputa o mesmo cliente' },
   { id: 'outro_nicho', nome: 'Outros nichos', dica: 'Formato bom de qualquer área, para trazer para a nossa' },
   { id: 'admiro', nome: 'Quem admiramos', dica: 'Profissionais e marcas que são inspiração' },
@@ -39,7 +42,7 @@ export const nomeFormato = (f: string) => FORMATOS.find((x) => x.id === f)?.nome
 export const nomeCategoria = (c: string) => CATEGORIAS.find((x) => x.id === c)?.nome ?? c
 
 export function useReferencias(empresa: string) {
-  return useConsulta<Referencia[]>(() => supabase.from('marca_referencias').select('id,nome,canal,categoria,autor,link,formato,por_que,texto,arquivos,ficha,status,erro,criado_em,tipo,videos')
+  return useConsulta<Referencia[]>(() => supabase.from('marca_referencias').select('id,nome,canal,categoria,autor,link,formato,por_que,texto,arquivos,ficha,status,erro,criado_em,tipo,videos,resultado')
     .eq('empresa_id', empresa).eq('ativo', true).order('criado_em', { ascending: false }), [empresa])
 }
 
