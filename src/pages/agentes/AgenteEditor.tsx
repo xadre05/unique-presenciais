@@ -60,7 +60,7 @@ export default function AgenteEditor() {
       {tem.dados && aba === 'videos' && (
         <section className="bloco">
           <div className="ed-lista-topo">
-            <div><h2>Em edição</h2><p className="muted pequeno">Seus vídeos e reels em andamento, os trazidos aqui e os roteirizados pelo Agente de Marketing.</p></div>
+            <h2>Em edição</h2>
             <input type="search" className="ed-busca" placeholder="Buscar vídeo…" value={busca} onChange={(e) => setBusca(e.target.value)} />
             <span className="select-icone"><select value={filtro} onChange={(e) => setFiltro(e.target.value as Situacao | '')} aria-label="Situação">
               <option value="">Todas</option>{(Object.keys(NOME_SITUACAO) as Situacao[]).map((s) => <option key={s} value={s}>{NOME_SITUACAO[s]}</option>)}</select></span>

@@ -3477,11 +3477,13 @@ a.sala-agente:hover { border-color: var(--ouro); transform: translateY(-2px); }
 .ed-abas button.ativa { color: var(--ouro); border-bottom-color: var(--ouro); font-weight: 600; }
 .ed-entrada .ed-soltar { padding: 30px 18px; }
 .ed-selecionar { margin-top: 6px; pointer-events: none; }
-.ed-lista-topo { display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap; margin-bottom: 14px; }
-.ed-lista-topo > div { flex: 1; min-width: 220px; }
-.ed-lista-topo h2 { margin: 0; }
-.ed-lista-topo p { margin: 2px 0 0; }
-.ed-busca, .est-busca { min-width: 200px; }
+.ed-lista-topo { display: flex; gap: 10px; align-items: center; margin-bottom: 14px; }
+.ed-lista-topo h2 { margin: 0; flex: 1; white-space: nowrap; }
+.ed-lista-topo .ed-busca { flex: 0 1 280px; min-width: 0; width: 100%; }
+.ed-lista-topo .select-icone { flex: none; }
+.ed-lista-topo select { min-width: 0; width: auto; }
+.est-busca { min-width: 200px; }
+@media (max-width: 560px) { .ed-lista-topo h2 { font-size: 1.1rem; flex: none; } .ed-lista-topo .ed-busca { flex: 1 1 auto; } }
 .ed-grade { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 14px; }
 .ed-cartao { border: 1px solid var(--borda); border-radius: 14px; background: var(--painel-2); overflow: hidden; display: grid; }
 .ed-capa { position: relative; display: block; aspect-ratio: 16 / 10; background: #1d1d21; overflow: hidden; }
