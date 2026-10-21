@@ -3,7 +3,8 @@
 // e o agente devolve a "receita" da edição (trechos que ficam, legenda, texto na tela, zoom). A receita é um JSON
 // pequeno guardado na peça; o vídeo final é montado no navegador.
 //   POST multipart { acao: 'transcrever', empresa, peca, audio (wav) } → { palavras, duracao, idioma }
-//   POST json { acao: 'editar', empresa, peca, palavras, duracao, pedido?, modelo_ref? } → { plano }
+//   POST json { acao: 'editar', empresa, peca, palavras, duracao, midias?, pedido?, modelo_ref? } → { plano }
+//   midias = imagens e clipes de apoio que a equipe escolheu (número, tipo, o que é e uma miniatura pequena)
 import { createClient, type SupabaseClient } from 'npm:@supabase/supabase-js@2.45.4'
 
 const cors = {
@@ -74,7 +75,17 @@ const FERRAMENTA = {
         items: { type: 'object', properties: { de: { type: 'integer', description: 'palavra em que aparece' }, ate: { type: 'integer', description: 'palavra em que some' }, texto: { type: 'string' }, posicao: { type: 'string', enum: ['topo', 'meio'] } }, required: ['de', 'ate', 'texto'] } },
       zooms: { type: 'array', description: 'Aproximação da câmera para dar ritmo: no gancho e nas frases fortes, nunca seguidos. intensidade de 1.08 a 1.25.',
         items: { type: 'object', properties: { de: { type: 'integer' }, ate: { type: 'integer' }, intensidade: { type: 'number' } }, required: ['de', 'ate'] } },
-      legenda: { type: 'object', properties: { palavras_por_vez: { type: 'integer', description: '1 a 4' }, caixa_alta: { type: 'boolean' }, posicao: { type: 'string', enum: ['baixo', 'meio'] } } },
+      legenda: { type: 'object', properties: { palavras_por_vez: { type: 'integer', description: '1 a 4' }, caixa_alta: { type: 'boolean' }, posicao: { type: 'string', enum: ['baixo', 'meio'] },
+        estilo: { type: 'string', enum: ['palavras', 'chave', 'nenhuma'], description: 'palavras = legenda falada palavra por palavra (padrão); chave = só palavras-chave em caixa, estilo documentário (preencha "chaves"); nenhuma = sem legenda' } } },
+      chaves: { type: 'array', description: 'Só no estilo de legenda "chave": as palavras-chave que aparecem em caixa enquanto a pessoa fala, 2 a 4 palavras cada, cobrindo o vídeo todo sem buracos longos',
+        items: { type: 'object', properties: { de: { type: 'integer' }, ate: { type: 'integer' }, texto: { type: 'string' } }, required: ['de', 'ate', 'texto'] } },
+      coberturas: { type: 'array', description: 'Momentos em que uma MÍDIA DE APOIO enviada pela equipe aparece por cima da fala (a voz continua). Use o número da mídia.',
+        items: { type: 'object', properties: {
+          de: { type: 'integer', description: 'palavra em que a mídia entra' }, ate: { type: 'integer', description: 'palavra em que a mídia sai' },
+          midia: { type: 'integer', description: 'número da mídia de apoio' },
+          layout: { type: 'string', enum: ['cheia', 'dividida'], description: 'cheia = a mídia ocupa a tela; dividida = mídia em cima e a pessoa embaixo' },
+          movimento: { type: 'string', enum: ['aproximar', 'afastar', 'deslizar', 'parado'], description: 'movimento lento da imagem enquanto aparece' },
+        }, required: ['de', 'ate', 'midia'] } },
       faltou: { type: 'string', description: 'Se alguma cena do roteiro não foi gravada ou ficou ruim, diga qual. Senão, vazio.' },
     },
     required: ['resumo', 'trechos'],
@@ -97,7 +108,9 @@ async function editar(db: SupabaseClient, corpo: Record<string, unknown>) {
   if (!ag?.ativo) throw new Error('A empresa não tem o Agente Editor de Vídeo ligado.')
   const pa = (ag?.perfil ?? {}) as Record<string, unknown>
   const modelo = (typeof pa.modelo === 'string' && PRECO[pa.modelo] ? pa.modelo : null) ?? (cfg?.modelo && PRECO[cfg.modelo] ? cfg.modelo : 'claude-sonnet-5-5')
-  const c = (peca.conteudo ?? {}) as { roteiro?: string[]; texto_arte?: string; edicao?: { gostos?: string[] } }
+  const c = (peca.conteudo ?? {}) as { roteiro?: string[]; texto_arte?: string; briefing?: { finalidade?: string } }
+  // mídias de apoio: número, tipo, o que é e a miniatura (JPEG pequeno) para o agente ver
+  const midias = ((Array.isArray(corpo.midias) ? corpo.midias : []) as { n: number; tipo: string; descricao?: string; miniatura?: string }[]).slice(0, 30)
   const escolhida = (refs ?? []).find((r) => r.nome && r.nome === corpo.modelo_ref)
   const modelos = (escolhida ? [escolhida] : (refs ?? []).slice(0, 3)).map((r) => {
     const f = (r.ficha ?? {}) as Record<string, string | string[]>
@@ -110,6 +123,8 @@ async function editar(db: SupabaseClient, corpo: Record<string, unknown>) {
     'Seu trabalho: escolher os trechos que ficam (corte seco, ritmo de reels), corrigir a legenda, escolher destaques, textos na tela e zooms.',
     'Regras: o vídeo começa direto no gancho (nada de "oi, gente" se houver gancho melhor); quando a pessoa repete uma frase, fica a melhor tomada (quase sempre a última, mais fluente); tire hesitações e pausas longas; não mude a ordem das ideias a não ser que o roteiro peça; não corte no meio de uma ideia.',
     'Nunca escreva na tela promessa de resultado, preço ou dado que a pessoa não falou.',
+    'MÍDIAS DE APOIO (quando a equipe enviar): fotos, prints e clipes que você coloca por cima da fala em "coberturas", olhando as miniaturas. Regras: a mídia combina com o que está sendo dito naquele momento (falou da plataforma, mostra a tela da plataforma; falou do presencial, mostra a turma); cada cobertura de 1,5 a 5 segundos, terminando no fim de uma frase; o gancho (primeiros 2 a 3 segundos) fica com o rosto, a não ser que a mídia seja mais forte que a fala; em criativo de anúncio cubra de 30% a 60% do vídeo, alternando rosto e mídia para manter o ritmo; em vídeo de relacionamento, menos. "dividida" para explicações e listas (a pessoa continua aparecendo), "cheia" para impacto curto (resultado, oferta, prova). Não repita a mesma mídia seguida; varie o movimento. Mídia de antes e depois só se estiver descrita como autorizada.',
+    'LEGENDA: "palavras" é o padrão de reels. Use "chave" quando a equipe pedir estilo documentário ou quando o vídeo tiver muita tela dividida.',
     modelos.length ? `MODELOS DE EDIÇÃO QUE A EQUIPE GOSTA (siga o ritmo e o estilo de texto na tela):\n${modelos.join('\n')}` : '',
     memoria.length ? `O QUE A EQUIPE JÁ PEDIU EM EDIÇÕES ANTERIORES (siga):\n${memoria.join('\n')}` : '',
   ].filter(Boolean).join('\n\n')
@@ -118,6 +133,8 @@ async function editar(db: SupabaseClient, corpo: Record<string, unknown>) {
     c.roteiro?.length ? `ROTEIRO USADO NA GRAVAÇÃO:\n${c.roteiro.map((x, i) => `${i + 1}. ${x.replace(/\n/g, ' — ')}`).join('\n')}` : 'Sem roteiro: edite pelo que foi falado.',
     corpo.anterior ? `EDIÇÃO ANTERIOR (a equipe viu e pediu ajuste: parta dela e mude só o que foi pedido):\n${JSON.stringify(corpo.anterior)}` : '',
     corpo.pedido ? `PEDIDO DA EQUIPE PARA ESTA EDIÇÃO: ${String(corpo.pedido)}` : '',
+    midias.length ? `MÍDIAS DE APOIO (as imagens acima, na mesma ordem):\n${midias.map((m) => `${m.n} · ${m.tipo === 'video' ? 'clipe' : 'imagem'}${m.descricao ? ` · ${m.descricao}` : ''}`).join('\n')}` : 'Sem mídias de apoio: não use "coberturas".',
+    c.briefing?.finalidade === 'anuncio' ? 'ESTA PEÇA É UM CRIATIVO DE ANÚNCIO PAGO: ritmo rápido, gancho fortíssimo, mais coberturas.' : '',
     `DURAÇÃO DO BRUTO: ${Number(corpo.duracao ?? 0).toFixed(1)} s`,
     `TRANSCRIÇÃO:\n${palavras.map((w, n) => `${n}|${w.i.toFixed(2)}|${w.f.toFixed(2)}|${w.p}`).join('\n')}`,
     'Entregue chamando OBRIGATORIAMENTE a ferramenta entregar_edicao.',
@@ -125,7 +142,10 @@ async function editar(db: SupabaseClient, corpo: Record<string, unknown>) {
   const r = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: { 'x-api-key': String(chave), 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
-    body: JSON.stringify({ model: modelo, max_tokens: 16000, system: sistema, messages: [{ role: 'user', content: usuario }], tools: [FERRAMENTA], tool_choice: { type: 'auto' } }),
+    body: JSON.stringify({ model: modelo, max_tokens: 16000, system: sistema, messages: [{ role: 'user', content: [
+      ...midias.filter((m) => m.miniatura).flatMap((m) => [{ type: 'text', text: `Mídia ${m.n}:` }, { type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: m.miniatura } }]),
+      { type: 'text', text: usuario },
+    ] }], tools: [FERRAMENTA], tool_choice: { type: 'auto' } }),
   })
   const resp = await r.json().catch(() => ({}))
   if (!r.ok) {
@@ -134,6 +154,8 @@ async function editar(db: SupabaseClient, corpo: Record<string, unknown>) {
     throw new Error(`O agente respondeu ${r.status}: ${msg}`)
   }
   const plano = (resp.content ?? []).find((b: { type: string }) => b.type === 'tool_use')?.input
+  // às vezes uma lista vem como texto JSON dentro da ferramenta: converte de volta
+  if (plano && typeof plano === 'object') for (const [k, v] of Object.entries(plano)) { if (typeof v === 'string' && /^\s*[[{]/.test(v)) { try { plano[k] = JSON.parse(v) } catch { /* fica o texto */ } } }
   if (!plano?.trechos?.length) throw new Error('O agente não devolveu a edição. Tente de novo.')
   const ent = Number(resp.usage?.input_tokens ?? 0), sai = Number(resp.usage?.output_tokens ?? 0)
   const p = PRECO[modelo]

@@ -8,13 +8,25 @@ export type Plano = {
   destaques?: number[]
   textos?: { de: number; ate: number; texto: string; posicao?: 'topo' | 'meio' }[]
   zooms?: { de: number; ate: number; intensidade?: number }[]
-  legenda?: { palavras_por_vez?: number; caixa_alta?: boolean; posicao?: 'baixo' | 'meio' }
+  legenda?: { palavras_por_vez?: number; caixa_alta?: boolean; posicao?: 'baixo' | 'meio'; estilo?: EstiloLegenda }
+  // imagens/clipes de apoio por cima da fala (número da mídia na lista que a equipe subiu)
+  coberturas?: { de: number; ate: number; midia: number; layout?: Layout; movimento?: Movimento }[]
+  // legenda de palavra-chave: frases curtas escolhidas pelo agente (estilo "chave")
+  chaves?: { de: number; ate: number; texto: string }[]
 }
+export type EstiloLegenda = 'palavras' | 'chave' | 'nenhuma'
+export type Layout = 'cheia' | 'dividida'
+export type Movimento = 'aproximar' | 'afastar' | 'deslizar' | 'parado'
 export type Intervalo = { ini: number; fim: number }
 export type GrupoLegenda = Intervalo & { palavras: { texto: string; ini: number; fim: number; destaque: boolean }[] }
 export type Sobreposicao = Intervalo & { texto: string; posicao: 'topo' | 'meio' }
 export type Zoom = Intervalo & { escala: number }
-export type LinhaTempo = { trechos: Intervalo[]; duracao: number; legendas: GrupoLegenda[]; textos: Sobreposicao[]; zooms: Zoom[]; caixaAlta: boolean; posicaoLegenda: 'baixo' | 'meio' }
+export type Cobertura = Intervalo & { midia: number; layout: Layout; movimento: Movimento }
+export type Chave = Intervalo & { texto: string }
+export type LinhaTempo = {
+  trechos: Intervalo[]; duracao: number; legendas: GrupoLegenda[]; textos: Sobreposicao[]; zooms: Zoom[]; caixaAlta: boolean; posicaoLegenda: 'baixo' | 'meio'
+  estiloLegenda: EstiloLegenda; chaves: Chave[]; coberturas: Cobertura[]
+}
 
 // folga antes e depois da fala, e a pausa que vira corte dentro de um trecho
 const FOLGA_ANTES = 0.08, FOLGA_DEPOIS = 0.15, PAUSA_MAXIMA = 0.6
@@ -43,7 +55,7 @@ function trechosEmTempo(palavras: Palavra[], plano: Plano, duracaoBruto: number)
 
 const dentro = (t: number, lista: Intervalo[]) => lista.some((x) => t >= x.ini && t < x.fim)
 
-export function montarLinhaTempo(palavras: Palavra[], plano: Plano, duracaoBruto: number): LinhaTempo {
+export function montarLinhaTempo(palavras: Palavra[], plano: Plano, duracaoBruto: number, totalMidias = 0): LinhaTempo {
   const trechos = trechosEmTempo(palavras, plano, duracaoBruto)
   const correcao = new Map((plano.correcoes ?? []).map((c) => [c.palavra, c.texto]))
   const destaques = new Set(plano.destaques ?? [])
@@ -63,6 +75,11 @@ export function montarLinhaTempo(palavras: Palavra[], plano: Plano, duracaoBruto
     zooms: (plano.zooms ?? []).map((z) => ({ ...tempo(z.de, z.ate), escala: Math.min(1.3, Math.max(1, z.intensidade ?? 1.12)) })),
     caixaAlta: plano.legenda?.caixa_alta ?? true,
     posicaoLegenda: plano.legenda?.posicao ?? 'baixo',
+    estiloLegenda: plano.legenda?.estilo ?? 'palavras',
+    chaves: (plano.chaves ?? []).map((x) => ({ ...tempo(x.de, x.ate), texto: x.texto })),
+    // cobertura de mídia que não existe (a equipe tirou da lista) é ignorada; no mínimo 1 s na tela
+    coberturas: (plano.coberturas ?? []).filter((x) => x.midia >= 0 && x.midia < totalMidias)
+      .map((x) => { const t = tempo(x.de, x.ate); return { ini: t.ini, fim: Math.max(t.fim, t.ini + 1), midia: x.midia, layout: x.layout ?? 'cheia', movimento: x.movimento ?? 'aproximar' } }),
   }
 }
 

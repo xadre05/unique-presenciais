@@ -3254,14 +3254,20 @@ a.sala-agente:hover { border-color: var(--ouro); transform: translateY(-2px); }
 .ev-previa { display: grid; gap: 10px; justify-items: center; }
 .ev-quadro { position: relative; width: 100%; max-width: 640px; aspect-ratio: 16 / 9; overflow: hidden; border-radius: 12px; background: #000; cursor: pointer; }
 .ev-quadro.vertical { max-width: 340px; aspect-ratio: 9 / 16; }
-.ev-quadro video { width: 100%; height: 100%; object-fit: cover; transition: transform .35s ease; display: block; }
+.ev-quadro canvas { width: 100%; height: 100%; display: block; }
+/* o vídeo bruto toca escondido: a prévia é desenhada no canvas */
+.ev-quadro .ev-fonte { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
 .ev-play { position: absolute; inset: 0; display: grid; place-items: center; color: #fff; background: rgba(0,0,0,.25); }
-.ev-legenda { position: absolute; left: 6%; right: 6%; bottom: 16%; display: flex; flex-wrap: wrap; justify-content: center; gap: 0 .3em; font: 800 1.35rem/1.15 system-ui, sans-serif; color: rgba(255,255,255,.55); text-shadow: 0 2px 6px rgba(0,0,0,.8); text-align: center; pointer-events: none; }
-.ev-legenda.meio { bottom: auto; top: 55%; }
-.ev-legenda .dita { color: #fff; }
-.ev-legenda .destaque.dita { color: #D4AF37; }
-.ev-texto { position: absolute; left: 8%; right: 8%; top: 12%; padding: 8px 12px; border-radius: 8px; background: rgba(0,0,0,.6); color: #fff; font: 800 1.15rem/1.2 system-ui, sans-serif; text-align: center; text-transform: uppercase; pointer-events: none; animation: ev-entra .25s ease; }
-.ev-texto.meio { top: 40%; }
+/* mídias de apoio */
+.ev-midias { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+.ev-midia { display: grid; gap: 6px; padding: 8px; border: 1px solid var(--borda); border-radius: var(--raio); background: var(--painel-2); min-width: 0; }
+.ev-midia .ev-mini { aspect-ratio: 1; border-radius: 6px; overflow: hidden; background: #000; display: grid; place-items: center; color: #888; font-size: .8rem; text-align: center; }
+.ev-midia .ev-mini img, .ev-midia .ev-mini video { width: 100%; height: 100%; object-fit: cover; display: block; }
+.ev-midia .ev-nome { font-size: .78rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ev-midia input[type=text] { width: 100%; font-size: .8rem; }
+.ev-midia .ev-falta { color: var(--alerta); font-size: .75rem; }
+.ev-musica { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.ev-musica input[type=range] { width: 140px; }
 @keyframes ev-entra { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
 .ev-controles { display: flex; align-items: center; gap: 10px; width: 100%; max-width: 640px; }
 .ev-barra { flex: 1; height: 8px; border-radius: 4px; background: var(--painel-2); cursor: pointer; overflow: hidden; }
