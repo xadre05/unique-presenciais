@@ -3277,3 +3277,7 @@ a.sala-agente:hover { border-color: var(--ouro); transform: translateY(-2px); }
 .ev-convite .btn { margin-top: 6px; }
 @media (max-width: 640px) { .ev-convite { flex-direction: column; text-align: center; } }
 .ev-escolha { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.btn-ditado { width: 44px; height: 44px; border-radius: 50%; border: 1px solid var(--borda); background: var(--painel); color: var(--texto); display: inline-flex; align-items: center; justify-content: center; cursor: pointer; flex: none; }
+.btn-ditado:hover { border-color: var(--ouro); color: var(--ouro); }
+.btn-ditado.ouvindo { background: #c0392b; border-color: #c0392b; color: #fff; animation: ditado-pulsa 1.2s ease-in-out infinite; }
+@keyframes ditado-pulsa { 0%, 100% { box-shadow: 0 0 0 0 rgba(192,57,43,.5); } 50% { box-shadow: 0 0 0 8px rgba(192,57,43,0); } }

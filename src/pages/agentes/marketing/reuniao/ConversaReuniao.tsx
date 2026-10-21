@@ -2,6 +2,7 @@
 // Enter envia; Shift+Enter quebra a linha. Fechada (plano aprovado), fica só para leitura.
 import { useEffect, useRef, useState } from 'react'
 import { Icone } from '../../../../components/Icone'
+import { BotaoDitado } from '../../../../components/BotaoDitado'
 import type { Fala } from './dados'
 
 
@@ -39,6 +40,7 @@ export function ConversaReuniao({ falas, pensando, somenteLeitura, aoFalar }: Pr
         <div className="rc-entrada">
           <textarea rows={1} value={texto} onChange={(e) => setTexto(e.target.value)} placeholder="Escreva sua resposta ou traga uma ideia…" aria-label="Mensagem para o agente"
             onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); enviar(texto) } }} />
+          <BotaoDitado aoFalar={(t) => setTexto((x) => (x.trim() ? `${x.trim()} ${t}` : t))} desativado={pensando} />
           <button type="button" className="rc-enviar" disabled={!texto.trim() || pensando} onClick={() => enviar(texto)} aria-label="Enviar"><Icone nome="enviar" tam={18} /></button>
         </div>
       )}
