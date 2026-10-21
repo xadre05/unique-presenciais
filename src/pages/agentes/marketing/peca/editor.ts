@@ -5,7 +5,7 @@ import { infoFormato, type Formato } from '../formatos'
 
 export type CampoTexto = 'titulo' | 'legenda' | 'cta' | 'hashtags' | 'texto_arte' | 'prompt_imagem' | 'observacao' | 'apoio'
 export type Campo = { campo: CampoTexto; rotulo: string; max?: number; linhas?: number; dica?: string }
-export type AbaId = 'itens' | 'principal' | 'legenda' | 'visual' | 'versoes'
+export type AbaId = 'itens' | 'principal' | 'legenda' | 'visual' | 'edicao' | 'versoes'
 export type Aba = { id: AbaId; nome: string; icone: string }
 export type ConfigItem = { titulo: string | null; texto: string | null; maxTitulo?: number; maxTexto?: number; capa?: boolean }
 export type Etapa2 = { nome: string; pendente: string; feita: string; acao: string; arquivos: boolean }
@@ -15,6 +15,8 @@ export type ConfigEditor = {
 }
 
 const VERSOES: Aba = { id: 'versoes', nome: 'Versões', icone: 'historico' }
+// edição do vídeo gravado (agente corta, legenda e monta no navegador; o vídeo não sobe para o banco)
+const EDICAO: Aba = { id: 'edicao', nome: 'Edição do vídeo', icone: 'video' }
 const aba = (id: AbaId, nome: string, icone: string): Aba => ({ id, nome, icone })
 const LEGENDA: Campo[] = [{ campo: 'legenda', rotulo: 'Legenda', linhas: 9 }, { campo: 'cta', rotulo: 'Chamada para ação', max: 150 }, { campo: 'hashtags', rotulo: 'Hashtags' }]
 const ORIENTA_ARTE: Campo = { campo: 'prompt_imagem', rotulo: 'Orientação para a arte', linhas: 5, dica: 'Cena, enquadramento, luz e o texto que vai na arte. Serve para gerar a arte aqui ou para colar em outra IA.' }
@@ -36,12 +38,12 @@ const CONFIG: Record<Formato, ConfigEditor> = {
     principal: [], legenda: LEGENDA, visual: [ORIENTA_ARTE, { campo: 'observacao', rotulo: 'Observações', linhas: 3 }], artes: 'por_item', etapa2: ARTE, proporcao: '4:5', rotuloArte: 'Arte',
   },
   reels: {
-    abas: [aba('itens', 'Roteiro', 'claquete'), aba('legenda', 'Legenda', 'documento'), aba('visual', 'Gravação e capa', 'video'), VERSOES],
+    abas: [aba('itens', 'Roteiro', 'claquete'), aba('legenda', 'Legenda', 'documento'), aba('visual', 'Gravação e capa', 'video'), EDICAO, VERSOES],
     item: { titulo: 'Cena (tempo ou nome)', texto: 'Fala e o que aparece na tela', maxTitulo: 60, maxTexto: 600 },
     principal: [], legenda: LEGENDA, visual: [GRAVACAO, ...capa('Capa')], artes: 'unica', etapa2: GRAVAR, proporcao: '9:16', rotuloArte: 'Capa',
   },
   video: {
-    abas: [aba('itens', 'Roteiro', 'claquete'), aba('legenda', 'Título e descrição', 'documento'), aba('visual', 'Gravação e thumbnail', 'video'), VERSOES],
+    abas: [aba('itens', 'Roteiro', 'claquete'), aba('legenda', 'Título e descrição', 'documento'), aba('visual', 'Gravação e thumbnail', 'video'), EDICAO, VERSOES],
     item: { titulo: 'Bloco (tempo e tema)', texto: 'Conteúdo do bloco', maxTitulo: 80, maxTexto: 1500 },
     principal: [], legenda: [{ campo: 'titulo', rotulo: 'Título do vídeo', max: 100 }, { campo: 'legenda', rotulo: 'Descrição', linhas: 10, max: 5000 }, { campo: 'cta', rotulo: 'Chamada para ação', max: 150 }, { campo: 'hashtags', rotulo: 'Hashtags' }],
     visual: [GRAVACAO, ...capa('Thumbnail')], artes: 'unica', etapa2: GRAVAR, proporcao: '16:9', rotuloArte: 'Thumbnail',

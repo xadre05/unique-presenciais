@@ -85,6 +85,8 @@ export function rotuloTrabalho(t: Pick<Trabalho, 'tipo' | 'pedido'>) {
   if (t.tipo === 'referencia') return 'Ficha de referência para modelar'
   if (t.tipo === 'teste_voz') return 'Teste da voz da marca'
   if (t.tipo === 'voz') return 'Perfil de voz'
+  if (t.tipo === 'transcricao') return 'Transcrição de vídeo'
+  if (t.tipo === 'edicao_video') return 'Edição de vídeo'
   if (t.tipo === 'propor_plano') return `Proposta de plano${p.ajuste ? ' (ajuste)' : ''}`
   if (t.tipo === 'escrever') return `Rascunhos · ${Array.isArray(p.novas) ? p.novas.length : Array.isArray(p.peca_ids) ? p.peca_ids.length : 0} peça(s)`
   const inicio = String(p.semana_inicio ?? '')

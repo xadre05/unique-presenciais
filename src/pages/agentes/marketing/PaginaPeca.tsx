@@ -20,6 +20,7 @@ import { AbaItens } from './peca/AbaItens'
 import { AbaCampos } from './peca/AbaCampos'
 import { AbaDirecao } from './peca/AbaDirecao'
 import { AbaVersoes } from './peca/AbaVersoes'
+import { AbaEdicao } from './edicao/AbaEdicao'
 import { LadoPeca } from './peca/LadoPeca'
 import { RodapePeca } from './peca/RodapePeca'
 import { ArteContexto, useArte } from './peca/AvisoArte'
@@ -110,6 +111,7 @@ export function PaginaPeca({ peca, trabalhos, campanhas, planos, aoVoltar, aoMud
               {abaAtiva === 'principal' && <AbaCampos {...comum} campos={cfg.principal} nomeAba={nomeAba('principal')} pergunta={`O que deseja ajustar em "${nomeAba('principal')}"?`} />}
               {abaAtiva === 'legenda' && <AbaCampos {...comum} campos={cfg.legenda} nomeAba={nomeAba('legenda')} pergunta={nomeAba('legenda') === 'Legenda' ? 'O que deseja ajustar na legenda?' : `O que deseja ajustar em "${nomeAba('legenda')}"?`} />}
               {abaAtiva === 'visual' && <AbaDirecao {...comum} atual={atual} setAtual={setAtual} nomeAba={nomeAba('visual')} />}
+              {abaAtiva === 'edicao' && <AbaEdicao peca={peca} aoMudar={aoMudar} />}
               {abaAtiva === 'versoes' && <AbaVersoes tipo={peca.tipo} versoes={versoes} sel={sel} setSel={setSel} />}
             </fieldset>
           </>)}
