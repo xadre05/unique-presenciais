@@ -45,8 +45,9 @@ export function NovoVideo({ campanhas }: { campanhas: { id: string; nome: string
       <button type="button" className="ed-soltar" onClick={procurar}
         onDragOver={(e) => e.preventDefault()} onDrop={(e) => { e.preventDefault(); void doArraste(e.dataTransfer).then((r) => escolher(r.arquivo, r.atalho)) }}>
         <span className="ed-soltar-ico"><Icone nome="video" tam={26} /></span>
-        <b>Editar um vídeo</b>
-        <span className="muted">Arraste aqui o vídeo gravado, ou clique para escolher. Pode ser de qualquer tamanho: ele não sobe para o sistema, fica no seu computador.</span>
+        <b>Arraste um vídeo para editar</b>
+        <span className="muted">ou escolha um arquivo neste computador. Pode ser de qualquer tamanho: ele não sobe para o sistema.</span>
+        <span className="btn btn-ouro ed-selecionar"><Icone nome="importar" tam={15} /> Selecionar vídeo</span>
       </button>
       <input ref={entrada} type="file" accept="video/*" hidden onChange={(e) => { escolher(e.target.files?.[0]); e.target.value = '' }} />
       <Erro msg={erro} />

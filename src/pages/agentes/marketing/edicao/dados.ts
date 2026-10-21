@@ -17,7 +17,7 @@ export type MusicaFundo = { nome: string; tamanho: number; volume: number }
 export type VideoFinal = { caminho: string; nome: string; tamanho: number; em: string }
 export type ReferenciaVideo = { nome: string; texto: string; quadros: { t: number; miniatura: string }[] }
 export type Edicao = { arquivo?: ArquivoBruto; palavras?: Palavra[]; receitas?: Receita[]; midias?: MidiaApoio[]; musica?: MusicaFundo; atualizado_em?: string
-  final?: VideoFinal; concluida?: { em: string; destino: Destino }; referencia?: ReferenciaVideo; estilo_ref?: string }
+  final?: VideoFinal; concluida?: { em: string; destino: Destino }; referencia?: ReferenciaVideo; estilo_ref?: string; capa?: string }
 // o que vai para o agente de cada mídia de apoio: o número na lista, o que é e uma miniatura para ele ver
 export type MidiaParaAgente = { n: number; tipo: 'imagem' | 'video'; descricao?: string; duracao?: number; miniatura?: string }
 

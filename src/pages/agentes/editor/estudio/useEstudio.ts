@@ -12,6 +12,7 @@ import { montarLinhaTempo } from '../../marketing/edicao/linhaTempo'
 import { montarVideo } from '../../marketing/edicao/montagem'
 import { usarApoio } from '../../marketing/edicao/usarApoio'
 import { pegarArquivo } from '../arquivoPendente'
+import { usePerfilEditor } from '../dados'
 
 export type Passo = 'video' | 'conteudo' | 'estilo' | 'imagens'
 export const PASSOS: Passo[] = ['video', 'conteudo', 'estilo', 'imagens']
@@ -35,7 +36,11 @@ export function useEstudio(peca: Peca, aoMudar: () => void) {
   const [final, setFinal] = useState<VideoMontado | null>(null)
   const [hdr, setHdr] = useState(false)
   const [corrigirHdr, setCorrigirHdr] = useState(true)
-  const [modeloRef, setModeloRef] = useState(edicao.estilo_ref ?? '')
+  // estilo: o escolhido neste vídeo ('' = estilo da casa) ou, sem escolha, o padrão definido em Estilos
+  const perfilEditor = usePerfilEditor()
+  const padrao = typeof perfilEditor.dados?.perfil?.estilo_ref === 'string' ? perfilEditor.dados.perfil.estilo_ref : ''
+  const [escolhido, setEscolhido] = useState<string | null>(edicao.estilo_ref ?? null)
+  const modeloRef = escolhido ?? padrao
   const receitas = edicao.receitas ?? []
   const [versao, setVersao] = useState(receitas.length - 1)
   // antes da primeira edição o Estúdio abre no passo que falta; depois, na prévia
@@ -50,7 +55,11 @@ export function useEstudio(peca: Peca, aoMudar: () => void) {
   const duracaoBruto = duracao || edicao.arquivo?.duracao || 0
   const linha = useMemo(() => (receita && edicao.palavras?.length ? montarLinhaTempo(edicao.palavras, receita.plano, duracaoBruto, apoio.midias.length) : null), [receita, edicao.palavras, duracaoBruto, apoio.midias.length])
 
-  const escolher = (f: File) => { setErro(null); setArquivo(f); setUrl(URL.createObjectURL(f)); setFinal(null); setHdr(false); void ehHdr(f).then(setHdr) }
+  const escolher = (f: File) => {
+    setErro(null); setArquivo(f); setUrl(URL.createObjectURL(f)); setFinal(null); setHdr(false); void ehHdr(f).then(setHdr)
+    // capa do cartão na entrada do Editor (uma foto pequena do bruto)
+    if (!edicao.capa) void quadrosDoBruto(f, 1).then((q) => q[0] && guardarEdicao(peca.id, (x) => ({ ...x, capa: q[0].miniatura })))
+  }
   // o vídeo escolhido antes (na entrada do Editor ou antes de trocar de tela) volta escolhido
   useEffect(() => { const f = pegarArquivo(peca.id); if (f) escolher(f) }, [peca.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -58,7 +67,7 @@ export function useEstudio(peca: Peca, aoMudar: () => void) {
     setErro(null); setOcupado(rotulo)
     try { await fazer(); aoMudar() } catch (e) { setErro(e instanceof Error ? e.message : 'Algo deu errado.') } finally { setOcupado(null) }
   }
-  const escolherEstilo = async (id: string) => { setModeloRef(id); await guardarEdicao(peca.id, (e) => ({ ...e, estilo_ref: id || undefined })); aoMudar() }
+  const escolherEstilo = async (id: string) => { setEscolhido(id); await guardarEdicao(peca.id, (e) => ({ ...e, estilo_ref: id })); aoMudar() }
   const editar = () => executar('Lendo o áudio do vídeo…', async () => {
     if (!arquivo) return
     const { wav, duracao: d } = await audioDoVideo(arquivo)
