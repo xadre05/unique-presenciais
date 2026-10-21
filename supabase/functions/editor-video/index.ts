@@ -130,7 +130,7 @@ async function prepararIa(db: SupabaseClient, empresa: string) {
     const r = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: { 'x-api-key': String(chave), 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
-      body: JSON.stringify({ model: modelo, max_tokens: 4000, system: sistema, messages: [{ role: 'user', content: conteudo }], tools: [ferramenta], tool_choice: { type: 'tool', name: ferramenta.name } }),
+      body: JSON.stringify({ model: modelo, max_tokens: 4000, system: sistema, messages: [{ role: 'user', content: conteudo }], tools: [ferramenta], tool_choice: { type: 'auto' } }), // os modelos 5.5 não aceitam forçar a ferramenta
     })
     const resp = await r.json().catch(() => ({}))
     if (!r.ok) {
@@ -139,6 +139,8 @@ async function prepararIa(db: SupabaseClient, empresa: string) {
       throw new Error(`O agente respondeu ${r.status}: ${msg}`)
     }
     const entrega = (resp.content ?? []).find((b: { type: string }) => b.type === 'tool_use')?.input as Record<string, unknown> | undefined
+    // às vezes uma lista vem como texto JSON dentro da ferramenta: converte de volta
+    if (entrega) for (const [k, v] of Object.entries(entrega)) { if (typeof v === 'string' && /^\s*[[{]/.test(v)) { try { entrega[k] = JSON.parse(v) } catch { /* fica o texto */ } } }
     const ent = Number(resp.usage?.input_tokens ?? 0), sai = Number(resp.usage?.output_tokens ?? 0)
     await registrar(db, empresa, tipo, '', entrega ? resumo(entrega) : 'Sem resposta', (ent * PRECO[modelo].entrada + sai * PRECO[modelo].saida) / 1_000_000, modelo, ent, sai)
     return entrega
