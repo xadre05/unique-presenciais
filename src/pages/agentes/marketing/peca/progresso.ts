@@ -3,7 +3,7 @@
 // conteudo.producao_ok; a aprovação final é o status "aprovada" de sempre (coluna Pronto no quadro).
 import type { Peca } from '../../comum'
 import { infoFormato } from '../formatos'
-import { configDe } from './editor'
+import { configDaPeca, ehAvulso } from './editor'
 import { conteudoDe } from './modelo'
 import { etapaDe } from '../etapas'
 
@@ -14,8 +14,8 @@ export function estagioDe(p: Peca): Estagio {
   const e = etapaDe(p)
   if (e === 'descartada' || e === 'publicado' || e === 'pronto' || e === 'ideia') return e
   const c = conteudoDe(p)
-  if (!c.aprovado_texto) return 'texto'
-  if (configDe(p.tipo).etapa2 && !c.producao_ok) return 'producao'
+  if (!c.aprovado_texto && !ehAvulso(p)) return 'texto'
+  if (configDaPeca(p).etapa2 && !c.producao_ok) return 'producao'
   return 'final'
 }
 
@@ -25,8 +25,8 @@ const depois = (a: Estagio, b: Estagio) => ORDEM.indexOf(a) > ORDEM.indexOf(b)
 export function passosDe(p: Peca): Passo[] {
   const s = estagioDe(p)
   const material = infoFormato(p.tipo).material
-  const e2 = configDe(p.tipo).etapa2
-  const passos: Passo[] = [
+  const e2 = configDaPeca(p).etapa2
+  const passos: Passo[] = ehAvulso(p) ? [] : [
     s === 'ideia' ? { nome: 'Ideia', estado: 'atual' }
       : s === 'texto' || s === 'descartada' ? { nome: `${material} em ${p.conteudo.etapa === 'producao' ? 'elaboração' : 'revisão'}`, estado: 'atual' }
         : { nome: `${material} aprovado`, estado: 'feito' },

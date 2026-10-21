@@ -11,7 +11,7 @@ import { PublicarVideo } from './PublicarVideo'
 import { audioDoVideo } from './audio'
 import { edicaoDa, guardarEdicao, mesmoArquivo, pedirEdicao, transcrever, useReferenciasVideo, useTemEditor, type Edicao, type Receita } from './dados'
 import { Link } from 'react-router-dom'
-import { pegarArquivo } from '../../editor/arquivoPendente'
+import { deixarArquivo, pegarArquivo } from '../../editor/arquivoPendente'
 import { quadrosDoBruto } from './midias'
 import { ConviteEditor } from './ConviteEditor'
 import { ApoioEdicao } from './ApoioEdicao'
@@ -44,6 +44,7 @@ export function AbaEdicao({ peca, r, aoMudar }: { peca: Peca; r: Rascunho; aoMud
   const [progresso, setProgresso] = useState<number | null>(null)
   const [final, setFinal] = useState<{ url: string; nome: string; arquivo: File } | null>(null)
   const [querEditar, setQuerEditar] = useState(false)
+  const [jaEditado, setJaEditado] = useState(false)
   const refs = useReferenciasVideo()
   const [modeloRef, setModeloRef] = useState('')
   const receitas = edicao.receitas ?? []
@@ -59,9 +60,9 @@ export function AbaEdicao({ peca, r, aoMudar }: { peca: Peca; r: Rascunho; aoMud
 
   const escolher = (f: File | undefined) => {
     if (!f) return
-    setErro(null); setArquivo(f); setUrl(URL.createObjectURL(f))
+    setErro(null); setArquivo(f); setUrl(URL.createObjectURL(f)); deixarArquivo(peca.id, f)
   }
-  // vídeo escolhido na página do Agente Editor ("Editar um vídeo"): já entra escolhido
+  // vídeo já escolhido antes (na página do Agente Editor ou nesta aba, antes de trocar de aba): volta escolhido
   useEffect(() => { const f = pegarArquivo(peca.id); if (f) escolher(f) }, [peca.id]) // eslint-disable-line react-hooks/exhaustive-deps
   const executar = async (rotulo: string, fazer: () => Promise<void>) => {
     setErro(null); setOcupado(rotulo)
@@ -101,13 +102,15 @@ export function AbaEdicao({ peca, r, aoMudar }: { peca: Peca; r: Rascunho; aoMud
     <div className="ev">
       <section className="ev-passo">
         <h4><span>1</span> Vídeo gravado</h4>
-        <p className="muted pequeno">Escolha o vídeo que foi gravado. Ele fica no seu computador e só sobe na hora de publicar. Já veio editado? Publique direto. Ainda está bruto? O Agente Editor de Vídeo edita para você.</p>
+        <p className="muted pequeno">Escolha o vídeo gravado. Ele fica no seu computador (não sobe para o sistema) e continua escolhido ao trocar de aba. Se recarregar ou fechar a página, escolha o mesmo arquivo de novo.</p>
         <label className="btn btn-contorno-ouro ev-arquivo"><Icone nome="importar" tam={16} /> {arquivo ? 'Trocar vídeo' : 'Escolher o vídeo'}
           <input type="file" accept="video/*" hidden onChange={(e) => escolher(e.target.files?.[0])} /></label>
         {arquivo && <span className="pequeno">{arquivo.name} · {(arquivo.size / 1024 / 1024).toFixed(0)} MB</span>}
         {!arquivo && edicao.arquivo && <p className="pequeno">Último vídeo editado: <b>{edicao.arquivo.nome}</b> ({segundos(edicao.arquivo.duracao)}). Escolha o mesmo arquivo para ver a prévia.</p>}
         {arquivo && edicao.arquivo && !confere && <p className="nota pequeno"><Icone nome="alerta" tam={14} /> Este não é o vídeo da última edição. Editar este substitui a edição anterior.</p>}
-        {arquivo && !ocupado && <div className="ev-escolha"><PublicarVideo peca={peca} r={r} arquivo={arquivo} rotulo="Já está editado: agendar no Instagram" aoMudar={aoMudar} /></div>}
+        {arquivo && !ocupado && !jaEditado && <button type="button" className="link pequeno" onClick={() => setJaEditado(true)}>Este vídeo já veio editado? Pular a edição</button>}
+        {arquivo && !ocupado && jaEditado && <div className="ev-escolha"><PublicarVideo peca={peca} r={r} arquivo={arquivo} rotulo="Agendar este vídeo no Instagram" aoMudar={aoMudar} />
+          <button type="button" className="link pequeno" onClick={() => setJaEditado(false)}>Não, quero editar</button></div>}
       </section>
 
       <ApoioEdicao midias={apoio.midias} novasDoBanco={apoio.novasDoBanco.length} arquivos={apoio.arquivos} musica={edicao.musica ? { ...edicao.musica, volume: apoio.volume } : undefined} arquivoMusica={apoio.arquivoMusica}

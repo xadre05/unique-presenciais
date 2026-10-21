@@ -16,6 +16,7 @@ import { useLogos } from './LogosMarca'
 import { BancoImagens, bancoDe } from './BancoImagens'
 import { NovoVideo } from './editor/NovoVideo'
 import { EstiloCasa } from './editor/EstiloCasa'
+import { EstilosReferencia } from './editor/EstilosReferencia'
 import { usePerfilEditor } from './editor/dados'
 
 const dataBr = (iso: string | null) => (iso ? iso.split('-').reverse().join('/') : 'Sem data')
@@ -61,7 +62,8 @@ export default function AgenteEditor() {
           <button type="button" className={aba === 'banco' ? 'ativa' : ''} onClick={() => setAba('banco')}>Banco de imagens · {bancoDe(perfilMarca).length}</button>
         </div>
       )}
-      {tem.dados && aba === 'videos' && <section className="bloco"><NovoVideo campanhas={campanhas} /></section>}
+      {/* fica montado ao trocar de aba: o vídeo e o roteiro escolhidos não somem */}
+      {tem.dados && <section className="bloco" hidden={aba !== 'videos'}><NovoVideo campanhas={campanhas} /></section>}
       {tem.dados && aba === 'videos' && (
         <section className="bloco">
           <h2>Em edição</h2>
@@ -90,6 +92,7 @@ export default function AgenteEditor() {
           <EstiloCasa perfil={editor.dados?.perfil} aoSalvar={editor.recarregar} />
         </section>
       )}
+      {tem.dados && aba === 'estilo' && <EstilosReferencia />}
       {tem.dados && marca.dados && aba === 'banco' && (
         <section className="bloco">
           <h2>Banco de imagens</h2>

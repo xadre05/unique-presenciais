@@ -5,7 +5,8 @@ import { useState } from 'react'
 import { Icone } from '../../../../components/Icone'
 import type { Peca } from '../../comum'
 import { infoFormato } from '../formatos'
-import { configDe, type AbaId } from './editor'
+import { configDaPeca, ehAvulso, type AbaId } from './editor'
+import { edicaoDa } from '../edicao/dados'
 import type { Rascunho, Versao } from './modelo'
 import { estagioDe } from './progresso'
 import type { Estado } from './useEdicao'
@@ -27,7 +28,7 @@ function Rodape({ esquerda, children, nota }: { esquerda: React.ReactNode; child
 
 export function RodapePeca({ peca, r, aba, estado, salvar, acoes, ocupado, versao, atual, aoVoltarEdicao }: Props) {
   const [fora, setFora] = useState(false)
-  const cfg = configDe(peca.tipo)
+  const cfg = configDaPeca(peca)
   const s = estagioDe(peca)
   const pendencia = peca.conteudo.pendencia
   const bloqueio = pendencia ? 'Resolva a pendência da oferta antes de aprovar' : ocupado ? 'Aguarde o agente terminar' : ''
@@ -56,12 +57,17 @@ export function RodapePeca({ peca, r, aba, estado, salvar, acoes, ocupado, versa
   )
   if (s === 'producao' && cfg.etapa2) {
     const total = cfg.artes === 'por_item' ? r.itens.length : 1
-    const faltam = cfg.etapa2.arquivos ? Array.from({ length: total }, (_, j) => r.artes[j]?.arquivo).filter((x) => !x).length : 0
+    // vídeo avulso: só conclui depois de editar com o Editor (ou confirmando que o vídeo já veio editado)
+    const avulso = ehAvulso(peca)
+    const faltam = avulso ? (edicaoDa(peca.conteudo).receitas?.length ? 0 : 1)
+      : cfg.etapa2.arquivos ? Array.from({ length: total }, (_, j) => r.artes[j]?.arquivo).filter((x) => !x).length : 0
+    const nota = !faltam ? undefined : avulso ? 'Edite o vídeo na aba "Edição do vídeo" para concluir.'
+      : `${cfg.etapa2.acao} fica disponível depois de enviar ${faltam === 1 ? 'o arquivo que falta' : `os ${faltam} arquivos que faltam`}.`
     return (
-      <Rodape esquerda={esquerda} nota={faltam ? `${cfg.etapa2.acao} fica disponível depois de enviar ${faltam === 1 ? 'o arquivo que falta' : `os ${faltam} arquivos que faltam`}.` : undefined}>
+      <Rodape esquerda={esquerda} nota={nota}>
         {salvarBotao}
-        {faltam > 0 && !fora && <button className="link pequeno" onClick={() => setFora(true)}>Foi feita fora do sistema?</button>}
-        {faltam > 0 && fora && <button className="btn btn-contorno-ouro" disabled={!!bloqueio} onClick={acoes.concluirProducao}>Confirmar: {cfg.etapa2.feita.toLowerCase()} fora do sistema</button>}
+        {faltam > 0 && !fora && <button className="link pequeno" onClick={() => setFora(true)}>{avulso ? 'O vídeo já veio editado?' : 'Foi feita fora do sistema?'}</button>}
+        {faltam > 0 && fora && <button className="btn btn-contorno-ouro" disabled={!!bloqueio} onClick={acoes.concluirProducao}>{avulso ? 'Confirmar: o vídeo já está editado' : `Confirmar: ${cfg.etapa2.feita.toLowerCase()} fora do sistema`}</button>}
         <button className="btn btn-ouro" disabled={!!bloqueio || faltam > 0} title={bloqueio} onClick={acoes.concluirProducao}><Icone nome="check" tam={16} /> {cfg.etapa2.acao}</button>
       </Rodape>
     )

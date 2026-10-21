@@ -3,7 +3,7 @@
 import type { Peca } from '../../comum'
 import { infoFormato } from '../formatos'
 import { nomeSituacao } from '../etapas'
-import { configDe, nomesItem, type AbaId } from './editor'
+import { configDaPeca, nomesItem, type AbaId } from './editor'
 import { conteudoDe, type Rascunho, type Versao } from './modelo'
 import { estagioDe } from './progresso'
 import { BotaoEnviar, Miniatura, pastaDa } from './arquivos'
@@ -44,7 +44,7 @@ function ArquivosItem({ peca, r, mudar, atual }: Pick<Props, 'peca' | 'r' | 'mud
 }
 
 function Resumo({ peca, r }: Pick<Props, 'peca' | 'r'>) {
-  const cfg = configDe(peca.tipo)
+  const cfg = configDaPeca(peca)
   const { plural } = nomesItem(peca.tipo)
   const hashtags = r.hashtags.split(/\s+/).filter(Boolean).length
   const itens: [string, React.ReactNode][] = []
@@ -57,7 +57,7 @@ function Resumo({ peca, r }: Pick<Props, 'peca' | 'r'>) {
 }
 
 function RevisaoArte({ peca, r }: Pick<Props, 'peca' | 'r'>) {
-  const cfg = configDe(peca.tipo)
+  const cfg = configDaPeca(peca)
   const c = conteudoDe(peca)
   const total = cfg.artes === 'por_item' ? r.itens.length : cfg.artes ? 1 : 0
   const prontas = Array.from({ length: total }, (_, j) => r.artes[j]?.arquivo).filter(Boolean).length
@@ -83,7 +83,7 @@ function VersaoSelecionada({ versao }: { versao: Versao }) {
 }
 
 export function LadoPeca(p: Props) {
-  const cfg = configDe(p.peca.tipo)
+  const cfg = configDaPeca(p.peca)
   return (
     <aside className="pp-lado">
       <DetalhesPeca peca={p.peca} proporcao={p.r.visual.proporcao} campanhas={p.campanhas} planos={p.planos} ocupada={p.ocupada} antes={p.antes} aoMudar={p.aoMudar} />

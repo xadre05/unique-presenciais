@@ -12,7 +12,7 @@ import { ehIdeia, moverPara } from './etapas'
 import { ajustesDa } from './ajuste'
 import { EMPRESA, pedirTrabalho, type Campanha } from './useMarketing'
 import type { Plano } from './planos'
-import { configDe, type AbaId } from './peca/editor'
+import { configDaPeca, type AbaId } from './peca/editor'
 import { versoesDe } from './peca/modelo'
 import { alterarPeca, useEdicao } from './peca/useEdicao'
 import { CabecalhoPeca } from './peca/CabecalhoPeca'
@@ -49,11 +49,11 @@ function Ideia({ peca, rodando, aoGerar, aoEscrever }: { peca: Peca; rodando: bo
 }
 
 export function PaginaPeca({ peca, trabalhos, campanhas, planos, aoVoltar, aoMudar, abasTopo }: Props) {
-  const cfg = configDe(peca.tipo)
+  const cfg = configDaPeca(peca)
   const ed = useEdicao(peca, aoMudar)
   const { r, mudar } = ed
   // ?edicao=1 (vindo do Agente Editor de Vídeo) abre direto na aba de edição
-  const abaInicial = (): AbaId => { const c = configDe(peca.tipo); return new URLSearchParams(window.location.search).get('edicao') && c.abas.some((a) => a.id === 'edicao') ? 'edicao' : c.abas[0].id }
+  const abaInicial = (): AbaId => { const c = configDaPeca(peca); return new URLSearchParams(window.location.search).get('edicao') && c.abas.some((a) => a.id === 'edicao') ? 'edicao' : c.abas[0].id }
   const [aba, setAba] = useState<AbaId>(abaInicial)
   const [atual, setAtual] = useState(0)
   const [motivo, setMotivo] = useState<string | null>(null)

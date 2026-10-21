@@ -94,6 +94,14 @@ const CONFIG: Record<Formato, ConfigEditor> = {
 }
 
 export const configDe = (tipo: string): ConfigEditor => CONFIG[tipo as Formato] ?? CONFIG.post
+
+// Vídeo avulso (criado em Agente Editor → "Editar um vídeo"): não tem roteiro nem gravação planejados. Começa na
+// edição do vídeo, depois a legenda e a aprovação. Sem a etapa de texto (ver progresso.ts).
+const EDITAR: Etapa2 = { nome: 'Edição do vídeo', pendente: 'Edição pendente', feita: 'Vídeo editado', acao: 'Concluir edição', arquivos: false }
+const AVULSO: ConfigEditor = { ...CONFIG.reels, abas: [{ id: 'edicao', nome: 'Edição do vídeo', icone: 'video' }, aba('legenda', 'Legenda', 'documento'), VERSOES], visual: [], artes: null, etapa2: EDITAR }
+type PecaMinima = { tipo: string; conteudo: unknown }
+export const ehAvulso = (p: PecaMinima) => (p.conteudo as { origem?: unknown } | null)?.origem === 'editor'
+export const configDaPeca = (p: PecaMinima): ConfigEditor => (ehAvulso(p) ? { ...AVULSO, proporcao: p.tipo === 'video' ? '16:9' : '9:16' } : configDe(p.tipo))
 // nome do item no singular e no plural (lâmina/lâminas, cena/cenas…), vindo de formatos.ts
 export function nomesItem(tipo: string) {
   const [plural, singular] = infoFormato(tipo).campos.roteiro

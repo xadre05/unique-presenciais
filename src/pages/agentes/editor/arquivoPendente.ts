@@ -1,11 +1,7 @@
-// O vídeo escolhido em "Editar um vídeo" (página do Agente Editor) passa para a aba de edição da peça sem subir para
-// lugar nenhum: fica guardado aqui, na memória da página, até a aba abrir e pegar.
-let pendente: { peca: string; arquivo: File } | null = null
+// O vídeo bruto de cada peça, guardado na memória da página enquanto ela estiver aberta: não sobe para lugar nenhum,
+// mas não some ao trocar de aba (Vídeos ↔ Estilo, Legenda ↔ Edição do vídeo) nem ao ir e voltar entre peças.
+// Some só ao recarregar ou fechar a página (aí é preciso escolher o arquivo de novo).
+const arquivos = new Map<string, File>()
 
-export const deixarArquivo = (peca: string, arquivo: File) => { pendente = { peca, arquivo } }
-export function pegarArquivo(peca: string) {
-  if (pendente?.peca !== peca) return null
-  const f = pendente.arquivo
-  pendente = null
-  return f
-}
+export const deixarArquivo = (peca: string, arquivo: File) => { arquivos.set(peca, arquivo) }
+export const pegarArquivo = (peca: string) => arquivos.get(peca) ?? null

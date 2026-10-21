@@ -36,7 +36,8 @@ export default function ComoUsar() {
     const id = hash.slice(1)
     if (!id) return
     setAberto(id)
-    requestAnimationFrame(() => document.getElementById(id)?.scrollIntoView({ block: 'start', behavior: 'smooth' }))
+    const t = setTimeout(() => document.getElementById(id)?.scrollIntoView({ block: 'start', behavior: 'smooth' }), 200) // depois do scroll ao topo da troca de página
+    return () => clearTimeout(t)
   }, [hash])
   const lista = useMemo(() => {
     const b = semAcento(busca.trim())
