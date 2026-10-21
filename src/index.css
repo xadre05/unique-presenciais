@@ -3272,3 +3272,7 @@ a.sala-agente:hover { border-color: var(--ouro); transform: translateY(-2px); }
 .ev-montando { display: flex; align-items: center; gap: 10px; }
 .ev-passo > a.btn { justify-self: start; }
 .ev-resultado { width: 100%; max-width: 340px; border-radius: 12px; background: #000; }
+.ev-convite { display: flex; gap: 18px; align-items: center; padding: 18px; border: 1px solid var(--borda); border-left: 4px solid var(--cor-agente); border-radius: 14px; background: var(--painel); }
+.ev-convite h4 { margin: 0 0 6px; }
+.ev-convite .btn { margin-top: 6px; }
+@media (max-width: 640px) { .ev-convite { flex-direction: column; text-align: center; } }

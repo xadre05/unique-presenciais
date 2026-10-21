@@ -8,6 +8,7 @@ import { Icone } from '../../components/Icone'
 import { TrocaArea } from '../../components/TrocaArea'
 import Sala from './Sala'
 import AgenteMarketing from './AgenteMarketing'
+import AgenteEditor from './AgenteEditor'
 import Central from './Central'
 import AgentePlanejado from './AgentePlanejado'
 import Aprovacoes from './Aprovacoes'
@@ -65,6 +66,7 @@ export default function AreaAgentes() {
         <Routes>
           <Route index element={<Sala />} />
           <Route path="marketing" element={<AgenteMarketing />} />
+          <Route path="editor" element={<AgenteEditor />} />
           <Route path="central" element={<Central />} />
           <Route path="aprovacoes" element={<Aprovacoes />} />
           <Route path="historico" element={<Historico />} />

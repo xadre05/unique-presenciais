@@ -52,12 +52,14 @@ export function PaginaPeca({ peca, trabalhos, campanhas, planos, aoVoltar, aoMud
   const cfg = configDe(peca.tipo)
   const ed = useEdicao(peca, aoMudar)
   const { r, mudar } = ed
-  const [aba, setAba] = useState<AbaId>(cfg.abas[0].id)
+  // ?edicao=1 (vindo do Agente Editor de Vídeo) abre direto na aba de edição
+  const abaInicial = (): AbaId => { const c = configDe(peca.tipo); return new URLSearchParams(window.location.search).get('edicao') && c.abas.some((a) => a.id === 'edicao') ? 'edicao' : c.abas[0].id }
+  const [aba, setAba] = useState<AbaId>(abaInicial)
   const [atual, setAtual] = useState(0)
   const [motivo, setMotivo] = useState<string | null>(null)
   const versoes = versoesDe(peca)
   const [sel, setSel] = useState(0)
-  useEffect(() => { setAba(configDe(peca.tipo).abas[0].id); setAtual(0); setMotivo(null) }, [peca.id]) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { setAba(abaInicial()); setAtual(0); setMotivo(null) }, [peca.id]) // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { setSel(versoes.at(-2)?.n ?? versoes.at(-1)?.n ?? 0) }, [peca.id, versoes.length]) // eslint-disable-line react-hooks/exhaustive-deps
   const abaAtiva = cfg.abas.some((a) => a.id === aba) ? aba : cfg.abas[0].id
   const { rodando, ultimo } = ajustesDa(peca, trabalhos)

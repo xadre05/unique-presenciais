@@ -5,7 +5,8 @@ import { Erro } from '../../../../components/ui'
 import { Icone } from '../../../../components/Icone'
 import type { Peca } from '../../comum'
 import { audioDoVideo } from './audio'
-import { edicaoDa, guardarEdicao, mesmoArquivo, pedirEdicao, transcrever, type Edicao, type Receita } from './dados'
+import { edicaoDa, guardarEdicao, mesmoArquivo, pedirEdicao, transcrever, useTemEditor, type Edicao, type Receita } from './dados'
+import { ConviteEditor } from './ConviteEditor'
 import { montarLinhaTempo } from './linhaTempo'
 import { PreviaVideo } from './PreviaVideo'
 import { montarVideo } from './montagem'
@@ -16,6 +17,7 @@ const comReceita = (e: Edicao, r: Receita): Edicao => ({ ...e, receitas: [...(e.
 
 export function AbaEdicao({ peca, aoMudar }: { peca: Peca; aoMudar: () => void }) {
   const edicao = edicaoDa(peca.conteudo)
+  const temEditor = useTemEditor()
   const [arquivo, setArquivo] = useState<File | null>(null)
   const [url, setUrl] = useState<string | null>(null)
   const [duracao, setDuracao] = useState(0)
@@ -73,11 +75,13 @@ export function AbaEdicao({ peca, aoMudar }: { peca: Peca; aoMudar: () => void }
     } catch (e) { setErro(e instanceof Error ? e.message : 'Não consegui montar o vídeo.') } finally { setProgresso(null) }
   }
 
+  if (temEditor.dados === false) return <ConviteEditor />
+
   return (
     <div className="ev">
       <section className="ev-passo">
         <h4><span>1</span> Vídeo gravado</h4>
-        <p className="muted pequeno">O vídeo fica no seu computador: só o áudio vai para a transcrição. Nada de vídeo é guardado no sistema.</p>
+        <p className="muted pequeno">Quem edita é o Agente Editor de Vídeo. O vídeo fica no seu computador: só o áudio vai para a transcrição e nada de vídeo é guardado no sistema. Se o vídeo já veio editado, não precisa desta aba: siga para a publicação.</p>
         <label className="btn btn-contorno-ouro ev-arquivo"><Icone nome="importar" tam={16} /> {arquivo ? 'Trocar vídeo' : 'Escolher o vídeo bruto'}
           <input type="file" accept="video/*" hidden onChange={(e) => escolher(e.target.files?.[0])} /></label>
         {arquivo && <span className="pequeno">{arquivo.name} · {(arquivo.size / 1024 / 1024).toFixed(0)} MB</span>}

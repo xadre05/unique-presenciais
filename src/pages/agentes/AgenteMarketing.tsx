@@ -31,13 +31,14 @@ const ESCOPO_DO_MODO: Record<ModoPlano, TipoEscopo> = { dia: 'dia', semana: 'sem
 
 export default function AgenteMarketing() {
   const local = useLocation()
-  const [aba, setAba] = useState<Aba>(() => { const a = new URLSearchParams(local.search).get('aba'); return a === 'config' || a === 'resultados' || a === 'producao' ? a : 'conteudos' })
+  const [aba, setAba] = useState<Aba>(() => { const q = new URLSearchParams(local.search); const a = q.get('aba'); return q.get('peca') ? 'producao' : a === 'config' || a === 'resultados' || a === 'producao' ? a : 'conteudos' })
   // filtros moram aqui: continuam iguais ao trocar Quadro/Calendário e ao ir à Produção e voltar (regra 6)
   // ?campanha=id (atalho de Base da marca → Campanhas) já abre filtrado; ?data= leva o calendário ao mês da campanha
   const [f, setF] = useState<Filtros>(() => { const q = new URLSearchParams(local.search), d = q.get('data'); return { ...filtrosIniciais(), campanha: q.get('campanha') ?? '', ...(d ? { periodo: 'mes' as const, data: d, visao: 'calendario' as const } : {}) } })
   const [fp, setFp] = useState<FiltrosProducao>(() => ({ ...filtrosProducaoIniciais(), campanha: new URLSearchParams(local.search).get('campanha') ?? '' }))
   const mudar = (c: Partial<Filtros>) => setF((x) => ({ ...x, ...c }))
-  const [aberta, setAberta] = useState<string | null>(null)
+  // ?peca=<id> abre a peça direto (vem do Agente Editor de Vídeo)
+  const [aberta, setAberta] = useState<string | null>(() => new URLSearchParams(local.search).get('peca'))
   // ?modo=peca (atalho da Sala dos agentes) abre direto a reunião de algo para hoje
   const [pagina, setPagina] = useState<Pagina>(() => (new URLSearchParams(local.search).get('modo') === 'peca' ? { tipo: 'reuniao', escopo: 'dia', data: hojeISO() } : null))
   const [campanhaAberta, setCampanhaAberta] = useState(false)

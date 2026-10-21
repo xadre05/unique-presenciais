@@ -1,5 +1,5 @@
-// Editor de vídeo do Agente de Marketing (21/10/2026). O vídeo bruto NÃO passa por aqui: fica no computador de quem
-// edita. O navegador tira só o áudio (leve) e manda para transcrever; depois manda as palavras com o tempo de cada uma,
+// Agente Editor de Vídeo (21/10/2026), contratado à parte: o custo e a memória dele ficam no agente 'editor'.
+// O vídeo bruto NÃO passa por aqui: fica no computador de quem edita. O navegador tira só o áudio (leve) e manda para transcrever; depois manda as palavras com o tempo de cada uma,
 // e o agente devolve a "receita" da edição (trechos que ficam, legenda, texto na tela, zoom). A receita é um JSON
 // pequeno guardado na peça; o vídeo final é montado no navegador.
 //   POST multipart { acao: 'transcrever', empresa, peca, audio (wav) } → { palavras, duracao, idioma }
@@ -24,13 +24,15 @@ type Palavra = { p: string; i: number; f: number }
 
 async function registrar(db: SupabaseClient, empresa: string, tipo: string, peca: string, resumo: string, custo: number, modelo: string, ent = 0, sai = 0) {
   await db.from('agentes_trabalhos').insert({
-    empresa_id: empresa, agente_id: 'marketing', tipo, status: 'pronto', pedido: { peca }, resumo: resumo.slice(0, 200),
+    empresa_id: empresa, agente_id: 'editor', tipo, status: 'pronto', pedido: { peca }, resumo: resumo.slice(0, 200),
     modelo, tokens_entrada: ent, tokens_saida: sai, custo_usd: arred(custo), terminado_em: new Date().toISOString(),
   })
 }
 
 async function transcrever(db: SupabaseClient, form: FormData) {
   const empresa = String(form.get('empresa') ?? ''), peca = String(form.get('peca') ?? '')
+  const { data: ag } = await db.from('agentes_empresa').select('ativo').eq('empresa_id', empresa).eq('agente_id', 'editor').maybeSingle()
+  if (!ag?.ativo) throw new Error('A empresa não tem o Agente Editor de Vídeo ligado.')
   const audio = form.get('audio')
   if (!(audio instanceof File)) throw new Error('Faltou o áudio do vídeo.')
   if (audio.size > 25 * 1024 * 1024) throw new Error('O áudio passou de 25 MB (vídeo de mais de ~13 minutos). Divida o vídeo em partes.')
@@ -87,11 +89,12 @@ async function editar(db: SupabaseClient, corpo: Record<string, unknown>) {
     db.from('agentes_pecas').select('titulo,tipo,conteudo').eq('id', pecaId).eq('empresa_id', empresa).maybeSingle(),
     db.rpc('agentes_ler_chave', { p_empresa: empresa }),
     db.from('agentes_config').select('modelo').eq('empresa_id', empresa).maybeSingle(),
-    db.from('agentes_empresa').select('perfil').eq('empresa_id', empresa).eq('agente_id', 'marketing').maybeSingle(),
+    db.from('agentes_empresa').select('perfil,ativo').eq('empresa_id', empresa).eq('agente_id', 'editor').maybeSingle(),
     db.from('marca_referencias').select('nome,autor,ficha').eq('empresa_id', empresa).eq('ativo', true).eq('status', 'pronta').in('formato', ['reels', 'video']).order('atualizado_em', { ascending: false }).limit(6),
   ])
   if (!peca) throw new Error('Peça não encontrada.')
   if (!chave) throw new Error('Falta cadastrar a chave do Claude em Agentes → Configurações.')
+  if (!ag?.ativo) throw new Error('A empresa não tem o Agente Editor de Vídeo ligado.')
   const pa = (ag?.perfil ?? {}) as Record<string, unknown>
   const modelo = (typeof pa.modelo === 'string' && PRECO[pa.modelo] ? pa.modelo : null) ?? (cfg?.modelo && PRECO[cfg.modelo] ? cfg.modelo : 'claude-sonnet-5-5')
   const c = (peca.conteudo ?? {}) as { roteiro?: string[]; texto_arte?: string; edicao?: { gostos?: string[] } }
@@ -140,7 +143,7 @@ async function editar(db: SupabaseClient, corpo: Record<string, unknown>) {
   if (gosto) {
     const memoriaToda = (Array.isArray(pa.memoria) ? pa.memoria : []) as { texto: string; em: string; origem: string }[]
     const texto = `Edição: ${gosto}`
-    if (!memoriaToda.some((m) => m.texto === texto)) await db.from('agentes_empresa').update({ perfil: { ...pa, memoria: [...memoriaToda, { texto, em: new Date().toISOString(), origem: 'edicao' }].slice(-40) } }).eq('empresa_id', empresa).eq('agente_id', 'marketing')
+    if (!memoriaToda.some((m) => m.texto === texto)) await db.from('agentes_empresa').update({ perfil: { ...pa, memoria: [...memoriaToda, { texto, em: new Date().toISOString(), origem: 'edicao' }].slice(-40) } }).eq('empresa_id', empresa).eq('agente_id', 'editor')
   }
   return { plano, modelo }
 }
