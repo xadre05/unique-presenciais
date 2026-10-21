@@ -6,6 +6,7 @@ import { brl, dataBR, dataHoraBR, FORMAS, hojeISO, mesAno, ORIGENS, SITUACAO_ALU
 import type { Aluno, MatriculaV, ParcelaV } from '../lib/types'
 import { Badge, Campo, enviarArquivo, Erro, InputMoeda, Kpi, LinkArquivo, Modal } from '../components/ui'
 import { useAuth } from '../auth'
+import { CampoCampanha } from './CampoCampanha'
 import { contaPadrao } from './NovaMatricula'
 
 export type Acao = { tipo: 'informar' | 'confirmar' | 'editar' | 'nova' | 'cancelar'; parcela?: ParcelaV }
@@ -281,8 +282,13 @@ function EditarMatricula({ aberto, m, isAdmin, vendedoras, turmas, onFechar, onS
   const [arquivo, setArquivo] = useState<File | null>(null)
   const [erro, setErro] = useState<string | null>(null)
   const [aberto0, setAberto0] = useState(false)
-  if (aberto !== aberto0) { setAberto0(aberto); if (aberto) { setF(m); setArquivo(null); setErro(null) } }
+  const [campanha, setCampanha] = useState<{ campanha_id: string; encontro_id: string } | null>(null)
+  const extra = useConsulta<{ campanha_id: string | null; encontro_id: string | null }>(() => supabase.from('matriculas').select('campanha_id,encontro_id').eq('id', m.id).single(), [m.id, aberto])
+  const encontros = useConsulta<{ id: string; titulo: string; data_inicio: string }[]>(
+    () => supabase.from('encontros').select('id,titulo,data_inicio').eq('turma_id', f.turma_id ?? m.turma_id).eq('cancelado', false).order('data_inicio'), [f.turma_id])
+  if (aberto !== aberto0) { setAberto0(aberto); if (aberto) { setF(m); setArquivo(null); setErro(null); setCampanha(null) } }
   if (!aberto) return null
+  const camp = campanha ?? { campanha_id: extra.dados?.campanha_id ?? '', encontro_id: extra.dados?.encontro_id ?? '' }
   const set = (k: keyof MatriculaV, v: unknown) => setF((x) => ({ ...x, [k]: v }))
   const salvar = async () => {
     setErro(null)
@@ -293,6 +299,7 @@ function EditarMatricula({ aberto, m, isAdmin, vendedoras, turmas, onFechar, onS
       const { error } = await supabase.from('matriculas').update({
         turma_id: f.turma_id, vendedora_id: f.vendedora_id || null, data_venda: f.data_venda, valor_fechado: f.valor_fechado, origem: f.origem, status: f.status,
         contrato_assinado: !!(f.contrato_assinado || arquivo), contrato_arquivo: contrato, motivo_cancelamento: f.motivo_cancelamento || null, observacoes: f.observacoes || null,
+        campanha_id: camp.campanha_id || null, encontro_id: camp.encontro_id || null,
       }).eq('id', m.id)
       if (error) throw error
       onSalvo()
@@ -308,6 +315,8 @@ function EditarMatricula({ aberto, m, isAdmin, vendedoras, turmas, onFechar, onS
         <Campo rotulo="Tipo"><select value={f.origem} onChange={(e) => set('origem', e.target.value)}>{Object.entries(ORIGENS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></Campo>
         <Campo rotulo="Inscrição"><select value={f.status} onChange={(e) => set('status', e.target.value)}>{Object.entries(STATUS_MATRICULA).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></Campo>
       </div>
+      <CampoCampanha campanhaId={camp.campanha_id} aoMudarCampanha={(id) => setCampanha({ ...camp, campanha_id: id })}
+        encontros={encontros.dados ?? []} encontroId={camp.encontro_id} aoMudarEncontro={(id) => setCampanha({ ...camp, encontro_id: id })} />
       {f.status === 'cancelada' && <Campo rotulo="Motivo do cancelamento"><input value={f.motivo_cancelamento ?? ''} onChange={(e) => set('motivo_cancelamento', e.target.value)} /></Campo>}
       <label className="check"><input type="checkbox" checked={!!f.contrato_assinado} onChange={(e) => set('contrato_assinado', e.target.checked)} /> Contrato assinado</label>
       <Campo rotulo="Arquivo do contrato" dica={m.contrato_arquivo ? 'Já existe um arquivo. Enviar outro substitui.' : 'PDF assinado'}><input type="file" accept="application/pdf,image/*" onChange={(e) => setArquivo(e.target.files?.[0] ?? null)} /></Campo>
