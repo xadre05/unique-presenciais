@@ -1,9 +1,12 @@
-// Aba "Edição do vídeo" da peça de vídeo: escolher o vídeo bruto (fica no computador), o agente transcreve, decide
-// os cortes, a legenda, os textos na tela e os zooms pelo roteiro, e a prévia mostra na hora. Ajustes por conversa.
+// Aba "Vídeo" da peça de vídeo: a pessoa escolhe o vídeo gravado (fica no computador) e decide: publicar como veio
+// (já editado) ou editar com o Agente Editor de Vídeo, que transcreve, decide cortes, legenda, textos na tela e zooms
+// pelo roteiro, mostra a prévia, ajusta por conversa e monta o vídeo final. Sem o Editor, aparece o convite.
 import { useEffect, useMemo, useState } from 'react'
 import { Erro } from '../../../../components/ui'
 import { Icone } from '../../../../components/Icone'
 import type { Peca } from '../../comum'
+import type { Rascunho } from '../peca/modelo'
+import { PublicarVideo } from './PublicarVideo'
 import { audioDoVideo } from './audio'
 import { edicaoDa, guardarEdicao, mesmoArquivo, pedirEdicao, transcrever, useTemEditor, type Edicao, type Receita } from './dados'
 import { ConviteEditor } from './ConviteEditor'
@@ -15,7 +18,7 @@ const MAX_RECEITAS = 6
 const segundos = (s: number) => `${Math.floor(s / 60)} min ${Math.round(s % 60)} s`
 const comReceita = (e: Edicao, r: Receita): Edicao => ({ ...e, receitas: [...(e.receitas ?? []), r].slice(-MAX_RECEITAS) })
 
-export function AbaEdicao({ peca, aoMudar }: { peca: Peca; aoMudar: () => void }) {
+export function AbaEdicao({ peca, r, aoMudar }: { peca: Peca; r: Rascunho; aoMudar: () => void }) {
   const edicao = edicaoDa(peca.conteudo)
   const temEditor = useTemEditor()
   const [arquivo, setArquivo] = useState<File | null>(null)
@@ -26,7 +29,8 @@ export function AbaEdicao({ peca, aoMudar }: { peca: Peca; aoMudar: () => void }
   const [pedido, setPedido] = useState('')
   const [lembrar, setLembrar] = useState(false)
   const [progresso, setProgresso] = useState<number | null>(null)
-  const [final, setFinal] = useState<{ url: string; nome: string } | null>(null)
+  const [final, setFinal] = useState<{ url: string; nome: string; arquivo: File } | null>(null)
+  const [querEditar, setQuerEditar] = useState(false)
   const receitas = edicao.receitas ?? []
   const [versao, setVersao] = useState(receitas.length - 1)
   useEffect(() => { setVersao((edicao.receitas ?? []).length - 1) }, [edicao.receitas?.length])
@@ -71,25 +75,27 @@ export function AbaEdicao({ peca, aoMudar }: { peca: Peca; aoMudar: () => void }
       const blob = await montarVideo(arquivo, linha, peca.tipo !== 'video', setProgresso)
       const ext = blob.type.includes('mp4') ? 'mp4' : 'webm'
       const nome = `${peca.titulo.replace(/[^\p{L}\p{N} -]/gu, '').trim().slice(0, 60) || 'video'} - editado.${ext}`
-      setFinal({ url: URL.createObjectURL(blob), nome })
+      setFinal({ url: URL.createObjectURL(blob), nome, arquivo: new File([blob], nome, { type: blob.type }) })
     } catch (e) { setErro(e instanceof Error ? e.message : 'Não consegui montar o vídeo.') } finally { setProgresso(null) }
   }
-
-  if (temEditor.dados === false) return <ConviteEditor />
 
   return (
     <div className="ev">
       <section className="ev-passo">
         <h4><span>1</span> Vídeo gravado</h4>
-        <p className="muted pequeno">Quem edita é o Agente Editor de Vídeo. O vídeo fica no seu computador: só o áudio vai para a transcrição e nada de vídeo é guardado no sistema. Se o vídeo já veio editado, não precisa desta aba: siga para a publicação.</p>
-        <label className="btn btn-contorno-ouro ev-arquivo"><Icone nome="importar" tam={16} /> {arquivo ? 'Trocar vídeo' : 'Escolher o vídeo bruto'}
+        <p className="muted pequeno">Escolha o vídeo que foi gravado. Ele fica no seu computador e só sobe na hora de publicar. Já veio editado? Publique direto. Ainda está bruto? O Agente Editor de Vídeo edita para você.</p>
+        <label className="btn btn-contorno-ouro ev-arquivo"><Icone nome="importar" tam={16} /> {arquivo ? 'Trocar vídeo' : 'Escolher o vídeo'}
           <input type="file" accept="video/*" hidden onChange={(e) => escolher(e.target.files?.[0])} /></label>
         {arquivo && <span className="pequeno">{arquivo.name} · {(arquivo.size / 1024 / 1024).toFixed(0)} MB</span>}
         {!arquivo && edicao.arquivo && <p className="pequeno">Último vídeo editado: <b>{edicao.arquivo.nome}</b> ({segundos(edicao.arquivo.duracao)}). Escolha o mesmo arquivo para ver a prévia.</p>}
         {arquivo && edicao.arquivo && !confere && <p className="nota pequeno"><Icone nome="alerta" tam={14} /> Este não é o vídeo da última edição. Editar este substitui a edição anterior.</p>}
-        {arquivo && (!confere || !receitas.length) && !ocupado && (
-          <button type="button" className="btn btn-ouro" onClick={editarDoZero}><Icone nome="floco" tam={16} /> Editar com o agente</button>)}
+        {arquivo && !ocupado && (
+          <div className="ev-escolha">
+            <PublicarVideo peca={peca} r={r} arquivo={arquivo} rotulo="Já está editado: agendar no Instagram" aoMudar={aoMudar} />
+            {(!confere || !receitas.length) && <button type="button" className="btn btn-contorno-ouro" onClick={() => (temEditor.dados ? editarDoZero() : setQuerEditar(true))}><Icone nome="floco" tam={16} /> Editar com o Editor de Vídeo</button>}
+          </div>)}
       </section>
+      {querEditar && temEditor.dados === false && <ConviteEditor />}
 
       {ocupado && <div className="progresso"><div className="indeterminado" /><span>{ocupado}</span></div>}
       <Erro msg={erro} />
@@ -116,7 +122,7 @@ export function AbaEdicao({ peca, aoMudar }: { peca: Peca; aoMudar: () => void }
       {receita && (
         <section className="ev-passo">
           <h4><span>3</span> Vídeo final</h4>
-          <p className="muted pequeno">A montagem é feita aqui no seu computador e leva o tempo do vídeo final. Deixe esta aba aberta e na frente até terminar. O arquivo vai para os seus downloads; nada fica guardado no sistema.</p>
+          <p className="muted pequeno">A montagem é feita aqui no seu computador e leva o tempo do vídeo final. Deixe esta aba aberta e na frente até terminar. Depois você baixa ou agenda direto no Instagram; nada fica guardado no sistema.</p>
           {progresso !== null ? (
             <div className="ev-montando"><div className="ev-barra"><span style={{ width: `${Math.round(progresso * 100)}%` }} /></div><span className="pequeno">Montando… {Math.round(progresso * 100)}%</span></div>
           ) : (
@@ -124,6 +130,7 @@ export function AbaEdicao({ peca, aoMudar }: { peca: Peca; aoMudar: () => void }
           )}
           {final && <a className="btn btn-contorno-ouro" href={final.url} download={final.nome}><Icone nome="importar" tam={16} /> Baixar {final.nome}</a>}
           {final && <video className="ev-resultado" src={final.url} controls playsInline />}
+          {final && <PublicarVideo peca={peca} r={r} arquivo={final.arquivo} rotulo="Agendar no Instagram com o vídeo editado" aoMudar={aoMudar} />}
         </section>
       )}
     </div>

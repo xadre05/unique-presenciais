@@ -15,8 +15,8 @@ export type ConfigEditor = {
 }
 
 const VERSOES: Aba = { id: 'versoes', nome: 'Versões', icone: 'historico' }
-// edição do vídeo gravado (agente corta, legenda e monta no navegador; o vídeo não sobe para o banco)
-const EDICAO: Aba = { id: 'edicao', nome: 'Edição do vídeo', icone: 'video' }
+// o vídeo gravado: publicar como veio ou editar com o Agente Editor de Vídeo (monta no navegador; nada fica no banco)
+const EDICAO: Aba = { id: 'edicao', nome: 'Vídeo', icone: 'video' }
 const aba = (id: AbaId, nome: string, icone: string): Aba => ({ id, nome, icone })
 const LEGENDA: Campo[] = [{ campo: 'legenda', rotulo: 'Legenda', linhas: 9 }, { campo: 'cta', rotulo: 'Chamada para ação', max: 150 }, { campo: 'hashtags', rotulo: 'Hashtags' }]
 const ORIENTA_ARTE: Campo = { campo: 'prompt_imagem', rotulo: 'Orientação para a arte', linhas: 5, dica: 'Cena, enquadramento, luz e o texto que vai na arte. Serve para gerar a arte aqui ou para colar em outra IA.' }

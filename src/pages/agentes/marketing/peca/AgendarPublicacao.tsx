@@ -10,7 +10,8 @@ import { Miniatura, pastaDa } from './arquivos'
 import type { Rascunho } from './modelo'
 import { NOME_FORMATO_PUB, agendar, comoJpeg, enviarVideo, type FormatoPublicacao, type MidiaPublicacao } from '../../instagram/publicacoes'
 
-type Props = { peca: Peca; r: Rascunho; formato: FormatoPublicacao; usuario: string | null; aoFechar: () => void; aoAgendar: () => void }
+// videoInicial: o vídeo já escolhido na aba Vídeo (o editado pelo Agente Editor ou o que já veio pronto)
+type Props = { peca: Peca; r: Rascunho; formato: FormatoPublicacao; usuario: string | null; aoFechar: () => void; aoAgendar: () => void; videoInicial?: File | null }
 const LIMITE = 2200
 const agora = () => new Date()
 // dia e hora sugeridos: o dia da peça e o horário dela (ou a próxima hora cheia)
@@ -21,10 +22,10 @@ function sugestao(peca: Peca) {
   return `${dia}T${hora}`
 }
 
-export function AgendarPublicacao({ peca, r, formato, usuario, aoFechar, aoAgendar }: Props) {
+export function AgendarPublicacao({ peca, r, formato, usuario, aoFechar, aoAgendar, videoInicial }: Props) {
   const artes = r.artes.map((a) => a.arquivo).filter(Boolean) as string[]
   const [marcadas, setMarcadas] = useState<string[]>(formato === 'imagem' || formato === 'stories' ? artes.slice(0, 1) : formato === 'reels' ? artes.slice(0, 1) : artes)
-  const [video, setVideo] = useState<File | null>(null)
+  const [video, setVideo] = useState<File | null>(videoInicial ?? null)
   const [legenda, setLegenda] = useState(() => [r.legenda, r.cta, r.hashtags].map((x) => x.trim()).filter(Boolean).join('\n\n'))
   const [modo, setModo] = useState<'agora' | 'depois'>('depois')
   const [quando, setQuando] = useState(() => sugestao(peca))

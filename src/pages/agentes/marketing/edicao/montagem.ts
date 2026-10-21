@@ -3,6 +3,7 @@
 // navegador permite). Leva o tempo do próprio vídeo; a aba precisa ficar aberta e visível enquanto monta.
 import { ativo, type GrupoLegenda, type LinhaTempo } from './linhaTempo'
 
+// 4,5 Mbps: qualidade de Reels (o Instagram recomprime) e arquivo pequeno (~35 MB por minuto) para caber no envio
 const TAMANHO = { vertical: [1080, 1920], horizontal: [1920, 1080] } as const
 const DOURADO = '#D4AF37'
 
@@ -97,7 +98,7 @@ export async function montarVideo(arquivo: File, linha: LinhaTempo, vertical: bo
   audio.createMediaElementSource(v).connect(saida)
   const fluxo = new MediaStream([...canvas.captureStream(30).getVideoTracks(), ...saida.stream.getAudioTracks()])
   const tipo = formatoGravacao()
-  const gravador = new MediaRecorder(fluxo, { mimeType: tipo, videoBitsPerSecond: 8_000_000 })
+  const gravador = new MediaRecorder(fluxo, { mimeType: tipo, videoBitsPerSecond: 4_500_000 })
   const partes: Blob[] = []
   gravador.ondataavailable = (e) => { if (e.data.size) partes.push(e.data) }
   let feito = 0

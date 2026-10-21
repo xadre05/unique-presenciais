@@ -113,7 +113,7 @@ export function PaginaPeca({ peca, trabalhos, campanhas, planos, aoVoltar, aoMud
               {abaAtiva === 'principal' && <AbaCampos {...comum} campos={cfg.principal} nomeAba={nomeAba('principal')} pergunta={`O que deseja ajustar em "${nomeAba('principal')}"?`} />}
               {abaAtiva === 'legenda' && <AbaCampos {...comum} campos={cfg.legenda} nomeAba={nomeAba('legenda')} pergunta={nomeAba('legenda') === 'Legenda' ? 'O que deseja ajustar na legenda?' : `O que deseja ajustar em "${nomeAba('legenda')}"?`} />}
               {abaAtiva === 'visual' && <AbaDirecao {...comum} atual={atual} setAtual={setAtual} nomeAba={nomeAba('visual')} />}
-              {abaAtiva === 'edicao' && <AbaEdicao peca={peca} aoMudar={aoMudar} />}
+              {abaAtiva === 'edicao' && <AbaEdicao peca={peca} r={r} aoMudar={aoMudar} />}
               {abaAtiva === 'versoes' && <AbaVersoes tipo={peca.tipo} versoes={versoes} sel={sel} setSel={setSel} />}
             </fieldset>
           </>)}
