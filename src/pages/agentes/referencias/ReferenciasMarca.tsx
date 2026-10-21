@@ -10,6 +10,7 @@ import { CATEGORIAS, mudarReferencia, nomeCategoria, nomeFormato, pedirFicha, ti
 import { FichaReferencia } from './FichaReferencia'
 import { retomarCanal } from './canal'
 import { estudarCriativo } from './campeoes'
+import { BotaoAjuda } from '../ajuda/BotaoAjuda'
 
 const STATUS: Record<Referencia['status'], string> = { nova: 'Ainda não estudada', analisando: 'O agente está estudando…', pronta: 'Aprendido', erro: 'Não deu certo' }
 
@@ -65,6 +66,7 @@ export function ReferenciasMarca({ empresa, lista, carregando, erro, aoMudou, ao
         <span className="ia-linha">
           <button type="button" className="btn btn-contorno-ouro" onClick={aoCanal}><Icone nome="video" tam={15} /> Estudar um canal</button>
           <button type="button" className="btn btn-contorno-ouro" onClick={aoNova}><Icone nome="mais" tam={15} /> Nova referência</button>
+          <BotaoAjuda id="estudar-canal" />
         </span>
       </div>
       <div className="ia-linha">

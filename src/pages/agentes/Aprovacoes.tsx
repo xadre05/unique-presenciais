@@ -5,6 +5,7 @@ import { Vazio } from '../../components/ui'
 import { EMPRESA_UNIQUE } from '../crm/comum'
 import { PecaCartao } from './PecaCartao'
 import { visualDe, type Peca } from './comum'
+import { BotaoAjuda } from './ajuda/BotaoAjuda'
 
 export default function Aprovacoes() {
   const pecas = useConsulta<(Peca & { agente_id: string })[]>(() => supabase.from('agentes_pecas').select('*').eq('empresa_id', EMPRESA_UNIQUE).eq('status', 'rascunho').order('dia').order('ordem'))
@@ -12,7 +13,7 @@ export default function Aprovacoes() {
   for (const p of pecas.dados ?? []) porAgente.set(p.agente_id, [...(porAgente.get(p.agente_id) ?? []), p])
   return (
     <div className="pagina larga">
-      <header className="pagina-topo"><div><h1>Aprovações</h1><p className="muted">O que os agentes prepararam e espera a sua decisão.</p></div></header>
+      <header className="pagina-topo"><div><h1>Aprovações <BotaoAjuda id="aprovar" /></h1><p className="muted">O que os agentes prepararam e espera a sua decisão.</p></div></header>
       {!pecas.carregando && porAgente.size === 0 && <Vazio>Nada esperando aprovação.</Vazio>}
       {[...porAgente.entries()].map(([agente, ps]) => (
         <section key={agente} className="bloco">

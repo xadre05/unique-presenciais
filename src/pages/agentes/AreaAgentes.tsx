@@ -16,6 +16,7 @@ import Historico from './Historico'
 import CentralMarca from './CentralMarca'
 import Tarefas from './Tarefas'
 import PaginaAutomacoes from './automacoes/PaginaAutomacoes'
+import ComoUsar from './ajuda/ComoUsar'
 
 export default function AreaAgentes() {
   const { perfil, isAdmin } = useAuth()
@@ -46,6 +47,7 @@ export default function AreaAgentes() {
           <span className="nav-grupo">Gestão</span>
           <NavLink to="/agentes/marca"><Icone nome="livro" /> Base da marca</NavLink>
           <NavLink to="/agentes/central"><Icone nome="equipe" /> Configurações</NavLink>
+          <NavLink to="/agentes/ajuda"><Icone nome="ajuda" /> Como usar</NavLink>
         </nav>
         <div className="lateral-rodape">
           <div className="avatar"><Icone nome="usuario" tam={20} /></div>
@@ -73,6 +75,7 @@ export default function AreaAgentes() {
           <Route path="automacoes" element={<PaginaAutomacoes />} />
           <Route path="marca" element={<CentralMarca />} />
           <Route path="tarefas" element={<Tarefas />} />
+          <Route path="ajuda" element={<ComoUsar />} />
           <Route path=":id" element={<AgentePlanejado />} />
           <Route path="*" element={<Navigate to="/agentes" replace />} />
         </Routes>

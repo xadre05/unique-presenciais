@@ -3,7 +3,7 @@
 // (anos, mesmo recorte em anos diferentes, antes × depois de uma data) e Aprendizados (histórico de análises, ensinar o
 // agente, revisão semanal). Atualiza sozinho todo dia às 6h; "Atualizar agora" lê na hora.
 import { useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { supabase } from '../../../lib/supabase'
 import { useConsulta } from '../../../lib/dados'
 import { Erro } from '../../../components/ui'
@@ -19,6 +19,7 @@ import { AbaSeguidores } from './AbaSeguidores'
 import { AbaComparacoes } from './AbaComparacoes'
 import { AbaAprendizados } from './AbaAprendizados'
 import { RecriarPost } from './RecriarPost'
+import { BotaoAjuda } from '../ajuda/BotaoAjuda'
 
 type Aba = 'periodo' | 'posts' | 'seguidores' | 'comparacoes' | 'aprendizados'
 const ABAS: { id: Aba; nome: string }[] = [
@@ -33,7 +34,8 @@ export function ResultadosInstagram({ empresa, aoAbrirPeca }: Props) {
   const analises = useAnalises(empresa)
   const marcos = useMarcos(empresa)
   const perfil = useConsulta<{ perfil: Record<string, unknown> } | null>(() => supabase.from('agentes_empresa').select('perfil').eq('empresa_id', empresa).eq('agente_id', 'marketing').maybeSingle(), [empresa])
-  const [aba, setAba] = useState<Aba>('periodo')
+  const [params] = useSearchParams()
+  const [aba, setAba] = useState<Aba>(() => ABAS.find((x) => x.id === params.get('ver'))?.id ?? 'periodo')
   const [recriar, setRecriar] = useState<PostIG | null>(null)
   const [fazendo, setFazendo] = useState<'analisar' | 'sincronizar' | 'historico' | null>(null)
   const [aviso, setAviso] = useState<string | null>(null)
@@ -64,7 +66,7 @@ export function ResultadosInstagram({ empresa, aoAbrirPeca }: Props) {
 
   return (
     <section className="mk-plano">
-      <CabecalhoAba titulo="Resultados" sub="O que os posts entregaram, comparado com antes, e o que o agente aprendeu com eles. Hoje: Instagram." />
+      <CabecalhoAba titulo="Resultados" sub="O que os posts entregaram, comparado com antes, e o que o agente aprendeu com eles. Hoje: Instagram."><BotaoAjuda id="aprendizados" /></CabecalhoAba>
       {!conexao.carregando && c?.status !== 'conectado' && (
         <div className="mk-vazio-grande"><Icone nome="grafico" tam={30} /><p>O Instagram ainda não está ligado.</p>
           <span className="muted pequeno">Ligue em <Link to="/agentes/central?aba=integracoes">Configurações → Integrações</Link>. Depois disso o agente lê os posts e as métricas todo dia.</span></div>

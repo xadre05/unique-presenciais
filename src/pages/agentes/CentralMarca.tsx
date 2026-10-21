@@ -12,6 +12,7 @@ import { useConexao } from './instagram/dados'
 import { CampanhasMarca } from './campanhas/CampanhasMarca'
 import { AbaMarca } from './marca/AbaMarca'
 import { AbaConhecimento } from './marca/AbaConhecimento'
+import { BotaoAjuda } from './ajuda/BotaoAjuda'
 
 type Aba = 'marca' | 'campanhas' | 'conhecimento' | 'canais'
 const ABAS: { id: Aba; nome: string; sub: string }[] = [
@@ -49,7 +50,7 @@ export default function CentralMarca() {
   const atual = ABAS.find((a) => a.id === aba)!
   return (
     <div className="pagina">
-      <header className="pagina-topo"><div><h1>Base da marca</h1><p className="muted">O que os agentes precisam saber para falar como a empresa.</p></div>{quando && <span className="bm-quando muted pequeno"><Icone nome="relogio" tam={15} /> Última alteração: {quando}</span>}</header>
+      <header className="pagina-topo"><div><h1>Base da marca <BotaoAjuda id={{ marca: 'base-marca', campanhas: 'campanhas', conhecimento: 'estudar-canal', canais: 'configuracoes' }[aba]} /></h1><p className="muted">O que os agentes precisam saber para falar como a empresa.</p></div>{quando && <span className="bm-quando muted pequeno"><Icone nome="relogio" tam={15} /> Última alteração: {quando}</span>}</header>
       <nav className="mk-abas-topo">{ABAS.map((a) => <button key={a.id} className={aba === a.id ? 'ativa' : ''} onClick={() => trocar(a.id)}>{a.nome}</button>)}</nav>
       <p className="muted base-sub">{atual.sub}</p>
       {aviso && <p className="nota pequeno erro-txt">{aviso}</p>}

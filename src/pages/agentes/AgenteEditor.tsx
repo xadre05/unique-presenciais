@@ -2,7 +2,8 @@
 // Estilo da casa e Banco de imagens. A edição em si acontece na peça (aba "Edição do vídeo"), onde estão o roteiro e a
 // legenda. Sem o agente contratado, a página apresenta o editor e leva para ligar o agente.
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
+import { BotaoAjuda } from './ajuda/BotaoAjuda'
 import { supabase } from '../../lib/supabase'
 import { useConsulta } from '../../lib/dados'
 import { Erro, Vazio } from '../../components/ui'
@@ -29,7 +30,8 @@ function situacao(p: Peca) {
 type Aba = 'videos' | 'estilo' | 'banco'
 
 export default function AgenteEditor() {
-  const [aba, setAba] = useState<Aba>('videos')
+  const [params] = useSearchParams()
+  const [aba, setAba] = useState<Aba>(() => { const a = params.get('aba'); return a === 'estilo' || a === 'banco' ? a : 'videos' })
   const a = visualDe('editor')
   const tem = useTemEditor()
   const pecas = useConsulta<Peca[]>(() => supabase.from('agentes_pecas').select('*').eq('empresa_id', EMPRESA).eq('agente_id', 'marketing')
@@ -46,7 +48,7 @@ export default function AgenteEditor() {
       <header className="agente-topo" style={{ ['--cor-agente' as string]: a.cor }}>
         <Retrato agente="editor" estado={tem.dados ? 'trabalhando' : 'parado'} alto={150} />
         <div>
-          <h1>Agente {a.nome}</h1>
+          <h1>Agente {a.nome} <BotaoAjuda id={aba === 'videos' ? 'editar-video' : 'estilo-casa'} /></h1>
           <p className="agente-papel">{a.papel} · Academy e Clinical</p>
           <p>{a.descricao}</p>
           {tem.dados === false && <p className="nota">Este agente é contratado à parte e ainda não está ligado na empresa. Ligue em <Link to="/agentes/central?aba=agentes" className="link">Configurações → Agentes</Link>.</p>}

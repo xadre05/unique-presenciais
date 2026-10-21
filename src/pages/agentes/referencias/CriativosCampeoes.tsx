@@ -8,6 +8,7 @@ import { brl } from '../../../lib/format'
 import { guardarCampeao, useCampeoes, type Campeao, type NovoCampeao } from './campeoes'
 import type { Referencia } from './dados'
 import { PostsCampeoes } from './PostsCampeoes'
+import { BotaoAjuda } from '../ajuda/BotaoAjuda'
 
 const dia = (d: string) => d.split('-').reverse().slice(0, 2).join('/')
 const MOSTRAR = 12
@@ -49,7 +50,7 @@ export function CriativosCampeoes({ empresa, referencias, aoMudou }: Props) {
   const estudado = (anuncio: string) => referencias.find((r) => r.categoria === 'nosso' && r.nome === anuncio)
   return (
     <section className="bm-cartao ref">
-      <div><h2>Nossos criativos que deram resultado</h2>
+      <div><h2>Nossos criativos que deram resultado <BotaoAjuda id="nossos-campeoes" /></h2>
         <p className="muted pequeno">O que a própria marca já fez e funcionou: os posts do Instagram que mais performaram em toda a história e os anúncios que mais venderam. Ensine o roteiro dos campeões: o Agente de Marketing parte deles para escrever, e pode reaproveitar as nossas frases.</p></div>
       <div className="ia-linha">
         <button type="button" className={`mk-chip${aba === 'posts' ? ' ativo' : ''}`} onClick={() => setAba('posts')}>Posts do Instagram</button>

@@ -11,6 +11,7 @@ import { creditos, creditosDe, textoCreditos } from './creditos'
 import { ChavesIA } from './ChavesIA'
 import type { EscolhaIAs } from './ias'
 import { ConexaoInstagram } from './instagram/ConexaoInstagram'
+import { BotaoAjuda } from './ajuda/BotaoAjuda'
 
 const EMPRESA = EMPRESA_UNIQUE
 type Aba = 'ias' | 'integracoes' | 'agentes'
@@ -44,7 +45,7 @@ export default function Central() {
 
   return (
     <div className="pagina">
-      <header className="pagina-topo"><div><h1>Configurações</h1><p className="muted">As IAs, as integrações e os agentes da empresa.</p></div></header>
+      <header className="pagina-topo"><div><h1>Configurações <BotaoAjuda id="configuracoes" /></h1><p className="muted">As IAs, as integrações e os agentes da empresa.</p></div></header>
       <nav className="mk-abas-topo">{ABAS.map((a) => <button key={a.id} className={aba === a.id ? 'ativa' : ''} onClick={() => trocar(a.id)}>{a.nome}</button>)}</nav>
       <p className="muted base-sub">{ABAS.find((a) => a.id === aba)!.sub}</p>
       {aba === 'ias' && <>

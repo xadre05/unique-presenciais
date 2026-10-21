@@ -2,11 +2,12 @@
 // (marketing, atendimento, vendas). Hoje: comentário no Instagram → mensagem no direct com link, PDF ou WhatsApp.
 import { EMPRESA } from '../marketing/useMarketing'
 import { AbaAutomacoes } from './AbaAutomacoes'
+import { BotaoAjuda } from '../ajuda/BotaoAjuda'
 
 export default function PaginaAutomacoes() {
   return (
     <div className="pagina larga">
-      <header className="pagina-topo"><div><h1>Automações</h1>
+      <header className="pagina-topo"><div><h1>Automações <BotaoAjuda id="automacoes" /></h1>
         <p className="muted">Quem comenta a palavra-chave recebe uma mensagem no direct com um link, um PDF ou o caminho para o WhatsApp da equipe. Hoje: Instagram.</p></div></header>
       <AbaAutomacoes empresa={EMPRESA} />
     </div>

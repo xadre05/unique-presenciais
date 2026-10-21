@@ -23,6 +23,7 @@ import { RedesAtivas, redesAtivas } from './marketing/redes'
 import { CabecalhoAba } from './marketing/BarraFiltros'
 import { aplicar, filtrosIniciais, filtrosProducaoIniciais, intervaloDe, type Filtros, type FiltrosProducao } from './marketing/filtros'
 import type { Plano } from './marketing/planos'
+import { BotaoAjuda } from './ajuda/BotaoAjuda'
 
 type Aba = 'conteudos' | 'producao' | 'resultados' | 'config'
 // páginas que tomam a tela inteira (sem as abas), com o caminho no topo
@@ -94,7 +95,7 @@ export default function AgenteMarketing() {
       <header className="mk-topo">
         <span className={`mk-avatar-pronto${ocupado ? ' trabalhando' : ''}`}><img src="/agentes/marketing-avatar.webp?v=1" alt="" /></span>
         <div className="mk-topo-txt">
-          <h1>Agente de Marketing</h1>
+          <h1>Agente de Marketing <BotaoAjuda id={aba === 'resultados' ? 'aprendizados' : aba === 'producao' ? 'aprovar' : 'planejar'} /></h1>
           <p className="muted">Conteúdo e campanhas para os seus canais. Nada é publicado sozinho.</p>
           {perfil.dados && !perfil.dados.ativo && <p className="erro-txt pequeno">Este agente está desligado. Ligue em Configurar agente.</p>}
         </div>

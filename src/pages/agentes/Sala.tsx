@@ -11,6 +11,7 @@ import { useSala, type AgenteNaSala } from './useSala'
 import { TIPO_PECA, visualDe } from './comum'
 import { creditosDe } from './creditos'
 import type { PerfilMarketing } from './marca/dados'
+import { BotaoAjuda } from './ajuda/BotaoAjuda'
 
 function situacao(a: AgenteNaSala, temChave: boolean): { txt: string; tom: string } {
   if (!a.disponivel) return { txt: a.escopo === 'clinical' ? 'Para clínicas · Em breve' : 'Em breve', tom: 'neutro' }
@@ -81,7 +82,7 @@ export default function Sala() {
   return (
     <div className="pagina larga sala">
       <header className="sala-topo">
-        <div><h1>Sala dos agentes</h1><p>Sua equipe de inteligência, com a identidade da Unique.</p></div>
+        <div><h1>Sala dos agentes <BotaoAjuda id="visao-geral" /></h1><p>Sua equipe de inteligência, com a identidade da Unique.</p></div>
         <Link to="/agentes/marca" className="btn btn-contorno-ouro"><Icone nome="livro" /> Base da marca</Link>
       </header>
 
