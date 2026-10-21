@@ -3242,3 +3242,4 @@ a.sala-agente:hover { border-color: var(--ouro); transform: translateY(-2px); }
 .blk-vagas { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 10px; }
 .blk-vagas li { border: 1px solid var(--borda); border-radius: 10px; padding: 10px 12px; display: flex; flex-direction: column; gap: 4px; align-items: flex-start; }
 .blk-vagas li.lotada { opacity: .7; border-color: var(--erro); }
+.cmp-ofertas { display: flex; flex-direction: column; gap: 4px; margin-bottom: 8px; max-height: 180px; overflow: auto; }

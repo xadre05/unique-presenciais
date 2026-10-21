@@ -1,4 +1,4 @@
-// Funil da Black: cada passo com quantas pessoas e quanto passou do passo anterior.
+// Funil da campanha: cada passo com quantas pessoas e quanto passou do passo anterior.
 import { pct, type Funil as F } from './dados'
 
 const PASSOS: { k: keyof F; nome: string; dica: string }[] = [
@@ -23,7 +23,7 @@ export function Funil({ f }: { f: F }) {
           </li>
         )
       })}</ol>
-      <p className="muted pequeno">Os três primeiros passos contam a partir de quando a página passou a mandar os eventos para o sistema (20/10).</p>
+      <p className="muted pequeno">Os três primeiros passos só aparecem se a página da campanha manda os passos para o sistema.</p>
     </section>
   )
 }

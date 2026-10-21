@@ -1,6 +1,9 @@
-// Painel da Black 2026: tipos do retorno de painel_black() e os textos da campanha.
-export const META_VENDAS = 200          // meta de novembro (Black Friday Limited Edition)
-export const META_RECEITA = 1_000_000   // R$ 1 milhão bruto
+// Campanhas de venda: o cadastro (campanhas_vendas) e o retorno de painel_campanha(id).
+export type Campanha = {
+  id?: string; nome: string; inicio: string | null; fim: string | null; formulario_slug: string | null; etiqueta: string | null
+  ofertas: string[]; meta_vendas: number | null; meta_receita: number | null; observacao: string | null
+}
+export const CAMPANHA_NOVA: Campanha = { nome: '', inicio: null, fim: null, formulario_slug: null, etiqueta: null, ofertas: [], meta_vendas: null, meta_receita: null, observacao: null }
 
 export type Funil = { visitantes: number; abriram_escolha: number; escolheram: number; foram_pagamento: number; pix_ou_abandono: number; compraram: number; desfeitas: number }
 export type Origem = { origem: string; leads: number; vendas: number; liquido: number }
@@ -9,6 +12,7 @@ export type Pendente = { id: string; nome: string | null; telefone: string | nul
 export type Vaga = { codigo: string; modulo: string; data_inicio: string; lugares: number; matriculados: number; compraram: number; livres: number }
 export type Venda = { nome: string | null; data: string; valor: number | null; forma: string | null; origem: string; turma: string }
 export type Painel = {
+  campanha: { id: string; nome: string; inicio: string | null; fim: string | null; meta_vendas: number | null; meta_receita: number | null }
   funil: Funil; receita: { bruto: number; liquido: number }; por_origem: Origem[]; por_vendedora: Vendedora[]
   por_dia: { dia: string; vendas: number }[]; pendentes: Pendente[]; vagas: Vaga[]; ultimas: Venda[]
 }
@@ -24,5 +28,10 @@ export function nomeOrigem(codigo: string) {
 
 const MODULOS: Record<string, string> = { UCODES: 'Unique Codes', START: 'Start Pro', COLLAGEN: 'Collagen', SCULPT: 'Sculpt', THREAD: 'Thread' }
 export const nomeModulo = (m: string) => MODULOS[m] ?? m
+
+// campanha que está valendo hoje (a mais recente entre as do período); senão, a mais nova
+export function campanhaAtual(lista: (Campanha & { id: string })[], hoje: string) {
+  return lista.find((c) => (!c.inicio || c.inicio <= hoje) && (!c.fim || c.fim >= hoje)) ?? lista[0]
+}
 
 export const pct = (parte: number, todo: number) => (todo > 0 ? Math.round((parte / todo) * 100) : 0)

@@ -1,4 +1,4 @@
-// Vagas da Black por data: 12 lugares − alunos já matriculados na turma − compradores da Black naquela data.
+// Vagas da campanha por data: 12 lugares − alunos já matriculados na turma − compradores da Black naquela data.
 import { Badge } from '../../components/ui'
 import { dataBR } from '../../lib/format'
 import { nomeModulo, type Vaga } from './dados'
@@ -14,7 +14,7 @@ export function QuadroVagas({ vagas }: { vagas: Vaga[] }) {
           {v.livres === 0 ? <Badge tom="erro">Lotado</Badge> : <Badge tom={v.livres <= 3 ? 'alerta' : 'ok'}>{v.livres} livre{v.livres > 1 ? 's' : ''}</Badge>}
         </li>
       ))}</ul>
-      <p className="muted pequeno">Sculpt 05/11 e Thread 04/12 são da 1ª turma da Residência, que está fechada: não deveriam estar à venda.</p>
+      <p className="muted pequeno">Lugares = 12 − alunos já matriculados na turma − compradores da campanha naquela data. Data lotada (ou de turma fechada) não deveria estar à venda na página.</p>
     </section>
   )
 }

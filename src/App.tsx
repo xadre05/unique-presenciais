@@ -23,7 +23,7 @@ import AreaAtendimento from './pages/atendimento/AreaAtendimento'
 import AreaAgentes from './pages/agentes/AreaAgentes'
 import AreaFinanceiro from './pages/financeiro/AreaFinanceiro'
 import AreaControle from './pages/controle/AreaControle'
-import PainelBlack from './pages/black/PainelBlack'
+import PainelCampanha from './pages/campanhas/PainelCampanha'
 import { TrocaArea } from './components/TrocaArea'
 import { Icone } from './components/Icone'
 import { Marca } from './components/ui'
@@ -71,7 +71,7 @@ function Layout() {
         <TrocaArea ativa="comercial" />
         <nav>
           <NavLink to="/" end><Icone nome="painel" /> Painel</NavLink>
-          {isAdmin && <NavLink to="/black"><Icone nome="grafico" /> Black 2026</NavLink>}
+          {isAdmin && <NavLink to="/campanhas"><Icone nome="grafico" /> Campanhas</NavLink>}
           <NavLink to="/turmas"><Icone nome="turmas" /> Turmas</NavLink>
           <NavLink to="/agenda"><Icone nome="agenda" /> Agenda</NavLink>
           <NavLink to="/pagamentos"><Icone nome="pagamentos" /> Pagamentos</NavLink>
@@ -104,7 +104,8 @@ function Layout() {
       <main className="conteudo">
         <Routes>
           <Route path="/" element={<Painel />} />
-          {isAdmin && <Route path="/black" element={<PainelBlack />} />}
+          {isAdmin && <Route path="/campanhas" element={<PainelCampanha />} />}
+          <Route path="/black" element={<Navigate to="/campanhas" replace />} />
           <Route path="/turmas" element={<Turmas />} />
           <Route path="/turmas/:id" element={<TurmaDetalhe />} />
           <Route path="/matricula/nova" element={<NovaMatricula />} />

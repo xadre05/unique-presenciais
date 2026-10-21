@@ -1,4 +1,4 @@
-// Quem foi ao pagamento na página da Black e ainda não comprou: a lista para o time chamar.
+// Quem foi ao pagamento na página da campanha e ainda não comprou: a lista para o time chamar.
 import { Link } from 'react-router-dom'
 import { Badge, Vazio } from '../../components/ui'
 import { dataHoraBR } from '../../lib/format'
@@ -19,7 +19,7 @@ export function ListaPendentes({ pendentes }: { pendentes: Pendente[] }) {
               <td className="celula-acao">{p.telefone && <a className="btn btn-mini" href={linkWhats(p.telefone) ?? undefined} target="_blank" rel="noreferrer">WhatsApp</a>}</td>
             </tr>
           ))}</tbody></table>)}
-      <p className="muted pequeno">A tarefa "Foi ao pagamento e ainda não comprou" aparece para a vendedora 2 horas depois do clique; quem compra sai da lista sozinho.</p>
+      <p className="muted pequeno">A tarefa "Foi ao pagamento e ainda não comprou" aparece para a vendedora depois do tempo de espera do formulário; quem compra sai da lista sozinho.</p>
     </section>
   )
 }
