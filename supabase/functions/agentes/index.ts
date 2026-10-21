@@ -486,10 +486,14 @@ async function escrever(db: SupabaseClient, t: Trabalho, perfil: Record<string, 
       return { grupo: g, modelo: m, fontes: kn.fontes, ...(await chamarClaude(chave, m, sistema, comAnexos(comBloco(kn.bloco, [modelos, usuario].filter(Boolean).join('\n\n')), anexos))) }
     }))
     let escritas = 0
+    // o que veio e não casou com nenhuma peça fica no histórico do trabalho, para conferir
+    const naoCasou: unknown[] = []
     for (const r of respostas) {
       const entregues = comoLista<Peca>(r.entrega.pecas)
+      if (entregues.length !== r.grupo.length) naoCasou.push({ pedidas: r.grupo.length, vieram: entregues.length, refs: entregues.map((x) => x.ref), tipoPecas: typeof r.entrega.pecas })
       await Promise.all(r.grupo.map(async (p, i) => {
-        const e = entregues.find((x) => Number(x.ref) === i + 1) ?? (entregues.every((x) => !x.ref) ? entregues[i] : undefined)
+        // pelo número do item; se o número veio diferente (ex.: "1)" ou a posição na lista toda), vale a ordem quando a quantidade bate
+        const e = entregues.find((x) => parseInt(String(x.ref), 10) === i + 1) ?? (entregues.length === r.grupo.length || entregues.every((x) => !x.ref) ? entregues[i] : undefined)
         if (!e) return db.from('agentes_pecas').update({ conteudo: { ...p.conteudo, etapa: 'ideia' } }).eq('id', p.id)
         escritas++
         const livre = p.conteudo.livre === true
@@ -503,7 +507,7 @@ async function escrever(db: SupabaseClient, t: Trabalho, perfil: Record<string, 
     }
     const entrada = respostas.reduce((s, r) => s + r.entrada, 0), saida = respostas.reduce((s, r) => s + r.saida, 0)
     await db.from('agentes_trabalhos').update({
-      pedido: { ...t.pedido, peca_ids: ids, anexos: anexos.map((a) => ({ nome: a.nome, tipo: a.tipo })) },
+      pedido: { ...t.pedido, peca_ids: ids, anexos: anexos.map((a) => ({ nome: a.nome, tipo: a.tipo })), nao_casou: naoCasou.length ? naoCasou : undefined },
       status: 'pronto', resumo: respostas.map((r) => r.entrega.resumo).filter(Boolean)[0] ?? `${escritas} rascunho(s) escritos`,
       modelo: [...new Set(respostas.map((r) => r.modelo))].join(' + '), tokens_entrada: entrada, tokens_saida: saida,
       custo_usd: Math.round(respostas.reduce((s, r) => s + custo(r.modelo, r.entrada, r.saida), 0) * 10000) / 10000, terminado_em: new Date().toISOString(),
