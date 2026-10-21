@@ -30,7 +30,7 @@ export function NovoVideo({ campanhas }: { campanhas: { id: string; nome: string
           <option value="">Sem campanha</option>{campanhas.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}</select></span></label>
       </div>
       <label className="campo"><span>Roteiro (opcional)</span>
-        <textarea rows={5} value={d.roteiro} onChange={(e) => setD({ ...d, roteiro: e.target.value })} placeholder="Cole o roteiro que foi gravado. Separe as cenas com uma linha em branco. Ajuda o agente a escolher a melhor tomada e os textos na tela." /></label>
+        <textarea rows={5} value={d.roteiro} onChange={(e) => setD({ ...d, roteiro: e.target.value })} placeholder="Opcional. Cole o roteiro gravado (cenas separadas por uma linha em branco). Se deixar vazio, o agente procura nos roteiros da campanha (suba o PDF com todos em Base da marca → Materiais da campanha, como roteiro) qual foi gravado." /></label>
       <div className="linha-acoes">
         <button type="button" className="btn btn-ouro" disabled={!d.titulo.trim() || criando} onClick={criar}>{criando ? 'Criando…' : 'Criar e escolher o vídeo'}</button>
         <button type="button" className="btn" onClick={() => setAberto(false)}>Cancelar</button>

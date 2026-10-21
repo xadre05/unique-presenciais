@@ -4,7 +4,7 @@ import { DURACAO_RISER, SONS, type Efeito, type Som } from './efeitos'
 // vídeo bruto: trechos que ficam, legenda em grupos, textos na tela e zooms. A prévia e a montagem usam o mesmo cálculo.
 export type Palavra = { p: string; i: number; f: number }
 export type Plano = {
-  resumo?: string; faltou?: string
+  resumo?: string; faltou?: string; roteiro_identificado?: string
   trechos: { de: number; ate: number }[]
   correcoes?: { palavra: number; texto: string }[]
   destaques?: number[]

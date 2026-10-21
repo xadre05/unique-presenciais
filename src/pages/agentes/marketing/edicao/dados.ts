@@ -30,8 +30,16 @@ export function transcrever(peca: string, wav: Blob) {
   return chamar<{ palavras: Palavra[]; duracao: number }>(f)
 }
 
-export function pedirEdicao(peca: string, palavras: Palavra[], duracao: number, midias: MidiaParaAgente[], pedido = '', lembrar = '', anterior?: Plano) {
-  return chamar<{ plano: Plano }>({ acao: 'editar', empresa: EMPRESA, peca, palavras, duracao, midias, pedido: pedido || undefined, lembrar: lembrar || undefined, anterior })
+// modeloRef = id da referência de estilo escolhida (Base da marca → Referências), para editar naquele estilo
+export type OpcoesEdicao = { pedido?: string; lembrar?: string; anterior?: Plano; modeloRef?: string }
+export function pedirEdicao(peca: string, palavras: Palavra[], duracao: number, midias: MidiaParaAgente[], o: OpcoesEdicao = {}) {
+  return chamar<{ plano: Plano }>({ acao: 'editar', empresa: EMPRESA, peca, palavras, duracao, midias, pedido: o.pedido || undefined, lembrar: o.lembrar || undefined, anterior: o.anterior, modelo_ref: o.modeloRef || undefined })
+}
+
+// referências de estilo de vídeo já analisadas (reels e vídeo longo)
+export function useReferenciasVideo() {
+  return useConsulta<{ id: string; nome: string | null; autor: string | null; formato: string }[]>(() => supabase.from('marca_referencias').select('id,nome,autor,formato')
+    .eq('empresa_id', EMPRESA).eq('ativo', true).eq('status', 'pronta').in('formato', ['reels', 'video']).order('atualizado_em', { ascending: false }).limit(30))
 }
 
 export async function guardarEdicao(peca: string, mudar: (e: Edicao) => Edicao) {

@@ -9,7 +9,8 @@ import type { Peca } from '../../comum'
 import type { Rascunho } from '../peca/modelo'
 import { PublicarVideo } from './PublicarVideo'
 import { audioDoVideo } from './audio'
-import { edicaoDa, guardarEdicao, mesmoArquivo, pedirEdicao, transcrever, useTemEditor, type Edicao, type Receita } from './dados'
+import { edicaoDa, guardarEdicao, mesmoArquivo, pedirEdicao, transcrever, useReferenciasVideo, useTemEditor, type Edicao, type Receita } from './dados'
+import { Link } from 'react-router-dom'
 import { ConviteEditor } from './ConviteEditor'
 import { ApoioEdicao } from './ApoioEdicao'
 import { usarApoio } from './usarApoio'
@@ -41,6 +42,8 @@ export function AbaEdicao({ peca, r, aoMudar }: { peca: Peca; r: Rascunho; aoMud
   const [progresso, setProgresso] = useState<number | null>(null)
   const [final, setFinal] = useState<{ url: string; nome: string; arquivo: File } | null>(null)
   const [querEditar, setQuerEditar] = useState(false)
+  const refs = useReferenciasVideo()
+  const [modeloRef, setModeloRef] = useState('')
   const receitas = edicao.receitas ?? []
   const [versao, setVersao] = useState(receitas.length - 1)
   useEffect(() => { setVersao((edicao.receitas ?? []).length - 1) }, [edicao.receitas?.length])
@@ -68,12 +71,12 @@ export function AbaEdicao({ peca, r, aoMudar }: { peca: Peca; r: Rascunho; aoMud
     if (!palavras.length) throw new Error('Não encontrei fala neste vídeo.')
     await guardarEdicao(peca.id, (e) => ({ ...e, arquivo: { nome: arquivo.name, tamanho: arquivo.size, duracao: d }, palavras, receitas: [] }))
     setOcupado('O agente está editando…')
-    const { plano } = await pedirEdicao(peca.id, palavras, d, await apoio.paraAgente())
+    const { plano } = await pedirEdicao(peca.id, palavras, d, await apoio.paraAgente(), { modeloRef })
     await guardarEdicao(peca.id, (e) => comReceita(e, { plano, em: new Date().toISOString() }))
   })
   const ajustar = () => executar('O agente está ajustando…', async () => {
     if (!edicao.palavras || !pedido.trim()) return
-    const { plano } = await pedirEdicao(peca.id, edicao.palavras, duracaoBruto, await apoio.paraAgente(), pedido.trim(), lembrar ? pedido.trim() : '', receita?.plano)
+    const { plano } = await pedirEdicao(peca.id, edicao.palavras, duracaoBruto, await apoio.paraAgente(), { pedido: pedido.trim(), lembrar: lembrar ? pedido.trim() : '', anterior: receita?.plano, modeloRef })
     await guardarEdicao(peca.id, (e) => comReceita(e, { plano, pedido: pedido.trim(), em: new Date().toISOString() }))
     setPedido(''); setLembrar(false)
   })
@@ -106,6 +109,15 @@ export function AbaEdicao({ peca, r, aoMudar }: { peca: Peca; r: Rascunho; aoMud
       <ApoioEdicao midias={apoio.midias} novasDoBanco={apoio.novasDoBanco.length} arquivos={apoio.arquivos} musica={edicao.musica ? { ...edicao.musica, volume: apoio.volume } : undefined} arquivoMusica={apoio.arquivoMusica}
         aoAdicionar={apoio.adicionar} aoRemover={apoio.remover} aoDescrever={apoio.descrever} aoMusica={apoio.escolherMusica} aoVolume={apoio.mudarVolume} />
 
+      <section className="ev-passo">
+        <h4><span>3</span> Estilo (opcional)</h4>
+        <p className="muted pequeno">Sem escolher, o agente segue o estilo da casa. Para editar no estilo de um vídeo que você viu (concorrente, outro nicho), guarde o vídeo em <Link to="/agentes/marca" className="link">Base da marca → Referências</Link> e escolha aqui.</p>
+        <span className="select-icone"><select value={modeloRef} onChange={(e) => setModeloRef(e.target.value)} aria-label="Referência de estilo">
+          <option value="">Estilo da casa</option>
+          {(refs.dados ?? []).map((x) => <option key={x.id} value={x.id}>{x.nome || 'Referência'}{x.autor ? ` · ${x.autor}` : ''}</option>)}
+        </select></span>
+        {!peca.conteudo.roteiro && <p className="muted pequeno">Esta peça não tem roteiro: o agente procura nos roteiros que estão nos materiais da campanha (ex.: o PDF com todos os criativos) qual foi gravado. Sem nenhum, edita pelo que foi falado.</p>}
+      </section>
       {arquivo && !ocupado && (!confere || !receitas.length) && (
         <button type="button" className="btn btn-ouro" onClick={pedirEditor}><Icone nome="floco" tam={16} /> Editar com o Editor de Vídeo</button>)}
       {querEditar && temEditor.dados === false && <ConviteEditor />}
@@ -114,11 +126,12 @@ export function AbaEdicao({ peca, r, aoMudar }: { peca: Peca; r: Rascunho; aoMud
 
       {receita && (
         <section className="ev-passo">
-          <h4><span>3</span> Edição do agente</h4>
+          <h4><span>4</span> Edição do agente</h4>
           {receitas.length > 1 && (
             <div className="abas-mini">{receitas.map((x, k) => (
               <button key={x.em} type="button" className={k === versao ? 'ativa' : ''} onClick={() => setVersao(k)} title={x.pedido ?? 'Primeira edição'}>Versão {k + 1}</button>))}</div>)}
           {receita.plano.resumo && <p>{receita.plano.resumo}</p>}
+          {receita.plano.roteiro_identificado && receita.plano.roteiro_identificado !== 'nenhum' && <p className="pequeno"><b>Roteiro reconhecido:</b> {receita.plano.roteiro_identificado}</p>}
           {receita.plano.faltou && <p className="nota pequeno"><Icone nome="alerta" tam={14} /> {receita.plano.faltou}</p>}
           {linha && confere && url ? <PreviaVideo url={url} linha={linha} vertical={peca.tipo !== 'video'} apoio={apoio.apoio} musica={apoio.musica} />
             : <p className="muted pequeno">Escolha o vídeo bruto acima para assistir à prévia.</p>}
@@ -133,7 +146,7 @@ export function AbaEdicao({ peca, r, aoMudar }: { peca: Peca; r: Rascunho; aoMud
 
       {receita && (
         <section className="ev-passo">
-          <h4><span>4</span> Vídeo final</h4>
+          <h4><span>5</span> Vídeo final</h4>
           <p className="muted pequeno">A montagem é feita aqui no seu computador e leva o tempo do vídeo final. Deixe esta aba aberta e na frente até terminar. Depois você baixa ou agenda direto no Instagram; nada fica guardado no sistema.</p>
           {progresso !== null ? (
             <div className="ev-montando"><div className="ev-barra"><span style={{ width: `${Math.round(progresso * 100)}%` }} /></div><span className="pequeno">Montando… {Math.round(progresso * 100)}%</span></div>

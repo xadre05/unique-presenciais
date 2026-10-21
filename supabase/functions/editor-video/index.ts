@@ -89,10 +89,25 @@ const FERRAMENTA = {
       efeitos: { type: 'array', description: 'Efeitos sonoros pontuais, na palavra. hit = impacto logo DEPOIS de revelar algo (preço, resultado, número, frase de efeito); riser = tensão crescendo ATÉ a palavra marcada (antes de uma revelação); ding = confirmação (oferta, bônus, "é isso"); obturador = sequência de cortes rápidos; teclado = quando um texto aparece como se fosse digitado; woosh/clique/pop também podem ser marcados. Poucos e certeiros: 3 a 8 num reels.',
         items: { type: 'object', properties: { palavra: { type: 'integer' }, som: { type: 'string', enum: ['woosh', 'hit', 'riser', 'clique', 'pop', 'obturador', 'teclado', 'ding'] } }, required: ['palavra', 'som'] } },
       efeitos_automaticos: { type: 'boolean', description: 'true (padrão): woosh em cada zoom e imagem em tela cheia, clique em cada texto na tela, pop na tela dividida. false só se a equipe pedir vídeo sem efeitos.' },
+      roteiro_identificado: { type: 'string', description: 'Só quando vieram os roteiros da campanha: o título ou a primeira frase do roteiro que foi gravado, ou "nenhum".' },
       faltou: { type: 'string', description: 'Se alguma cena do roteiro não foi gravada ou ficou ruim, diga qual. Senão, vazio.' },
     },
     required: ['resumo', 'trechos'],
   },
+}
+
+// texto dos materiais de papel "roteiro" da campanha da peça (ou de todas, se a peça não tem campanha), até ~40 mil caracteres
+async function roteirosDaCampanha(db: SupabaseClient, empresa: string, campanha?: string) {
+  let q = db.from('marca_fontes').select('id,titulo').eq('empresa_id', empresa).eq('ativo', true).eq('status', 'pronta').eq('papel', 'roteiro')
+  if (campanha) q = q.eq('campanha_id', campanha)
+  const { data: fontes } = await q.order('criado_em', { ascending: false }).limit(6)
+  if (!fontes?.length) return ''
+  const { data: trechos } = await db.from('marca_trechos').select('fonte_id,conteudo,ordem').in('fonte_id', fontes.map((f) => f.id)).order('ordem').limit(2000)
+  // os de criativo/reels primeiro (roteiro de YouTube longo vai por último); cada material com no máximo 25 mil caracteres
+  const curto = (t: string) => (/criativ|reels|an[uú]ncio/i.test(t) ? 0 : /youtube|live|aula/i.test(t) ? 2 : 1)
+  const texto = [...fontes].sort((a, b) => curto(a.titulo ?? '') - curto(b.titulo ?? ''))
+    .map((f) => `[${f.titulo}]\n${(trechos ?? []).filter((t) => t.fonte_id === f.id).map((t) => t.conteudo).join('\n').slice(0, 25000)}`).join('\n---\n')
+  return texto.slice(0, 40000)
 }
 
 async function editar(db: SupabaseClient, corpo: Record<string, unknown>) {
@@ -104,20 +119,23 @@ async function editar(db: SupabaseClient, corpo: Record<string, unknown>) {
     db.rpc('agentes_ler_chave', { p_empresa: empresa }),
     db.from('agentes_config').select('modelo').eq('empresa_id', empresa).maybeSingle(),
     db.from('agentes_empresa').select('perfil,ativo').eq('empresa_id', empresa).eq('agente_id', 'editor').maybeSingle(),
-    db.from('marca_referencias').select('nome,autor,ficha').eq('empresa_id', empresa).eq('ativo', true).eq('status', 'pronta').in('formato', ['reels', 'video']).order('atualizado_em', { ascending: false }).limit(6),
+    db.from('marca_referencias').select('id,nome,autor,ficha').eq('empresa_id', empresa).eq('ativo', true).eq('status', 'pronta').in('formato', ['reels', 'video']).order('atualizado_em', { ascending: false }).limit(30),
   ])
   if (!peca) throw new Error('Peça não encontrada.')
   if (!chave) throw new Error('Falta cadastrar a chave do Claude em Agentes → Configurações.')
   if (!ag?.ativo) throw new Error('A empresa não tem o Agente Editor de Vídeo ligado.')
   const pa = (ag?.perfil ?? {}) as Record<string, unknown>
   const modelo = (typeof pa.modelo === 'string' && PRECO[pa.modelo] ? pa.modelo : null) ?? (cfg?.modelo && PRECO[cfg.modelo] ? cfg.modelo : 'claude-sonnet-5-5')
-  const c = (peca.conteudo ?? {}) as { roteiro?: string[]; texto_arte?: string; briefing?: { finalidade?: string } }
+  const c = (peca.conteudo ?? {}) as { roteiro?: string[]; texto_arte?: string; briefing?: { finalidade?: string }; campanha?: string }
+  // sem roteiro na peça: os roteiros que a equipe subiu nos materiais da campanha (ex.: um PDF com todos os criativos);
+  // o agente descobre pela fala qual deles foi gravado
+  const roteirosCampanha = c.roteiro?.length ? '' : await roteirosDaCampanha(db, empresa, c.campanha)
   // mídias de apoio: número, tipo, o que é e a miniatura (JPEG pequeno) para o agente ver
-  const midias = ((Array.isArray(corpo.midias) ? corpo.midias : []) as { n: number; tipo: string; descricao?: string; miniatura?: string }[]).slice(0, 30)
-  const escolhida = (refs ?? []).find((r) => r.nome && r.nome === corpo.modelo_ref)
+  const midias = ((Array.isArray(corpo.midias) ? corpo.midias : []) as { n: number; tipo: string; descricao?: string; miniatura?: string }[]).slice(0, 45)
+  const escolhida = (refs ?? []).find((r) => r.id === corpo.modelo_ref || (r.nome && r.nome === corpo.modelo_ref))
   const modelos = (escolhida ? [escolhida] : (refs ?? []).slice(0, 3)).map((r) => {
     const f = (r.ficha ?? {}) as Record<string, string | string[]>
-    return `- ${r.nome ?? 'modelo'}${r.autor ? ` (${r.autor})` : ''}: ${f.resumo ?? ''}${f.ritmo ? ` · ritmo: ${f.ritmo}` : ''}${f.texto_na_tela ? ` · texto na tela: ${f.texto_na_tela}` : ''}`
+    return `- ${r.nome ?? 'modelo'}${r.autor ? ` (${r.autor})` : ''}: ${f.resumo ?? ''}${f.gancho ? ` · gancho: ${f.gancho}` : ''}${f.ritmo ? ` · ritmo: ${f.ritmo}` : ''}${f.visual ? ` · visual: ${f.visual}` : ''}${f.texto_na_tela ? ` · texto na tela: ${f.texto_na_tela}` : ''}`
   })
   const memoria = ((Array.isArray(pa.memoria) ? pa.memoria : []) as { texto: string }[]).filter((m) => m.texto.startsWith('Edição:')).map((m) => `- ${m.texto}`)
   // estilo da casa (página do Agente Editor): vale para todo vídeo, sem a equipe pedir; padrão = criativo que vende
@@ -141,12 +159,14 @@ async function editar(db: SupabaseClient, corpo: Record<string, unknown>) {
     'EFEITOS SONOROS (deixam o vídeo com cara de editado por profissional): os automáticos já entram em zoom, texto e imagem; você marca os pontuais em "efeitos": riser antes da revelação e hit logo depois dela (ex.: riser até "o preço é" e hit em "quatro mil"), ding na oferta ou no bônus. Nunca dois sons colados, nunca por cima de toda frase.',
     'LEGENDA: "palavras" é o padrão de reels. Use "chave" quando a equipe pedir estilo documentário ou quando o vídeo tiver muita tela dividida.',
     estilo,
-    modelos.length ? `MODELOS DE EDIÇÃO QUE A EQUIPE GOSTA (siga o ritmo e o estilo de texto na tela):\n${modelos.join('\n')}` : '',
+    modelos.length ? `${escolhida ? 'REFERÊNCIA ESCOLHIDA PARA ESTE VÍDEO (edite NESTE estilo: ritmo, cortes, texto na tela, legenda e uso de imagens; adapte ao que o nosso editor faz):' : 'MODELOS DE EDIÇÃO QUE A EQUIPE GOSTA (siga o ritmo e o estilo de texto na tela):'}\n${modelos.join('\n')}` : '',
     memoria.length ? `O QUE A EQUIPE JÁ PEDIU EM EDIÇÕES ANTERIORES (siga):\n${memoria.join('\n')}` : '',
   ].filter(Boolean).join('\n\n')
   const usuario = [
     `PEÇA: ${peca.titulo} (${peca.tipo})`,
-    c.roteiro?.length ? `ROTEIRO USADO NA GRAVAÇÃO:\n${c.roteiro.map((x, i) => `${i + 1}. ${x.replace(/\n/g, ' — ')}`).join('\n')}` : 'Sem roteiro: edite pelo que foi falado.',
+    c.roteiro?.length ? `ROTEIRO USADO NA GRAVAÇÃO:\n${c.roteiro.map((x, i) => `${i + 1}. ${x.replace(/\n/g, ' — ')}`).join('\n')}`
+      : roteirosCampanha ? `ROTEIROS DA CAMPANHA (a pessoa gravou UM deles, talvez com pequenas mudanças). Descubra qual pela transcrição, siga esse roteiro (ordem, ganchos e textos na tela) e diga qual foi em "roteiro_identificado". Se nenhum bater, edite pelo que foi falado:\n${roteirosCampanha}`
+      : 'Sem roteiro: edite pelo que foi falado.',
     corpo.anterior ? `EDIÇÃO ANTERIOR (a equipe viu e pediu ajuste: parta dela e mude só o que foi pedido):\n${JSON.stringify(corpo.anterior)}` : '',
     corpo.pedido ? `PEDIDO DA EQUIPE PARA ESTA EDIÇÃO: ${String(corpo.pedido)}` : '',
     midias.length ? `MÍDIAS DE APOIO (as imagens acima, na mesma ordem):\n${midias.map((m) => `${m.n} · ${m.tipo === 'video' ? 'clipe' : 'imagem'}${m.descricao ? ` · ${m.descricao}` : ''}`).join('\n')}` : 'Sem mídias de apoio: não use "coberturas".',
