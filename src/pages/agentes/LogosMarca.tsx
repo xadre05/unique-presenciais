@@ -18,11 +18,11 @@ export function useLogos(empresaId: string) {
   return useConsulta<{ perfil: Record<string, unknown> } | null>(() => supabase.from('agentes_empresa').select('perfil').eq('empresa_id', empresaId).eq('agente_id', 'marketing').maybeSingle(), [empresaId])
 }
 export const logosDe = (perfil: Record<string, unknown> | undefined) => (Array.isArray(perfil?.logos) ? perfil.logos : []) as ImagemMarca[]
-type Chave = 'logos' | 'estilo_refs'
+type Chave = 'logos' | 'estilo_refs' | 'banco_imagens'
 type Props = { empresaId: string; perfil: Record<string, unknown>; aoSalvar: () => void }
 
 // lê o perfil de novo antes de gravar, para não apagar o que outra tela salvou
-async function gravarNoPerfil(empresaId: string, chave: Chave, lista: ImagemMarca[]) {
+export async function gravarNoPerfil(empresaId: string, chave: Chave, lista: unknown[]) {
   const { data: atual } = await supabase.from('agentes_empresa').select('perfil').eq('empresa_id', empresaId).eq('agente_id', 'marketing').maybeSingle()
   const base = (atual?.perfil ?? {}) as Record<string, unknown>
   return supabase.from('agentes_empresa').upsert({ empresa_id: empresaId, agente_id: 'marketing', perfil: { ...base, [chave]: lista }, atualizado_em: new Date().toISOString() }, { onConflict: 'empresa_id,agente_id' })

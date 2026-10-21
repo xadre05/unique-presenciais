@@ -3287,3 +3287,12 @@ a.sala-agente:hover { border-color: var(--ouro); transform: translateY(-2px); }
 .btn-ditado:hover { border-color: var(--ouro); color: var(--ouro); }
 .btn-ditado.ouvindo { background: #c0392b; border-color: #c0392b; color: #fff; animation: ditado-pulsa 1.2s ease-in-out infinite; }
 @keyframes ditado-pulsa { 0%, 100% { box-shadow: 0 0 0 0 rgba(192,57,43,.5); } 50% { box-shadow: 0 0 0 8px rgba(192,57,43,0); } }
+/* Agente Editor: estilo da casa, vídeo novo e banco de imagens */
+.estilo-grade { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 0 14px; align-items: end; }
+.campo-check { display: flex; gap: 8px; align-items: center; margin-bottom: 12px; font-size: .9rem; }
+.linha-acoes { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.novo-video { width: 100%; padding: 14px; border: 1px solid var(--borda); border-radius: var(--raio); background: var(--painel-2); margin: 8px 0 12px; }
+.bloco-topo:has(.novo-video) { flex-wrap: wrap; }
+.banco { display: grid; gap: 10px; justify-items: start; }
+.banco .ev-midias { width: 100%; }
+.banco .pp-mini { width: 100%; aspect-ratio: 1; }

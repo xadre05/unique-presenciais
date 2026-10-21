@@ -120,6 +120,17 @@ async function editar(db: SupabaseClient, corpo: Record<string, unknown>) {
     return `- ${r.nome ?? 'modelo'}${r.autor ? ` (${r.autor})` : ''}: ${f.resumo ?? ''}${f.ritmo ? ` · ritmo: ${f.ritmo}` : ''}${f.texto_na_tela ? ` · texto na tela: ${f.texto_na_tela}` : ''}`
   })
   const memoria = ((Array.isArray(pa.memoria) ? pa.memoria : []) as { texto: string }[]).filter((m) => m.texto.startsWith('Edição:')).map((m) => `- ${m.texto}`)
+  // estilo da casa (página do Agente Editor): vale para todo vídeo, sem a equipe pedir; padrão = criativo que vende
+  const e = { legenda: 'palavras', efeitos: 'muitos', imagens: 'muitas', tela_dividida: true, zoom: true, ...((pa.estilo ?? {}) as Record<string, unknown>) } as { legenda: string; efeitos: string; imagens: string; tela_dividida: boolean; zoom: boolean; observacoes?: string }
+  const estilo = [
+    'ESTILO DA CASA (a empresa quer TODOS os vídeos assim; siga sem ninguém pedir, a não ser que o pedido desta edição diga outra coisa):',
+    e.legenda === 'chave' ? '- legenda: estilo "chave" (palavras-chave em caixa), preenchendo "chaves" no vídeo todo' : '- legenda: estilo "palavras", com 2 a 3 palavras por vez e destaques nas palavras-chave',
+    e.efeitos === 'nenhum' ? '- efeitos sonoros: nenhum (efeitos_automaticos = false e "efeitos" vazio)' : e.efeitos === 'poucos' ? '- efeitos sonoros: os automáticos e no máximo 3 pontuais nos momentos mais fortes' : '- efeitos sonoros: muitos — os automáticos e de 5 a 8 pontuais (riser antes de cada revelação, hit logo depois, ding na oferta, obturador em sequência rápida)',
+    e.imagens === 'muitas' ? '- imagens de apoio: muitas — cubra de 40% a 60% do vídeo com as mídias, trocando a cada 2 a 4 segundos' : e.imagens === 'algumas' ? '- imagens de apoio: algumas — cubra de 20% a 35% do vídeo' : '- imagens de apoio: poucas — só onde a imagem prova o que é dito',
+    e.tela_dividida ? '- tela dividida: use bastante em explicações, listas e quando falar da plataforma ou do curso (a pessoa continua aparecendo embaixo)' : '- tela dividida: não use; as mídias entram em tela cheia',
+    e.zoom ? '- zoom: no gancho e em cada frase forte (um a cada 5 a 8 segundos, nunca seguidos)' : '- zoom: não use',
+    e.observacoes ? `- orientações da equipe: ${e.observacoes}` : '',
+  ].filter(Boolean).join('\n')
   const sistema = [
     'Você é o editor de vídeo do Agente de Marketing de uma escola de harmonização orofacial. Edita vídeos verticais de fala para a câmera (reels).',
     'Você recebe a transcrição palavra por palavra (número | início | fim em segundos | palavra) e o roteiro que a pessoa usou para gravar.',
@@ -129,6 +140,7 @@ async function editar(db: SupabaseClient, corpo: Record<string, unknown>) {
     'MÍDIAS DE APOIO (quando a equipe enviar): fotos, prints e clipes que você coloca por cima da fala em "coberturas", olhando as miniaturas. Regras: a mídia combina com o que está sendo dito naquele momento (falou da plataforma, mostra a tela da plataforma; falou do presencial, mostra a turma); cada cobertura de 1,5 a 5 segundos, terminando no fim de uma frase; o gancho (primeiros 2 a 3 segundos) fica com o rosto, a não ser que a mídia seja mais forte que a fala; em criativo de anúncio cubra de 30% a 60% do vídeo, alternando rosto e mídia para manter o ritmo; em vídeo de relacionamento, menos. "dividida" para explicações e listas (a pessoa continua aparecendo), "cheia" para impacto curto (resultado, oferta, prova). Não repita a mesma mídia seguida; varie o movimento. Mídia de antes e depois só se estiver descrita como autorizada.',
     'EFEITOS SONOROS (deixam o vídeo com cara de editado por profissional): os automáticos já entram em zoom, texto e imagem; você marca os pontuais em "efeitos": riser antes da revelação e hit logo depois dela (ex.: riser até "o preço é" e hit em "quatro mil"), ding na oferta ou no bônus. Nunca dois sons colados, nunca por cima de toda frase.',
     'LEGENDA: "palavras" é o padrão de reels. Use "chave" quando a equipe pedir estilo documentário ou quando o vídeo tiver muita tela dividida.',
+    estilo,
     modelos.length ? `MODELOS DE EDIÇÃO QUE A EQUIPE GOSTA (siga o ritmo e o estilo de texto na tela):\n${modelos.join('\n')}` : '',
     memoria.length ? `O QUE A EQUIPE JÁ PEDIU EM EDIÇÕES ANTERIORES (siga):\n${memoria.join('\n')}` : '',
   ].filter(Boolean).join('\n\n')

@@ -2,7 +2,8 @@
 // edita; na peça fica só a lista (nome, tipo e o que é), na ordem que o agente usa para apontar cada uma.
 import type { Cobertura } from './linhaTempo'
 
-export type MidiaApoio = { nome: string; tamanho: number; tipo: 'imagem' | 'video'; descricao?: string }
+// caminho = mídia do banco de imagens da marca (guardada no sistema; abre sozinha, sem escolher o arquivo de novo)
+export type MidiaApoio = { nome: string; tamanho: number; tipo: 'imagem' | 'video'; descricao?: string; caminho?: string }
 export type MidiaPronta = { tipo: 'imagem' | 'video'; el: HTMLImageElement | HTMLVideoElement; largura: number; altura: number }
 
 export const tipoDoArquivo = (f: File): 'imagem' | 'video' | null => (f.type.startsWith('image/') ? 'imagem' : f.type.startsWith('video/') ? 'video' : null)

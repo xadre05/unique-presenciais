@@ -10,6 +10,11 @@ import { Retrato } from './Retrato'
 import { visualDe, type Peca } from './comum'
 import { EMPRESA } from './marketing/useMarketing'
 import { edicaoDa, useTemEditor } from './marketing/edicao/dados'
+import { useLogos } from './LogosMarca'
+import { BancoImagens, bancoDe } from './BancoImagens'
+import { NovoVideo } from './editor/NovoVideo'
+import { EstiloCasa } from './editor/EstiloCasa'
+import { usePerfilEditor } from './editor/dados'
 
 const dataBr = (iso: string | null) => (iso ? iso.split('-').reverse().join('/') : 'Sem data')
 
@@ -26,6 +31,10 @@ export default function AgenteEditor() {
   const pecas = useConsulta<Peca[]>(() => supabase.from('agentes_pecas').select('*').eq('empresa_id', EMPRESA).eq('agente_id', 'marketing')
     .in('tipo', ['reels', 'video']).neq('status', 'descartada').order('dia', { ascending: false }).limit(60))
   const lista = (pecas.dados ?? []).filter((p) => p.conteudo.etapa !== 'ideia')
+  const marca = useLogos(EMPRESA)
+  const perfilMarca = marca.dados?.perfil ?? {}
+  const campanhas = ((Array.isArray(perfilMarca.campanhas) ? perfilMarca.campanhas : []) as { id: string; nome: string; encerrada?: boolean }[]).filter((c) => !c.encerrada)
+  const editor = usePerfilEditor()
 
   return (
     <div className="pagina">
@@ -41,8 +50,8 @@ export default function AgenteEditor() {
       </header>
       {tem.dados && (
         <section className="bloco">
-          <h2>Vídeos para editar</h2>
-          <p className="muted pequeno">Os reels e vídeos que o Agente de Marketing roteirizou. Abra um, escolha o vídeo gravado e o editor faz o resto. Para editar um vídeo novo, crie a peça de reels no Marketing primeiro: é de lá que vêm o roteiro e a legenda.</p>
+          <div className="bloco-topo"><h2>Vídeos para editar</h2><NovoVideo campanhas={campanhas} /></div>
+          <p className="muted pequeno">Abra um vídeo, escolha o arquivo gravado e clique em Editar: o agente corta, legenda, põe as imagens do banco, efeitos sonoros e zoom no estilo da casa. Vídeo que não veio do Marketing (um criativo roteirizado fora, por exemplo)? Use "Novo vídeo para editar".</p>
           <Erro msg={pecas.erro} />
           {pecas.carregando && !pecas.dados ? <p className="muted">Carregando…</p> : !lista.length ? <Vazio>Nenhum reels ou vídeo roteirizado ainda.</Vazio> : (
             <table className="tabela">
@@ -59,6 +68,18 @@ export default function AgenteEditor() {
               })}</tbody>
             </table>
           )}
+        </section>
+      )}
+      {tem.dados && (
+        <section className="bloco">
+          <h2>Estilo da casa</h2>
+          <EstiloCasa perfil={editor.dados?.perfil} aoSalvar={editor.recarregar} />
+        </section>
+      )}
+      {tem.dados && marca.dados && (
+        <section className="bloco">
+          <h2>Banco de imagens <span className="muted pequeno">· {bancoDe(perfilMarca).length} guardada(s)</span></h2>
+          <BancoImagens empresaId={EMPRESA} perfil={perfilMarca} aoSalvar={marca.recarregar} />
         </section>
       )}
     </div>

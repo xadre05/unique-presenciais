@@ -8,6 +8,7 @@ import { Icone } from '../../../components/Icone'
 import { useAuth } from '../../../auth'
 import { PessoasMarca, usePessoasMarca } from '../PessoasMarca'
 import { LogosMarca } from '../LogosMarca'
+import { BancoImagens, bancoDe } from '../BancoImagens'
 import { Secao } from './Secao'
 import { VozMarca } from './VozMarca'
 import { ResumoMarca } from './ResumoMarca'
@@ -90,6 +91,9 @@ export function AbaMarca({ empresa, perfil, aoSalvar, aoMudarPendente }: Props) 
         <Secao titulo="Identidade visual" icone="imagem" selo={seloDe(Array.isArray(perfil.logos) && perfil.logos.length > 0)} resumo="Logos e referências de estilo">
           <p className="muted pequeno">O logo real e imagens que mostram o estilo da marca. O Agente de Arte usa em toda arte. Imagens são guardadas assim que enviadas.</p>
           <div className="bm-logos"><LogosMarca empresaId={empresa} perfil={perfil} aoSalvar={aoSalvar} /></div>
+        </Secao>
+        <Secao titulo="Banco de imagens para vídeos" icone="video" selo={seloDe(bancoDe(perfil).length > 0)} resumo={`${bancoDe(perfil).length} imagem(ns) e clipe(s)`}>
+          <BancoImagens empresaId={empresa} perfil={perfil} aoSalvar={aoSalvar} />
         </Secao>
       </div>
       <div className="bm-lado-col">

@@ -13,6 +13,9 @@ import { edicaoDa, guardarEdicao, mesmoArquivo, pedirEdicao, transcrever, useTem
 import { ConviteEditor } from './ConviteEditor'
 import { ApoioEdicao } from './ApoioEdicao'
 import { usarApoio } from './usarApoio'
+import { bancoDe, bancoParaCampanha } from '../../BancoImagens'
+import { useLogos } from '../../LogosMarca'
+import { EMPRESA } from '../useMarketing'
 import { montarLinhaTempo } from './linhaTempo'
 import { PreviaVideo } from './PreviaVideo'
 import { montarVideo } from './montagem'
@@ -24,7 +27,10 @@ const comReceita = (e: Edicao, r: Receita): Edicao => ({ ...e, receitas: [...(e.
 export function AbaEdicao({ peca, r, aoMudar }: { peca: Peca; r: Rascunho; aoMudar: () => void }) {
   const edicao = edicaoDa(peca.conteudo)
   const temEditor = useTemEditor()
-  const apoio = usarApoio(peca.id, edicao, aoMudar)
+  // banco de imagens da marca (perfil do Marketing): o que é de todas as campanhas e o da campanha desta peça
+  const marca = useLogos(EMPRESA)
+  const banco = useMemo(() => bancoParaCampanha(bancoDe(marca.dados?.perfil), typeof peca.conteudo.campanha === 'string' ? peca.conteudo.campanha : undefined), [marca.dados, peca.conteudo.campanha])
+  const apoio = usarApoio(peca.id, edicao, banco, aoMudar)
   const [arquivo, setArquivo] = useState<File | null>(null)
   const [url, setUrl] = useState<string | null>(null)
   const [duracao, setDuracao] = useState(0)
@@ -97,7 +103,7 @@ export function AbaEdicao({ peca, r, aoMudar }: { peca: Peca; r: Rascunho; aoMud
         {arquivo && !ocupado && <div className="ev-escolha"><PublicarVideo peca={peca} r={r} arquivo={arquivo} rotulo="Já está editado: agendar no Instagram" aoMudar={aoMudar} /></div>}
       </section>
 
-      <ApoioEdicao midias={apoio.midias} arquivos={apoio.arquivos} musica={edicao.musica ? { ...edicao.musica, volume: apoio.volume } : undefined} arquivoMusica={apoio.arquivoMusica}
+      <ApoioEdicao midias={apoio.midias} novasDoBanco={apoio.novasDoBanco.length} arquivos={apoio.arquivos} musica={edicao.musica ? { ...edicao.musica, volume: apoio.volume } : undefined} arquivoMusica={apoio.arquivoMusica}
         aoAdicionar={apoio.adicionar} aoRemover={apoio.remover} aoDescrever={apoio.descrever} aoMusica={apoio.escolherMusica} aoVolume={apoio.mudarVolume} />
 
       {arquivo && !ocupado && (!confere || !receitas.length) && (
