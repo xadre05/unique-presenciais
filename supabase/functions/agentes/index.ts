@@ -214,16 +214,23 @@ type TrechoMarca = { fonte_titulo: string; conteudo: string }
 async function materiaisCampanha(db: SupabaseClient, empresa: string, campanhas: string[]) {
   const ids = [...new Set(campanhas.filter(Boolean))]
   if (!ids.length) return { bloco: '', fontes: [] as string[] }
-  const { data: fs } = await db.from('marca_fontes').select('id,titulo,papel').eq('empresa_id', empresa).in('campanha_id', ids)
-    .eq('ativo', true).eq('aprovada', true).eq('status', 'pronta').order('criado_em')
-  if (!fs?.length) return { bloco: '', fontes: [] as string[] }
+  const { data: lidas } = await db.from('marca_fontes').select('id,titulo,papel,caracteres').eq('empresa_id', empresa).in('campanha_id', ids)
+    .eq('ativo', true).eq('aprovada', true).eq('status', 'pronta')
+  if (!lidas?.length) return { bloco: '', fontes: [] as string[] }
+  // regras e copy primeiro (curtas e decisivas), depois página, roteiros e apresentação; dentro de cada papel, o menor primeiro,
+  // para os materiais longos (roteiro de YouTube) não tirarem espaço dos outros
+  const fs = [...lidas].sort((a, b) => (PRIORIDADE_PAPEL[a.papel ?? 'outro'] ?? 9) - (PRIORIDADE_PAPEL[b.papel ?? 'outro'] ?? 9) || a.caracteres - b.caracteres)
   const { data: ts } = await db.from('marca_trechos').select('fonte_id,conteudo,ordem').in('fonte_id', fs.map((f) => f.id)).order('ordem').limit(3000)
   const partes: string[] = [], usadas: string[] = []
   let total = 0
   for (const f of fs) {
-    const texto = (ts ?? []).filter((t) => t.fonte_id === f.id).map((t) => t.conteudo).join("\n\n").slice(0, 12000)
-    if (!texto || total + texto.length > 32000) continue
-    partes.push(`[Material: ${f.titulo}${f.papel ? ` · ${NOME_PAPEL[f.papel] ?? f.papel}` : ''}]\n${texto}`); usadas.push(f.titulo); total += texto.length
+    const espaco = Math.min(LIMITE_POR_MATERIAL, LIMITE_TOTAL_MATERIAIS - total)
+    if (espaco < 2000) break
+    const inteiro = (ts ?? []).filter((t) => t.fonte_id === f.id).map((t) => t.conteudo).join("\n\n")
+    const texto = inteiro.slice(0, espaco)
+    if (!texto) continue
+    const cortado = texto.length < inteiro.length ? '\n[…material continua; o restante não coube]' : ''
+    partes.push(`[Material: ${f.titulo}${f.papel ? ` · ${NOME_PAPEL[f.papel] ?? f.papel}` : ''}]\n${texto}${cortado}`); usadas.push(f.titulo); total += texto.length
   }
   if (!partes.length) return { bloco: '', fontes: [] as string[] }
   return {
@@ -231,6 +238,9 @@ async function materiaisCampanha(db: SupabaseClient, empresa: string, campanhas:
     fontes: usadas,
   }
 }
+const PRIORIDADE_PAPEL: Record<string, number> = { copy: 0, pagina: 1, roteiro: 2, apresentacao: 3, outro: 4 }
+// ~100 mil caracteres ≈ 25 mil tokens de entrada por pedido (cerca de US$ 0,05 no Sonnet)
+const LIMITE_POR_MATERIAL = 25000, LIMITE_TOTAL_MATERIAIS = 100000
 const NOME_PAPEL: Record<string, string> = { pagina: 'página de vendas', roteiro: 'roteiro de vídeo', copy: 'copy/texto de venda', apresentacao: 'apresentação', outro: 'material' }
 
 async function conhecimento(db: SupabaseClient, empresa: string, consulta: string, limite = 6, campanhas: string[] = []) {

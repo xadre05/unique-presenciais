@@ -3,4 +3,4 @@
 export type Papel = 'pagina' | 'roteiro' | 'copy' | 'apresentacao' | 'outro'
 export const PAPEIS: [Papel, string][] = [['pagina', 'Página de vendas'], ['roteiro', 'Roteiro de vídeo'], ['copy', 'Copy / textos'], ['apresentacao', 'Apresentação'], ['outro', 'Outro']]
 export const NOME_PAPEL = Object.fromEntries(PAPEIS) as Record<Papel, string>
-export const LIMITE_MATERIAL = 12000
+export const LIMITE_MATERIAL = 25000
