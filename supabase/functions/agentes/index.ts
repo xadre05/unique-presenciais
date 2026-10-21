@@ -319,6 +319,24 @@ function comAnexos(usuario: string, anexos: Anexo[]) {
 type Ferramenta = { name: string; description: string; input_schema: Record<string, unknown> }
 // lista que a IA devolveu: array, objeto com índices ({"0": …}) ou nada
 const comoLista = <T,>(v: unknown): T[] => (Array.isArray(v) ? v : v && typeof v === 'object' ? Object.values(v) : []) as T[]
+// JSON escrito pela IA dentro de um texto: tenta como veio; depois troca quebras de linha cruas dentro das aspas
+// (o erro mais comum em legendas e roteiros); por fim corta do primeiro [ ou { até o último ] ou }
+function jsonTolerante(texto: string): unknown {
+  const tentar = (s: string) => { try { return JSON.parse(s) } catch { return undefined } }
+  const semControle = (s: string) => {
+    let dentro = false, escapado = false, saida = ''
+    for (const ch of s) {
+      if (escapado) { saida += ch; escapado = false; continue }
+      if (ch === '\\') { saida += ch; escapado = dentro; continue }
+      if (ch === '"') dentro = !dentro
+      saida += dentro && ch === '\n' ? '\\n' : dentro && ch === '\r' ? '' : dentro && ch === '\t' ? '\\t' : ch
+    }
+    return saida
+  }
+  const ini = texto.search(/[[{]/), fim = Math.max(texto.lastIndexOf(']'), texto.lastIndexOf('}'))
+  const recorte = ini >= 0 && fim > ini ? texto.slice(ini, fim + 1) : texto
+  return tentar(texto) ?? tentar(semControle(texto)) ?? tentar(recorte) ?? tentar(semControle(recorte))
+}
 async function chamarClaude(chave: string, modelo: string, sistema: string, usuario: string | unknown[], ferramenta: Ferramenta = FERRAMENTA) {
   const r = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
@@ -350,7 +368,7 @@ async function chamarClaude(chave: string, modelo: string, sistema: string, usua
   // às vezes uma lista vem como texto JSON ("[{...}]") dentro da ferramenta: converte de volta
   if (entrega && typeof entrega === 'object') {
     for (const [k, v] of Object.entries(entrega as Record<string, unknown>)) {
-      if (typeof v === 'string' && /^\s*[[{]/.test(v)) { try { (entrega as Record<string, unknown>)[k] = JSON.parse(v) } catch { /* fica o texto */ } }
+      if (typeof v === 'string' && /^\s*[[{]/.test(v)) { const lido = jsonTolerante(v); if (lido !== undefined) (entrega as Record<string, unknown>)[k] = lido }
     }
   }
   return { entrega: entrega as { resumo: string; pecas: Peca[]; itens?: ItemPlano[] } & Peca, entrada: Number(uso.input_tokens ?? 0), saida: Number(uso.output_tokens ?? 0) }
@@ -490,7 +508,8 @@ async function escrever(db: SupabaseClient, t: Trabalho, perfil: Record<string, 
     const naoCasou: unknown[] = []
     for (const r of respostas) {
       const entregues = comoLista<Peca>(r.entrega.pecas)
-      if (entregues.length !== r.grupo.length) naoCasou.push({ pedidas: r.grupo.length, vieram: entregues.length, refs: entregues.map((x) => x.ref), tipoPecas: typeof r.entrega.pecas })
+      // guarda o que veio cru (até 20 mil caracteres) para não perder um texto já pago
+      if (entregues.length !== r.grupo.length) naoCasou.push({ pedidas: r.grupo.length, vieram: entregues.length, refs: entregues.map((x) => x.ref), tipoPecas: typeof r.entrega.pecas, bruto: typeof r.entrega.pecas === 'string' ? String(r.entrega.pecas).slice(0, 20000) : undefined })
       await Promise.all(r.grupo.map(async (p, i) => {
         // pelo número do item; se o número veio diferente (ex.: "1)" ou a posição na lista toda), vale a ordem quando a quantidade bate
         const e = entregues.find((x) => parseInt(String(x.ref), 10) === i + 1) ?? (entregues.length === r.grupo.length || entregues.every((x) => !x.ref) ? entregues[i] : undefined)
