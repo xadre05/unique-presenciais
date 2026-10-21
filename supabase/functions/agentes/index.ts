@@ -317,6 +317,8 @@ function comAnexos(usuario: string, anexos: Anexo[]) {
 }
 
 type Ferramenta = { name: string; description: string; input_schema: Record<string, unknown> }
+// lista que a IA devolveu: array, objeto com índices ({"0": …}) ou nada
+const comoLista = <T,>(v: unknown): T[] => (Array.isArray(v) ? v : v && typeof v === 'object' ? Object.values(v) : []) as T[]
 async function chamarClaude(chave: string, modelo: string, sistema: string, usuario: string | unknown[], ferramenta: Ferramenta = FERRAMENTA) {
   const r = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
@@ -345,6 +347,12 @@ async function chamarClaude(chave: string, modelo: string, sistema: string, usua
     try { if (ini >= 0 && fim > ini) entrega = JSON.parse(texto.slice(ini, fim + 1)) } catch { /* segue para o erro */ }
   }
   if (!entrega) throw new Error('O Claude não entregou no formato esperado. Tente de novo.')
+  // às vezes uma lista vem como texto JSON ("[{...}]") dentro da ferramenta: converte de volta
+  if (entrega && typeof entrega === 'object') {
+    for (const [k, v] of Object.entries(entrega as Record<string, unknown>)) {
+      if (typeof v === 'string' && /^\s*[[{]/.test(v)) { try { (entrega as Record<string, unknown>)[k] = JSON.parse(v) } catch { /* fica o texto */ } }
+    }
+  }
   return { entrega: entrega as { resumo: string; pecas: Peca[]; itens?: ItemPlano[] } & Peca, entrada: Number(uso.input_tokens ?? 0), saida: Number(uso.output_tokens ?? 0) }
 }
 
@@ -479,7 +487,7 @@ async function escrever(db: SupabaseClient, t: Trabalho, perfil: Record<string, 
     }))
     let escritas = 0
     for (const r of respostas) {
-      const entregues = r.entrega.pecas ?? []
+      const entregues = comoLista<Peca>(r.entrega.pecas)
       await Promise.all(r.grupo.map(async (p, i) => {
         const e = entregues.find((x) => Number(x.ref) === i + 1) ?? (entregues.every((x) => !x.ref) ? entregues[i] : undefined)
         if (!e) return db.from('agentes_pecas').update({ conteudo: { ...p.conteudo, etapa: 'ideia' } }).eq('id', p.id)
@@ -592,7 +600,7 @@ async function proporPlano(db: SupabaseClient, t: Trabalho, perfil: Record<strin
   const kn = await conhecimento(db, t.empresa_id, [pd.tema, pd.objetivo, pd.publico, textoCampanha(campanha), plano.nome, ...assuntos].filter(Boolean).join(' '), 10, [String((campanha as { id?: string } | null)?.id ?? '')])
   const { entrega, entrada, saida } = await chamarClaude(chave, modelo, sistema, comBloco(kn.bloco, `${usuario}\n\nInformações atuais do sistema:\n${ctx}`), FERRAMENTA_PLANO)
   const permitidos = new Map(canais.map((c) => [c.rede, c.formatos]))
-  const itens = (entrega.itens ?? []).filter((i) => datas.includes(i.dia) && permitidos.get(i.rede)?.includes(i.tipo)).slice(0, total || 60)
+  const itens = comoLista<ItemPlano>(entrega.itens).filter((i) => datas.includes(i.dia) && permitidos.get(i.rede)?.includes(i.tipo)).slice(0, total || 60)
   if (!itens.length) throw new Error('O agente não conseguiu montar a proposta. Tente de novo.')
   const briefing = { objetivo: pd.objetivo || undefined, publico: pd.publico || undefined, orientacao: pd.orientacao || undefined }
   const { data, error } = await db.from('agentes_pecas').insert(itens.map((i, n) => ({
@@ -870,7 +878,7 @@ async function executar(db: SupabaseClient, t: Trabalho) {
     const anexos = (Array.isArray(t.pedido.anexos) ? t.pedido.anexos : []) as Anexo[]
     const kn = await conhecimento(db, t.empresa_id, [t.pedido.foco, textoCampanha(t.pedido.campanha as Campanha | null)].filter(Boolean).join(' '), 8, [String(campanhaId ?? '')])
     const respostas = await Promise.all(pedidos.map(async (pd) => { const { sistema, usuario } = pedidoMarketing(perfil, pd, ctx, (exemplos ?? []) as Exemplo[]); const m = modeloDe(pd); return { ...(await chamarClaude(String(chave), m, sistema, comAnexos(comBloco(kn.bloco, usuario), anexos))), modelo: m } }))
-    const entrega = { resumo: respostas.map((r) => r.entrega.resumo).filter(Boolean)[0] ?? null, pecas: respostas.flatMap((r) => r.entrega.pecas ?? []) }
+    const entrega = { resumo: respostas.map((r) => r.entrega.resumo).filter(Boolean)[0] ?? null, pecas: respostas.flatMap((r) => comoLista<Peca>(r.entrega.pecas)) }
     const entrada = respostas.reduce((s, r) => s + r.entrada, 0), saida = respostas.reduce((s, r) => s + r.saida, 0)
     const custoTotal = Math.round(respostas.reduce((s, r) => s + custo(r.modelo, r.entrada, r.saida), 0) * 10000) / 10000
     const pecas = entrega.pecas.map((p, i) => ({
