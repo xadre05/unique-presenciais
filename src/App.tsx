@@ -23,6 +23,7 @@ import AreaAtendimento from './pages/atendimento/AreaAtendimento'
 import AreaAgentes from './pages/agentes/AreaAgentes'
 import AreaFinanceiro from './pages/financeiro/AreaFinanceiro'
 import AreaControle from './pages/controle/AreaControle'
+import PainelBlack from './pages/black/PainelBlack'
 import { TrocaArea } from './components/TrocaArea'
 import { Icone } from './components/Icone'
 import { Marca } from './components/ui'
@@ -70,6 +71,7 @@ function Layout() {
         <TrocaArea ativa="comercial" />
         <nav>
           <NavLink to="/" end><Icone nome="painel" /> Painel</NavLink>
+          {isAdmin && <NavLink to="/black"><Icone nome="grafico" /> Black 2026</NavLink>}
           <NavLink to="/turmas"><Icone nome="turmas" /> Turmas</NavLink>
           <NavLink to="/agenda"><Icone nome="agenda" /> Agenda</NavLink>
           <NavLink to="/pagamentos"><Icone nome="pagamentos" /> Pagamentos</NavLink>
@@ -102,6 +104,7 @@ function Layout() {
       <main className="conteudo">
         <Routes>
           <Route path="/" element={<Painel />} />
+          {isAdmin && <Route path="/black" element={<PainelBlack />} />}
           <Route path="/turmas" element={<Turmas />} />
           <Route path="/turmas/:id" element={<TurmaDetalhe />} />
           <Route path="/matricula/nova" element={<NovaMatricula />} />

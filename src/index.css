@@ -3229,3 +3229,16 @@ a.sala-agente:hover { border-color: var(--ouro); transform: translateY(-2px); }
 .ctl-serv-obs { font-style: italic; }
 .ctl-serv-acoes { display: flex; gap: 6px; align-items: center; flex-shrink: 0; }
 @media (max-width: 640px) { .ctl-serv { flex-direction: column; } }
+
+/* ── Painel da Black ── */
+.blk-barra { height: 6px; border-radius: 4px; background: var(--borda); margin: 8px 0 4px; overflow: hidden; }
+.blk-barra span { display: block; height: 100%; background: var(--ouro, #c9a86a); border-radius: 4px; }
+.blk-funil { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; counter-reset: passo; }
+.blk-funil li { border: 1px solid var(--borda); border-radius: 10px; padding: 10px 12px; display: flex; flex-direction: column; gap: 2px; position: relative; }
+.blk-funil li b { font-family: 'JetBrains Mono', monospace; font-size: 1.35rem; }
+.blk-funil li:last-child { border-color: var(--ok); }
+.blk-duas { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; }
+.blk-duas .bloco { margin: 0; }
+.blk-vagas { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 10px; }
+.blk-vagas li { border: 1px solid var(--borda); border-radius: 10px; padding: 10px 12px; display: flex; flex-direction: column; gap: 4px; align-items: flex-start; }
+.blk-vagas li.lotada { opacity: .7; border-color: var(--erro); }
