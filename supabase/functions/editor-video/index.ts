@@ -77,7 +77,8 @@ const FERRAMENTA = {
         items: { type: 'object', properties: { palavra: { type: 'integer' }, texto: { type: 'string' } }, required: ['palavra', 'texto'] } },
       destaques: { type: 'array', items: { type: 'integer' }, description: 'Números das palavras-chave que aparecem destacadas (cor da marca) na legenda. Poucas: 1 a cada 8 ou 10 palavras.' },
       textos: { type: 'array', description: 'Texto grande na tela em momentos-chave (gancho, número, oferta, chamada), como no roteiro. Até 6 palavras cada.',
-        items: { type: 'object', properties: { de: { type: 'integer', description: 'palavra em que aparece' }, ate: { type: 'integer', description: 'palavra em que some' }, texto: { type: 'string' }, posicao: { type: 'string', enum: ['topo', 'meio'] } }, required: ['de', 'ate', 'texto'] } },
+        items: { type: 'object', properties: { de: { type: 'integer', description: 'palavra em que aparece' }, ate: { type: 'integer', description: 'palavra em que some' }, texto: { type: 'string' }, posicao: { type: 'string', enum: ['topo', 'meio'] },
+          animacao: { type: 'string', enum: ['pop', 'deslizar', 'digitar'], description: 'pop = cresce e assenta (padrão, gancho e oferta); digitar = letra por letra (pergunta, número, frase de efeito); deslizar = entra de lado (itens de lista)' } }, required: ['de', 'ate', 'texto'] } },
       zooms: { type: 'array', description: 'Aproximação da câmera para dar ritmo: no gancho e nas frases fortes, nunca seguidos. intensidade de 1.08 a 1.25.',
         items: { type: 'object', properties: { de: { type: 'integer' }, ate: { type: 'integer' }, intensidade: { type: 'number' } }, required: ['de', 'ate'] } },
       legenda: { type: 'object', properties: { palavras_por_vez: { type: 'integer', description: '1 a 4' }, caixa_alta: { type: 'boolean' }, posicao: { type: 'string', enum: ['baixo', 'meio'] },
@@ -88,12 +89,14 @@ const FERRAMENTA = {
         items: { type: 'object', properties: {
           de: { type: 'integer', description: 'palavra em que a mídia entra' }, ate: { type: 'integer', description: 'palavra em que a mídia sai' },
           midia: { type: 'integer', description: 'número da mídia de apoio' },
-          layout: { type: 'string', enum: ['cheia', 'dividida'], description: 'cheia = a mídia ocupa a tela; dividida = mídia em cima e a pessoa embaixo' },
+          layout: { type: 'string', enum: ['cheia', 'dividida', 'cartao'], description: 'cheia = a mídia ocupa a tela; dividida = mídia em cima e a pessoa embaixo; cartao = a mídia entra como cartão branco por cima da pessoa (ideal para print de página, notícia, depoimento, tela da plataforma)' },
           movimento: { type: 'string', enum: ['aproximar', 'afastar', 'deslizar', 'parado'], description: 'movimento lento da imagem enquanto aparece' },
         }, required: ['de', 'ate', 'midia'] } },
       efeitos: { type: 'array', description: 'Efeitos sonoros pontuais, na palavra. hit = impacto logo DEPOIS de revelar algo (preço, resultado, número, frase de efeito); riser = tensão crescendo ATÉ a palavra marcada (antes de uma revelação); ding = confirmação (oferta, bônus, "é isso"); obturador = sequência de cortes rápidos; teclado = quando um texto aparece como se fosse digitado; woosh/clique/pop também podem ser marcados. Poucos e certeiros: 3 a 8 num reels.',
         items: { type: 'object', properties: { palavra: { type: 'integer' }, som: { type: 'string', enum: ['woosh', 'hit', 'riser', 'clique', 'pop', 'obturador', 'teclado', 'ding'] } }, required: ['palavra', 'som'] } },
       efeitos_automaticos: { type: 'boolean', description: 'true (padrão): woosh em cada zoom e imagem em tela cheia, clique em cada texto na tela, pop na tela dividida. false só se a equipe pedir vídeo sem efeitos.' },
+      enquadramento: { type: 'object', description: 'Olhando os quadros do vídeo bruto: onde fica o centro do rosto da pessoa, de 0 a 1 (x da esquerda, y do topo). O zoom e a tela dividida centram nele.',
+        properties: { x: { type: 'number' }, y: { type: 'number' } } },
       roteiro_identificado: { type: 'string', description: 'Só quando vieram os roteiros da campanha: o título ou a primeira frase do roteiro que foi gravado, ou "nenhum".' },
       faltou: { type: 'string', description: 'Se alguma cena do roteiro não foi gravada ou ficou ruim, diga qual. Senão, vazio.' },
     },
@@ -176,6 +179,8 @@ async function editar(db: SupabaseClient, corpo: Record<string, unknown>) {
   const roteirosCampanha = c.roteiro?.length ? '' : await roteirosDaCampanha(db, empresa, c.campanha)
   // mídias de apoio: número, tipo, o que é e a miniatura (JPEG pequeno) para o agente ver
   const midias = ((Array.isArray(corpo.midias) ? corpo.midias : []) as { n: number; tipo: string; descricao?: string; miniatura?: string }[]).slice(0, 45)
+  // fotos do vídeo bruto: para ver o enquadramento (onde está o rosto) e o cenário
+  const quadros = ((Array.isArray(corpo.quadros) ? corpo.quadros : []) as { t: number; miniatura: string }[]).filter((q) => q.miniatura).slice(0, 6)
   const escolhida = (refs ?? []).find((r) => r.id === corpo.modelo_ref || (r.nome && r.nome === corpo.modelo_ref))
   const modelos = (escolhida ? [escolhida] : (refs ?? []).slice(0, 3)).map((r) => {
     const f = (r.ficha ?? {}) as Record<string, string | string[]>
@@ -201,6 +206,8 @@ async function editar(db: SupabaseClient, corpo: Record<string, unknown>) {
     'Nunca escreva na tela promessa de resultado, preço ou dado que a pessoa não falou.',
     'MÍDIAS DE APOIO (quando a equipe enviar): fotos, prints e clipes que você coloca por cima da fala em "coberturas", olhando as miniaturas. Regras: a mídia combina com o que está sendo dito naquele momento (falou da plataforma, mostra a tela da plataforma; falou do presencial, mostra a turma); cada cobertura de 1,5 a 5 segundos, terminando no fim de uma frase; o gancho (primeiros 2 a 3 segundos) fica com o rosto, a não ser que a mídia seja mais forte que a fala; em criativo de anúncio cubra de 30% a 60% do vídeo, alternando rosto e mídia para manter o ritmo; em vídeo de relacionamento, menos. "dividida" para explicações e listas (a pessoa continua aparecendo), "cheia" para impacto curto (resultado, oferta, prova). Não repita a mesma mídia seguida; varie o movimento. Mídia de antes e depois só se estiver descrita como autorizada.',
     'EFEITOS SONOROS (deixam o vídeo com cara de editado por profissional): os automáticos já entram em zoom, texto e imagem; você marca os pontuais em "efeitos": riser antes da revelação e hit logo depois dela (ex.: riser até "o preço é" e hit em "quatro mil"), ding na oferta ou no bônus. Nunca dois sons colados, nunca por cima de toda frase.',
+    'ENQUADRAMENTO: os quadros do vídeo bruto mostram onde está a pessoa. Preencha "enquadramento" com o centro do rosto (0 a 1). Se a pessoa ocupa pouco espaço ou está de lado, prefira "cheia" ou "cartao" a "dividida".',
+    'MOTION: textos na tela entram animados ("animacao"); use "cartao" para mostrar prints (página de vendas, notícia, depoimento, plataforma) por cima da pessoa, como em vídeo-ensaio; varie entre cheia, dividida e cartao para o vídeo não ficar repetitivo.',
     'LEGENDA: "palavras" é o padrão de reels. Use "chave" quando a equipe pedir estilo documentário ou quando o vídeo tiver muita tela dividida.',
     estilo,
     modelos.length ? `${escolhida ? 'REFERÊNCIA ESCOLHIDA PARA ESTE VÍDEO (edite NESTE estilo: ritmo, cortes, texto na tela, legenda e uso de imagens; adapte ao que o nosso editor faz):' : 'MODELOS DE EDIÇÃO QUE A EQUIPE GOSTA (siga o ritmo e o estilo de texto na tela):'}\n${modelos.join('\n')}` : '',
@@ -223,6 +230,7 @@ async function editar(db: SupabaseClient, corpo: Record<string, unknown>) {
     method: 'POST',
     headers: { 'x-api-key': String(chave), 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
     body: JSON.stringify({ model: modelo, max_tokens: 16000, system: sistema, messages: [{ role: 'user', content: [
+      ...quadros.flatMap((q) => [{ type: 'text', text: `Quadro do vídeo bruto em ${q.t} s:` }, { type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: q.miniatura } }]),
       ...midias.filter((m) => m.miniatura).flatMap((m) => [{ type: 'text', text: `Mídia ${m.n}:` }, { type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: m.miniatura } }]),
       { type: 'text', text: usuario },
     ] }], tools: [FERRAMENTA], tool_choice: { type: 'auto' } }),

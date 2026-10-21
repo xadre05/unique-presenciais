@@ -8,7 +8,7 @@ export type Plano = {
   trechos: { de: number; ate: number }[]
   correcoes?: { palavra: number; texto: string }[]
   destaques?: number[]
-  textos?: { de: number; ate: number; texto: string; posicao?: 'topo' | 'meio' }[]
+  textos?: { de: number; ate: number; texto: string; posicao?: 'topo' | 'meio'; animacao?: Animacao }[]
   zooms?: { de: number; ate: number; intensidade?: number }[]
   legenda?: { palavras_por_vez?: number; caixa_alta?: boolean; posicao?: 'baixo' | 'meio'; estilo?: EstiloLegenda }
   // imagens/clipes de apoio por cima da fala (número da mídia na lista que a equipe subiu)
@@ -19,19 +19,25 @@ export type Plano = {
   // texto, pop/woosh na imagem) entram sozinhos, a não ser que efeitos_automaticos seja false
   efeitos?: { palavra: number; som: Som }[]
   efeitos_automaticos?: boolean
+  // onde está o rosto da pessoa no vídeo bruto (0 a 1, da esquerda e do topo): o zoom e a tela dividida centram nele
+  enquadramento?: { x?: number; y?: number }
 }
+// como o texto grande entra na tela
+export type Animacao = 'pop' | 'deslizar' | 'digitar'
 export type EstiloLegenda = 'palavras' | 'chave' | 'nenhuma'
-export type Layout = 'cheia' | 'dividida'
+// cheia = mídia ocupa a tela; dividida = mídia em cima e a pessoa embaixo; cartao = print/imagem como cartão por cima da pessoa
+export type Layout = 'cheia' | 'dividida' | 'cartao'
 export type Movimento = 'aproximar' | 'afastar' | 'deslizar' | 'parado'
 export type Intervalo = { ini: number; fim: number }
 export type GrupoLegenda = Intervalo & { palavras: { texto: string; ini: number; fim: number; destaque: boolean }[] }
-export type Sobreposicao = Intervalo & { texto: string; posicao: 'topo' | 'meio' }
+export type Sobreposicao = Intervalo & { texto: string; posicao: 'topo' | 'meio'; animacao: Animacao }
+export type Rosto = { x: number; y: number }
 export type Zoom = Intervalo & { escala: number }
 export type Cobertura = Intervalo & { midia: number; layout: Layout; movimento: Movimento }
 export type Chave = Intervalo & { texto: string }
 export type LinhaTempo = {
   trechos: Intervalo[]; duracao: number; legendas: GrupoLegenda[]; textos: Sobreposicao[]; zooms: Zoom[]; caixaAlta: boolean; posicaoLegenda: 'baixo' | 'meio'
-  estiloLegenda: EstiloLegenda; chaves: Chave[]; coberturas: Cobertura[]; efeitos: Efeito[]
+  estiloLegenda: EstiloLegenda; chaves: Chave[]; coberturas: Cobertura[]; efeitos: Efeito[]; rosto: Rosto
 }
 
 // folga antes e depois da fala, e a pausa que vira corte dentro de um trecho
@@ -68,7 +74,7 @@ function montarEfeitos(palavras: Palavra[], plano: Plano, trechos: Intervalo[], 
   const automaticos = plano.efeitos_automaticos === false ? [] : [
     ...l.zooms.map((z) => ({ t: z.ini, som: 'woosh' as Som })),
     ...l.textos.map((x) => ({ t: x.ini, som: 'clique' as Som })),
-    ...l.coberturas.map((c) => ({ t: c.ini, som: (c.layout === 'cheia' ? 'woosh' : 'pop') as Som })),
+    ...l.coberturas.map((c) => ({ t: c.ini, som: (c.layout === 'dividida' ? 'pop' : 'woosh') as Som })),
   ]
   const lista: { t: number; som: Som }[] = []
   for (const e of [...marcados, ...automaticos]) {
@@ -92,11 +98,11 @@ export function montarLinhaTempo(palavras: Palavra[], plano: Plano, duracaoBruto
     legendas.push({ ini: g[0].i, fim: g.at(-1)!.f, palavras: g.map((w) => ({ texto: correcao.get(w.n) ?? w.p, ini: w.i, fim: w.f, destaque: destaques.has(w.n) })) })
   }
   const tempo = (de: number, ate: number) => ({ ini: palavras[Math.max(0, de)]?.i ?? 0, fim: palavras[Math.min(palavras.length - 1, ate)]?.f ?? 0 })
-  const linha: Omit<LinhaTempo, 'efeitos'> = {
+  const linha: Omit<LinhaTempo, 'efeitos' | 'rosto'> = {
     trechos,
     duracao: trechos.reduce((s, t) => s + t.fim - t.ini, 0),
     legendas,
-    textos: (plano.textos ?? []).map((x) => ({ ...tempo(x.de, x.ate), texto: x.texto, posicao: x.posicao ?? 'topo' })),
+    textos: (plano.textos ?? []).map((x) => ({ ...tempo(x.de, x.ate), texto: x.texto, posicao: x.posicao ?? 'topo', animacao: x.animacao ?? 'pop' })),
     zooms: (plano.zooms ?? []).map((z) => ({ ...tempo(z.de, z.ate), escala: Math.min(1.3, Math.max(1, z.intensidade ?? 1.12)) })),
     caixaAlta: plano.legenda?.caixa_alta ?? true,
     posicaoLegenda: plano.legenda?.posicao ?? 'baixo',
@@ -106,7 +112,9 @@ export function montarLinhaTempo(palavras: Palavra[], plano: Plano, duracaoBruto
     coberturas: (plano.coberturas ?? []).filter((x) => x.midia >= 0 && x.midia < totalMidias)
       .map((x) => { const t = tempo(x.de, x.ate); return { ini: t.ini, fim: Math.max(t.fim, t.ini + 1), midia: x.midia, layout: x.layout ?? 'cheia', movimento: x.movimento ?? 'aproximar' } }),
   }
-  return { ...linha, efeitos: montarEfeitos(palavras, plano, trechos, linha) }
+  const entre = (v: unknown, padrao: number) => (typeof v === 'number' && v >= 0 && v <= 1 ? v : padrao)
+  const rosto = { x: entre(plano.enquadramento?.x, 0.5), y: entre(plano.enquadramento?.y, 0.35) }
+  return { ...linha, efeitos: montarEfeitos(palavras, plano, trechos, linha), rosto }
 }
 
 // onde o vídeo bruto deve estar: dentro de um trecho segue; fora, pula para o próximo; depois do último, acabou (null)

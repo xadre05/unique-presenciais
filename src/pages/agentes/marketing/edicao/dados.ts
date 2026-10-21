@@ -31,9 +31,10 @@ export function transcrever(peca: string, wav: Blob) {
 }
 
 // modeloRef = id da referência de estilo escolhida (Base da marca → Referências), para editar naquele estilo
-export type OpcoesEdicao = { pedido?: string; lembrar?: string; anterior?: Plano; modeloRef?: string }
+// quadros = fotos do vídeo bruto (para o agente ver onde está o rosto e não cortar a cabeça na tela dividida)
+export type OpcoesEdicao = { pedido?: string; lembrar?: string; anterior?: Plano; modeloRef?: string; quadros?: { t: number; miniatura: string }[] }
 export function pedirEdicao(peca: string, palavras: Palavra[], duracao: number, midias: MidiaParaAgente[], o: OpcoesEdicao = {}) {
-  return chamar<{ plano: Plano }>({ acao: 'editar', empresa: EMPRESA, peca, palavras, duracao, midias, pedido: o.pedido || undefined, lembrar: o.lembrar || undefined, anterior: o.anterior, modelo_ref: o.modeloRef || undefined })
+  return chamar<{ plano: Plano }>({ acao: 'editar', empresa: EMPRESA, peca, palavras, duracao, midias, pedido: o.pedido || undefined, lembrar: o.lembrar || undefined, anterior: o.anterior, modelo_ref: o.modeloRef || undefined, quadros: o.quadros?.length ? o.quadros : undefined })
 }
 
 // referências de estilo de vídeo já analisadas (reels e vídeo longo)

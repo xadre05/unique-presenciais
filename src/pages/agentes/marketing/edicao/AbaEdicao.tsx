@@ -12,6 +12,7 @@ import { audioDoVideo } from './audio'
 import { edicaoDa, guardarEdicao, mesmoArquivo, pedirEdicao, transcrever, useReferenciasVideo, useTemEditor, type Edicao, type Receita } from './dados'
 import { Link } from 'react-router-dom'
 import { pegarArquivo } from '../../editor/arquivoPendente'
+import { quadrosDoBruto } from './midias'
 import { ConviteEditor } from './ConviteEditor'
 import { ApoioEdicao } from './ApoioEdicao'
 import { usarApoio } from './usarApoio'
@@ -74,12 +75,12 @@ export function AbaEdicao({ peca, r, aoMudar }: { peca: Peca; r: Rascunho; aoMud
     if (!palavras.length) throw new Error('Não encontrei fala neste vídeo.')
     await guardarEdicao(peca.id, (e) => ({ ...e, arquivo: { nome: arquivo.name, tamanho: arquivo.size, duracao: d }, palavras, receitas: [] }))
     setOcupado('O agente está editando…')
-    const { plano } = await pedirEdicao(peca.id, palavras, d, await apoio.paraAgente(), { modeloRef })
+    const { plano } = await pedirEdicao(peca.id, palavras, d, await apoio.paraAgente(), { modeloRef, quadros: await quadrosDoBruto(arquivo) })
     await guardarEdicao(peca.id, (e) => comReceita(e, { plano, em: new Date().toISOString() }))
   })
   const ajustar = () => executar('O agente está ajustando…', async () => {
     if (!edicao.palavras || !pedido.trim()) return
-    const { plano } = await pedirEdicao(peca.id, edicao.palavras, duracaoBruto, await apoio.paraAgente(), { pedido: pedido.trim(), lembrar: lembrar ? pedido.trim() : '', anterior: receita?.plano, modeloRef })
+    const { plano } = await pedirEdicao(peca.id, edicao.palavras, duracaoBruto, await apoio.paraAgente(), { pedido: pedido.trim(), lembrar: lembrar ? pedido.trim() : '', anterior: receita?.plano, modeloRef, quadros: arquivo ? await quadrosDoBruto(arquivo) : undefined })
     await guardarEdicao(peca.id, (e) => comReceita(e, { plano, pedido: pedido.trim(), em: new Date().toISOString() }))
     setPedido(''); setLembrar(false)
   })
