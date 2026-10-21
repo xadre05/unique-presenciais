@@ -149,6 +149,9 @@ const FERRAMENTA_AJUSTE = {
   },
 }
 
+// escrita de UMA peça: os campos vêm soltos (sem lista), o formato mais seguro para a IA
+const FERRAMENTA_UMA = { name: 'entregar_peca', description: 'Entrega a peça escrita, completa, para a equipe aprovar.', input_schema: { ...PROPS_PECA, required: ['tipo', 'titulo', 'objetivo', 'legenda'] } }
+
 // memória do agente: o que ele aprendeu com a equipe (ajustes, descartes e o que foi escrito à mão)
 async function lembrar(db: SupabaseClient, empresa: string, agente: string, frase: string) {
   const f = frase.trim()
@@ -509,41 +512,50 @@ async function escrever(db: SupabaseClient, t: Trabalho, perfil: Record<string, 
     // stories no modelo econômico; o resto no modelo escolhido. Os dois pedidos correm ao mesmo tempo
     const grupos = [pecas.filter((p) => p.tipo !== 'stories'), pecas.filter((p) => p.tipo === 'stories')].filter((g) => g.length)
     const anexos = (Array.isArray(t.pedido.anexos) ? t.pedido.anexos : []) as Anexo[]
-    const respostas = await Promise.all(grupos.map(async (g) => {
+    // peça sozinha vai com a ferramenta de UMA peça (campos soltos, sem lista): é o formato que a IA nunca erra
+    const escreverGrupo = async (g: PecaBanco[]) => {
       const m = g[0].tipo === 'stories' && economico ? 'claude-haiku-5-5' : modelo
+      const uma = g.length === 1
       const { sistema, usuario } = pedidoEscrever(perfil, g, t.pedido, ctx, (exemplos ?? []) as Exemplo[])
+      const pedidoTexto = uma ? usuario.replace(/Entregue OBRIGATORIAMENTE chamando a ferramenta entregar_semana[\s\S]*$/, 'Entregue OBRIGATORIAMENTE chamando a ferramenta entregar_peca, com a peça completa (legenda pronta, roteiro e chamada). Não escreva nada fora da ferramenta.') : usuario
       const nomesCamp = (Array.isArray(perfil.campanhas) ? perfil.campanhas as Campanha[] : []).filter((c) => g.some((p) => p.conteudo.campanha === c.id)).map((c) => c.nome)
       const kn = await conhecimento(db, t.empresa_id, [t.pedido.tema, ...nomesCamp, ...g.map((p) => `${p.titulo} ${p.conteudo.objetivo ?? ''}`)].filter(Boolean).join(' '), g.length > 3 ? 10 : 6, g.map((p) => String(p.conteudo.campanha ?? '')))
       // referências de formato guardadas na Base da marca (mesmo formato das peças do grupo)
       const modelos = await blocoModelos(db, t.empresa_id, [...new Set(g.map((p) => p.tipo))])
-      return { grupo: g, modelo: m, fontes: kn.fontes, ...(await chamarClaude(chave, m, sistema, comAnexos(comBloco(kn.bloco, [modelos, usuario].filter(Boolean).join('\n\n')), anexos))) }
-    }))
+      const res = await chamarClaude(chave, m, sistema, comAnexos(comBloco(kn.bloco, [modelos, pedidoTexto].filter(Boolean).join('\n\n')), anexos), uma ? FERRAMENTA_UMA : FERRAMENTA)
+      const entrega = uma ? { ...res.entrega, resumo: '', pecas: [{ ...res.entrega, ref: 1 } as Peca] } : res.entrega
+      return { grupo: g, modelo: m, fontes: kn.fontes, entrada: res.entrada, saida: res.saida, entrega }
+    }
+    const respostas = await Promise.all(grupos.map(escreverGrupo))
     let escritas = 0
     // o que veio e não casou com nenhuma peça fica no histórico do trabalho, para conferir
     const naoCasou: unknown[] = []
-    for (const r of respostas) {
+    // grava as peças que vieram e devolve as que faltaram
+    const aplicar = async (r: Awaited<ReturnType<typeof escreverGrupo>>) => {
       const entregues = comoLista<Peca>(r.entrega.pecas).filter((x) => x && typeof x === 'object')
-      // peça única: se a IA pôs legenda, cta etc. fora da lista (no nível de cima), junta na peça
-      if (r.grupo.length === 1 && entregues.length === 1) {
-        const solto = r.entrega as unknown as Record<string, unknown>, alvo = entregues[0] as unknown as Record<string, unknown>
-        for (const k of ['legenda', 'roteiro', 'texto_arte', 'cta', 'hashtags', 'observacao', 'prompt_imagem', 'horario', 'pendencia', 'objetivo', 'titulo']) if (alvo[k] == null && solto[k] != null) alvo[k] = solto[k]
-      }
-      // guarda o que veio cru (até 20 mil caracteres) para não perder um texto já pago
       if (entregues.length !== r.grupo.length) naoCasou.push({ pedidas: r.grupo.length, vieram: entregues.length, refs: entregues.map((x) => x.ref), tipoPecas: typeof r.entrega.pecas, bruto: typeof r.entrega.pecas === 'string' ? String(r.entrega.pecas).slice(0, 20000) : undefined })
+      const faltam: PecaBanco[] = []
       await Promise.all(r.grupo.map(async (p, i) => {
         // pelo número do item; se o número veio diferente (ex.: "1)" ou a posição na lista toda), vale a ordem quando a quantidade bate
         const e = entregues.find((x) => parseInt(String(x.ref), 10) === i + 1) ?? (entregues.length === r.grupo.length || entregues.every((x) => !x.ref) ? entregues[i] : undefined)
-        if (!e) return db.from('agentes_pecas').update({ conteudo: { ...p.conteudo, etapa: 'ideia' } }).eq('id', p.id)
+        if (!e) { faltam.push(p); return }
         escritas++
         const livre = p.conteudo.livre === true
         const tipo = livre && TIPOS.includes(String(e.tipo)) ? String(e.tipo) : p.tipo
         const rede = livre && e.rede && REDES[e.rede] ? e.rede : redeDo(p.conteudo.rede)
-        return db.from('agentes_pecas').update({
+        await db.from('agentes_pecas').update({
           titulo: e.titulo || p.titulo, tipo, status: 'rascunho', atualizado_em: new Date().toISOString(),
           conteudo: primeiraVersao(e.titulo || p.titulo, tipo, conteudoDe(e, { rede, campanha: p.conteudo.campanha, plano: p.conteudo.plano, reuniao: p.conteudo.reuniao, briefing: p.conteudo.briefing, visual: p.conteudo.visual, fontes: r.fontes.length ? r.fontes : undefined })),
         }).eq('id', p.id)
       }))
+      return faltam
     }
+    const faltaram = (await Promise.all(respostas.map(aplicar))).flat()
+    // a IA errou o formato de alguma peça: o próprio sistema pede de novo, uma por vez (até 4), sem a equipe precisar clicar
+    const segunda = await Promise.all(faltaram.slice(0, 4).map((p) => escreverGrupo([p]).catch(() => null)))
+    const ainda = [...faltaram.slice(4)]
+    for (const [k, r] of segunda.entries()) { if (!r) { ainda.push(faltaram[k]); continue } respostas.push(r); ainda.push(...await aplicar(r)) }
+    await Promise.all(ainda.map((p) => db.from('agentes_pecas').update({ conteudo: { ...p.conteudo, etapa: 'ideia' } }).eq('id', p.id)))
     const entrada = respostas.reduce((s, r) => s + r.entrada, 0), saida = respostas.reduce((s, r) => s + r.saida, 0)
     await db.from('agentes_trabalhos').update({
       pedido: { ...t.pedido, peca_ids: ids, anexos: anexos.map((a) => ({ nome: a.nome, tipo: a.tipo })), nao_casou: naoCasou.length ? naoCasou : undefined },
