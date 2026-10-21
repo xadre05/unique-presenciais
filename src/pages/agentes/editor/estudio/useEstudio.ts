@@ -12,13 +12,15 @@ import { montarLinhaTempo } from '../../marketing/edicao/linhaTempo'
 import { montarVideo } from '../../marketing/edicao/montagem'
 import { escreverCenas } from '../../marketing/edicao/escreverCenas'
 import { usarApoio } from '../../marketing/edicao/usarApoio'
-import { pegarArquivo } from '../arquivoPendente'
+import { deixarArquivo, pegarArquivo } from '../arquivoPendente'
+import { baixarNarracao } from '../semGravar/dados'
 import { usePerfilEditor } from '../dados'
 
 export type Passo = 'video' | 'conteudo' | 'estilo' | 'imagens'
 export const PASSOS: Passo[] = ['video', 'conteudo', 'estilo', 'imagens']
 const MAX_RECEITAS = 6
 const comReceita = (e: Edicao, r: Receita): Edicao => ({ ...e, receitas: [...(e.receitas ?? []), r].slice(-MAX_RECEITAS) })
+const SEM_PESSOA = 'Vídeo SEM pessoa na tela: é só a narração. Cubra 100% do tempo, sem nenhum buraco, com cenas animadas (layout cheia) e mídias de apoio em tela cheia, trocando a cada 2 a 4 segundos, sempre ilustrando o que a narração diz.'
 export type VideoMontado = { url: string; nome: string; arquivo: File }
 
 export function useEstudio(peca: Peca, aoMudar: () => void) {
@@ -63,8 +65,14 @@ export function useEstudio(peca: Peca, aoMudar: () => void) {
     // capa do cartão na entrada do Editor (uma foto pequena do bruto)
     if (!edicao.capa) void quadrosDoBruto(f, 1, corte?.de, corte?.ate).then((q) => q[0] && guardarEdicao(peca.id, (x) => ({ ...x, capa: q[0].miniatura })))
   }
+  // vídeo sem gravar: o "bruto" é a narração da IA, guardada na nuvem (volta sozinha, sem escolher arquivo)
+  const narracao = (peca.conteudo as { narracao?: { caminho: string; nome: string } }).narracao
   // o vídeo escolhido antes (na entrada do Editor ou antes de trocar de tela) volta escolhido
-  useEffect(() => { const f = pegarArquivo(peca.id); if (f) escolher(f) }, [peca.id]) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    const f = pegarArquivo(peca.id)
+    if (f) return escolher(f)
+    if (narracao) void baixarNarracao(narracao).then((n) => { if (n) { deixarArquivo(peca.id, n); escolher(n) } })
+  }, [peca.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const executar = async (rotulo: string, fazer: () => Promise<void>) => {
     setErro(null); setOcupado(rotulo)
@@ -74,8 +82,9 @@ export function useEstudio(peca: Peca, aoMudar: () => void) {
   const editar = () => executar('Lendo o áudio do vídeo…', async () => {
     if (!arquivo) return
     // corte de vídeo longo: a fala do trecho já veio transcrita (não lê o áudio de novo)
-    let palavras = corte && edicao.palavras?.length && confere ? edicao.palavras : null
-    let d = corte ? corte.ate - corte.de : 0
+    // narração de IA: as palavras já vieram com o tempo exato da ElevenLabs
+    let palavras = (corte || narracao) && edicao.palavras?.length && confere ? edicao.palavras : null
+    let d = corte ? corte.ate - corte.de : narracao ? edicao.arquivo?.duracao ?? 0 : 0
     if (!palavras) {
       const audio = await audioDoVideo(arquivo)
       d = audio.duracao; setDuracao(d); setOcupado('Transcrevendo a fala…')
@@ -84,7 +93,7 @@ export function useEstudio(peca: Peca, aoMudar: () => void) {
       await guardarEdicao(peca.id, (e) => ({ ...e, arquivo: { nome: arquivo.name, tamanho: arquivo.size, duracao: d }, palavras: palavras!, receitas: [] }))
     }
     setOcupado('O agente está editando…')
-    const { plano: rascunho } = await pedirEdicao(peca.id, palavras, d, await apoio.paraAgente(), { modeloRef, quadros: await quadrosDoBruto(arquivo, 4, corte?.de, corte?.ate), referencia: edicao.referencia })
+    const { plano: rascunho } = await pedirEdicao(peca.id, palavras, d, await apoio.paraAgente(), { modeloRef, quadros: await quadrosDoBruto(arquivo, 4, corte?.de, corte?.ate), referencia: edicao.referencia, pedido: narracao ? SEM_PESSOA : undefined })
     if (rascunho.cenas?.length) setOcupado(`Animando ${rascunho.cenas.length} cena(s)…`)
     const plano = await escreverCenas(peca.id, rascunho, palavras, peca.tipo !== 'video')
     await guardarEdicao(peca.id, (e) => comReceita(e, { plano, em: new Date().toISOString() }))

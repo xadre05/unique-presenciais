@@ -57,6 +57,8 @@ export async function montarVideo(arquivo: File, linha: LinhaTempo, vertical: bo
   let feito = 0
   let fundo: AudioBufferSourceNode | undefined
   const efeitos = new TocadorEfeitos(audio, saida, linha.efeitos)
+  // vídeo sem imagem (narração de vídeo sem gravar): o quadro segue o relógio da tela, não os quadros do vídeo
+  const proximo = (f: () => void) => (v.videoWidth ? v.requestVideoFrameCallback(f) : requestAnimationFrame(f))
   const quadro = () => { sincronizarClipes(midias, ativo(linha.coberturas, v.currentTime)); desenharQuadro(ctx, v, linha, midias, cor, cenas); efeitos.passo(v.currentTime) }
   try {
     for (const [k, trecho] of linha.trechos.entries()) {
@@ -75,9 +77,9 @@ export async function montarVideo(arquivo: File, linha: LinhaTempo, vertical: bo
           if (feitoTrecho) return
           quadro()
           aoAvancar(Math.min(1, (feito + v.currentTime - trecho.ini) / linha.duracao))
-          if (v.currentTime >= trecho.fim || v.ended) terminar(); else v.requestVideoFrameCallback(passo)
+          if (v.currentTime >= trecho.fim || v.ended) terminar(); else proximo(passo)
         }
-        v.requestVideoFrameCallback(passo)
+        proximo(passo)
       })
       gravador.pause()
       feito += trecho.fim - trecho.ini

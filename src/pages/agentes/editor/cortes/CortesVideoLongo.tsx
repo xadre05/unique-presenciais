@@ -7,6 +7,7 @@ import { useNavigate } from 'react-router-dom'
 import { Erro } from '../../../../components/ui'
 import { Icone } from '../../../../components/Icone'
 import { Voltar } from '../../../../components/Voltar'
+import { BotaoAjuda } from '../../ajuda/BotaoAjuda'
 import { EMPRESA } from '../../marketing/useMarketing'
 import { useLogos } from '../../LogosMarca'
 import { doArraste, escolherComAtalho, type Atalho } from '../arquivoPendente'
@@ -85,7 +86,7 @@ export default function CortesVideoLongo() {
     <div className="pagina cortes">
       <div className="migalha"><Voltar para="/agentes/editor" texto="Agente Editor de Vídeo" /></div>
       <header className="cortes-topo">
-        <h1>Cortes de vídeo longo</h1>
+        <h1>Cortes de vídeo longo <BotaoAjuda id="cortes" /></h1>
         <p className="muted">Uma aula, live ou podcast vira vários reels. O agente acha os melhores trechos; você escolhe e cada um vai para o Estúdio.</p>
       </header>
       <Erro msg={erro} />

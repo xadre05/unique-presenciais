@@ -64,13 +64,21 @@ function desenharCartao(ctx: CanvasRenderingContext2D, m: MidiaPronta, c: Cobert
   ctx.restore()
 }
 
+// fundo quando o vídeo não tem imagem (vídeo sem gravar): preto da marca com um brilho dourado suave
+function fundoDaMarca(ctx: CanvasRenderingContext2D, L: number, A: number) {
+  ctx.fillStyle = '#0A0A0B'; ctx.fillRect(0, 0, L, A)
+  const g = ctx.createRadialGradient(L * 0.8, A * 0.15, 0, L * 0.8, A * 0.15, L * 1.2)
+  g.addColorStop(0, 'rgba(201,164,92,0.14)'); g.addColorStop(1, 'rgba(201,164,92,0)')
+  ctx.fillStyle = g; ctx.fillRect(0, 0, L, A)
+}
+
 // cor = filtro aplicado só à imagem da pessoa (ex.: correção de vídeo HDR de celular, que no canvas sai estourado)
 // cenas = o desenhista das cenas animadas (cenas.ts); a cena ativa ganha da mídia de apoio no mesmo momento
 export function desenharQuadro(ctx: CanvasRenderingContext2D, v: HTMLVideoElement, linha: LinhaTempo, midias: (MidiaPronta | undefined)[], cor?: string, cenas?: Cenas) {
   const comCor = (fazer: () => void) => { ctx.filter = cor ?? 'none'; fazer(); ctx.filter = 'none' }
   const t = v.currentTime
   const { width: L, height: A } = ctx.canvas
-  ctx.fillStyle = '#000'; ctx.fillRect(0, 0, L, A)
+  if (v.videoWidth) { ctx.fillStyle = '#000'; ctx.fillRect(0, 0, L, A) } else fundoDaMarca(ctx, L, A)
   const zoom = ativo(linha.zooms, t)?.escala ?? 1
   const cena = cenas ? ativo(linha.cenas, t) : undefined
   const quadroCena = cena && cenas ? cenas.quadro(cena.n, tempoFinal(t, linha.trechos) - tempoFinal(cena.ini, linha.trechos), tempoFinal(cena.fim, linha.trechos) - tempoFinal(cena.ini, linha.trechos)) : null

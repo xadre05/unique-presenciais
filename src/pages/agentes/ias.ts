@@ -1,7 +1,7 @@
 // As inteligências artificiais que os agentes podem usar, o que cada uma faz e qual faz cada trabalho.
 // A chave de cada uma fica cifrada no servidor, por empresa (tabela agentes_chaves + Vault).
 // "Automático": o sistema escolhe a melhor IA com chave cadastrada para o trabalho.
-export type Provedor = 'anthropic' | 'openai' | 'google' | 'xai'
+export type Provedor = 'anthropic' | 'openai' | 'google' | 'xai' | 'elevenlabs' | 'higgsfield'
 export type Trabalho = 'texto' | 'imagem'
 export type Escolha = { provedor: Provedor | 'auto'; modelo?: string }
 export type EscolhaIAs = Partial<Record<Trabalho, Escolha>>
@@ -37,8 +37,19 @@ export const PROVEDORES: Record<Provedor, InfoProvedor> = {
     passos: ['Entre em console.x.ai.', 'Coloque crédito em Billing.', 'Em API Keys → Create API Key, copie a chave (começa com xai-).'],
     modelos: [{ id: 'grok-imagine', nome: 'Grok Imagine', trabalho: 'imagem', pronto: false, dica: 'Retratos com textura de pele natural.' }],
   },
+  // Agente Editor de Vídeo: narração com voz de IA (vídeo sem gravar) e cenas reais geradas (b-roll)
+  elevenlabs: {
+    nome: 'ElevenLabs', empresa: 'ElevenLabs', faz: 'Voz: narração com voz de IA para vídeos sem gravar', prefixo: 'sk_', site: 'elevenlabs.io',
+    passos: ['Entre em elevenlabs.io e escolha um plano pago (a narração é cobrada por caractere).', 'Em Developers → API Keys, crie uma chave com o nome "Unique" e copie (começa com sk_).', 'Opcional: em Voices, clone a voz de quem é o rosto da marca, com autorização dela.'],
+    modelos: [],
+  },
+  higgsfield: {
+    nome: 'Higgsfield', empresa: 'Higgsfield', faz: 'Vídeo: imagens e clipes realistas (b-roll) gerados para cobrir a fala', prefixo: '', site: 'open.higgsfield.ai',
+    passos: ['Entre em open.higgsfield.ai e coloque saldo (cobrado por imagem e por segundo de vídeo; um clipe de 5 s custa cerca de US$ 0,20).', 'Em API Keys, crie uma chave: ela tem duas partes, KEY ID e KEY SECRET.', 'Cole aqui no formato KEY_ID:KEY_SECRET (as duas partes separadas por dois-pontos).'],
+    modelos: [],
+  },
 }
-export const ORDEM: Provedor[] = ['anthropic', 'openai', 'google', 'xai']
+export const ORDEM: Provedor[] = ['anthropic', 'openai', 'google', 'xai', 'elevenlabs', 'higgsfield']
 
 // padrão: Claude escreve, GPT Image faz a arte; "automático" cai nessa ordem conforme as chaves cadastradas
 export const PADRAO: Record<Trabalho, Provedor[]> = { texto: ['anthropic', 'openai', 'google'], imagem: ['openai', 'google', 'xai'] }

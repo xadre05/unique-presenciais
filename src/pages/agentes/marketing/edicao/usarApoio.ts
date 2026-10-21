@@ -14,7 +14,7 @@ export const chaveDe = (m: Pick<MidiaApoio, 'nome' | 'tamanho' | 'caminho'>) => 
 const doBanco = (b: ItemBanco): MidiaApoio => ({ nome: b.nome, tamanho: 0, tipo: b.tipo, descricao: descricaoParaAgente(b), caminho: b.caminho })
 
 async function baixar(m: MidiaApoio) {
-  const { data } = await supabase.storage.from('arquivos').download(m.caminho!)
+  const { data } = await supabase.storage.from(m.bucket ?? 'arquivos').download(m.caminho!)
   return data ? new File([data], m.nome, { type: data.type || (m.tipo === 'video' ? 'video/mp4' : 'image/jpeg') }) : undefined
 }
 

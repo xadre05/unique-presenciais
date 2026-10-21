@@ -4,6 +4,8 @@
 //     cena já desenhada) ou "erro", revisa: dá nota de 1 a 10 e devolve o código corrigido.
 //   POST { acao: 'cortes', empresa, titulo, linhas, duracao, quantos? } → { cortes }
 //     Lê a transcrição de um vídeo longo (aula, live, podcast) e escolhe os melhores trechos para virar reels.
+//   POST { acao: 'broll_ideias' | 'broll_gerar' | 'broll_status' } → cenas reais geradas na Higgsfield (imagem, depois clipe)
+//   POST { acao: 'vozes' | 'narrar' } → narração com voz de IA na ElevenLabs (vídeo sem gravar), com o tempo de cada palavra
 import { createClient, type SupabaseClient } from 'npm:@supabase/supabase-js@2.45.4'
 
 const cors = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type', 'Access-Control-Allow-Methods': 'POST, OPTIONS' }
@@ -114,6 +116,126 @@ async function cortes(db: SupabaseClient, corpo: Record<string, unknown>) {
   return { cortes: lista }
 }
 
+// ===== b-roll com a Higgsfield (imagem e clipe gerados) =====
+// A chave fica no cofre como "KEY_ID:KEY_SECRET". Primeiro a imagem (barata) para aprovar; só depois o clipe.
+const HF = 'https://api.higgsfield.ai'
+const MODELO_IMAGEM = 'higgsfield-ai/soul/standard'
+const MODELO_VIDEO = 'kling-video/v2.5-turbo/standard/image-to-video'
+const PRECO_IMAGEM = 0.03, PRECO_VIDEO_S = 0.042
+
+async function chaveDe(db: SupabaseClient, empresa: string, provedor: string, nome: string) {
+  const { data } = await db.rpc('agentes_ler_chave_ia', { p_empresa: empresa, p_provedor: provedor })
+  if (!data) throw new Error(`Falta cadastrar a chave da ${nome} em Agentes → Configurações → Inteligências artificiais.`)
+  return String(data)
+}
+async function registrarCusto(db: SupabaseClient, empresa: string, tipo: string, peca: string, resumo: string, custo: number, modelo: string) {
+  await db.from('agentes_trabalhos').insert({ empresa_id: empresa, agente_id: 'editor', tipo, status: 'pronto', pedido: { peca }, resumo: resumo.slice(0, 200), modelo, custo_usd: Math.round(custo * 10000) / 10000, terminado_em: new Date().toISOString() })
+}
+
+async function brollGerar(db: SupabaseClient, corpo: Record<string, unknown>) {
+  const empresa = String(corpo.empresa ?? '')
+  const chave = await chaveDe(db, empresa, 'higgsfield', 'Higgsfield')
+  const tipo = corpo.tipo === 'video' ? 'video' : 'imagem'
+  let corpoHf: Record<string, unknown>
+  if (tipo === 'imagem') corpoHf = { prompt: String(corpo.prompt ?? '').slice(0, 2000), aspect_ratio: String(corpo.proporcao ?? '9:16'), resolution: '1080p' }
+  else {
+    const { data: link } = await db.storage.from('arquivos').createSignedUrl(String(corpo.imagem ?? ''), 3600)
+    if (!link?.signedUrl) throw new Error('Não achei a imagem para animar.')
+    corpoHf = { image_url: link.signedUrl, prompt: String(corpo.prompt ?? 'movimento de câmera lento e natural').slice(0, 2000), duration: Math.min(10, Math.max(3, Number(corpo.duracao ?? 5))) }
+  }
+  const r = await fetch(`${HF}/${tipo === 'imagem' ? MODELO_IMAGEM : MODELO_VIDEO}`, { method: 'POST', headers: { Authorization: `Key ${chave}`, 'Content-Type': 'application/json' }, body: JSON.stringify(corpoHf) })
+  const j = await r.json().catch(() => ({}))
+  if (!r.ok || !j.request_id) {
+    const msg = String(j?.detail ?? j?.message ?? j?.error ?? `erro ${r.status}`)
+    if (r.status === 401 || r.status === 403) throw new Error('A Higgsfield recusou a chave. Confira se colou KEY_ID:KEY_SECRET.')
+    if (/balance|credit|fund/i.test(msg)) throw new Error('A conta da Higgsfield está sem saldo.')
+    throw new Error(`A Higgsfield respondeu: ${msg}`)
+  }
+  return { pedido: String(j.request_id), tipo }
+}
+
+async function brollStatus(db: SupabaseClient, corpo: Record<string, unknown>) {
+  const empresa = String(corpo.empresa ?? ''), peca = String(corpo.peca ?? '')
+  const chave = await chaveDe(db, empresa, 'higgsfield', 'Higgsfield')
+  const r = await fetch(`${HF}/requests/${encodeURIComponent(String(corpo.pedido ?? ''))}/status`, { headers: { Authorization: `Key ${chave}` } })
+  const j = await r.json().catch(() => ({}))
+  const status = String(j.status ?? 'queued')
+  if (status === 'failed' || status === 'nsfw' || status === 'canceled') return { status, erro: status === 'nsfw' ? 'A Higgsfield bloqueou esta imagem pela moderação. Mude o pedido.' : 'A geração falhou (o crédito volta para a conta).' }
+  if (status !== 'completed') return { status }
+  const video = corpo.tipo === 'video'
+  const url = video ? j.video?.url : j.images?.[0]?.url
+  if (!url) return { status: 'failed', erro: 'A Higgsfield não devolveu o arquivo.' }
+  const arquivo = await fetch(url)
+  if (!arquivo.ok) return { status: 'failed', erro: 'Não consegui baixar o arquivo gerado.' }
+  const blob = await arquivo.blob()
+  const ext = video ? 'mp4' : (blob.type.includes('png') ? 'png' : 'jpg')
+  const caminho = video ? `${empresa}/${peca || 'broll'}/broll-${crypto.randomUUID()}.mp4` : `agentes/broll/${empresa}/${peca || 'geral'}/${crypto.randomUUID()}.${ext}`
+  const { error } = await db.storage.from(video ? 'videos' : 'arquivos').upload(caminho, blob, { contentType: video ? 'video/mp4' : blob.type || 'image/jpeg' })
+  if (error) return { status: 'failed', erro: `Não consegui guardar o arquivo: ${error.message}` }
+  const dur = Math.min(10, Math.max(3, Number(corpo.duracao ?? 5)))
+  await registrarCusto(db, empresa, video ? 'broll_video' : 'broll_imagem', peca, video ? `Clipe gerado (${dur} s)` : 'Imagem gerada', video ? dur * PRECO_VIDEO_S : PRECO_IMAGEM, video ? MODELO_VIDEO : MODELO_IMAGEM)
+  return { status, caminho, bucket: video ? 'videos' : 'arquivos', tipo: video ? 'video' : 'imagem' }
+}
+
+// ideias de b-roll: o agente lê a fala e propõe cenas reais que ilustram o que é dito (prompt em inglês para a IA de imagem)
+const FERRAMENTA_BROLL = {
+  name: 'entregar_brolls', description: 'Entrega as ideias de b-roll.',
+  input_schema: { type: 'object', required: ['ideias'], properties: { ideias: { type: 'array', items: { type: 'object', required: ['de', 'ate', 'descricao', 'prompt'], properties: {
+    de: { type: 'integer', description: 'palavra em que entra' }, ate: { type: 'integer', description: 'palavra em que sai' },
+    descricao: { type: 'string', description: 'Em português, o que a cena mostra (vira a descrição da mídia)' },
+    prompt: { type: 'string', description: 'Prompt em inglês para gerar a FOTO: cena realista, cinematográfica, vertical, luz quente, estética de clínica de estética premium; sem texto, sem logos, sem rosto reconhecível de pessoa real, sem procedimento com agulha em close' },
+    movimento: { type: 'string', description: 'Em inglês, o movimento de câmera para animar a foto (ex.: slow push in, gentle pan right)' },
+  } } } } },
+}
+async function brollIdeias(db: SupabaseClient, corpo: Record<string, unknown>) {
+  const empresa = String(corpo.empresa ?? ''), peca = String(corpo.peca ?? '')
+  const ia = await preparar(db, empresa)
+  const fala = String(corpo.fala ?? '').slice(0, 30000)
+  const sistema = 'Você é diretor de fotografia de reels de uma escola de harmonização orofacial de alto padrão. Lendo a fala (número | palavra), proponha cenas reais de cobertura (b-roll) de 2 a 5 segundos que ILUSTRAM o que está sendo dito naquele momento (ex.: falou de agenda cheia → recepção movimentada; falou de estudo → profissional estudando anatomia). Nada de pessoas famosas, logos, texto na imagem, sangue ou agulha em close. Responda chamando a ferramenta entregar_brolls.'
+  const r = await ia(sistema, [{ type: 'text', text: `QUANTAS: até ${Math.min(6, Math.max(1, Number(corpo.quantos ?? 4)))}\n\nFALA:\n${fala}` }], FERRAMENTA_BROLL, 'broll_ideias', peca, (e) => `Ideias de b-roll: ${Array.isArray(e.ideias) ? e.ideias.length : 0}`, 4000)
+  return { ideias: Array.isArray(r?.ideias) ? r!.ideias : [] }
+}
+
+// ===== narração com a ElevenLabs (vídeo sem gravar) =====
+const PRECO_CARACTERE = 0.0003
+async function vozes(db: SupabaseClient, corpo: Record<string, unknown>) {
+  const chave = await chaveDe(db, String(corpo.empresa ?? ''), 'elevenlabs', 'ElevenLabs')
+  const r = await fetch('https://api.elevenlabs.io/v1/voices', { headers: { 'xi-api-key': chave } })
+  const j = await r.json().catch(() => ({}))
+  if (!r.ok) throw new Error(r.status === 401 ? 'A ElevenLabs recusou a chave.' : `A ElevenLabs respondeu ${r.status}.`)
+  return { vozes: ((j.voices ?? []) as { voice_id: string; name: string; category?: string; labels?: Record<string, string>; preview_url?: string }[]).map((v) => ({ id: v.voice_id, nome: v.name, tipo: v.category, detalhes: Object.values(v.labels ?? {}).join(' · '), amostra: v.preview_url })) }
+}
+async function narrar(db: SupabaseClient, corpo: Record<string, unknown>) {
+  const empresa = String(corpo.empresa ?? ''), peca = String(corpo.peca ?? '')
+  const chave = await chaveDe(db, empresa, 'elevenlabs', 'ElevenLabs')
+  const texto = String(corpo.texto ?? '').trim().slice(0, 5000)
+  if (!texto) throw new Error('Escreva o texto da narração.')
+  const voz = String(corpo.voz ?? '')
+  if (!voz) throw new Error('Escolha uma voz.')
+  const r = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${encodeURIComponent(voz)}/with-timestamps?output_format=mp3_44100_128`, {
+    method: 'POST', headers: { 'xi-api-key': chave, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ text: texto, model_id: 'eleven_multilingual_v2', voice_settings: { stability: 0.45, similarity_boost: 0.8, style: 0.25 } }),
+  })
+  const j = await r.json().catch(() => ({}))
+  if (!r.ok || !j.audio_base64) throw new Error(r.status === 401 ? 'A ElevenLabs recusou a chave.' : /quota|credit|limit/i.test(JSON.stringify(j)) ? 'A conta da ElevenLabs está sem caracteres no plano.' : `A ElevenLabs respondeu ${r.status}.`)
+  // palavras com o tempo, a partir do tempo de cada letra
+  const a = j.alignment ?? { characters: [], character_start_times_seconds: [], character_end_times_seconds: [] }
+  const palavras: { p: string; i: number; f: number }[] = []
+  let atual = '', ini = 0, fim = 0
+  a.characters.forEach((c: string, k: number) => {
+    if (/\s/.test(c)) { if (atual) palavras.push({ p: atual, i: ini, f: fim }); atual = ''; return }
+    if (!atual) ini = a.character_start_times_seconds[k]
+    atual += c; fim = a.character_end_times_seconds[k]
+  })
+  if (atual) palavras.push({ p: atual, i: ini, f: fim })
+  const bytes = Uint8Array.from(atob(j.audio_base64), (c) => c.charCodeAt(0))
+  const caminho = `agentes/narracao/${empresa}/${crypto.randomUUID()}.mp3`
+  const { error } = await db.storage.from('arquivos').upload(caminho, new Blob([bytes], { type: 'audio/mpeg' }), { contentType: 'audio/mpeg' })
+  if (error) throw new Error(`Não consegui guardar a narração: ${error.message}`)
+  await registrarCusto(db, empresa, 'narracao', peca, `Narração de ${texto.length} caracteres`, texto.length * PRECO_CARACTERE, 'eleven_multilingual_v2')
+  return { caminho, palavras, duracao: palavras.at(-1)?.f ?? 0 }
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors })
   const url = Deno.env.get('SUPABASE_URL')!
@@ -125,6 +247,11 @@ Deno.serve(async (req) => {
     const corpo = await req.json().catch(() => ({}))
     if (corpo.acao === 'cena') return json(await cena(db, corpo))
     if (corpo.acao === 'cortes') return json(await cortes(db, corpo))
+    if (corpo.acao === 'broll_ideias') return json(await brollIdeias(db, corpo))
+    if (corpo.acao === 'broll_gerar') return json(await brollGerar(db, corpo))
+    if (corpo.acao === 'broll_status') return json(await brollStatus(db, corpo))
+    if (corpo.acao === 'vozes') return json(await vozes(db, corpo))
+    if (corpo.acao === 'narrar') return json(await narrar(db, corpo))
     return json({ erro: 'Ação desconhecida.' }, 400)
   } catch (e) {
     return json({ erro: (e as Error).message })

@@ -27,7 +27,7 @@ function CartaoChave({ empresa, p, chave, aoSalvar }: { empresa: string; p: Prov
         {chave ? <Badge tom="ok">Cadastrada ••••{chave.final} · {dataHoraBR(chave.cadastrada_em)}</Badge> : <Badge tom="apagado">Sem chave</Badge>}
       </div>
       <div className="ia-linha">
-        <input type="password" autoComplete="off" value={valor} onChange={(e) => { setValor(e.target.value); setOk(false) }} placeholder={`${chave ? 'Trocar a chave' : 'Colar a chave'} (começa com ${info.prefixo})`} aria-label={`Chave ${info.nome}`} />
+        <input type="password" autoComplete="off" value={valor} onChange={(e) => { setValor(e.target.value); setOk(false) }} placeholder={`${chave ? 'Trocar a chave' : 'Colar a chave'}${info.prefixo ? ` (começa com ${info.prefixo})` : ' (KEY_ID:KEY_SECRET)'}`} aria-label={`Chave ${info.nome}`} />
         <button className="btn btn-ouro" disabled={!valor.trim()} onClick={salvar}>Salvar</button>
       </div>
       <button type="button" className="link pequeno" onClick={() => setAbrir(!abrir)}><Icone nome={abrir ? 'seta' : 'info'} tam={14} /> Como pegar a chave em {info.site}</button>

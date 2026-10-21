@@ -9,6 +9,7 @@ import { BotaoConcluir } from '../../marketing/edicao/EntregaVideo'
 import { ConviteEditor } from '../../marketing/edicao/ConviteEditor'
 import { alterarPeca } from '../../marketing/peca/useEdicao'
 import { EscolhaEstilo } from './EscolhaEstilo'
+import { GerarBroll } from '../ia/GerarBroll'
 import { PASSOS, type Estudio, type Passo } from './useEstudio'
 
 const PROXIMO: Record<Passo, string> = { video: 'Continuar: conteúdo', conteudo: 'Continuar: estilo', estilo: 'Continuar: imagens e música', imagens: '' }
@@ -45,6 +46,7 @@ export function PainelEtapa({ e, peca, aoMudar }: { e: Estudio; peca: Peca; aoMu
       {p === 'estilo' && <EscolhaEstilo e={e} pecaId={peca.id} aoMudar={aoMudar} />}
       {p === 'imagens' && <ApoioEdicao midias={e.apoio.midias} novasDoBanco={e.apoio.novasDoBanco.length} arquivos={e.apoio.arquivos} musica={e.edicao.musica ? { ...e.edicao.musica, volume: e.apoio.volume } : undefined} arquivoMusica={e.apoio.arquivoMusica}
         aoAdicionar={e.apoio.adicionar} aoRemover={e.apoio.remover} aoDescrever={e.apoio.descrever} aoMusica={e.apoio.escolherMusica} aoVolume={e.apoio.mudarVolume} />}
+      {p === 'imagens' && <GerarBroll pecaId={peca.id} palavras={e.edicao.palavras} aoMudar={aoMudar} />}
       {convite && <ConviteEditor />}
       <footer className="es-painel-pe">
         <button type="button" className="btn btn-contorno" onClick={() => e.setPasso(i > 0 ? PASSOS[i - 1] : e.receita ? null : 'video')} disabled={i === 0 && !e.receita}><Icone nome="esquerda" tam={15} /> Voltar</button>

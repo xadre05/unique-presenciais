@@ -59,7 +59,8 @@ export default function AgenteEditor() {
 
       {/* fica montado ao trocar de aba: o vídeo e o roteiro escolhidos não somem */}
       {tem.dados && <section className="bloco ed-entrada" hidden={aba !== 'videos'}><NovoVideo campanhas={campanhas} />
-        <Link to="/agentes/editor/cortes" className="ed-longo"><Icone nome="live" tam={20} /><span><b>Tem um vídeo longo?</b><small className="muted">Aula, live ou podcast: o agente acha os melhores trechos e transforma em vários reels.</small></span><Icone nome="seta_dir" tam={16} /></Link>
+        <div className="ed-atalhos"><Link to="/agentes/editor/cortes" className="ed-longo"><Icone nome="live" tam={20} /><span><b>Tem um vídeo longo?</b><small className="muted">Aula, live ou podcast: o agente acha os melhores trechos e transforma em vários reels.</small></span><Icone nome="seta_dir" tam={16} /></Link>
+        <Link to="/agentes/editor/sem-gravar" className="ed-longo"><Icone nome="microfone" tam={20} /><span><b>Vídeo sem gravar</b><small className="muted">Escreva o texto, escolha a voz e a IA narra. O agente monta o vídeo com cenas animadas e imagens.</small></span><Icone nome="seta_dir" tam={16} /></Link></div>
       </section>}
       {tem.dados && aba === 'videos' && (
         <section className="bloco">
