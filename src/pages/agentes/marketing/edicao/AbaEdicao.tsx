@@ -11,6 +11,7 @@ import { PublicarVideo } from './PublicarVideo'
 import { audioDoVideo } from './audio'
 import { edicaoDa, guardarEdicao, mesmoArquivo, pedirEdicao, transcrever, useReferenciasVideo, useTemEditor, type Edicao, type Receita } from './dados'
 import { Link } from 'react-router-dom'
+import { pegarArquivo } from '../../editor/arquivoPendente'
 import { ConviteEditor } from './ConviteEditor'
 import { ApoioEdicao } from './ApoioEdicao'
 import { usarApoio } from './usarApoio'
@@ -59,6 +60,8 @@ export function AbaEdicao({ peca, r, aoMudar }: { peca: Peca; r: Rascunho; aoMud
     if (!f) return
     setErro(null); setArquivo(f); setUrl(URL.createObjectURL(f))
   }
+  // vídeo escolhido na página do Agente Editor ("Editar um vídeo"): já entra escolhido
+  useEffect(() => { const f = pegarArquivo(peca.id); if (f) escolher(f) }, [peca.id]) // eslint-disable-line react-hooks/exhaustive-deps
   const executar = async (rotulo: string, fazer: () => Promise<void>) => {
     setErro(null); setOcupado(rotulo)
     try { await fazer(); aoMudar() } catch (e) { setErro(e instanceof Error ? e.message : 'Algo deu errado.') } finally { setOcupado(null) }

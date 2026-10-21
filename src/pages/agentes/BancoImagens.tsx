@@ -31,6 +31,7 @@ export function BancoImagens({ empresaId, perfil, aoSalvar }: Props) {
   return (
     <div className="banco">
       <p className="muted pequeno">Suba uma vez e o Editor de Vídeo usa em todos os vídeos: fotos da turma no presencial, prints da plataforma e da página de vendas, bastidores, clipes curtos (até 10 MB). Escreva o que é cada um: é assim que o agente sabe em que momento usar. Antes e depois de paciente, só com autorização (escreva "autorizado").</p>
+      <p className="nota pequeno"><Icone nome="info" tam={14} /> O vídeo que você quer EDITAR não vai aqui: use "Editar um vídeo" na aba Vídeos. Lá não tem limite de tamanho, porque o vídeo não sobe para o sistema.</p>
       {banco.length > 0 && (
         <div className="ev-midias">
           {banco.map((b) => (
