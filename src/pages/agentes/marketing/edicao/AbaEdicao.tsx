@@ -8,6 +8,7 @@ import { audioDoVideo } from './audio'
 import { edicaoDa, guardarEdicao, mesmoArquivo, pedirEdicao, transcrever, type Edicao, type Receita } from './dados'
 import { montarLinhaTempo } from './linhaTempo'
 import { PreviaVideo } from './PreviaVideo'
+import { montarVideo } from './montagem'
 
 const MAX_RECEITAS = 6
 const segundos = (s: number) => `${Math.floor(s / 60)} min ${Math.round(s % 60)} s`
@@ -22,10 +23,13 @@ export function AbaEdicao({ peca, aoMudar }: { peca: Peca; aoMudar: () => void }
   const [erro, setErro] = useState<string | null>(null)
   const [pedido, setPedido] = useState('')
   const [lembrar, setLembrar] = useState(false)
+  const [progresso, setProgresso] = useState<number | null>(null)
+  const [final, setFinal] = useState<{ url: string; nome: string } | null>(null)
   const receitas = edicao.receitas ?? []
   const [versao, setVersao] = useState(receitas.length - 1)
   useEffect(() => { setVersao((edicao.receitas ?? []).length - 1) }, [edicao.receitas?.length])
   useEffect(() => () => { if (url) URL.revokeObjectURL(url) }, [url])
+  useEffect(() => () => { if (final) URL.revokeObjectURL(final.url) }, [final])
 
   const confere = arquivo ? mesmoArquivo(edicao.arquivo, arquivo) : false
   const receita = receitas[versao]
@@ -57,6 +61,17 @@ export function AbaEdicao({ peca, aoMudar }: { peca: Peca; aoMudar: () => void }
     await guardarEdicao(peca.id, (e) => comReceita(e, { plano, pedido: pedido.trim(), em: new Date().toISOString() }))
     setPedido(''); setLembrar(false)
   })
+
+  const gerarFinal = async () => {
+    if (!arquivo || !linha) return
+    setErro(null); setFinal(null); setProgresso(0)
+    try {
+      const blob = await montarVideo(arquivo, linha, peca.tipo !== 'video', setProgresso)
+      const ext = blob.type.includes('mp4') ? 'mp4' : 'webm'
+      const nome = `${peca.titulo.replace(/[^\p{L}\p{N} -]/gu, '').trim().slice(0, 60) || 'video'} - editado.${ext}`
+      setFinal({ url: URL.createObjectURL(blob), nome })
+    } catch (e) { setErro(e instanceof Error ? e.message : 'Não consegui montar o vídeo.') } finally { setProgresso(null) }
+  }
 
   return (
     <div className="ev">
@@ -97,8 +112,14 @@ export function AbaEdicao({ peca, aoMudar }: { peca: Peca; aoMudar: () => void }
       {receita && (
         <section className="ev-passo">
           <h4><span>3</span> Vídeo final</h4>
-          <p className="muted pequeno">A montagem do arquivo final (MP4) para baixar e postar é a próxima etapa do editor. Por enquanto, use a prévia para aprovar os cortes e os textos.</p>
-          <button type="button" className="btn" disabled><Icone nome="exportar" tam={16} /> Gerar vídeo final</button>
+          <p className="muted pequeno">A montagem é feita aqui no seu computador e leva o tempo do vídeo final. Deixe esta aba aberta e na frente até terminar. O arquivo vai para os seus downloads; nada fica guardado no sistema.</p>
+          {progresso !== null ? (
+            <div className="ev-montando"><div className="ev-barra"><span style={{ width: `${Math.round(progresso * 100)}%` }} /></div><span className="pequeno">Montando… {Math.round(progresso * 100)}%</span></div>
+          ) : (
+            <button type="button" className="btn btn-ouro" disabled={!confere || !linha || !!ocupado} onClick={gerarFinal} title={!confere ? 'Escolha o vídeo bruto acima' : ''}><Icone nome="exportar" tam={16} /> Gerar vídeo final</button>
+          )}
+          {final && <a className="btn btn-contorno-ouro" href={final.url} download={final.nome}><Icone nome="importar" tam={16} /> Baixar {final.nome}</a>}
+          {final && <video className="ev-resultado" src={final.url} controls playsInline />}
         </section>
       )}
     </div>

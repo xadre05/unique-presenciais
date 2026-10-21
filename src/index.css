@@ -3269,3 +3269,6 @@ a.sala-agente:hover { border-color: var(--ouro); transform: translateY(-2px); }
 .ev-ajuste { display: grid; gap: 8px; }
 .ev-ajuste textarea { width: 100%; }
 .ev-ajuste .btn { justify-self: start; }
+.ev-montando { display: flex; align-items: center; gap: 10px; }
+.ev-passo > a.btn { justify-self: start; }
+.ev-resultado { width: 100%; max-width: 340px; border-radius: 12px; background: #000; }
