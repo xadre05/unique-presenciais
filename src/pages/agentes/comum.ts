@@ -32,7 +32,7 @@ export type AgenteCatalogo = { id: string; nome: string; papel: string; descrica
 export const CATALOGO: AgenteCatalogo[] = [
   { id: 'marketing', nome: 'Marketing', papel: 'Conteúdo e campanhas', escopo: 'ambos', cor: '#a46ee6', foto: '/agentes/marketing.webp?v=4', avatar: '/agentes/marketing-avatar.webp?v=1', icone: 'grafico', trabalhando: 'montando a semana de conteúdo',
     descricao: 'Monta a semana de conteúdo do Instagram (posts, reels, stories e legendas) com o que a empresa vende agora. Nada é publicado sozinho: você aprova, copia e posta.' },
-  { id: 'editor', nome: 'Editor de Vídeo', papel: 'Edição de reels e vídeos', escopo: 'ambos', cor: '#f07f3c', foto: '', icone: 'video', trabalhando: 'editando vídeo',
+  { id: 'editor', nome: 'Editor de Vídeo', papel: 'Edição de reels e vídeos', escopo: 'ambos', cor: '#f07f3c', foto: '/agentes/editor.webp?v=1', avatar: '/agentes/editor-avatar.webp?v=1', icone: 'video', trabalhando: 'editando vídeo',
     descricao: 'Recebe o vídeo gravado, corta as pausas e as tomadas erradas pelo roteiro, coloca legenda, textos na tela e zoom, e entrega o vídeo pronto para postar. O vídeo fica no seu computador: nada é guardado no sistema.' },
   { id: 'atendimento', nome: 'Atendimento', papel: 'Conversas e relacionamento', escopo: 'ambos', cor: '#3f7df0', foto: '/agentes/atendimento.webp?v=5', avatar: '/agentes/atendimento-avatar.webp?v=2', icone: 'whats', trabalhando: 'respondendo leads',
     descricao: 'Responde o lead novo nas Conversas do Atendimento, tira dúvidas com o material da empresa e passa para a vendedora quando a pessoa quer comprar ou pede para falar com alguém. Entra quando o WhatsApp estiver ligado.' },
@@ -48,7 +48,7 @@ export const CATALOGO: AgenteCatalogo[] = [
     descricao: 'Acompanha o aluno do pagamento ao presencial: lembra a turma, a data e o que levar, pergunta como foi e chama de volta quem sumiu da plataforma.' },
   { id: 'recepcao', nome: 'Recepção', papel: 'Agenda e retornos', escopo: 'clinical', cor: '#c9ccd4', foto: '/agentes/recepcao.webp?v=4', avatar: '/agentes/recepcao-avatar.webp?v=1', icone: 'agenda', trabalhando: 'confirmando consultas',
     descricao: 'Confirma consulta, remarca e chama o paciente na hora do retorno pelo WhatsApp da clínica.' },
-  { id: 'web', nome: 'Web Designer', papel: 'Páginas, sites e domínios', escopo: 'ambos', cor: '#8a9bff', foto: '', icone: 'globo', trabalhando: 'ajustando a página',
+  { id: 'web', nome: 'Web Designer', papel: 'Páginas, sites e domínios', escopo: 'ambos', cor: '#7b7ff0', foto: '/agentes/web.webp?v=1', avatar: '/agentes/web-avatar.webp?v=1', icone: 'globo', trabalhando: 'ajustando a página',
     descricao: 'Cria e ajusta páginas de venda e sites com a oferta e a marca da empresa, publica no ar e cuida do domínio, do DNS e do rastreamento das páginas.' },
 ]
 export const visualDe = (id: string) => CATALOGO.find((a) => a.id === id) ?? { id, nome: id, papel: '', descricao: '', escopo: 'ambos' as Escopo, cor: '#c9a45c', foto: '', icone: 'info', trabalhando: 'trabalhando' }
