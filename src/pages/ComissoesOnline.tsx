@@ -349,7 +349,7 @@ export function RegrasOnline() {
   return (
     <section className="bloco">
       <h2><Icone nome="links" className="ouro" /> Comissão do online</h2>
-      <p className="muted pequeno">Calculada sobre o <b>líquido</b> que a Hotmart repassa, a cada pagamento que cai. A vendedora é reconhecida pelo nome que ela põe no link da Hotmart (<code>src</code> ou <code>sck</code>) ou por um pedido “esse aluno é meu” que você aprovou. Vendas de cursos presenciais ficam de fora (já têm a comissão por matrícula).</p>
+      <p className="muted pequeno">Calculada sobre o <b>líquido</b> que a Hotmart repassa, a cada pagamento que cai. A vendedora é reconhecida pelo nome que ela põe no link da Hotmart (<code>src</code> ou <code>sck</code>) ou por um pedido “esse aluno é meu” que você aprovou. Vendas de cursos presenciais ficam de fora (já têm a comissão por matrícula), menos as da Black, que pagam por esta regra.</p>
       <div className="online-regra">
         <div><small className="muted">Lead da vendedora</small><b>{atual ? pct(atual.pct_proprio) : '—'}</b></div>
         <div><small className="muted">Lead de campanha</small><b>{atual ? pct(atual.pct_campanha) : '—'}</b></div>
