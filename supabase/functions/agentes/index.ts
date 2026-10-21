@@ -333,9 +333,24 @@ function jsonTolerante(texto: string): unknown {
     }
     return saida
   }
+  // texto que a IA parou no meio (ex.: "[{...,"roteiro":[...]" sem fechar a peça e a lista): fecha o que ficou aberto
+  const fechar = (s: string) => {
+    const pilha: string[] = []
+    let dentro = false, escapado = false
+    for (const ch of s) {
+      if (escapado) { escapado = false; continue }
+      if (ch === '\\') { escapado = dentro; continue }
+      if (ch === '"') { dentro = !dentro; continue }
+      if (dentro) continue
+      if (ch === '[' || ch === '{') pilha.push(ch === '[' ? ']' : '}')
+      else if (ch === ']' || ch === '}') pilha.pop()
+    }
+    return (dentro ? s + '"' : s).replace(/[,:\s]+$/, '') + pilha.reverse().join('')
+  }
   const ini = texto.search(/[[{]/), fim = Math.max(texto.lastIndexOf(']'), texto.lastIndexOf('}'))
   const recorte = ini >= 0 && fim > ini ? texto.slice(ini, fim + 1) : texto
-  return tentar(texto) ?? tentar(semControle(texto)) ?? tentar(recorte) ?? tentar(semControle(recorte))
+  const limpo = semControle(texto)
+  return tentar(texto) ?? tentar(limpo) ?? tentar(recorte) ?? tentar(semControle(recorte)) ?? tentar(fechar(limpo))
 }
 async function chamarClaude(chave: string, modelo: string, sistema: string, usuario: string | unknown[], ferramenta: Ferramenta = FERRAMENTA) {
   const r = await fetch('https://api.anthropic.com/v1/messages', {
@@ -507,7 +522,12 @@ async function escrever(db: SupabaseClient, t: Trabalho, perfil: Record<string, 
     // o que veio e não casou com nenhuma peça fica no histórico do trabalho, para conferir
     const naoCasou: unknown[] = []
     for (const r of respostas) {
-      const entregues = comoLista<Peca>(r.entrega.pecas)
+      const entregues = comoLista<Peca>(r.entrega.pecas).filter((x) => x && typeof x === 'object')
+      // peça única: se a IA pôs legenda, cta etc. fora da lista (no nível de cima), junta na peça
+      if (r.grupo.length === 1 && entregues.length === 1) {
+        const solto = r.entrega as unknown as Record<string, unknown>, alvo = entregues[0] as unknown as Record<string, unknown>
+        for (const k of ['legenda', 'roteiro', 'texto_arte', 'cta', 'hashtags', 'observacao', 'prompt_imagem', 'horario', 'pendencia', 'objetivo', 'titulo']) if (alvo[k] == null && solto[k] != null) alvo[k] = solto[k]
+      }
       // guarda o que veio cru (até 20 mil caracteres) para não perder um texto já pago
       if (entregues.length !== r.grupo.length) naoCasou.push({ pedidas: r.grupo.length, vieram: entregues.length, refs: entregues.map((x) => x.ref), tipoPecas: typeof r.entrega.pecas, bruto: typeof r.entrega.pecas === 'string' ? String(r.entrega.pecas).slice(0, 20000) : undefined })
       await Promise.all(r.grupo.map(async (p, i) => {
