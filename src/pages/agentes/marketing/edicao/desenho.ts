@@ -63,7 +63,9 @@ function desenharCartao(ctx: CanvasRenderingContext2D, m: MidiaPronta, c: Cobert
   ctx.restore()
 }
 
-export function desenharQuadro(ctx: CanvasRenderingContext2D, v: HTMLVideoElement, linha: LinhaTempo, midias: (MidiaPronta | undefined)[]) {
+// cor = filtro aplicado só à imagem da pessoa (ex.: correção de vídeo HDR de celular, que no canvas sai estourado)
+export function desenharQuadro(ctx: CanvasRenderingContext2D, v: HTMLVideoElement, linha: LinhaTempo, midias: (MidiaPronta | undefined)[], cor?: string) {
+  const comCor = (fazer: () => void) => { ctx.filter = cor ?? 'none'; fazer(); ctx.filter = 'none' }
   const t = v.currentTime
   const { width: L, height: A } = ctx.canvas
   ctx.fillStyle = '#000'; ctx.fillRect(0, 0, L, A)
@@ -75,9 +77,9 @@ export function desenharQuadro(ctx: CanvasRenderingContext2D, v: HTMLVideoElemen
   if (layout === 'cheia') desenharMidia(ctx, m!, cob!, t, tela)
   else if (layout === 'dividida') {
     desenharMidia(ctx, m!, cob!, t, { x: 0, y: 0, w: L, h: A / 2 })
-    pessoa(ctx, v, { x: 0, y: A / 2, w: L, h: A / 2 }, zoom, linha.rosto, 0.38)
+    comCor(() => pessoa(ctx, v, { x: 0, y: A / 2, w: L, h: A / 2 }, zoom, linha.rosto, 0.38))
   } else {
-    pessoa(ctx, v, tela, zoom, linha.rosto)
+    comCor(() => pessoa(ctx, v, tela, zoom, linha.rosto))
     if (layout === 'cartao') desenharCartao(ctx, m!, cob!, t)
   }
   const texto = ativo(linha.textos, t)

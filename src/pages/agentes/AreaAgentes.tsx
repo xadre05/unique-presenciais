@@ -17,6 +17,7 @@ import CentralMarca from './CentralMarca'
 import Tarefas from './Tarefas'
 import PaginaAutomacoes from './automacoes/PaginaAutomacoes'
 import ComoUsar from './ajuda/ComoUsar'
+import EstudioVideo from './editor/EstudioVideo'
 
 export default function AreaAgentes() {
   const { perfil, isAdmin } = useAuth()
@@ -69,6 +70,7 @@ export default function AreaAgentes() {
           <Route index element={<Sala />} />
           <Route path="marketing" element={<AgenteMarketing />} />
           <Route path="editor" element={<AgenteEditor />} />
+          <Route path="editor/video/:id" element={<EstudioVideo />} />
           <Route path="central" element={<Central />} />
           <Route path="aprovacoes" element={<Aprovacoes />} />
           <Route path="historico" element={<Historico />} />

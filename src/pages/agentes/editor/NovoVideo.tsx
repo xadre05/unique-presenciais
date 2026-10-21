@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom'
 import { Erro } from '../../../components/ui'
 import { Icone } from '../../../components/Icone'
 import { criarVideo, type NovoVideo as Dados } from './dados'
-import { deixarArquivo } from './arquivoPendente'
+import { deixarArquivo, doArraste, escolherComAtalho, type Atalho } from './arquivoPendente'
 
 const nomeDoArquivo = (f: File) => f.name.replace(/\.[^.]+$/, '').replace(/[_-]+/g, ' ').trim()
 
@@ -13,14 +13,22 @@ export function NovoVideo({ campanhas }: { campanhas: { id: string; nome: string
   const ir = useNavigate()
   const entrada = useRef<HTMLInputElement>(null)
   const [arquivo, setArquivo] = useState<File | null>(null)
+  const [atalho, setAtalho] = useState<Atalho | null>(null)
   const [d, setD] = useState<Dados>({ titulo: '', finalidade: 'anuncio', campanha: campanhas[0]?.id, roteiro: '' })
   const [comRoteiro, setComRoteiro] = useState(false)
   const [erro, setErro] = useState<string | null>(null)
   const [criando, setCriando] = useState(false)
-  const escolher = (f?: File | null) => {
+  const escolher = (f?: File | null, a: Atalho | null = null) => {
     if (!f) return
+    setAtalho(a)
     if (!f.type.startsWith('video/')) return setErro('Escolha um arquivo de vídeo.')
     setErro(null); setArquivo(f); setD((x) => ({ ...x, titulo: x.titulo || nomeDoArquivo(f) }))
+  }
+  // o seletor do sistema guarda o atalho para reabrir depois de recarregar; sem ele, o seletor comum
+  const procurar = async () => {
+    const r = await escolherComAtalho()
+    if (r === null) entrada.current?.click()
+    else if (r !== 'cancelado') escolher(r.arquivo, r.atalho)
   }
   const criar = async () => {
     if (!arquivo) return
@@ -28,14 +36,14 @@ export function NovoVideo({ campanhas }: { campanhas: { id: string; nome: string
     const r = await criarVideo(d)
     setCriando(false)
     if (r.erro || !r.id) return setErro(r.erro ?? 'Não consegui criar o vídeo.')
-    deixarArquivo(r.id, arquivo)
-    ir(`/agentes/marketing?peca=${r.id}&edicao=1`)
+    deixarArquivo(r.id, arquivo, atalho)
+    ir(`/agentes/editor/video/${r.id}`)
   }
 
   if (!arquivo) return (
     <>
-      <button type="button" className="ed-soltar" onClick={() => entrada.current?.click()}
-        onDragOver={(e) => e.preventDefault()} onDrop={(e) => { e.preventDefault(); escolher(e.dataTransfer.files[0]) }}>
+      <button type="button" className="ed-soltar" onClick={procurar}
+        onDragOver={(e) => e.preventDefault()} onDrop={(e) => { e.preventDefault(); void doArraste(e.dataTransfer).then((r) => escolher(r.arquivo, r.atalho)) }}>
         <span className="ed-soltar-ico"><Icone nome="video" tam={26} /></span>
         <b>Editar um vídeo</b>
         <span className="muted">Arraste aqui o vídeo gravado, ou clique para escolher. Pode ser de qualquer tamanho: ele não sobe para o sistema, fica no seu computador.</span>

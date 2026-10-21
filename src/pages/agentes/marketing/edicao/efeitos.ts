@@ -77,7 +77,8 @@ export class TocadorEfeitos {
   private saida: GainNode
   private ctx: AudioContext
   private efeitos: Efeito[]
-  constructor(ctx: AudioContext, destino: AudioNode, efeitos: Efeito[], volume = 0.6) {
+  // 0,35: os efeitos ficam por baixo da voz (no teste de 21/10, a 0,6 o som saiu estourado)
+  constructor(ctx: AudioContext, destino: AudioNode, efeitos: Efeito[], volume = 0.35) {
     this.ctx = ctx; this.efeitos = efeitos
     this.saida = ctx.createGain(); this.saida.gain.value = volume; this.saida.connect(destino)
   }
@@ -92,4 +93,15 @@ export class TocadorEfeitos {
   reiniciar() { this.anterior = -1 }
   // depois de pular um corte: o que estiver logo no começo do trecho novo ainda toca
   posicionar(t: number) { this.anterior = t - 0.05 }
+}
+
+// Mesa de som do vídeo final: voz, música e efeitos passam por um limitador antes da gravação, para a soma nunca
+// passar do teto (sem distorção nem estouro), com o volume geral um pouco abaixo do máximo.
+export function mesaDeSom(ctx: AudioContext, destino: AudioNode) {
+  const limitador = ctx.createDynamicsCompressor()
+  limitador.threshold.value = -6; limitador.knee.value = 3; limitador.ratio.value = 20
+  limitador.attack.value = 0.002; limitador.release.value = 0.12
+  const geral = ctx.createGain(); geral.gain.value = 0.9
+  geral.connect(limitador).connect(destino)
+  return geral
 }

@@ -85,3 +85,20 @@ export async function quadrosDoBruto(f: File, n = 4): Promise<{ t: number; minia
     return lista
   } catch { return [] } finally { URL.revokeObjectURL(url); v.removeAttribute('src') }
 }
+
+// Vídeo HDR (iPhone e Android recentes gravam assim): desenhado no canvas sai lavado e estourado. Detecta pela curva
+// de cor do primeiro quadro e devolve um filtro que traz o brilho e a saturação de volta.
+export const CORRECAO_HDR = 'brightness(0.84) contrast(1.12) saturate(1.18)'
+export async function ehHdr(f: File) {
+  const url = URL.createObjectURL(f)
+  const v = Object.assign(document.createElement('video'), { src: url, muted: true, playsInline: true, preload: 'auto' })
+  try {
+    await esperar(v, 'loadeddata')
+    const Quadro = (window as unknown as { VideoFrame?: new (v: HTMLVideoElement) => { colorSpace: { transfer?: string | null }; close: () => void } }).VideoFrame
+    if (!Quadro) return false
+    const q = new Quadro(v)
+    const curva = q.colorSpace.transfer
+    q.close()
+    return curva === 'hlg' || curva === 'pq'
+  } catch { return false } finally { URL.revokeObjectURL(url); v.removeAttribute('src') }
+}

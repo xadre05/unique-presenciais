@@ -6,6 +6,7 @@ import { useConsulta } from '../../../lib/dados'
 import { EMPRESA_UNIQUE } from '../../crm/comum'
 import { somaDias, type Peca, type Trabalho } from '../comum'
 import { planosDe } from './planos'
+import { foraDoMarketing } from './peca/editor'
 
 export const EMPRESA = EMPRESA_UNIQUE
 // campanha: esforço de marketing com período; pode vender produtos da Base da marca (ids) ou nenhum (ex.: ganhar seguidores)
@@ -15,12 +16,18 @@ export type Campanha = {
   objetivo?: string; oferta?: string; comunicacao?: string; link?: string
 }
 
+async function doMarketing(consulta: PromiseLike<{ data: Peca[] | null; error: { message: string } | null }>) {
+  const { data, error } = await consulta
+  return { data: (data ?? []).filter((p) => !foraDoMarketing(p)), error }
+}
+
 export function useMarketing(inicio: string, dias = 7) {
   const fim = somaDias(inicio, dias - 1)
-  const pecas = useConsulta<Peca[]>(() => supabase.from('agentes_pecas').select('*').eq('empresa_id', EMPRESA).eq('agente_id', 'marketing')
-    .or(`and(dia.gte.${inicio},dia.lte.${fim}),dia.is.null`).neq('status', 'descartada').order('dia').order('ordem'), [inicio, dias])
+  // vídeos avulsos em edição e criativos de anúncio ficam com o Agente Editor (ver foraDoMarketing)
+  const pecas = useConsulta<Peca[]>(() => doMarketing(supabase.from('agentes_pecas').select('*').eq('empresa_id', EMPRESA).eq('agente_id', 'marketing')
+    .or(`and(dia.gte.${inicio},dia.lte.${fim}),dia.is.null`).neq('status', 'descartada').order('dia').order('ordem')), [inicio, dias])
   // todas as peças, para a lista da Produção (que não depende do período do Planejamento)
-  const todas = useConsulta<Peca[]>(() => supabase.from('agentes_pecas').select('*').eq('empresa_id', EMPRESA).eq('agente_id', 'marketing').neq('status', 'descartada').order('atualizado_em', { ascending: false }).limit(500))
+  const todas = useConsulta<Peca[]>(() => doMarketing(supabase.from('agentes_pecas').select('*').eq('empresa_id', EMPRESA).eq('agente_id', 'marketing').neq('status', 'descartada').order('atualizado_em', { ascending: false }).limit(500)))
   const trabalhos = useConsulta<Trabalho[]>(() => supabase.from('agentes_trabalhos').select('*').eq('empresa_id', EMPRESA).eq('agente_id', 'marketing')
     .order('criado_em', { ascending: false }).limit(8))
   const perfil = useConsulta<{ perfil: Record<string, unknown>; ativo: boolean } | null>(() => supabase.from('agentes_empresa').select('perfil,ativo').eq('empresa_id', EMPRESA).eq('agente_id', 'marketing').maybeSingle())

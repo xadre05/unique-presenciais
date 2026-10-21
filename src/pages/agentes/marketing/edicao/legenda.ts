@@ -58,41 +58,52 @@ export function desenharChave(ctx: CanvasRenderingContext2D, texto: string, y: n
 }
 
 // legenda falada: a palavra que está sendo dita cresce um pouco; palavra-chave ganha tarja dourada com letra escura
+// Legenda com hierarquia: as palavras comuns menores; a palavra-chave (destaque) maior, sozinha na linha dela, numa
+// tarja dourada, entrando com um "pop" quando é dita. Assim a frase tem um ponto forte, não fica tudo do mesmo tamanho.
+const ESCALA_DESTAQUE = 1.5
 export function desenharLegenda(ctx: CanvasRenderingContext2D, g: GrupoLegenda, t: number, caixaAlta: boolean, base: number) {
   const { width: L } = ctx.canvas
-  ctx.font = `800 ${Math.round(L * 0.068)}px system-ui, sans-serif`
+  const tam = L * 0.06
+  ctx.font = `800 ${Math.round(tam)}px system-ui, sans-serif`
   ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic'
   const palavras = g.palavras.map((w) => ({ ...w, texto: caixaAlta ? w.texto.toUpperCase() : w.texto }))
-  const tam = L * 0.068
   const espaco = ctx.measureText(' ').width * 1.2
-  // a palavra com tarja dourada e a que cresce ocupam um pouco mais: a folga entra na largura dela
-  const largura = (w: { texto: string; destaque: boolean }) => ctx.measureText(w.texto).width * 1.12 + (w.destaque ? tam * 0.4 : 0)
+  const escala = (w: { destaque: boolean }) => (w.destaque ? ESCALA_DESTAQUE : 1)
+  // largura ocupada: a palavra no tamanho dela, com folga para crescer ao ser dita e para a tarja
+  const largura = (w: { texto: string; destaque: boolean }) => ctx.measureText(w.texto).width * escala(w) * 1.08 + (w.destaque ? tam * 0.6 : 0)
+  // quebra: a palavra-chave fica sozinha na linha; as outras quebram pela largura
   const linhas: (typeof palavras)[] = [[]]
   let larg = 0
   for (const w of palavras) {
     const lw = largura(w)
-    if (larg + lw > L * 0.86 && linhas.at(-1)!.length) { linhas.push([]); larg = 0 }
+    const atual = linhas.at(-1)!
+    if (atual.length && (w.destaque || atual.some((x) => x.destaque) || larg + lw > L * 0.86)) { linhas.push([]); larg = 0 }
     linhas.at(-1)!.push(w); larg += lw + espaco
   }
-  const alt = L * 0.088
-  linhas.forEach((linha, k) => {
+  let y = base
+  linhas.forEach((linha) => {
+    const grande = linha.some((w) => w.destaque)
+    if (grande) y += tam * 0.25
     const total = linha.reduce((s, w) => s + largura(w) + espaco, -espaco)
     let x = (L - total) / 2
-    const y = base + k * alt
     for (const w of linha) {
       const lw = ctx.measureText(w.texto).width
       const falando = t >= w.ini && t < w.fim + 0.05
       const dita = t >= w.ini
+      // pop da palavra-chave: entra 25% maior e assenta em 0,15 s
+      const pop = w.destaque && dita ? 1 + 0.25 * Math.max(0, 1 - (t - w.ini) / 0.15) : 1
+      const e = escala(w) * pop * (falando && !w.destaque ? 1.1 : 1)
       ctx.save()
       ctx.translate(x + largura(w) / 2, y - tam * 0.35)
-      const e = falando ? 1.12 : 1
       ctx.scale(e, e)
-      if (w.destaque && dita) { ctx.fillStyle = DOURADO; caixaArredondada(ctx, -lw / 2 - tam * 0.18, -tam * 0.62, lw + tam * 0.36, tam * 1.2, tam * 0.22) }
+      if (w.destaque && dita) { ctx.fillStyle = DOURADO; caixaArredondada(ctx, -lw / 2 - tam * 0.2, -tam * 0.64, lw + tam * 0.4, tam * 1.22, tam * 0.24) }
       ctx.shadowColor = w.destaque && dita ? 'transparent' : 'rgba(0,0,0,.85)'; ctx.shadowBlur = 12; ctx.shadowOffsetY = 3
       ctx.fillStyle = w.destaque && dita ? '#111' : dita ? '#fff' : 'rgba(255,255,255,.55)'
+      if (w.destaque && !dita) ctx.globalAlpha = 0 // a palavra-chave só aparece quando é dita
       ctx.fillText(w.texto, -lw / 2, tam * 0.35)
       ctx.restore()
       x += largura(w) + espaco
     }
+    y += grande ? tam * 1.75 : tam * 1.3
   })
 }

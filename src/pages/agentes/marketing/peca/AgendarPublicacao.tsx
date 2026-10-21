@@ -8,6 +8,7 @@ import type { Peca } from '../../comum'
 import { EMPRESA } from '../useMarketing'
 import { Miniatura, pastaDa } from './arquivos'
 import type { Rascunho } from './modelo'
+import { edicaoDa } from '../edicao/dados'
 import { NOME_FORMATO_PUB, agendar, comoJpeg, enviarVideo, type FormatoPublicacao, type MidiaPublicacao } from '../../instagram/publicacoes'
 
 // videoInicial: o vídeo já escolhido na aba Vídeo (o editado pelo Agente Editor ou o que já veio pronto)
@@ -26,6 +27,8 @@ export function AgendarPublicacao({ peca, r, formato, usuario, aoFechar, aoAgend
   const artes = r.artes.map((a) => a.arquivo).filter(Boolean) as string[]
   const [marcadas, setMarcadas] = useState<string[]>(formato === 'imagem' || formato === 'stories' ? artes.slice(0, 1) : formato === 'reels' ? artes.slice(0, 1) : artes)
   const [video, setVideo] = useState<File | null>(videoInicial ?? null)
+  // o vídeo que o Agente Editor entregou (já está no armazenamento: não sobe de novo)
+  const entregue = edicaoDa(peca.conteudo).final
   const [legenda, setLegenda] = useState(() => [r.legenda, r.cta, r.hashtags].map((x) => x.trim()).filter(Boolean).join('\n\n'))
   const [modo, setModo] = useState<'agora' | 'depois'>('depois')
   const [quando, setQuando] = useState(() => sugestao(peca))
@@ -35,7 +38,7 @@ export function AgendarPublicacao({ peca, r, formato, usuario, aoFechar, aoAgend
   const alternar = (c: string) => setMarcadas((l) => (umaSo ? (l.includes(c) ? [] : [c]) : l.includes(c) ? l.filter((x) => x !== c) : [...l, c]))
   const hashtags = (legenda.match(/#[\p{L}\d_]+/gu) ?? []).length
   const precisaVideo = formato === 'reels'
-  const faltando = precisaVideo ? (!video ? 'Envie o vídeo do Reels.' : null)
+  const faltando = precisaVideo ? (!video && !entregue ? 'Envie o vídeo do Reels.' : null)
     : formato === 'carrossel' ? (marcadas.length < 2 ? 'Marque pelo menos 2 lâminas.' : marcadas.length > 10 ? 'O carrossel aceita até 10 lâminas.' : null)
       : formato === 'stories' ? (!marcadas.length && !video ? 'Marque a arte ou envie um vídeo.' : null) : (!marcadas.length ? 'Marque a arte do post.' : null)
   const dataHora = new Date(`${quando}:00-03:00`)
@@ -52,6 +55,7 @@ export function AgendarPublicacao({ peca, r, formato, usuario, aoFechar, aoAgend
         midias.push({ bucket: 'arquivos', caminho: await comoJpeg(c, pastaDa(peca.id)), tipo: 'imagem' })
       }
       if (video) { setEtapa('Enviando o vídeo (pode levar alguns minutos)…'); midias.push({ bucket: 'videos', caminho: await enviarVideo(EMPRESA, peca.id, video), tipo: 'video' }) }
+      else if (entregue && precisaVideo) midias.push({ bucket: 'videos', caminho: entregue.caminho, tipo: 'video' })
       setEtapa(modo === 'agora' ? 'Publicando no Instagram…' : 'Agendando…')
       await agendar(EMPRESA, { pecaId: peca.id, formato, midias, legenda: formato === 'stories' ? '' : legenda, quando: modo === 'agora' ? agora() : dataHora, agora: modo === 'agora' })
       aoAgendar()
@@ -70,7 +74,8 @@ export function AgendarPublicacao({ peca, r, formato, usuario, aoFechar, aoAgend
           {(formato === 'reels' || formato === 'stories') && (
             <label className="ag-video"><span className="muted pequeno">{formato === 'reels' ? 'Vídeo do Reels (MP4 ou MOV, vertical 9:16, até 300 MB)' : 'Ou um vídeo para o story'}</span>
               <input type="file" accept="video/mp4,video/quicktime" onChange={(e) => setVideo(e.target.files?.[0] ?? null)} />
-              {video && <small className="muted">{video.name} · {(video.size / 1048576).toFixed(0)} MB</small>}</label>)}
+              {video && <small className="muted">{video.name} · {(video.size / 1048576).toFixed(0)} MB</small>}
+              {!video && entregue && <small className="muted">Vai o vídeo editado pelo Agente Editor ({entregue.nome}). Escolha outro só se quiser trocar.</small>}</label>)}
         </section>
         {formato !== 'stories' && <section>
           <h5 className="reu-subtitulo">Legenda <small className={`muted${legenda.length > LIMITE ? ' erro-txt' : ''}`}>{legenda.length}/{LIMITE}{hashtags > 30 ? ' · máximo de 30 hashtags' : ''}</small></h5>

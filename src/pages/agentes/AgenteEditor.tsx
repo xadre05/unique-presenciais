@@ -18,11 +18,14 @@ import { NovoVideo } from './editor/NovoVideo'
 import { EstiloCasa } from './editor/EstiloCasa'
 import { EstilosReferencia } from './editor/EstilosReferencia'
 import { usePerfilEditor } from './editor/dados'
+import { NOME_DESTINO } from './marketing/peca/editor'
+import { EntreguesTrafego } from './editor/EntreguesTrafego'
 
 const dataBr = (iso: string | null) => (iso ? iso.split('-').reverse().join('/') : 'Sem data')
 
 function situacao(p: Peca) {
   const e = edicaoDa(p.conteudo)
+  if (e.concluida) return { txt: `Entregue · ${NOME_DESTINO[e.concluida.destino]}`, tom: 'ok' }
   if (e.receitas?.length) return { txt: `Editado · ${e.receitas.length} versão(ões)`, tom: 'ok' }
   if (e.palavras?.length) return { txt: 'Transcrito', tom: 'alerta' }
   return { txt: 'Aguardando o vídeo', tom: 'neutro' }
@@ -37,7 +40,7 @@ export default function AgenteEditor() {
   const tem = useTemEditor()
   const pecas = useConsulta<Peca[]>(() => supabase.from('agentes_pecas').select('*').eq('empresa_id', EMPRESA).eq('agente_id', 'marketing')
     .in('tipo', ['reels', 'video']).neq('status', 'descartada').order('dia', { ascending: false }).limit(60))
-  const lista = (pecas.dados ?? []).filter((p) => p.conteudo.etapa !== 'ideia')
+  const lista = (pecas.dados ?? []).filter((p) => p.conteudo.etapa !== 'ideia' && edicaoDa(p.conteudo).concluida?.destino !== 'trafego')
   const marca = useLogos(EMPRESA)
   const perfilMarca = marca.dados?.perfil ?? {}
   const campanhas = ((Array.isArray(perfilMarca.campanhas) ? perfilMarca.campanhas : []) as { id: string; nome: string; encerrada?: boolean }[]).filter((c) => !c.encerrada)
@@ -78,7 +81,7 @@ export default function AgenteEditor() {
                   <tr key={p.id}>
                     <td>{p.titulo}</td><td>{p.tipo === 'video' ? 'Vídeo longo' : 'Reels'}</td><td>{dataBr(p.dia)}</td>
                     <td><span className={`sala-pilula tom-${s.tom}`}>{s.txt}</span></td>
-                    <td><Link className="btn btn-mini" to={`/agentes/marketing?peca=${p.id}&edicao=1`}>Abrir</Link></td>
+                    <td><Link className="btn btn-mini" to={`/agentes/editor/video/${p.id}`}>Abrir</Link></td>
                   </tr>
                 )
               })}</tbody>
@@ -86,6 +89,7 @@ export default function AgenteEditor() {
           )}
         </section>
       )}
+      {tem.dados && aba === 'videos' && <EntreguesTrafego pecas={pecas.dados ?? []} />}
       {tem.dados && aba === 'estilo' && (
         <section className="bloco">
           <h2>Estilo da casa</h2>

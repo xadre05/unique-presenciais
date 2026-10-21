@@ -75,7 +75,7 @@ const FERRAMENTA = {
         items: { type: 'object', properties: { de: { type: 'integer' }, ate: { type: 'integer' } }, required: ['de', 'ate'] } },
       correcoes: { type: 'array', description: 'Palavras que a transcrição errou (nome de produto, termo técnico): número da palavra e como escrever na legenda',
         items: { type: 'object', properties: { palavra: { type: 'integer' }, texto: { type: 'string' } }, required: ['palavra', 'texto'] } },
-      destaques: { type: 'array', items: { type: 'integer' }, description: 'Números das palavras-chave que aparecem destacadas (cor da marca) na legenda. Poucas: 1 a cada 8 ou 10 palavras.' },
+      destaques: { type: 'array', items: { type: 'integer' }, description: 'Números das palavras-chave da legenda: a palavra mais forte de cada frase (1 a cada 4 a 6 palavras). Aparecem maiores, sozinhas na linha, numa tarja dourada.' },
       textos: { type: 'array', description: 'Texto grande na tela em momentos-chave (gancho, número, oferta, chamada), como no roteiro. Até 6 palavras cada.',
         items: { type: 'object', properties: { de: { type: 'integer', description: 'palavra em que aparece' }, ate: { type: 'integer', description: 'palavra em que some' }, texto: { type: 'string' }, posicao: { type: 'string', enum: ['topo', 'meio'] },
           animacao: { type: 'string', enum: ['pop', 'deslizar', 'digitar'], description: 'pop = cresce e assenta (padrão, gancho e oferta); digitar = letra por letra (pergunta, número, frase de efeito); deslizar = entra de lado (itens de lista)' } }, required: ['de', 'ate', 'texto'] } },
@@ -99,10 +99,22 @@ const FERRAMENTA = {
         properties: { x: { type: 'number' }, y: { type: 'number' } } },
       roteiro_identificado: { type: 'string', description: 'Só quando vieram os roteiros da campanha: o título ou a primeira frase do roteiro que foi gravado, ou "nenhum".' },
       faltou: { type: 'string', description: 'Se alguma cena do roteiro não foi gravada ou ficou ruim, diga qual. Senão, vazio.' },
+      checagem: { type: 'string', description: 'Conferência do padrão de qualidade, item por item, em uma linha cada: gancho, legenda com destaques, textos na tela, quanto do vídeo tem imagem por cima (%), zoom, variedade (cheia/dividida/cartão), efeitos, chamada final. Diga o que não deu para cumprir e por quê (ex.: faltam imagens da plataforma).' },
     },
     required: ['resumo', 'trechos'],
   },
 }
+
+// padrão mínimo de um reels editado (docs: "Agente Editor de Vídeo — como deveria ser"). Vídeo só de rosto com legenda não é edição.
+const QUALIDADE = [
+  'PADRÃO MÍNIMO (confira tudo antes de entregar e preencha "checagem"):',
+  '- gancho: os 2 primeiros segundos com a frase mais forte, texto grande na tela ("textos", animação pop) e zoom',
+  '- legenda com hierarquia: marque como destaque a palavra-chave de CADA frase (1 a cada 4 a 6 palavras): elas aparecem maiores e em cor',
+  '- textos na tela: no mínimo 3 num reels de 30 a 60 s (gancho, número ou prova, oferta ou chamada), variando a animação',
+  '- com mídias de apoio enviadas: cubra no mínimo 30% do vídeo, alternando cheia, dividida e cartao; nunca a mesma mídia duas vezes seguidas',
+  '- movimento: um zoom a cada 4 a 6 segundos nos trechos de rosto, intensidade 1.08 a 1.18',
+  '- fim: a chamada para ação com texto na tela',
+].join('\n')
 
 // texto dos materiais de papel "roteiro" da campanha da peça (ou de todas, se a peça não tem campanha), até ~40 mil caracteres
 async function roteirosDaCampanha(db: SupabaseClient, empresa: string, campanha?: string) {
@@ -181,8 +193,11 @@ async function editar(db: SupabaseClient, corpo: Record<string, unknown>) {
   const midias = ((Array.isArray(corpo.midias) ? corpo.midias : []) as { n: number; tipo: string; descricao?: string; miniatura?: string }[]).slice(0, 45)
   // fotos do vídeo bruto: para ver o enquadramento (onde está o rosto) e o cenário
   const quadros = ((Array.isArray(corpo.quadros) ? corpo.quadros : []) as { t: number; miniatura: string }[]).filter((q) => q.miniatura).slice(0, 6)
-  const escolhida = (refs ?? []).find((r) => r.id === corpo.modelo_ref || (r.nome && r.nome === corpo.modelo_ref))
-  const modelos = (escolhida ? [escolhida] : (refs ?? []).slice(0, 3)).map((r) => {
+  // referência pedida só para este vídeo: fotos de um vídeo que a equipe quer imitar + o que ela quer dele
+  const ref = (corpo.referencia && typeof corpo.referencia === 'object' ? corpo.referencia : null) as { nome?: string; texto?: string; quadros?: { t: number; miniatura: string }[] } | null
+  const quadrosRef = (ref?.quadros ?? []).filter((q) => q.miniatura).slice(0, 8)
+  const escolhida = ref ? undefined : (refs ?? []).find((r) => r.id === corpo.modelo_ref || (r.nome && r.nome === corpo.modelo_ref))
+  const modelos = (ref ? [] : escolhida ? [escolhida] : (refs ?? []).slice(0, 3)).map((r) => {
     const f = (r.ficha ?? {}) as Record<string, string | string[]>
     return `- ${r.nome ?? 'modelo'}${r.autor ? ` (${r.autor})` : ''}: ${f.resumo ?? ''}${f.gancho ? ` · gancho: ${f.gancho}` : ''}${f.ritmo ? ` · ritmo: ${f.ritmo}` : ''}${f.visual ? ` · visual: ${f.visual}` : ''}${f.texto_na_tela ? ` · texto na tela: ${f.texto_na_tela}` : ''}${f.edicao ? ` · como editar: ${f.edicao}` : ''}`
   })
@@ -212,6 +227,8 @@ async function editar(db: SupabaseClient, corpo: Record<string, unknown>) {
     estilo,
     modelos.length ? `${escolhida ? 'REFERÊNCIA ESCOLHIDA PARA ESTE VÍDEO (edite NESTE estilo: ritmo, cortes, texto na tela, legenda e uso de imagens; adapte ao que o nosso editor faz):' : 'MODELOS DE EDIÇÃO QUE A EQUIPE GOSTA (siga o ritmo e o estilo de texto na tela):'}\n${modelos.join('\n')}` : '',
     memoria.length ? `O QUE A EQUIPE JÁ PEDIU EM EDIÇÕES ANTERIORES (siga):\n${memoria.join('\n')}` : '',
+    ref ? `REFERÊNCIA PEDIDA PARA ESTE VÍDEO (vale mais que o estilo da casa): as fotos "Quadro da referência" são de um vídeo que a equipe quer imitar. O que ela quer dele: "${String(ref.texto ?? '').slice(0, 600)}". Reproduza a FORMA (ritmo, legenda, texto na tela, tipo de imagem por cima, enquadramento, cartões), nunca as frases, a marca ou os dados de quem fez. Diga no resumo o que você pegou da referência.` : '',
+    QUALIDADE,
   ].filter(Boolean).join('\n\n')
   const usuario = [
     `PEÇA: ${peca.titulo} (${peca.tipo})`,
@@ -231,6 +248,7 @@ async function editar(db: SupabaseClient, corpo: Record<string, unknown>) {
     headers: { 'x-api-key': String(chave), 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
     body: JSON.stringify({ model: modelo, max_tokens: 16000, system: sistema, messages: [{ role: 'user', content: [
       ...quadros.flatMap((q) => [{ type: 'text', text: `Quadro do vídeo bruto em ${q.t} s:` }, { type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: q.miniatura } }]),
+      ...quadrosRef.flatMap((q) => [{ type: 'text', text: `Quadro da referência em ${q.t} s:` }, { type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: q.miniatura } }]),
       ...midias.filter((m) => m.miniatura).flatMap((m) => [{ type: 'text', text: `Mídia ${m.n}:` }, { type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: m.miniatura } }]),
       { type: 'text', text: usuario },
     ] }], tools: [FERRAMENTA], tool_choice: { type: 'auto' } }),

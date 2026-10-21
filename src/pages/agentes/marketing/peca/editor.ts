@@ -114,3 +114,19 @@ export const limiteLegenda = (rede: string) => LIMITE_LEGENDA[rede]
 
 export const PROPORCOES = ['4:5', '1:1', '9:16', '16:9', '2:3', 'A4']
 export const ESTILOS = ['Editorial premium', 'Minimalista', 'Fotográfico', 'Tipográfico', 'Ilustração', 'Clínico e limpo']
+
+// Para onde o vídeo vai quando o Agente Editor conclui a edição: criativo de anúncio → Tráfego; vídeo avulso →
+// Marketing cria a postagem; vídeo de um post planejado → entra no próprio post.
+export type Destino = 'trafego' | 'avulso' | 'post'
+export const NOME_DESTINO: Record<Destino, string> = { trafego: 'Tráfego', avulso: 'Marketing (postagem avulsa)', post: 'o post planejado' }
+export function destinoDa(p: PecaMinima): Destino {
+  const c = (p.conteudo ?? {}) as { briefing?: { finalidade?: string } }
+  if (c.briefing?.finalidade === 'anuncio') return 'trafego'
+  return ehAvulso(p) ? 'avulso' : 'post'
+}
+// enquanto o Editor não conclui, o vídeo avulso fica só com ele; criativo de anúncio nunca vai para a Produção do Marketing
+export function foraDoMarketing(p: PecaMinima) {
+  if (!ehAvulso(p)) return false
+  const c = (p.conteudo ?? {}) as { edicao?: { concluida?: unknown } }
+  return !c.edicao?.concluida || destinoDa(p) === 'trafego'
+}

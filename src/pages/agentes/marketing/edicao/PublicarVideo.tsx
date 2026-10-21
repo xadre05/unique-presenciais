@@ -11,7 +11,8 @@ import { AgendarPublicacao } from '../peca/AgendarPublicacao'
 import { podePublicar, useConexao } from '../../instagram/dados'
 import { FORMATO_DA_PECA } from '../../instagram/publicacoes'
 
-export function PublicarVideo({ peca, r, arquivo, rotulo, aoMudar }: { peca: Peca; r: Rascunho; arquivo: File; rotulo: string; aoMudar: () => void }) {
+// sem arquivo: o agendamento usa o vídeo editado que o Agente Editor entregou (guardado na peça)
+export function PublicarVideo({ peca, r, arquivo, rotulo, aoMudar }: { peca: Peca; r: Rascunho; arquivo?: File; rotulo: string; aoMudar: () => void }) {
   const conexao = useConexao(EMPRESA)
   const [abrir, setAbrir] = useState(false)
   const formato = FORMATO_DA_PECA[peca.tipo]

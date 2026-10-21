@@ -4,7 +4,7 @@
 import { ativo, type LinhaTempo } from './linhaTempo'
 import { desenharQuadro } from './desenho'
 import { liberarMidias, prepararMidias, sincronizarClipes } from './midias'
-import { TocadorEfeitos } from './efeitos'
+import { mesaDeSom, TocadorEfeitos } from './efeitos'
 
 // 4,5 Mbps: qualidade de Reels (o Instagram recomprime) e arquivo pequeno (~35 MB por minuto) para caber no envio
 const TAMANHO = { vertical: [1080, 1920], horizontal: [1920, 1080] } as const
@@ -33,7 +33,7 @@ async function tocarMusica(audio: AudioContext, destino: AudioNode, m: Musica, d
   return fonte
 }
 
-export async function montarVideo(arquivo: File, linha: LinhaTempo, vertical: boolean, aoAvancar: (fracao: number) => void, apoio: (File | undefined)[] = [], musica?: Musica): Promise<Blob> {
+export async function montarVideo(arquivo: File, linha: LinhaTempo, vertical: boolean, aoAvancar: (fracao: number) => void, apoio: (File | undefined)[] = [], musica?: Musica, cor?: string): Promise<Blob> {
   const v = document.createElement('video')
   v.src = URL.createObjectURL(arquivo); v.playsInline = true; v.preload = 'auto'
   await esperar(v, 'loadedmetadata')
@@ -43,9 +43,10 @@ export async function montarVideo(arquivo: File, linha: LinhaTempo, vertical: bo
   const ctx = canvas.getContext('2d')!
   // áudio do bruto (e a música) vão para a gravação sem tocar na caixa de som
   const audio = new AudioContext()
-  const saida = audio.createMediaStreamDestination()
+  const gravacao = audio.createMediaStreamDestination()
+  const saida = mesaDeSom(audio, gravacao)
   audio.createMediaElementSource(v).connect(saida)
-  const fluxo = new MediaStream([...canvas.captureStream(30).getVideoTracks(), ...saida.stream.getAudioTracks()])
+  const fluxo = new MediaStream([...canvas.captureStream(30).getVideoTracks(), ...gravacao.stream.getAudioTracks()])
   const tipo = formatoGravacao()
   const gravador = new MediaRecorder(fluxo, { mimeType: tipo, videoBitsPerSecond: 4_500_000 })
   const partes: Blob[] = []
@@ -53,7 +54,7 @@ export async function montarVideo(arquivo: File, linha: LinhaTempo, vertical: bo
   let feito = 0
   let fundo: AudioBufferSourceNode | undefined
   const efeitos = new TocadorEfeitos(audio, saida, linha.efeitos)
-  const quadro = () => { sincronizarClipes(midias, ativo(linha.coberturas, v.currentTime)); desenharQuadro(ctx, v, linha, midias); efeitos.passo(v.currentTime) }
+  const quadro = () => { sincronizarClipes(midias, ativo(linha.coberturas, v.currentTime)); desenharQuadro(ctx, v, linha, midias, cor); efeitos.passo(v.currentTime) }
   try {
     for (const [k, trecho] of linha.trechos.entries()) {
       v.currentTime = trecho.ini

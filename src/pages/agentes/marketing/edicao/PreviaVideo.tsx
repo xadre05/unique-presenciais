@@ -31,7 +31,7 @@ function usarMusica(musica?: Musica) {
   return url
 }
 
-export function PreviaVideo({ url, linha, vertical, apoio = [], musica }: { url: string; linha: LinhaTempo; vertical: boolean; apoio?: (File | undefined)[]; musica?: Musica }) {
+export function PreviaVideo({ url, linha, vertical, apoio = [], musica, cor }: { url: string; linha: LinhaTempo; vertical: boolean; apoio?: (File | undefined)[]; musica?: Musica; cor?: string }) {
   const video = useRef<HTMLVideoElement>(null)
   const tela = useRef<HTMLCanvasElement>(null)
   const som = useRef<HTMLAudioElement>(null)
@@ -56,7 +56,7 @@ export function PreviaVideo({ url, linha, vertical, apoio = [], musica }: { url:
         else efeitos.current?.passo(v.currentTime)
         setT(v.currentTime)
       }
-      if (v && ctx && v.readyState >= 2) { sincronizarClipes(midias, v.paused ? undefined : ativo(linha.coberturas, v.currentTime)); desenharQuadro(ctx, v, linha, midias) }
+      if (v && ctx && v.readyState >= 2) { sincronizarClipes(midias, v.paused ? undefined : ativo(linha.coberturas, v.currentTime)); desenharQuadro(ctx, v, linha, midias, cor) }
       quadro = requestAnimationFrame(passo)
     }
     quadro = requestAnimationFrame(passo)
