@@ -8,6 +8,7 @@ import { guardarEdicao, useReferenciasVideo } from '../../marketing/edicao/dados
 import { quadrosDoBruto } from '../../marketing/edicao/midias'
 import { estiloDe, usePerfilEditor } from '../dados'
 import type { Estudio } from './useEstudio'
+import { AmostraLegenda, ConfigDoEstilo } from './ConfigDoEstilo'
 
 const LEGENDA = { palavras: 'legenda palavra por palavra', chave: 'palavras-chave em caixa' }
 const IMAGENS = { muitas: 'muitas imagens de apoio', algumas: 'algumas imagens', poucas: 'poucas imagens' }
@@ -68,12 +69,14 @@ export function EscolhaEstilo({ e, pecaId, aoMudar }: { e: Estudio; pecaId: stri
         <section className={`es-opcao${atual === 'casa' && !abrirNova ? ' marcada' : ''}`} onClick={() => void marcar('casa')}>
           <header><h3>Estilo da casa</h3><span className="es-radio" /></header>
           <p className="muted pequeno">{LEGENDA[casa.legenda]} · {IMAGENS[casa.imagens]} · {casa.zoom ? 'zoom nas frases fortes' : 'sem zoom'}</p>
+          <AmostraLegenda legenda={casa.legenda} />
           <span className="selo-neutro">Padrão da marca</span>
         </section>
         <section className={`es-opcao${atual === 'salvo' && !abrirNova ? ' marcada' : ''}`} onClick={() => salvos.length && !e.modeloRef && void marcar('salvo')}>
           <header><h3>Estilos salvos</h3><span className="es-radio" /></header>
           {!salvos.length ? <p className="muted pequeno">Nenhum ainda. <Link to="/agentes/editor?aba=estilo" className="link">Estudar um canal</Link></p> : (<>
             <p className="pequeno"><b>{escolhido?.nome ?? 'Escolha um estilo'}</b>{escolhido?.autor ? ` · ${escolhido.autor}` : ''}</p>
+            <AmostraLegenda legenda="chave" frase={['Entender o paciente', 'muda tudo']} />
             <span className="select-icone" onClick={(x) => x.stopPropagation()}><select value={e.modeloRef} onChange={(x) => void e.escolherEstilo(x.target.value)} aria-label="Estilo salvo">
               <option value="">Escolher…</option>{salvos.map((r) => <option key={r.id} value={r.id}>{r.nome || 'Referência'}</option>)}</select></span>
           </>)}
@@ -84,7 +87,8 @@ export function EscolhaEstilo({ e, pecaId, aoMudar }: { e: Estudio; pecaId: stri
           {(abrirNova || comRef) && <div className="es-nova" onClick={(x) => x.stopPropagation()}><NovaReferencia e={e} pecaId={pecaId} aoMudar={aoMudar} /></div>}
         </section>
       </div>
-      <p className="es-aviso pequeno"><Icone nome="info" tam={14} /> Esta escolha vale apenas para este vídeo. O padrão de todos se muda em <Link to="/agentes/editor?aba=estilo" className="link">Estilos</Link>.</p>
+      {!(abrirNova && !comRef) && <ConfigDoEstilo pecaId={pecaId} base={casa} config={e.edicao.config_estilo ?? {}} aoMudar={aoMudar} />}
+      <p className="muted pequeno">O padrão de todos os vídeos se muda em <Link to="/agentes/editor?aba=estilo" className="link">Estilos</Link>.</p>
     </div>
   )
 }

@@ -14,6 +14,7 @@ import { escreverCenas } from '../../marketing/edicao/escreverCenas'
 import { usarApoio } from '../../marketing/edicao/usarApoio'
 import { deixarArquivo, pegarArquivo } from '../arquivoPendente'
 import { baixarNarracao } from '../semGravar/dados'
+import { pedidoDoConfig } from './configEstilo'
 import { usePerfilEditor } from '../dados'
 
 export type Passo = 'video' | 'conteudo' | 'estilo' | 'imagens'
@@ -93,7 +94,7 @@ export function useEstudio(peca: Peca, aoMudar: () => void) {
       await guardarEdicao(peca.id, (e) => ({ ...e, arquivo: { nome: arquivo.name, tamanho: arquivo.size, duracao: d }, palavras: palavras!, receitas: [] }))
     }
     setOcupado('O agente está editando…')
-    const { plano: rascunho } = await pedirEdicao(peca.id, palavras, d, await apoio.paraAgente(), { modeloRef, quadros: await quadrosDoBruto(arquivo, 4, corte?.de, corte?.ate), referencia: edicao.referencia, pedido: narracao ? SEM_PESSOA : undefined })
+    const { plano: rascunho } = await pedirEdicao(peca.id, palavras, d, await apoio.paraAgente(), { modeloRef, quadros: await quadrosDoBruto(arquivo, 4, corte?.de, corte?.ate), referencia: edicao.referencia, pedido: [narracao ? SEM_PESSOA : '', pedidoDoConfig(edicao.config_estilo)].filter(Boolean).join('\n') || undefined })
     if (rascunho.cenas?.length) setOcupado(`Animando ${rascunho.cenas.length} cena(s)…`)
     const plano = await escreverCenas(peca.id, rascunho, palavras, peca.tipo !== 'video')
     await guardarEdicao(peca.id, (e) => comReceita(e, { plano, em: new Date().toISOString() }))

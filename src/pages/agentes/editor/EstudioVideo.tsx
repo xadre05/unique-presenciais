@@ -97,7 +97,7 @@ function TelaEstudio({ peca, aoMudar }: { peca: Peca; aoMudar: () => void }) {
       {concluir && e.final ? <ConcluirEdicao e={e} peca={peca} aoVoltar={() => setConcluir(false)} aoMudar={() => { setConcluir(false); aoMudar() }} /> : (<>
         <nav className="es-abas-movel">{(['previa', 'etapas', 'ajustes'] as AbaMovel[]).map((a) => (
           <button key={a} type="button" className={aba === a ? 'ativa' : ''} onClick={() => setAba(a)}>{a === 'previa' ? 'Prévia' : a === 'etapas' ? 'Etapas' : 'Ajustes'}</button>))}</nav>
-        <div className={`es-grade mostra-${e.passo && aba === 'previa' ? 'previa' : aba}`}>
+        <div className={`es-grade mostra-${e.passo && aba === 'previa' ? 'previa' : aba}${e.passo ? ' com-etapa' : ''}`}>
           <Etapas e={e} />
           <main className="es-centro">
             {e.passo ? <PainelEtapa e={e} peca={peca} aoMudar={aoMudar} /> : (<>
