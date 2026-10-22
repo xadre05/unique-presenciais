@@ -19,6 +19,7 @@ import ComoUsar from './ajuda/ComoUsar'
 import EstudioVideo from './editor/EstudioVideo'
 import CortesVideoLongo from './editor/cortes/CortesVideoLongo'
 import SemGravar from './editor/semGravar/SemGravar'
+import ParaGravar from './ParaGravar'
 
 export default function AreaAgentes() {
   const { perfil, isAdmin } = useAuth()
@@ -43,6 +44,7 @@ export default function AreaAgentes() {
           <span className="nav-grupo">Operação</span>
           <NavLink to="/agentes" end><Icone nome="equipe" /> Visão geral</NavLink>
           <NavLink to="/agentes/aprovacoes"><Icone nome="documento" /> Aprovações</NavLink>
+          <NavLink to="/agentes/gravar"><Icone nome="video" /> Para gravar</NavLink>
           <NavLink to="/agentes/automacoes"><Icone nome="raio" /> Automações</NavLink>
           <NavLink to="/agentes/historico"><Icone nome="historico" /> Histórico</NavLink>
           <span className="nav-grupo">Gestão</span>
@@ -62,6 +64,7 @@ export default function AreaAgentes() {
       <nav className="barra-inferior">
         <NavLink to="/agentes" end><Icone nome="contatos" /><span>Sala</span></NavLink>
         <NavLink to="/agentes/aprovacoes"><Icone nome="documento" /><span>Aprovar</span></NavLink>
+        <NavLink to="/agentes/gravar"><Icone nome="video" /><span>Gravar</span></NavLink>
         <NavLink to="/agentes/marca"><Icone nome="livro" /><span>Marca</span></NavLink>
         <NavLink to="/" end><Icone nome="painel" /><span>Comercial</span></NavLink>
       </nav>
@@ -75,6 +78,7 @@ export default function AreaAgentes() {
           <Route path="editor/sem-gravar" element={<SemGravar />} />
           <Route path="central" element={<Central />} />
           <Route path="aprovacoes" element={<Aprovacoes />} />
+          <Route path="gravar" element={<ParaGravar />} />
           <Route path="historico" element={<Historico />} />
           <Route path="automacoes" element={<PaginaAutomacoes />} />
           <Route path="marca" element={<CentralMarca />} />

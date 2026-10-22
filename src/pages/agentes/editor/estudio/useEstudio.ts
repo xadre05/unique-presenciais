@@ -15,6 +15,8 @@ import { usarApoio } from '../../marketing/edicao/usarApoio'
 import { deixarArquivo, pegarArquivo } from '../arquivoPendente'
 import { baixarNarracao } from '../semGravar/dados'
 import { pedidoDoConfig } from './configEstilo'
+import { brutoDe } from '../../marketing/fluxo'
+import { baixarBruto } from '../../marketing/edicao/brutoNuvem'
 import { usePerfilEditor } from '../dados'
 
 export type Passo = 'video' | 'conteudo' | 'estilo' | 'imagens'
@@ -68,11 +70,20 @@ export function useEstudio(peca: Peca, aoMudar: () => void) {
   }
   // vídeo sem gravar: o "bruto" é a narração da IA, guardada na nuvem (volta sozinha, sem escolher arquivo)
   const narracao = (peca.conteudo as { narracao?: { caminho: string; nome: string } }).narracao
+  const bruto = brutoDe(peca)
   // o vídeo escolhido antes (na entrada do Editor ou antes de trocar de tela) volta escolhido
   useEffect(() => {
     const f = pegarArquivo(peca.id)
     if (f) return escolher(f)
     if (narracao) void baixarNarracao(narracao).then((n) => { if (n) { deixarArquivo(peca.id, n); escolher(n) } })
+    // vídeo enviado pela equipe (do celular, na lista "Para gravar"): baixa da nuvem
+    else if (bruto) {
+      setOcupado('Baixando o vídeo enviado…')
+      void baixarBruto(bruto, (fr) => setOcupado(`Baixando o vídeo enviado… ${Math.round(fr * 100)}%`))
+        .then((f) => { if (f) { deixarArquivo(peca.id, f); escolher(f) } else setErro('Não consegui baixar o vídeo enviado. Recarregue a página.') })
+        .catch(() => setErro('Não consegui baixar o vídeo enviado. Recarregue a página.'))
+        .finally(() => setOcupado(null))
+    }
   }, [peca.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const executar = async (rotulo: string, fazer: () => Promise<void>) => {

@@ -40,8 +40,8 @@ export default function AgenteMarketing() {
   const mudar = (c: Partial<Filtros>) => setF((x) => ({ ...x, ...c }))
   // ?peca=<id> abre a peça direto (vem do Agente Editor de Vídeo)
   const [aberta, setAberta] = useState<string | null>(() => new URLSearchParams(local.search).get('peca'))
-  // ?modo=peca (atalho da Sala dos agentes) abre direto a reunião de algo para hoje
-  const [pagina, setPagina] = useState<Pagina>(() => (new URLSearchParams(local.search).get('modo') === 'peca' ? { tipo: 'reuniao', escopo: 'dia', data: hojeISO() } : null))
+  // ?modo=peca (atalho da Sala dos agentes) abre direto a reunião de algo para hoje; ?modo=semana, a da semana
+  const [pagina, setPagina] = useState<Pagina>(() => { const m = new URLSearchParams(local.search).get('modo'); return m === 'peca' ? { tipo: 'reuniao', escopo: 'dia', data: hojeISO() } : m === 'semana' ? { tipo: 'reuniao', escopo: 'semana', data: hojeISO() } : null })
   const [campanhaAberta, setCampanhaAberta] = useState(false)
   const { inicio, dias } = intervaloDe(f)
   const { pecas, todas, trabalhos, perfil, campanhas, planos, emAndamento, ocupado, erro } = useMarketing(inicio, dias)

@@ -59,10 +59,25 @@ export const GUIAS: Guia[] = [
     custo: 'Uma peça custa centavos; um plano de mês, alguns reais. O gasto aparece em Configurações → Agentes.',
   },
   {
+    id: 'fluxo-semana', grupo: 'Criar conteúdo', titulo: 'A semana com a social media',
+    para: 'Como o conteúdo anda da ideia ao post, com cada pessoa fazendo a sua parte.',
+    onde: { texto: 'Sala dos agentes', link: '/agentes' },
+    passos: [
+      'Na Sala, o recado da social media mostra o que é com você hoje: planejar a semana, aprovar pautas, gravar ou aprovar edições.',
+      '"Planejar a semana" abre a reunião de pauta. Ela pergunta pelas campanhas, palestras, eventos e conteúdos de concorrentes que vocês gostaram, e monta o plano.',
+      'A pauta (texto ou roteiro) vai para aprovação. Aprovada, os vídeos aparecem em "Para gravar", com o roteiro e o prazo para o vídeo chegar.',
+      'Gravou? Em "Para gravar" (no celular mesmo), "Enviar o vídeo gravado". Ele sobe e cai na fila do Agente Editor de Vídeo.',
+      'Quem edita abre o vídeo no Estúdio (ele baixa sozinho), edita e manda a prévia. A edição volta para aprovação e, aprovada, vai para agendar.',
+      'Se o vídeo não chegar no prazo, a social media avisa que está atrasado.',
+    ],
+    dicas: ['Em Agente de Marketing → Configurar agente → Equipe e fluxo você define o nome da social media, quem grava, quem aprova e com quantos dias de antecedência o vídeo precisa chegar.', 'Os avisos também vão para o WhatsApp quando o número da social media estiver conectado.'],
+  },
+  {
     id: 'aprovar', grupo: 'Criar conteúdo', titulo: 'Aprovar e ajustar peças',
     para: 'Decidir o que os agentes prepararam.',
     onde: { texto: 'Aprovações', link: '/agentes/aprovacoes' },
     passos: [
+      'Em Aprovações aparece uma linha por agente com o que espera você (pautas, vídeos para gravar, edições para aprovar). Clique na linha para decidir dentro do agente.',
       'Abra a peça, leia o texto e veja a arte.',
       'Para mudar, escreva o pedido de ajuste (ex.: "mais curto", "fala da turma de Brasília") e o agente refaz.',
       'Aprovou: a peça segue para agendar.',

@@ -12,6 +12,7 @@ import { TIPO_PECA, visualDe } from './comum'
 import { creditosDe } from './creditos'
 import type { PerfilMarketing } from './marca/dados'
 import { BotaoAjuda } from './ajuda/BotaoAjuda'
+import { RecadoSocial } from './RecadoSocial'
 
 function situacao(a: AgenteNaSala, temChave: boolean): { txt: string; tom: string } {
   if (!a.disponivel) return { txt: a.escopo === 'clinical' ? 'Para clínicas · Em breve' : 'Em breve', tom: 'neutro' }
@@ -97,6 +98,7 @@ export default function Sala() {
         <div className="sala-aviso"><Icone nome="alerta" tam={20} /><span>Configure a IA para ativar seu primeiro agente.</span><Link to="/agentes/central" className="btn btn-ouro btn-mini">Configurar</Link></div>
       )}
       <Erro msg={erro} />
+      <RecadoSocial perfilMarketing={perfil.dados?.perfil as Record<string, unknown> | undefined} />
 
 
       <div className="sala-grade">{visiveis.map((a) => <CartaoAgente key={a.id} a={a} temChave={temChave} />)}</div>

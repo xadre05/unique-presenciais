@@ -9,6 +9,7 @@ import { Erro } from '../../components/ui'
 import { Icone } from '../../components/Icone'
 import { MODELOS } from './comum'
 import { CreditosAgente } from './CreditosAgente'
+import { QuadroFluxo } from './marketing/QuadroFluxo'
 import { atualizarPerfil, esquecer, lembrar, memoriaDe, type Lembranca } from './memoria'
 
 export type ConfigDoAgente = { modelo?: string; limite_mes_creditos?: number | null; instrucoes?: string }
@@ -103,6 +104,7 @@ export function ConfigAgente({ empresaId, agenteId, ativo, perfil, aoSalvar }: P
         <CreditosAgente empresa={empresaId} agente={agenteId} limite={f.limite} aoMudarLimite={(limite) => mudar({ limite })} />
 
         <Preferencias empresaId={empresaId} agenteId={agenteId} perfil={perfil} />
+        {agenteId === 'marketing' && <QuadroFluxo empresaId={empresaId} perfil={perfil} aoSalvar={aoSalvar} />}
       </div>
 
       <Erro msg={erro} />
