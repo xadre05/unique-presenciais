@@ -7,6 +7,7 @@ import type { Peca } from '../../comum'
 import type { ArquivoBruto, Edicao } from '../../marketing/edicao/dados'
 import type { Palavra } from '../../marketing/edicao/linhaTempo'
 import { juntarVideos } from './juntar'
+import { CombinarCriativos } from './CombinarCriativos'
 import { falaDa, infoDa, juntarPalavras, lerParte, nomeDoJuntado, ordemGuardada, pedirOrdem, type Papel, type Parte } from './dados'
 
 export type Juntado = { arquivo: File; palavras: Palavra[]; partes: ArquivoBruto[]; duracao: number }
@@ -69,6 +70,7 @@ export function PartesDoVideo({ peca, arquivos, edicao, aoJuntar, aoCancelar }: 
     await aoJuntar({ arquivo, palavras, partes: escolhidas.map((p, k) => ({ ...infoDa(p), duracao: duracoes[k] })), duracao: duracoes.reduce((s, d) => s + d, 0) })
   })
 
+  const mudarPapel = (k: number, papel: Papel | '') => setPartes((ps) => ps.map((p, i) => (i === k ? { ...p, papel: papel || undefined } : p)))
   const tirar = (k: number) => setOrdem((o) => o.filter((x) => x !== k))
   const voltar = (k: number) => setOrdem((o) => [...o, k])
   const foraDoVideo = partes.map((_, k) => k).filter((k) => !ordem.includes(k))
@@ -79,7 +81,7 @@ export function PartesDoVideo({ peca, arquivos, edicao, aoJuntar, aoCancelar }: 
       <p className="muted pequeno">{guardada ? 'São as mesmas partes da última vez: é só juntar de novo.' : 'O agente ouve cada parte e, pela fala e pelo roteiro (etapa Conteúdo), propõe a ordem. Confira e mude se quiser.'}</p>
       {explicacao && <p className="pt-explicacao pequeno"><Icone nome="floco" tam={14} /> {explicacao}</p>}
       <ol className="pt-lista">
-        {ordem.map((k, pos) => <LinhaParte key={k} parte={partes[k]} numero={pos + 1}
+        {ordem.map((k, pos) => <LinhaParte key={k} parte={partes[k]} numero={pos + 1} aoPapel={(p) => mudarPapel(k, p)}
           acoes={<>
             <button type="button" className="btn-icone" title="Subir" disabled={!!ocupado || pos === 0} onClick={() => setOrdem((o) => mover(o, pos, pos - 1))}><Icone nome="cima" tam={15} /></button>
             <button type="button" className="btn-icone" title="Descer" disabled={!!ocupado || pos === ordem.length - 1} onClick={() => setOrdem((o) => mover(o, pos, pos + 1))}><Icone nome="baixo" tam={15} /></button>
@@ -89,10 +91,11 @@ export function PartesDoVideo({ peca, arquivos, edicao, aoJuntar, aoCancelar }: 
       {foraDoVideo.length > 0 && <>
         <p className="pequeno muted">Fora do vídeo</p>
         <ul className="pt-lista pt-fora">
-          {foraDoVideo.map((k) => <LinhaParte key={k} parte={partes[k]}
+          {foraDoVideo.map((k) => <LinhaParte key={k} parte={partes[k]} aoPapel={(p) => mudarPapel(k, p)}
             acoes={<button type="button" className="link pequeno" disabled={!!ocupado} onClick={() => voltar(k)}>Pôr no vídeo</button>} />)}
         </ul>
       </>}
+      <CombinarCriativos peca={peca} partes={partes} ordem={ordem} ocupado={!!ocupado} ouvirTodas={async () => { try { return await ouvir(partes, partes.map((_, k) => k)) } finally { setOcupado(null) } }} />
       {ocupado && <p className="pequeno pt-ocupado">{ocupado}</p>}
       {erro && <p className="nota pequeno"><Icone nome="alerta" tam={14} /> {erro}</p>}
       <div className="ev-escolha">
@@ -104,12 +107,15 @@ export function PartesDoVideo({ peca, arquivos, edicao, aoJuntar, aoCancelar }: 
   )
 }
 
-function LinhaParte({ parte, numero, acoes }: { parte: Parte; numero?: number; acoes: ReactNode }) {
+function LinhaParte({ parte, numero, acoes, aoPapel }: { parte: Parte; numero?: number; acoes: ReactNode; aoPapel: (p: Papel | '') => void }) {
   return (
     <li className="pt-parte">
       <div className="pt-cabeca">
         {numero && <b>{numero}º</b>} <span>{parte.arquivo.name}</span> <span className="muted pequeno">{tempo(parte.duracao)}</span>
-        {parte.papel && <span className="pt-papel">{NOME_PAPEL[parte.papel]}</span>}
+        {/* o papel (abertura, conteúdo, final) vem do agente; dá para corrigir aqui */}
+        <select className="pt-papel" value={parte.papel ?? ''} onChange={(e) => aoPapel(e.target.value as Papel | '')} aria-label="O que é esta parte">
+          <option value="">sem papel</option>{(Object.keys(NOME_PAPEL) as Papel[]).map((p) => <option key={p} value={p}>{NOME_PAPEL[p]}</option>)}
+        </select>
         <span className="pt-acoes">{acoes}</span>
       </div>
       {parte.palavras && <p className="pequeno pt-fala">“{trecho(parte) || 'sem fala'}”</p>}

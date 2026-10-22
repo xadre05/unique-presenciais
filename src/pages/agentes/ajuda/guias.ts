@@ -102,6 +102,7 @@ export const GUIAS: Guia[] = [
       'Gravou em partes? Escolha (ou arraste) todas de uma vez. O agente ouve cada parte e, pela fala e pelo roteiro, propõe a ordem e o que deixar de fora (ex.: uma tomada repetida). Confira, mude com as setas se quiser e "Juntar e continuar". As partes são emendadas sem perder qualidade.',
       'Tem o roteiro em PDF ou Word? Na entrada ("subir o roteiro") ou na etapa Conteúdo ("Subir o roteiro"). O agente usa o roteiro para ordenar as partes e para cortar as tomadas erradas.',
       'Depois de recarregar a página, escolha as mesmas partes de novo: o Estúdio reconhece e só junta, sem ouvir de novo nem custar nada.',
+      'Gravou várias aberturas ou vários finais (cabeça, corpo e cauda)? Suba tudo junto. O agente marca o que é abertura, conteúdo e final (dá para corrigir em cada parte) e aparece "Criar os N criativos": cada combinação abertura × final vira um vídeo novo na lista, com a fala já pronta.',
     ],
     custo: 'Cerca de R$ 0,30 a R$ 1 por edição de reels (transcrição + editor; mais mídias de apoio, mais perto de R$ 1). Cada ajuste custa parecido.',
   },

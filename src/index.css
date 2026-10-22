@@ -3433,7 +3433,10 @@ a.sala-agente:hover { border-color: var(--ouro); transform: translateY(-2px); }
 .pt-acoes { margin-left: auto; display: inline-flex; gap: 2px; }
 .pt-acoes .btn-icone { font-size: 1rem; padding: 4px; }
 .pt-acoes .btn-icone:disabled { opacity: .3; cursor: default; }
-.pt-papel { padding: 1px 9px; border-radius: 999px; font-size: .74rem; color: var(--ouro); background: var(--ouro-fundo); }
+.pt-papel { padding: 1px 9px; border-radius: 999px; font-size: .74rem; color: var(--ouro); background: var(--ouro-fundo); border: 0; width: auto; min-height: 0; cursor: pointer; }
+.pt-combinar { padding: 10px 12px; border: 1px dashed var(--ouro); border-radius: 12px; display: grid; gap: 6px; }
+.pt-combinar ul { margin: 0; padding-left: 18px; columns: 2; }
+.pt-combinar .btn { justify-self: start; }
 .pt-fala { margin: 0; color: var(--muted); font-style: italic; }
 .pt-explicacao { display: flex; gap: 6px; align-items: flex-start; margin: 0; color: var(--ouro); }
 .pt-ocupado { color: var(--ouro); margin: 0; }
