@@ -13,22 +13,27 @@ const diasEntre = (de: string, ate: string) => Math.max(0, Math.round((Date.pars
 
 // uma dívida (um curso): só as parcelas já vencidas; multa sobre cada parcela e juros simples pro rata desde o vencimento de cada uma
 export type Item = { produto: string; data_compra: string | null; parcelas_total: number | null; parcelas_pagas: number | null; valor_parcela: number; parou_em: string | null; vencidas: number }
+// prescrição (advogado, 22/10/2026): parcela vencida há mais de 5 anos não é cobrada nem negativada
 export function contaItem(it: Item, hoje: string, multaPct: number, jurosMesPct: number) {
-  let principal = 0, multa = 0, juros = 0
+  let principal = 0, multa = 0, juros = 0, cobradas = 0, prescritas = 0
+  let primeira: string | null = null
+  const limite = somaMeses(hoje, -60)
   for (let k = 0; k < it.vencidas; k++) {
     const venc = it.parou_em ? somaMeses(it.parou_em, k) : hoje
+    if (venc < limite) { prescritas++; continue }
+    cobradas++; primeira ??= venc
     principal += it.valor_parcela
     multa += it.valor_parcela * multaPct / 100
     juros += it.valor_parcela * (jurosMesPct / 100) * (diasEntre(venc, hoje) / 30)
   }
-  return { principal: centavos(principal), encargos: centavos(multa + juros), total: centavos(principal + multa + juros) }
+  return { principal: centavos(principal), encargos: centavos(multa + juros), total: centavos(principal + multa + juros), cobradas, prescritas, primeira }
 }
 
 export function detalhamento(itens: Item[], hoje: string, multaPct: number, jurosMesPct: number) {
   return itens.map((it) => {
     const c = contaItem(it, hoje, multaPct, jurosMesPct)
     return `• ${it.produto}: compra em ${data(it.data_compra)}, ${it.parcelas_total ?? '—'} parcelas de ${brl(it.valor_parcela)}; ${it.parcelas_pagas ?? '—'} paga(s); `
-      + `${it.vencidas} parcela(s) vencida(s) sem pagamento desde ${data(it.parou_em)} = ${brl(c.principal)}`
+      + `${c.cobradas} parcela(s) vencida(s) sem pagamento desde ${data(c.primeira)} = ${brl(c.principal)}`
   }).join('\n')
 }
 
@@ -43,7 +48,7 @@ export function campos(p: Dados, itens: Item[], cfg: Dados, hoje: string): Recor
     multa_pct: pct(m), juros_pct: pct(j), produto: itens.map((it) => it.produto).join(', '),
     data_compra: data(um?.data_compra), parcelas_total: String(um?.parcelas_total ?? '—'), parcelas_pagas: String(um?.parcelas_pagas ?? '—'),
     valor_parcela: um ? brl(um.valor_parcela) : '—', primeira_em_aberto: data(itens.map((it) => it.parou_em).filter(Boolean).sort()[0]),
-    parcelas_em_aberto: String(itens.reduce((s, it) => s + it.vencidas, 0)),
+    parcelas_em_aberto: String(itens.reduce((s, it) => s + contaItem(it, hoje, m, j).cobradas, 0)),
     prazo: data(p.prazo_ate), link_boleto: String(p.boleto_url ?? '[o link do boleto entra aqui]'), data_envio: data(hoje),
     razao_social: String(cfg.razao_social ?? '[razão social]'), cnpj: String(cfg.cnpj ?? '[CNPJ]'), endereco: String(cfg.endereco ?? '[endereço]'),
     cidade: String(cfg.cidade ?? '[cidade]'), email_contato: String(cfg.email_contato ?? '[e-mail]'), whatsapp_contato: String(cfg.whatsapp_contato ?? '[WhatsApp]'),

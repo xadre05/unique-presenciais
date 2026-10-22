@@ -34,7 +34,10 @@ export function PainelNotificacao({ lista, nomeConta, aoMudar, eu }: Props) {
   const kMap = useMemo(() => new Map((conf.dados ?? []).map((k) => [k.cobranca_id, k])), [conf.dados])
   const doFiltro = lista.filter((c) => !conta || c.integracao_id === conta)
   const naAba = (a: Aba) => doFiltro.filter((c) => abaDe(c, kMap.get(c.id), config ?? null) === a)
-  const pessoas = useMemo(() => agrupar(naAba(aba), kMap, ex, config ?? null, hoje), [doFiltro, aba, kMap, ex, config, hoje]) // eslint-disable-line react-hooks/exhaustive-deps
+  const todas = useMemo(() => agrupar(naAba(aba), kMap, ex, config ?? null, hoje), [doFiltro, aba, kMap, ex, config, hoje]) // eslint-disable-line react-hooks/exhaustive-deps
+  // prescrição (5 anos do vencimento de cada parcela): quem só tem parcela prescrita sai da lista de cobrança
+  const prescritas = aba === 'para_notificar' || aba === 'conferir' ? todas.filter((p) => p.total <= 0) : []
+  const pessoas = prescritas.length ? todas.filter((p) => p.total > 0) : todas
   const limiteNegativar = useMemo(() => { const d = new Date(hoje + 'T12:00:00'); d.setDate(d.getDate() - 5); return d.toISOString().slice(0, 10) }, [hoje])
   const pronta = (p: Pessoa) => aba === 'prazo_vencido'
     ? !p.pendencias.length && p.cobrancas.every((c) => c.prazo_ate && c.prazo_ate <= limiteNegativar) && !semEndereco(ex.get(p.cobrancas[0].id))
@@ -77,7 +80,7 @@ export function PainelNotificacao({ lista, nomeConta, aoMudar, eu }: Props) {
     <div className="not-painel">
       <div className={config?.advogado_liberou_em ? 'faixa-info' : 'faixa-alerta'}><Icone nome={config?.advogado_liberou_em ? 'check' : 'alerta'} tam={18} /><span>
         {config?.advogado_liberou_em ? <>Carta liberada pelo advogado em {dataBR(config.advogado_liberou_em)} ({config.advogado_liberou_por}). </> : <><b>Envio travado até o advogado liberar a carta.</b> </>}
-        Só compras até <b>{dataBR(config?.compra_ate)}</b> (as mais novas aguardam a posição da Hotmart). Cobra só as parcelas vencidas + multa {config?.multa_pct ?? 2}% e juros {config?.juros_mes_pct ?? 1}% ao mês. Envio em horário comercial{comercial ? '' : ' (agora está fora)'}.
+        Parcelas vencidas há mais de 5 anos não são cobradas (prescrição){prescritas.length ? <>: <b>{prescritas.length} pessoa(s)</b> saíram da lista por isso</> : ''}. Só compras até <b>{dataBR(config?.compra_ate)}</b> (as mais novas aguardam a posição da Hotmart). Cobra só as parcelas vencidas + multa {config?.multa_pct ?? 2}% e juros {config?.juros_mes_pct ?? 1}% ao mês. Envio em horário comercial{comercial ? '' : ' (agora está fora)'}.
         {' '}<button type="button" className="link" onClick={() => setEditar(true)}>Dados, modelos e travas</button></span></div>
       <nav className="abas">{ABAS.map(([k, r]) => <button key={k} className={aba === k ? 'ativa' : ''} onClick={() => { setAba(k); setMarcadas(new Set()) }}>{r} <span className="muted">{agrupar(naAba(k), kMap, ex, config ?? null, hoje).length}</span></button>)}</nav>
       <div className="pg-filtros">
