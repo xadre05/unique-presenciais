@@ -48,7 +48,8 @@ export function BlocoCredenciais({ integracao, titulo, campos, acoes, rodape }: 
           <Campo key={c.k} rotulo={`${c.r}${lista.includes(c.k) ? ' ✓' : ''}`} dica={c.d}>
             {c.arquivo ? (
               <label className="btn btn-contorno btn-mini not-arquivo">{arquivos[c.k] ?? (lista.includes(c.k) ? 'Trocar arquivo' : 'Escolher arquivo')}
-                <input type="file" accept={c.arquivo} hidden onChange={(e) => { const f = e.target.files?.[0]; if (f) void lerArquivo(c.k, f); e.target.value = '' }} /></label>
+                {/* sem filtro de tipo: no iPad/celular o seletor esconde .crt e .key; o conteúdo é conferido ao ler */}
+                <input type="file" hidden onChange={(e) => { const f = e.target.files?.[0]; if (f) void lerArquivo(c.k, f); e.target.value = '' }} /></label>
             ) : (
               // sem type=password: o navegador não preenche sozinho o login e a senha de quem está usando o sistema
               <input type="text" name={`${integracao}-${c.k}`} autoComplete="off" data-lpignore="true" data-1p-ignore spellCheck={false}
