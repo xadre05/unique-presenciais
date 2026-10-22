@@ -35,6 +35,9 @@ export function ConfigNotificacao({ cfg, eu, aoFechar, aoSalvar }: Props) {
       <div className="not-config">
         <Campo rotulo="Razão social"><input {...txt('razao_social')} placeholder="Como está no CNPJ" /></Campo>
         <Campo rotulo="CNPJ"><input {...txt('cnpj')} /></Campo>
+        <Campo rotulo="Nome na carta (nome fantasia)" dica="Aparece como notificante e na assinatura, seguido do CNPJ credor."><input {...txt('nome_fantasia')} /></Campo>
+        <Campo rotulo="CNPJ da empresa anterior" dica="Credor das compras feitas antes da data ao lado (a conta da Hotmart era dela)."><input {...txt('cnpj_anterior')} placeholder="00.000.000/0000-00" /></Campo>
+        <Campo rotulo="Empresa anterior: compras antes de"><input type="date" value={v.cnpj_anterior_ate ?? ''} onChange={(e) => setV({ ...v, cnpj_anterior_ate: e.target.value || null })} /></Campo>
         <Campo rotulo="Endereço da sede"><input {...txt('endereco')} /></Campo>
         <Campo rotulo="Cidade (aparece no topo da carta)"><input {...txt('cidade')} /></Campo>
         <Campo rotulo="E-mail para respostas e comprovantes"><input {...txt('email_contato')} /></Campo>

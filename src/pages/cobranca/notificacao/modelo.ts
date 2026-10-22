@@ -37,12 +37,22 @@ export function detalhamento(itens: Item[], hoje: string, multaPct: number, juro
   }).join('\n')
 }
 
+// quem notifica (orientação do advogado, 22/10/2026): o nome fantasia, seguido do CNPJ de quem era o credor na data da
+// compra (antes da empresa atual, a conta da Hotmart era de outra empresa do mesmo dono); o pagamento vai para a conta atual
+function credora(itens: Item[], cfg: Dados) {
+  const atual = String(cfg.cnpj ?? '[CNPJ]'), anterior = cfg.cnpj_anterior ? String(cfg.cnpj_anterior) : null, corte = cfg.cnpj_anterior_ate ? String(cfg.cnpj_anterior_ate) : null
+  const antigos = anterior && corte ? itens.filter((it) => it.data_compra && String(it.data_compra).slice(0, 10) < corte).length : 0
+  const cnpj = !antigos ? atual : antigos === itens.length ? anterior! : `${atual} (compras a partir de ${data(corte)}) e ${anterior} (compras anteriores)`
+  return { razao_social: String(cfg.nome_fantasia || cfg.razao_social || '[nome]'), cnpj }
+}
+
 // tudo o que a carta pode usar, já formatado (uma carta por pessoa, com todos os cursos dela)
 export function campos(p: Dados, itens: Item[], cfg: Dados, hoje: string): Record<string, string> {
   const m = Number(cfg.multa_pct ?? 2), j = Number(cfg.juros_mes_pct ?? 1)
   const t = itens.map((it) => contaItem(it, hoje, m, j)).reduce((s, c) => ({ principal: s.principal + c.principal, encargos: s.encargos + c.encargos, total: s.total + c.total }), { principal: 0, encargos: 0, total: 0 })
   const um = itens.length === 1 ? itens[0] : null
   return {
+    ...credora(itens, cfg),
     nome: String(p.aluno_nome ?? ''), primeiro_nome: primeiro(p.aluno_nome), cpf: cpf(p.documento), email: String(p.email ?? ''),
     detalhamento: detalhamento(itens, hoje, m, j), valor_principal: brl(t.principal), valor_encargos: brl(t.encargos), valor_total: brl(p.boleto_valor ?? t.total),
     multa_pct: pct(m), juros_pct: pct(j), produto: itens.map((it) => it.produto).join(', '),
@@ -51,7 +61,7 @@ export function campos(p: Dados, itens: Item[], cfg: Dados, hoje: string): Recor
     parcelas_em_aberto: String(itens.reduce((s, it) => s + contaItem(it, hoje, m, j).cobradas, 0)),
     prazo: data(p.prazo_ate), link_boleto: String(p.boleto_url ?? '[o link do boleto entra aqui]'), data_envio: data(hoje),
     linha_digitavel: String(p.boleto_linha || '[a linha digitável entra aqui]'), pix_copia_cola: String(p.boleto_pix || '[o Pix copia e cola entra aqui]'),
-    razao_social: String(cfg.razao_social ?? '[razão social]'), cnpj: String(cfg.cnpj ?? '[CNPJ]'), endereco: String(cfg.endereco ?? '[endereço]'),
+    endereco: String(cfg.endereco ?? '[endereço]'),
     cidade: String(cfg.cidade ?? '[cidade]'), email_contato: String(cfg.email_contato ?? '[e-mail]'), whatsapp_contato: String(cfg.whatsapp_contato ?? '[WhatsApp]'),
     remetente_nome: String(cfg.remetente_nome ?? cfg.razao_social ?? ''),
   }
@@ -71,6 +81,7 @@ export type Config = {
   whatsapp_contato: string | null; remetente_nome: string | null; prazo_dias: number; carta_assunto: string | null; carta_modelo: string | null; whatsapp_modelo: string | null
   acordo_tira_encargos: boolean; acordo_parcelas_max: number; acordo_prazo_max_dias: number; ia_canal_id: string | null; ia_ligada: boolean
   advogado_liberou_em: string | null; advogado_liberou_por: string | null; compra_ate: string; multa_pct: number; juros_mes_pct: number
+  nome_fantasia: string | null; cnpj_anterior: string | null; cnpj_anterior_ate: string | null
 }
 // por cobrança online: CPF, data da compra e as dúvidas que pedem conferência na Hotmart (v_cobranca_conferencia)
 export type Conferencia = {
