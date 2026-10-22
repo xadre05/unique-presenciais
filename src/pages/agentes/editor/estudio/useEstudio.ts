@@ -12,12 +12,13 @@ import { montarLinhaTempo } from '../../marketing/edicao/linhaTempo'
 import { montarVideo } from '../../marketing/edicao/montagem'
 import { escreverCenas } from '../../marketing/edicao/escreverCenas'
 import { usarApoio } from '../../marketing/edicao/usarApoio'
-import { deixarArquivo, pegarArquivo } from '../arquivoPendente'
+import { deixarArquivo, pegarArquivo, pegarPartes } from '../arquivoPendente'
 import { baixarNarracao } from '../semGravar/dados'
 import { pedidoDoConfig, visualDoConfig } from './configEstilo'
 import { brutoDe } from '../../marketing/fluxo'
 import { baixarBruto } from '../../marketing/edicao/brutoNuvem'
 import { usePerfilEditor } from '../dados'
+import type { Juntado } from '../partes/PartesDoVideo'
 
 export type Passo = 'video' | 'conteudo' | 'estilo' | 'imagens'
 export const PASSOS: Passo[] = ['video', 'conteudo', 'estilo', 'imagens']
@@ -42,6 +43,8 @@ export function useEstudio(peca: Peca, aoMudar: () => void) {
   const [final, setFinal] = useState<VideoMontado | null>(null)
   const [hdr, setHdr] = useState(false)
   const [corrigirHdr, setCorrigirHdr] = useState(true)
+  // vídeo gravado em partes: os arquivos escolhidos, enquanto o agente organiza e a pessoa confere a ordem
+  const [partes, setPartes] = useState<File[] | null>(null)
   // estilo: o escolhido neste vídeo ('' = estilo da casa) ou, sem escolha, o padrão definido em Estilos
   const perfilEditor = usePerfilEditor()
   const padrao = typeof perfilEditor.dados?.perfil?.estilo_ref === 'string' ? perfilEditor.dados.perfil.estilo_ref : ''
@@ -69,11 +72,23 @@ export function useEstudio(peca: Peca, aoMudar: () => void) {
     // capa do cartão na entrada do Editor (uma foto pequena do bruto)
     if (!edicao.capa) void quadrosDoBruto(f, 1, corte?.de, corte?.ate).then((q) => q[0] && guardarEdicao(peca.id, (x) => ({ ...x, capa: q[0].miniatura })))
   }
+  const escolherVarios = (fs: File[]) => {
+    if (fs.length === 1) { deixarArquivo(peca.id, fs[0]); return escolher(fs[0]) } // pelo <input>: sem atalho
+    setErro(null); setPartes(fs)
+  }
+  // partes juntadas: o vídeo juntado vira o bruto, com a fala já transcrita (a edição não lê o áudio de novo)
+  const juntou = async (j: Juntado) => {
+    const mesmo = mesmoArquivo(edicao.arquivo, j.arquivo)
+    await guardarEdicao(peca.id, (e) => ({ ...e, arquivo: { nome: j.arquivo.name, tamanho: j.arquivo.size, duracao: j.duracao }, palavras: j.palavras, partes: j.partes, receitas: mesmo ? e.receitas : [] }))
+    deixarArquivo(peca.id, j.arquivo); escolher(j.arquivo); setDuracao(j.duracao); setPartes(null); aoMudar()
+  }
   // vídeo sem gravar: o "bruto" é a narração da IA, guardada na nuvem (volta sozinha, sem escolher arquivo)
   const narracao = (peca.conteudo as { narracao?: { caminho: string; nome: string } }).narracao
   const bruto = brutoDe(peca)
   // o vídeo escolhido antes (na entrada do Editor ou antes de trocar de tela) volta escolhido
   useEffect(() => {
+    const fs = pegarPartes(peca.id)
+    if (fs) return setPartes(fs)
     const f = pegarArquivo(peca.id)
     if (f) return escolher(f)
     if (narracao) void baixarNarracao(narracao).then((n) => { if (n) { deixarArquivo(peca.id, n); escolher(n) } })
@@ -96,14 +111,15 @@ export function useEstudio(peca: Peca, aoMudar: () => void) {
     if (!arquivo) return
     // corte de vídeo longo: a fala do trecho já veio transcrita (não lê o áudio de novo)
     // narração de IA: as palavras já vieram com o tempo exato da ElevenLabs
-    let palavras = (corte || narracao) && edicao.palavras?.length && confere ? edicao.palavras : null
-    let d = corte ? corte.ate - corte.de : narracao ? edicao.arquivo?.duracao ?? 0 : 0
+    // vídeo juntado de partes: a fala de cada parte já foi transcrita ao juntar
+    let palavras = (corte || narracao || edicao.partes?.length) && edicao.palavras?.length && confere ? edicao.palavras : null
+    let d = corte ? corte.ate - corte.de : edicao.arquivo?.duracao ?? 0
     if (!palavras) {
       const audio = await audioDoVideo(arquivo)
       d = audio.duracao; setDuracao(d); setOcupado('Transcrevendo a fala…')
       palavras = (await transcrever(peca.id, audio.wav)).palavras
       if (!palavras.length) throw new Error('Não encontrei fala neste vídeo.')
-      await guardarEdicao(peca.id, (e) => ({ ...e, arquivo: { nome: arquivo.name, tamanho: arquivo.size, duracao: d }, palavras: palavras!, receitas: [] }))
+      await guardarEdicao(peca.id, (e) => ({ ...e, arquivo: { nome: arquivo.name, tamanho: arquivo.size, duracao: d }, palavras: palavras!, partes: undefined, receitas: [] }))
     }
     setOcupado('O agente está editando…')
     const { plano: rascunho } = await pedirEdicao(peca.id, palavras, d, await apoio.paraAgente(), { modeloRef, quadros: await quadrosDoBruto(arquivo, 4, corte?.de, corte?.ate), referencia: edicao.referencia, pedido: [narracao ? SEM_PESSOA : '', pedidoDoConfig(edicao.config_estilo)].filter(Boolean).join('\n') || undefined })
@@ -135,6 +151,7 @@ export function useEstudio(peca: Peca, aoMudar: () => void) {
     edicao, temEditor: temEditor.dados, apoio, arquivo, url, confere, escolher, hdr, corrigirHdr, setCorrigirHdr, cor,
     modeloRef, escolherEstilo, receitas, versao, setVersao, receita, linha, duracaoBruto,
     passo, setPasso, ocupado, erro, progresso, final, editar, ajustar, gerarFinal, codigos, visual,
+    partes, escolherVarios, juntou, cancelarPartes: () => setPartes(null),
   }
 }
 export type Estudio = ReturnType<typeof useEstudio>

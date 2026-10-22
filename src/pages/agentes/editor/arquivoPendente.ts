@@ -32,6 +32,10 @@ export function deixarArquivo(peca: string, arquivo: File, atalho?: Atalho | nul
   if (atalho) void naTabela('readwrite', (t) => t.put(atalho, peca))
 }
 export const pegarArquivo = (peca: string) => arquivos.get(peca) ?? null
+// vídeo gravado em partes, escolhido na entrada do Editor: o Estúdio abre com as partes para o agente organizar
+const partesPendentes = new Map<string, File[]>()
+export const deixarPartes = (peca: string, fs: File[]) => { partesPendentes.set(peca, fs) }
+export const pegarPartes = (peca: string) => { const fs = partesPendentes.get(peca) ?? null; partesPendentes.delete(peca); return fs }
 
 // atalho guardado de uma peça (só o nome, para mostrar "Reabrir nome.mp4")
 export async function atalhoGuardado(peca: string) {
@@ -68,3 +72,12 @@ export async function escolherComAtalho(): Promise<{ arquivo: File; atalho: Atal
   } catch { return 'cancelado' }
 }
 export type { Atalho }
+// várias partes de uma vez (vídeo gravado em pedaços); o atalho só é guardado quando é um arquivo só
+export async function escolherVarios(): Promise<{ arquivos: File[]; atalhos: Atalho[] } | 'cancelado' | null> {
+  const w = window as JanelaComSeletor
+  if (!w.showOpenFilePicker) return null
+  try {
+    const atalhos = await w.showOpenFilePicker({ multiple: true, types: [{ description: 'Vídeo', accept: { 'video/*': ['.mp4', '.mov', '.m4v', '.webm'] } }] })
+    return { arquivos: await Promise.all(atalhos.map((a) => a.getFile())), atalhos }
+  } catch { return 'cancelado' }
+}

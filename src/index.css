@@ -3419,6 +3419,19 @@ a.sala-agente:hover { border-color: var(--ouro); transform: translateY(-2px); }
 .es-painel-pe { display: flex; justify-content: space-between; gap: 10px; border-top: 1px solid var(--borda); padding-top: 14px; }
 .es-conteudo h2, .es-estilo h2 { margin: 0 0 4px; font-family: 'Playfair Display', Georgia, serif; font-size: 1.6rem; }
 .es-conteudo textarea { width: 100%; }
+/* vídeo gravado em partes */
+.pt-lista { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.pt-parte { padding: 10px 12px; border: 1px solid var(--borda); border-radius: 12px; background: var(--painel); display: grid; gap: 4px; }
+.pt-fora .pt-parte { opacity: .65; border-style: dashed; }
+.pt-cabeca { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.pt-acoes { margin-left: auto; display: inline-flex; gap: 2px; }
+.pt-acoes .btn-icone { font-size: 1rem; padding: 4px; }
+.pt-acoes .btn-icone:disabled { opacity: .3; cursor: default; }
+.pt-papel { padding: 1px 9px; border-radius: 999px; font-size: .74rem; color: var(--ouro); background: var(--ouro-fundo); }
+.pt-fala { margin: 0; color: var(--muted); font-style: italic; }
+.pt-explicacao { display: flex; gap: 6px; align-items: flex-start; margin: 0; color: var(--ouro); }
+.pt-ocupado { color: var(--ouro); margin: 0; }
+.es-roteiro-arquivo { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
 .es-estilo-opcoes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-top: 14px; }
 .es-opcao { border: 1px solid var(--borda); border-radius: 14px; padding: 14px; background: var(--painel-2); cursor: pointer; display: grid; gap: 8px; align-content: start; }
 .es-opcao.marcada { border: 2px solid var(--ouro); background: var(--ouro-fundo); }

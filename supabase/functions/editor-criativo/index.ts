@@ -5,6 +5,7 @@
 //   POST { acao: 'cortes', empresa, titulo, linhas, duracao, quantos? } → { cortes }
 //     Lê a transcrição de um vídeo longo (aula, live, podcast) e escolhe os melhores trechos para virar reels.
 //   POST { acao: 'broll_ideias' | 'broll_gerar' | 'broll_status' } → cenas reais geradas na Higgsfield (imagem, depois clipe)
+//   POST { acao: 'ordenar', empresa, peca, partes, roteiro? } → a ordem das partes de um vídeo gravado em pedaços
 //   POST { acao: 'vozes' | 'narrar' } → narração com voz de IA na ElevenLabs (vídeo sem gravar), com o tempo de cada palavra
 import { createClient, type SupabaseClient } from 'npm:@supabase/supabase-js@2.45.4'
 
@@ -115,6 +116,40 @@ async function cortes(db: SupabaseClient, corpo: Record<string, unknown>) {
   const lista = (Array.isArray(r?.cortes) ? r!.cortes : []) as Record<string, unknown>[]
   if (!lista.length) throw new Error('O agente não encontrou trechos bons neste vídeo.')
   return { cortes: lista }
+}
+
+// ===== vídeo gravado em partes: a ordem certa para juntar =====
+const FERRAMENTA_ORDEM = {
+  name: 'entregar_ordem', description: 'Entrega a ordem das partes para montar o vídeo.',
+  input_schema: { type: 'object', required: ['ordem', 'explicacao'], properties: {
+    ordem: { type: 'array', items: { type: 'integer' }, description: 'Números das partes que entram no vídeo, na ordem em que devem aparecer' },
+    descartar: { type: 'array', items: { type: 'object', required: ['parte', 'motivo'], properties: { parte: { type: 'integer' }, motivo: { type: 'string' } } }, description: 'Partes que não entram (tomada repetida pior, teste, erro)' },
+    papeis: { type: 'array', items: { type: 'object', required: ['parte', 'papel'], properties: { parte: { type: 'integer' }, papel: { type: 'string', enum: ['gancho', 'corpo', 'chamada', 'completo'] } } }, description: 'O que cada parte é: gancho (abertura), corpo (conteúdo), chamada (final com a ação) ou completo (tem tudo)' },
+    explicacao: { type: 'string', description: 'Em 1 ou 2 frases, por que essa ordem (ex.: a parte 2 abre com o gancho do roteiro)' },
+  } },
+}
+const SISTEMA_ORDEM = [
+  'Você é o editor de vídeo de uma escola de harmonização orofacial. A pessoa gravou UM vídeo em várias partes (arquivos separados, sem ordem garantida).',
+  'Pela fala de cada parte e pelo roteiro (quando houver), diga a ordem em que as partes formam o vídeo. A abertura é a parte que começa com o gancho ou a apresentação; o final é a que termina com a chamada para ação.',
+  'Se duas partes repetem o mesmo trecho, fica a melhor (a mais completa e fluente, normalmente a última gravada) e a outra vai para "descartar" com o motivo. Não descarte nada que traga conteúdo novo.',
+  'Use só o que está na fala. Responda chamando a ferramenta entregar_ordem.',
+].join('\n')
+
+async function ordenar(db: SupabaseClient, corpo: Record<string, unknown>) {
+  const empresa = String(corpo.empresa ?? ''), peca = String(corpo.peca ?? '')
+  const ia = await preparar(db, empresa)
+  const partes = ((Array.isArray(corpo.partes) ? corpo.partes : []) as { n: number; nome: string; duracao: number; fala: string }[]).slice(0, 30)
+  if (partes.length < 2) throw new Error('Mande pelo menos duas partes.')
+  const pedido = [
+    corpo.roteiro ? `ROTEIRO DO VÍDEO:\n${String(corpo.roteiro).slice(0, 15000)}` : 'Sem roteiro: decida pela fala.',
+    ...partes.map((p) => `PARTE ${p.n} (arquivo "${p.nome}", ${Math.round(p.duracao)} s):\n${String(p.fala ?? '').slice(0, 6000)}`),
+    'Diga a ordem chamando a ferramenta entregar_ordem.',
+  ].join('\n\n')
+  const r = await ia(SISTEMA_ORDEM, [{ type: 'text', text: pedido }], FERRAMENTA_ORDEM, 'ordenar_partes', peca, (e) => `Ordem das partes: ${Array.isArray(e.ordem) ? e.ordem.join(', ') : '?'}`, 3000)
+  const validas = new Set(partes.map((p) => p.n))
+  const ordem = (Array.isArray(r?.ordem) ? r!.ordem : []).map(Number).filter((n) => validas.has(n))
+  if (!ordem.length) throw new Error('O agente não conseguiu decidir a ordem. Organize à mão.')
+  return { ordem: [...new Set(ordem)], descartar: Array.isArray(r?.descartar) ? r!.descartar : [], papeis: Array.isArray(r?.papeis) ? r!.papeis : [], explicacao: String(r?.explicacao ?? '') }
 }
 
 // ===== b-roll com a Higgsfield (imagem e clipe gerados) =====
@@ -248,6 +283,7 @@ Deno.serve(async (req) => {
     const corpo = await req.json().catch(() => ({}))
     if (corpo.acao === 'cena') return json(await cena(db, corpo))
     if (corpo.acao === 'cortes') return json(await cortes(db, corpo))
+    if (corpo.acao === 'ordenar') return json(await ordenar(db, corpo))
     if (corpo.acao === 'broll_ideias') return json(await brollIdeias(db, corpo))
     if (corpo.acao === 'broll_gerar') return json(await brollGerar(db, corpo))
     if (corpo.acao === 'broll_status') return json(await brollStatus(db, corpo))
