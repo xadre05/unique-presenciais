@@ -15,6 +15,7 @@ export type Cobranca = {
   ultimo_contato_em: string | null; acordo_valor: number | null; acordo_forma: string | null; acordo_parcelas: number | null
   acordo_primeiro_venc: string | null; acordo_obs: string | null; acordo_em: string | null; criado_em: string
   fase_legal: string | null; notificado_em: string | null; prazo_ate: string | null; boleto_url: string | null; boleto_valor: number | null; whatsapp_avisado_em: string | null
+  ia_atencao?: string | null; ia_atencao_em?: string | null
   boleto_id?: string | null; boleto_principal?: number | null; boleto_encargos?: number | null; notificacao_grupo?: string | null
   conferido_hotmart_em?: string | null; conferido_hotmart_por?: string | null; conferido_hotmart_obs?: string | null
 }

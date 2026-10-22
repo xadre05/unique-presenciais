@@ -137,6 +137,22 @@ async function notificarPessoa(db: SupabaseClient, grupo: Linha[], cfg: Dados, b
     }).eq('id', c.id)
     await registrar(db, c.id, 'email', `Notificação extrajudicial enviada por e-mail para ${p.email} (prazo ${prazo.split('-').reverse().join('/')}; boleto de ${total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}${grupo.length > 1 ? `, somando ${grupo.length} cursos` : ''})`, `Assunto: ${assunto}\n\n${texto}`, quem)
   }
+  await avisarWhats(db, grupo.map((g) => g.c), preencher(String(cfg.whatsapp_modelo ?? ''), v), quem)
+}
+
+// aviso no WhatsApp pelo número da IA de cobrança (se estiver ligada); senão fica o botão "Avisar" na tela
+async function avisarWhats(db: SupabaseClient, cs: Dados[], texto: string, quem: string) {
+  const tel = String(cs.find((c) => c.telefone)?.telefone ?? '').replace(/\D/g, '')
+  if (!texto.trim() || tel.length < 10) return
+  const { data: chave } = await db.rpc('crm_chave_cron')
+  const r = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/cobranca-agente`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-cron-chave': String(chave ?? '') },
+    body: JSON.stringify({ acao: 'avisar', telefone: tel, nome: cs[0].aluno_nome, texto }) }).then((x) => x.json()).catch((e) => ({ erro: (e as Error).message }))
+  if (r?.pulou) return
+  const agora = new Date().toISOString()
+  for (const c of cs) {
+    if (!r?.erro) await db.from('cobrancas').update({ whatsapp_avisado_em: agora }).eq('id', c.id)
+    await registrar(db, c.id, 'whatsapp', r?.erro ? `Aviso no WhatsApp não saiu: ${r.erro}` : 'Aviso da notificação enviado pelo WhatsApp (automático)', r?.erro ? null : texto, quem)
+  }
 }
 
 // negativação: uma por boleto (o boleto já soma os cursos da pessoa); antes, confere de novo se continua em aberto na Hotmart

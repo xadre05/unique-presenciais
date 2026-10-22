@@ -6,6 +6,9 @@
 //   reenviar         tela (login)       {mensagem_id}  — tenta de novo uma mensagem que não saiu
 //   simular_entrada  tela (admin)       {canal_id, telefone, nome, texto, do_celular?}  — só no número de teste
 //   processar_fila   cron (x-cron-chave) manda o próximo lote dos disparos, no ritmo de cada número
+//   enviar_sistema   sistema (x-cron-chave) {conversa_id, texto} ou {canal_id, telefone, nome?, texto} — mensagem de um agente de IA
+// Número atendido por IA: config.ia_funcao = nome da função que responde (ex.: 'cobranca-agente'); cada mensagem que
+// chega é repassada a ela ({acao:'responder', conversa_id, mensagem_id}), sem esperar a resposta.
 //   webhook          provedor            ?canal=<id>&chave=<chave_webhook>  (mensagens que chegam)
 // ════════════════════════════════════════════════════════════════════
 import { createClient, type SupabaseClient } from 'npm:@supabase/supabase-js@2.45.4'
@@ -119,6 +122,16 @@ const sortear = <T,>(xs: T[]) => xs[Math.floor(Math.random() * xs.length)]
 const primeiroNome = (n: string | null) => { const p = (n ?? '').trim().split(/\s+/)[0] ?? ''; return p ? p[0].toUpperCase() + p.slice(1).toLowerCase() : '' }
 const preencher = (t: string, nome: string | null) => t.replace(/\{primeiro_nome\}|\{nome\}/gi, primeiroNome(nome)).replace(/[ \t]+([,.!?])/g, '$1')
 
+// número atendido por um agente de IA: repassa a mensagem que chegou (a função do agente decide se e o que responder)
+function repassarParaIA(canal: Canal, url: string, chave: string | null, rec: { conversa?: string; mensagem?: string } | null) {
+  const funcao = String(canal.config?.ia_funcao ?? '')
+  if (!funcao || !chave || !rec?.conversa) return
+  const tarefa = fetch(`${url}/functions/v1/${funcao}`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-cron-chave': chave }, body: JSON.stringify({ acao: 'responder', conversa_id: rec.conversa, mensagem_id: rec.mensagem }) })
+    .then((r) => r.text()).catch(() => null)
+  const rt = (globalThis as { EdgeRuntime?: { waitUntil: (p: Promise<unknown>) => void } }).EdgeRuntime
+  if (rt) rt.waitUntil(tarefa)
+}
+
 async function canalESegredos(db: SupabaseClient, canalId: string) {
   const { data: canal } = await db.from('crm_canais').select('*').eq('id', canalId).single()
   const { data: seg } = await db.from('crm_canais_segredos').select('*').eq('canal_id', canalId).single()
@@ -225,8 +238,10 @@ Deno.serve(async (req) => {
         return json({ ok: true })
       }
       const lido = lerWebhook(canal, corpo)
+      const chaveIA = canal.config?.ia_funcao ? ((await db.rpc('crm_chave_cron')).data as string | null) : null
       for (const m of lido.recebidas) {
-        await db.rpc('crm_receber_mensagem', { p_canal: canal.id, p_telefone: m.telefone, p_nome: m.nome, p_texto: m.texto, p_tipo: m.tipo, p_id_externo: m.id })
+        const { data: rec } = await db.rpc('crm_receber_mensagem', { p_canal: canal.id, p_telefone: m.telefone, p_nome: m.nome, p_texto: m.texto, p_tipo: m.tipo, p_id_externo: m.id })
+        if (!rec?.repetida) repassarParaIA(canal, url, chaveIA, rec)
       }
       for (const m of lido.ecos) {
         await db.rpc('crm_registrar_eco', { p_canal: canal.id, p_telefone: m.telefone, p_texto: m.texto, p_tipo: m.tipo, p_id_externo: m.id })
@@ -247,6 +262,34 @@ Deno.serve(async (req) => {
       const { data: chave } = await db.rpc('crm_chave_cron')
       if (!chave || req.headers.get('x-cron-chave') !== chave) return json({ erro: 'chave' }, 403)
       return json({ disparos: await processarFila(db), followups: await processarCadencias(db) })
+    }
+
+    // ── mensagem de um agente de IA (conversa existente, ou número + telefone para começar uma) ──
+    if (acao === 'enviar_sistema') {
+      const { data: chave } = await db.rpc('crm_chave_cron')
+      if (!chave || req.headers.get('x-cron-chave') !== chave) return json({ erro: 'chave' }, 403)
+      const texto = String(corpo.texto ?? '').trim()
+      if (!texto) return json({ erro: 'sem texto' }, 400)
+      let conversaId = corpo.conversa_id ? String(corpo.conversa_id) : null
+      if (!conversaId) {
+        const { canal } = await canalESegredos(db, String(corpo.canal_id ?? ''))
+        const tel = String(corpo.telefone ?? '').replace(/\D/g, '')
+        if (tel.length < 10) return json({ erro: 'telefone inválido' }, 400)
+        let { data: c } = await db.from('crm_contatos').select('id, nao_contatar').eq('empresa_id', canal.empresa_id).eq('telefone', tel).maybeSingle()
+        if (!c) ({ data: c } = await db.from('crm_contatos').insert({ empresa_id: canal.empresa_id, nome: corpo.nome ?? null, telefone: tel, origem: 'cobranca', entrou_em: new Date().toISOString(), tags: ['cobranca'] }).select('id, nao_contatar').single())
+        if (c?.nao_contatar) return json({ erro: 'pediu para não receber mensagens' }, 400)
+        await db.from('crm_conversas').upsert({ empresa_id: canal.empresa_id, contato_id: c!.id, canal_id: canal.id, com_ia: true }, { onConflict: 'canal_id,contato_id', ignoreDuplicates: true })
+        const { data: v } = await db.from('crm_conversas').select('id').eq('canal_id', canal.id).eq('contato_id', c!.id).single()
+        conversaId = v!.id
+      }
+      const { data: conv } = await db.from('crm_conversas').select('id, canal_id, contato_id').eq('id', conversaId!).single()
+      const { data: contato } = await db.from('crm_contatos').select('telefone').eq('id', conv!.contato_id).single()
+      const { canal, seg } = await canalESegredos(db, conv!.canal_id)
+      if (canal.status !== 'conectado') return json({ erro: `O número "${canal.nome}" não está conectado.` }, 400)
+      const { data: msgId, error } = await db.rpc('crm_registrar_saida', { p_conversa: conv!.id, p_texto: texto, p_autor: 'ia', p_autor_id: null })
+      if (error) return json({ erro: error.message }, 400)
+      const r = await despachar(db, msgId as string, canal, seg, contato!.telefone, texto)
+      return json(r.ok ? { ok: true, conversa: conv!.id, mensagem: msgId } : { erro: r.erro, conversa: conv!.id }, r.ok ? 200 : 502)
     }
 
     // daqui para baixo: pessoa logada, com as regras de acesso dela
@@ -305,6 +348,7 @@ Deno.serve(async (req) => {
         ? await db.rpc('crm_registrar_eco', { p_canal: canal.id, p_telefone: tel, p_texto: String(corpo.texto ?? ''), p_id_externo: `sim-${crypto.randomUUID()}` })
         : await db.rpc('crm_receber_mensagem', { p_canal: canal.id, p_telefone: tel, p_nome: corpo.nome ?? null, p_texto: String(corpo.texto ?? ''), p_id_externo: `sim-${crypto.randomUUID()}` })
       if (error) return json({ erro: error.message }, 400)
+      if (!corpo.do_celular) repassarParaIA(canal, url, canal.config?.ia_funcao ? ((await db.rpc('crm_chave_cron')).data as string | null) : null, data)
       return json({ ok: true, ...data })
     }
 

@@ -12,6 +12,7 @@ import { campos, FASES, horarioComercial, preencher, type Conferencia, type Conf
 import { ABAS, abaDe, agrupar, semEndereco, type Aba, type Pessoa } from './pessoas'
 import { ConfigNotificacao } from './ConfigNotificacao'
 import { ConferirHotmart } from './ConferirHotmart'
+import { TesteIA } from './TesteIA'
 
 type Props = { lista: Cobranca[]; nomeConta: (id: string | null) => string; aoMudar: () => void; eu: string }
 
@@ -27,6 +28,7 @@ export function PainelNotificacao({ lista, nomeConta, aoMudar, eu }: Props) {
   const [conferir, setConferir] = useState<Cobranca | null>(null)
   const [confirmar, setConfirmar] = useState<'enviar' | 'negativar' | null>(null)
   const [editar, setEditar] = useState(false)
+  const [teste, setTeste] = useState<Cobranca | null>(null)
   const [msg, setMsg] = useState<string | null>(null)
   const hoje = hojeISO()
   const config = cfg.dados
@@ -111,12 +113,15 @@ export function PainelNotificacao({ lista, nomeConta, aoMudar, eu }: Props) {
                 <td>{p.pendencias.length ? <Badge tom="alerta">sem {p.pendencias.join(', ')}</Badge> : <Badge tom={f.tom}>{f.rotulo}</Badge>}
                   {c0.prazo_ate && <div className={`pequeno ${c0.prazo_ate < hoje ? 'erro-txt' : 'muted'}`}>prazo {dataBR(c0.prazo_ate)}</div>}
                   {c0.whatsapp_avisado_em && <div className="muted pequeno">WhatsApp ✓</div>}
+                  {p.cobrancas.filter((c) => c.ia_atencao).map((c) => <div key={c.id} className="alerta-txt pequeno ia-atencao">IA: {c.ia_atencao}{' '}
+                    <button type="button" className="link pequeno" onClick={async () => { await supabase.from('cobrancas').update({ ia_atencao: null, ia_atencao_em: null }).eq('id', c.id); aoMudar() }}>resolvido</button></div>)}
                   {aba === 'prazo_vencido' && semEndereco(ex.get(c0.id)) && <div className="alerta-txt pequeno">sem endereço completo</div>}</td>
                 <td><div className="pg-acoes">
                   {aba === 'conferir' ? p.cobrancas.map((c) => <button key={c.id} type="button" className="btn btn-mini btn-contorno-ouro" onClick={() => setConferir(c)}>Conferir</button>)
                     : <button type="button" className="btn btn-mini" onClick={() => setCarta(p)}>Ver carta</button>}
                   {c0.fase_legal === 'notificada' && <button type="button" className="btn btn-mini btn-contorno" disabled={!p.telefone} onClick={() => avisarWhats(p)}><Icone nome="whats" tam={14} /> Avisar</button>}
                   {c0.boleto_url && <a className="btn btn-mini" href={c0.boleto_url} target="_blank" rel="noreferrer">Boleto</a>}
+                  {config?.ia_ligada && <button type="button" className="btn btn-mini btn-contorno" disabled={!c0.telefone} onClick={() => setTeste(c0)}>Testar a IA</button>}
                 </div></td>
               </tr>)
           })}</tbody>
@@ -134,6 +139,7 @@ export function PainelNotificacao({ lista, nomeConta, aoMudar, eu }: Props) {
         <div className="modal-acoes"><button className="btn" onClick={() => setConfirmar(null)}>Cancelar</button><button className="btn btn-ouro" disabled={!prontas.length} onClick={() => executar(confirmar)}>{confirmar === 'enviar' ? `Enviar ${prontas.length}` : `Pedir ${prontas.length}`}</button></div>
       </Modal>}
       {conferir && <ConferirHotmart c={conferir} k={kMap.get(conferir.id)} eu={eu} aoFechar={() => setConferir(null)} aoSalvar={() => { setConferir(null); aoMudar(); conf.recarregar() }} />}
+      {teste && <TesteIA c={teste} aoFechar={() => { setTeste(null); aoMudar() }} />}
       {editar && config && <ConfigNotificacao cfg={config} eu={eu} aoFechar={() => setEditar(false)} aoSalvar={() => { setEditar(false); cfg.recarregar() }} />}
     </div>
   )

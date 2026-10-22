@@ -5,6 +5,7 @@ import { Campo, Erro, InputNumero, Modal } from '../../../components/ui'
 import type { Config } from './modelo'
 import { EmailEnvio } from './EmailEnvio'
 import { InterBanco } from './InterBanco'
+import { IACobranca } from './IACobranca'
 
 const CAMPOS_CARTA = '{nome} {primeiro_nome} {cpf} {email} {detalhamento} {valor_principal} {valor_encargos} {valor_total} {multa_pct} {juros_pct} {produto} {primeira_em_aberto} {parcelas_em_aberto} {prazo} {link_boleto} {linha_digitavel} {pix_copia_cola} {data_envio} {razao_social} {cnpj} {endereco} {cidade} {email_contato} {whatsapp_contato} {remetente_nome}'
 
@@ -17,11 +18,11 @@ export function ConfigNotificacao({ cfg, eu, aoFechar, aoSalvar }: Props) {
   const txt = (k: keyof Config) => ({ value: String(v[k] ?? ''), onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setV({ ...v, [k]: e.target.value }) })
   const salvar = async () => {
     setSalvando(true); setErro(null)
-    const { pct_comissao: _pct, ...campos } = v
+    const { pct_comissao: _pct, ia_canal_id: _canal, ia_ligada: _ligada, ...campos } = v
     // mudou o texto depois de o advogado liberar: a liberação cai e ele precisa revisar de novo
     const mudouTexto = v.carta_modelo !== cfg.carta_modelo || v.carta_assunto !== cfg.carta_assunto
     if (mudouTexto && cfg.advogado_liberou_em && v.advogado_liberou_em === cfg.advogado_liberou_em) { campos.advogado_liberou_em = null; campos.advogado_liberou_por = null }
-    void _pct
+    void _pct; void _canal; void _ligada
     const { error } = await supabase.from('cobranca_config').update({ ...campos, atualizado_em: new Date().toISOString() }).eq('id', true)
     if (error) { setSalvando(false); return setErro(error.message) }
     aoSalvar()
@@ -30,6 +31,7 @@ export function ConfigNotificacao({ cfg, eu, aoFechar, aoSalvar }: Props) {
     <Modal titulo="Notificação extrajudicial — dados e modelos" aberto onFechar={aoFechar} largo>
       <EmailEnvio />
       <InterBanco />
+      <IACobranca cfg={cfg} aoMudar={aoSalvar} />
       <div className="not-config">
         <Campo rotulo="Razão social"><input {...txt('razao_social')} placeholder="Como está no CNPJ" /></Campo>
         <Campo rotulo="CNPJ"><input {...txt('cnpj')} /></Campo>

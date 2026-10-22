@@ -72,3 +72,4 @@ export async function emitirBoleto(x: Conexao, o: { seuNumero: string; valor: nu
 export const consultarBoleto = (x: Conexao, codigo: string) => chamar(x, 'GET', `/cobrancas/${encodeURIComponent(codigo)}`)
 export const cadastrarAviso = (x: Conexao, url: string) => chamar(x, 'PUT', '/cobrancas/webhook', { webhookUrl: url })
 export const conferirAcesso = (x: Conexao) => chamar(x, 'GET', `/cobrancas/sumario?dataInicial=${new Date(Date.now() - 30 * 864e5).toISOString().slice(0, 10)}&dataFinal=${new Date().toISOString().slice(0, 10)}`)
+export const cancelarBoleto = (x: Conexao, codigo: string, motivo: string) => chamar(x, 'POST', `/cobrancas/${encodeURIComponent(codigo)}/cancelar`, { motivoCancelamento: motivo.slice(0, 50) })
