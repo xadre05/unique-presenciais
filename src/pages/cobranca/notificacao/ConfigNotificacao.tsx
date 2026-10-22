@@ -47,7 +47,14 @@ export function ConfigNotificacao({ cfg, eu, aoFechar, aoSalvar }: Props) {
         {' '}O advogado revisou esta carta e liberou o envio{v.advogado_liberou_em ? ` (marcado por ${v.advogado_liberou_por ?? eu})` : ''}</label>
       <Campo rotulo="Assunto do e-mail"><input {...txt('carta_assunto')} /></Campo>
       <Campo rotulo="Carta (texto do e-mail)" dica="Revisada pelo advogado antes do primeiro envio. Se mudar o texto, peça para ele revisar de novo."><textarea rows={16} {...txt('carta_modelo')} /></Campo>
-      <Campo rotulo="Mensagem de WhatsApp (enviada no mesmo dia)"><textarea rows={4} {...txt('whatsapp_modelo')} /></Campo>
+      <Campo rotulo="Mensagem de WhatsApp (enviada no mesmo dia)"><textarea rows={7} {...txt('whatsapp_modelo')} /></Campo>
+      <h3 className="not-subtitulo">O que a IA de cobrança pode oferecer num acordo</h3>
+      <div className="not-config">
+        <label className="check"><input type="checkbox" checked={v.acordo_tira_encargos} onChange={(e) => setV({ ...v, acordo_tira_encargos: e.target.checked })} /> Tirar a multa e os juros (cobrar só o valor das parcelas)</label>
+        <Campo rotulo="Parcelar em até" dica="1 = só à vista"><InputNumero valor={v.acordo_parcelas_max} onChange={(n) => setV({ ...v, acordo_parcelas_max: n })} min={1} max={12} sufixo="vez(es)" /></Campo>
+        <Campo rotulo="Dar mais prazo para pagar" dica="Além do prazo da carta"><InputNumero valor={v.acordo_prazo_max_dias} onChange={(n) => setV({ ...v, acordo_prazo_max_dias: n })} min={0} max={30} sufixo="dias" /></Campo>
+      </div>
+      <p className="muted pequeno">Fora desses limites a IA não fecha nada: diz que vai verificar e avisa você.</p>
       <p className="muted pequeno">Campos que o sistema preenche: {CAMPOS_CARTA}</p>
       <Erro msg={erro} />
       <div className="modal-acoes"><button className="btn" onClick={aoFechar}>Cancelar</button><button className="btn btn-ouro" disabled={salvando} onClick={salvar}>{salvando ? 'Salvando…' : 'Salvar'}</button></div>

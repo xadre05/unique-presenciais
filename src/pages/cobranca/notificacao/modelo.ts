@@ -69,6 +69,7 @@ export function horarioComercial(agora = new Date()) {
 export type Config = {
   pct_comissao: number | null; razao_social: string | null; cnpj: string | null; endereco: string | null; cidade: string | null; email_contato: string | null
   whatsapp_contato: string | null; remetente_nome: string | null; prazo_dias: number; carta_assunto: string | null; carta_modelo: string | null; whatsapp_modelo: string | null
+  acordo_tira_encargos: boolean; acordo_parcelas_max: number; acordo_prazo_max_dias: number
   advogado_liberou_em: string | null; advogado_liberou_por: string | null; compra_ate: string; multa_pct: number; juros_mes_pct: number
 }
 // por cobrança online: CPF, data da compra e as dúvidas que pedem conferência na Hotmart (v_cobranca_conferencia)

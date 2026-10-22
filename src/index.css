@@ -3128,6 +3128,7 @@ a.sala-agente:hover { border-color: var(--ouro); transform: translateY(-2px); }
 .not-email h3 { margin: 0; font-size: 1rem; }
 .campo-secreto { -webkit-text-security: disc; }
 .not-arquivo { justify-self: start; cursor: pointer; }
+.not-subtitulo { margin: 14px 0 4px; font-size: 1rem; }
 .not-email + .not-email { margin-top: -4px; }
 .not-email .not-config > :last-child { grid-column: 1 / -1; }
 
