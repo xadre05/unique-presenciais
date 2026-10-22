@@ -3,6 +3,7 @@
 // (MP4 quando o navegador permite). Leva o tempo do próprio vídeo; a aba precisa ficar aberta e visível enquanto monta.
 import { ativo, type LinhaTempo } from './linhaTempo'
 import { desenharQuadro } from './desenho'
+import type { Visual } from './acabamento'
 import { liberarMidias, prepararMidias, sincronizarClipes } from './midias'
 import { mesaDeSom, TocadorEfeitos } from './efeitos'
 import { Cenas } from './cenas'
@@ -34,7 +35,7 @@ async function tocarMusica(audio: AudioContext, destino: AudioNode, m: Musica, d
   return fonte
 }
 
-export async function montarVideo(arquivo: File, linha: LinhaTempo, vertical: boolean, aoAvancar: (fracao: number) => void, apoio: (File | undefined)[] = [], musica?: Musica, cor?: string, codigos: (string | undefined)[] = []): Promise<Blob> {
+export async function montarVideo(arquivo: File, linha: LinhaTempo, vertical: boolean, aoAvancar: (fracao: number) => void, apoio: (File | undefined)[] = [], musica?: Musica, cor?: string, codigos: (string | undefined)[] = [], visual?: Visual): Promise<Blob> {
   const v = document.createElement('video')
   v.src = URL.createObjectURL(arquivo); v.playsInline = true; v.preload = 'auto'
   await esperar(v, 'loadedmetadata')
@@ -61,7 +62,7 @@ export async function montarVideo(arquivo: File, linha: LinhaTempo, vertical: bo
   const efeitos = new TocadorEfeitos(audio, saida, linha.efeitos)
   // vídeo sem imagem (narração de vídeo sem gravar): o quadro segue o relógio da tela, não os quadros do vídeo
   const proximo = (f: () => void) => (v.videoWidth ? v.requestVideoFrameCallback(f) : requestAnimationFrame(f))
-  const quadro = () => { sincronizarClipes(midias, ativo(linha.coberturas, v.currentTime)); desenharQuadro(ctx, v, linha, midias, cor, cenas); efeitos.passo(v.currentTime) }
+  const quadro = () => { sincronizarClipes(midias, ativo(linha.coberturas, v.currentTime)); desenharQuadro(ctx, v, linha, midias, cor, cenas, visual); efeitos.passo(v.currentTime) }
   try {
     for (const [k, trecho] of linha.trechos.entries()) {
       v.currentTime = trecho.ini

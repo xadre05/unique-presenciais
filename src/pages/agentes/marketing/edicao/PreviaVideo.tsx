@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Icone } from '../../../../components/Icone'
 import { ativo, proximoTempo, tempoBruto, tempoFinal, type LinhaTempo } from './linhaTempo'
 import { desenharQuadro } from './desenho'
+import type { Visual } from './acabamento'
 import { liberarMidias, prepararMidias, sincronizarClipes, type MidiaPronta } from './midias'
 import type { Musica } from './montagem'
 import { TocadorEfeitos } from './efeitos'
@@ -34,7 +35,7 @@ function usarMusica(musica?: Musica) {
 
 // aoTempo: avisa o tempo do vídeo editado (para a linha do tempo do Estúdio acompanhar)
 // codigos = o código das cenas animadas da versão (na ordem de plano.cenas)
-export function PreviaVideo({ url, linha, vertical, apoio = [], musica, cor, aoTempo, codigos = [] }: { url: string; linha: LinhaTempo; vertical: boolean; apoio?: (File | undefined)[]; musica?: Musica; cor?: string; aoTempo?: (t: number) => void; codigos?: (string | undefined)[] }) {
+export function PreviaVideo({ url, linha, vertical, apoio = [], musica, cor, aoTempo, codigos = [], visual }: { url: string; linha: LinhaTempo; vertical: boolean; apoio?: (File | undefined)[]; musica?: Musica; cor?: string; aoTempo?: (t: number) => void; codigos?: (string | undefined)[]; visual?: Visual }) {
   const video = useRef<HTMLVideoElement>(null)
   const tela = useRef<HTMLCanvasElement>(null)
   const som = useRef<HTMLAudioElement>(null)
@@ -55,6 +56,9 @@ export function PreviaVideo({ url, linha, vertical, apoio = [], musica, cor, aoT
   useEffect(() => { efeitos.current = audio.current ? new TocadorEfeitos(audio.current, audio.current.destination, linha.efeitos) : null }, [linha])
   useEffect(() => () => { audio.current?.close() }, [])
 
+  // cor e visual mudam sem reiniciar o desenho (o laço lê sempre o valor atual)
+  const aspecto = useRef({ cor, visual })
+  useEffect(() => { aspecto.current = { cor, visual } }, [cor, visual])
   useEffect(() => {
     let quadro = 0
     const passo = () => {
@@ -66,7 +70,7 @@ export function PreviaVideo({ url, linha, vertical, apoio = [], musica, cor, aoT
         else efeitos.current?.passo(v.currentTime)
         setT(v.currentTime)
       }
-      if (v && ctx && v.readyState >= 2) { sincronizarClipes(midias, v.paused ? undefined : ativo(linha.coberturas, v.currentTime)); desenharQuadro(ctx, v, linha, midias, cor, cenas.current ?? undefined) }
+      if (v && ctx && v.readyState >= 2) { sincronizarClipes(midias, v.paused ? undefined : ativo(linha.coberturas, v.currentTime)); desenharQuadro(ctx, v, linha, midias, aspecto.current.cor, cenas.current ?? undefined, aspecto.current.visual) }
       quadro = requestAnimationFrame(passo)
     }
     quadro = requestAnimationFrame(passo)

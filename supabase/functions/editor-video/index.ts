@@ -100,6 +100,10 @@ const FERRAMENTA = {
       cenas: { type: 'array', description: 'Cenas animadas (motion graphics) por cima da fala, de 1 a 3 num reels: nos momentos em que um gráfico explica melhor que o rosto (lista de itens, número ou resultado dito, passo a passo, comparação, data de turma, oferta com o preço falado). Cada uma de 2 a 6 segundos. Um designer escreve a animação a partir da sua descrição.',
         items: { type: 'object', properties: { de: { type: 'integer', description: 'palavra em que a cena entra' }, ate: { type: 'integer', description: 'palavra em que sai' }, layout: { type: 'string', enum: ['cheia', 'dividida', 'cartao'] },
           descricao: { type: 'string', description: 'O que a cena mostra e como anima, com os TEXTOS EXATOS (só o que a pessoa falou). Ex.: "Lista de 3 itens entrando um a um: 1. Anatomia aplicada 2. Prática em paciente real 3. Mentoria pós-curso; título no topo: O que você leva"' } }, required: ['de', 'ate', 'descricao'] } },
+      beats: { type: 'array', description: 'PLANEJE ISTO PRIMEIRO: a fala dividida em blocos de intenção (beats), em ordem, cobrindo o vídeo todo. Cada beat pede um tratamento visual diferente; cortes, cenas, textos, zooms e efeitos acompanham a troca de beat.',
+        items: { type: 'object', properties: { de: { type: 'integer', description: 'palavra em que o beat começa' }, ate: { type: 'integer', description: 'palavra em que termina' },
+          nome: { type: 'string', enum: ['gancho', 'contexto', 'desenvolvimento', 'virada', 'prova', 'oferta', 'chamada'] },
+          tratamento: { type: 'string', description: 'Em uma frase: ritmo e o que entra na tela neste beat (ex.: "rápido: texto pop + zoom + hit"; "calmo: rosto em cartão, legenda palavra-chave")' } }, required: ['de', 'ate', 'nome', 'tratamento'] } },
       roteiro_identificado: { type: 'string', description: 'Só quando vieram os roteiros da campanha: o título ou a primeira frase do roteiro que foi gravado, ou "nenhum".' },
       faltou: { type: 'string', description: 'Se alguma cena do roteiro não foi gravada ou ficou ruim, diga qual. Senão, vazio.' },
       checagem: { type: 'string', description: 'Conferência do padrão de qualidade, item por item, em uma linha cada: gancho, legenda com destaques, textos na tela, quanto do vídeo tem imagem por cima (%), zoom, variedade (cheia/dividida/cartão), efeitos, chamada final. Diga o que não deu para cumprir e por quê (ex.: faltam imagens da plataforma).' },
@@ -117,6 +121,8 @@ const QUALIDADE = [
   '- com mídias de apoio enviadas: cubra no mínimo 30% do vídeo, alternando cheia, dividida e cartao; nunca a mesma mídia duas vezes seguidas',
   '- movimento: um zoom a cada 4 a 6 segundos nos trechos de rosto, intensidade 1.08 a 1.18',
   '- cenas animadas: 1 a 3 num reels (2 a 6 s cada), onde um gráfico explica melhor que o rosto; não use em vídeo só de relacionamento curto se não houver lista, número ou passo a passo falado',
+  '- beats: antes de tudo, divida a fala em gancho, contexto/desenvolvimento, virada ou prova, oferta e chamada (preencha "beats"); cada troca de beat muda o tratamento (ritmo, enquadramento, cena, efeito) para o vídeo não ficar igual do começo ao fim',
+  '- visual limpo, estilo premium: pouca coisa na tela ao mesmo tempo, nada de poluição; elementos entram alternando pelos lados (esquerda e direita) para preencher a tela sem pesar',
   '- fim: a chamada para ação com texto na tela',
 ].join('\n')
 

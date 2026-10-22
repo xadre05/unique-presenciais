@@ -14,7 +14,7 @@ import { escreverCenas } from '../../marketing/edicao/escreverCenas'
 import { usarApoio } from '../../marketing/edicao/usarApoio'
 import { deixarArquivo, pegarArquivo } from '../arquivoPendente'
 import { baixarNarracao } from '../semGravar/dados'
-import { pedidoDoConfig } from './configEstilo'
+import { pedidoDoConfig, visualDoConfig } from './configEstilo'
 import { brutoDe } from '../../marketing/fluxo'
 import { baixarBruto } from '../../marketing/edicao/brutoNuvem'
 import { usePerfilEditor } from '../dados'
@@ -62,6 +62,7 @@ export function useEstudio(peca: Peca, aoMudar: () => void) {
   const linha = useMemo(() => (receita && edicao.palavras?.length ? montarLinhaTempo(edicao.palavras, receita.plano, duracaoBruto, apoio.midias.length) : null), [receita, edicao.palavras, duracaoBruto, apoio.midias.length])
 
   const codigos = useMemo(() => (receita?.plano.cenas ?? []).map((c) => c.codigo), [receita])
+  const visual = useMemo(() => visualDoConfig(edicao.config_estilo), [edicao.config_estilo])
   const corte = (peca.conteudo as { corte?: { de: number; ate: number } }).corte
   const escolher = (f: File) => {
     setErro(null); setArquivo(f); setUrl(URL.createObjectURL(f)); setFinal(null); setHdr(false); void ehHdr(f).then(setHdr)
@@ -123,7 +124,7 @@ export function useEstudio(peca: Peca, aoMudar: () => void) {
     if (!arquivo || !linha) return
     setErro(null); setFinal(null); setProgresso(0)
     try {
-      const blob = await montarVideo(arquivo, linha, peca.tipo !== 'video', setProgresso, apoio.apoio, apoio.musica, cor, codigos)
+      const blob = await montarVideo(arquivo, linha, peca.tipo !== 'video', setProgresso, apoio.apoio, apoio.musica, cor, codigos, visual)
       const ext = blob.type.includes('mp4') ? 'mp4' : 'webm'
       const nome = `${peca.titulo.replace(/[^\p{L}\p{N} -]/gu, '').trim().slice(0, 60) || 'video'} - V${versao + 1}.${ext}`
       setFinal({ url: URL.createObjectURL(blob), nome, arquivo: new File([blob], nome, { type: blob.type }) })
@@ -133,7 +134,7 @@ export function useEstudio(peca: Peca, aoMudar: () => void) {
   return {
     edicao, temEditor: temEditor.dados, apoio, arquivo, url, confere, escolher, hdr, corrigirHdr, setCorrigirHdr, cor,
     modeloRef, escolherEstilo, receitas, versao, setVersao, receita, linha, duracaoBruto,
-    passo, setPasso, ocupado, erro, progresso, final, editar, ajustar, gerarFinal, codigos,
+    passo, setPasso, ocupado, erro, progresso, final, editar, ajustar, gerarFinal, codigos, visual,
   }
 }
 export type Estudio = ReturnType<typeof useEstudio>

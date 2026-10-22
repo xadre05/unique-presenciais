@@ -19,7 +19,7 @@ export type ReferenciaVideo = { nome: string; texto: string; quadros: { t: numbe
 export type Edicao = { arquivo?: ArquivoBruto; palavras?: Palavra[]; receitas?: Receita[]; midias?: MidiaApoio[]; musica?: MusicaFundo; atualizado_em?: string
   final?: VideoFinal; concluida?: { em: string; destino: Destino }; referencia?: ReferenciaVideo; estilo_ref?: string; capa?: string; config_estilo?: ConfigEstilo }
 // ajustes finos do estilo só para este vídeo (etapa Estilo do Estúdio)
-export type ConfigEstilo = { ritmo?: 'rapido' | 'moderado' | 'calmo'; legenda?: 'palavras' | 'chave'; imagens?: 'muitas' | 'algumas' | 'poucas'; efeitos?: 'muitos' | 'poucos' | 'nenhum' }
+export type ConfigEstilo = { ritmo?: 'rapido' | 'moderado' | 'calmo'; legenda?: 'palavras' | 'chave'; imagens?: 'muitas' | 'algumas' | 'poucas'; efeitos?: 'muitos' | 'poucos' | 'nenhum'; enquadramento?: 'cheio' | 'cartao'; acabamento?: 'limpo' | 'cinema' | 'papel' | 'arquivo'; pip?: 'canto' | 'nao' }
 // o que vai para o agente de cada mídia de apoio: o número na lista, o que é e uma miniatura para ele ver
 export type MidiaParaAgente = { n: number; tipo: 'imagem' | 'video'; descricao?: string; duracao?: number; miniatura?: string }
 

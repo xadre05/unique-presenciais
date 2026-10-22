@@ -7,10 +7,10 @@ import { guardarEstilo, type Estilo } from '../dados'
 import { descreverConfig, OPCOES, type ChaveConfig } from './configEstilo'
 
 // amostra estática da legenda: palavra por palavra (uma em destaque) ou palavra-chave em caixa
-export function AmostraLegenda({ legenda, frase = ['Aqui você aprende', 'na prática'] }: { legenda: 'palavras' | 'chave'; frase?: [string, string] | string[] }) {
+export function AmostraLegenda({ legenda, frase = ['Aqui você aprende', 'na prática'], cartao, acabamento = 'limpo' }: { legenda: 'palavras' | 'chave'; frase?: [string, string] | string[]; cartao?: boolean; acabamento?: string }) {
   return (
-    <div className={`es-amostra ${legenda}`} aria-hidden>
-      <span className="es-amostra-rosto" />
+    <div className={`es-amostra ${legenda} acab-${acabamento}${cartao ? ' em-cartao' : ''}`} aria-hidden>
+      {cartao && <span className="es-amostra-cartao" />}<span className="es-amostra-rosto" />
       {legenda === 'chave' ? <span className="es-amostra-txt"><b>{frase[0]}</b><i>{frase[1]}</i></span>
         : <span className="es-amostra-txt"><b>{frase[0]}</b> <em>{frase[1]}</em></span>}
     </div>
@@ -20,7 +20,8 @@ export function AmostraLegenda({ legenda, frase = ['Aqui você aprende', 'na pr�
 export function ConfigDoEstilo({ pecaId, base, config, aoMudar }: { pecaId: string; base: Estilo; config: ConfigEstilo; aoMudar: () => void }) {
   const [salvarNaCasa, setSalvarNaCasa] = useState(false)
   const [aviso, setAviso] = useState<string | null>(null)
-  const efetivo: Required<ConfigEstilo> = { ritmo: config.ritmo ?? 'moderado', legenda: config.legenda ?? base.legenda, imagens: config.imagens ?? base.imagens, efeitos: config.efeitos ?? base.efeitos }
+  const efetivo: Required<ConfigEstilo> = { ritmo: config.ritmo ?? 'moderado', legenda: config.legenda ?? base.legenda, imagens: config.imagens ?? base.imagens, efeitos: config.efeitos ?? base.efeitos,
+    enquadramento: config.enquadramento ?? 'cheio', acabamento: config.acabamento ?? 'limpo', pip: config.pip ?? 'canto' }
   const mudar = async (k: ChaveConfig, v: string) => {
     const novo = { ...config, [k]: v } as ConfigEstilo
     await guardarEdicao(pecaId, (e) => ({ ...e, config_estilo: novo }))
@@ -43,7 +44,7 @@ export function ConfigDoEstilo({ pecaId, base, config, aoMudar }: { pecaId: stri
               {Object.entries(OPCOES[k].valores).map(([v, n]) => <option key={v} value={v}>{n}</option>)}</select></span>
         </label>))}</div>
       <div className="es-config-amostra">
-        <AmostraLegenda legenda={efetivo.legenda} frase={['Exemplo', 'de legenda']} />
+        <AmostraLegenda legenda={efetivo.legenda} frase={['Exemplo', 'de legenda']} cartao={efetivo.enquadramento === 'cartao'} acabamento={efetivo.acabamento} />
         <div>
           <b>Como fica esse estilo?</b>
           <p className="muted pequeno">Edição com {descreverConfig(efetivo)}. A fala continua em primeiro plano; o resto ajuda a prender a atenção.</p>

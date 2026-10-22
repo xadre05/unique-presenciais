@@ -18,6 +18,12 @@ function Qualidade({ e }: { e: Estudio }) {
       {(e.receita?.plano.cenas ?? []).map((c, k) => (
         <p key={k} className={`es-q${c.erro ? ' alerta' : ''}`} title={c.descricao}><Icone nome={c.erro ? 'alerta' : 'check'} tam={14} /> Cena animada {k + 1}: {c.erro ? `não entrou (${c.erro.slice(0, 80)})` : c.nota ? `nota ${c.nota} na revisão` : 'pronta'}</p>
       ))}
+      {(e.receita?.plano.beats ?? []).length > 0 && (
+        <details>
+          <summary className="es-q"><Icone nome="lista" tam={14} /> Plano da edição: {(e.receita?.plano.beats ?? []).map((b) => b.nome).join(' → ')}</summary>
+          <ul className="muted pequeno">{(e.receita?.plano.beats ?? []).map((b, k) => <li key={k}><b>{b.nome}</b>{b.tratamento ? `: ${b.tratamento}` : ''}</li>)}</ul>
+        </details>
+      )}
       {linhas.length > 0 && (
         <details>
           <summary className={pontos ? 'es-q alerta' : 'es-q'}><Icone nome={pontos ? 'alerta' : 'check'} tam={14} /> {pontos ? `${pontos} ponto(s) para revisar` : 'Padrão de edição conferido'}</summary>

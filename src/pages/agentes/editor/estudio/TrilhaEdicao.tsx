@@ -13,6 +13,9 @@ export function TrilhaEdicao({ linha, agora }: { linha: LinhaTempo; agora: numbe
   return (
     <div className="es-trilha" aria-label="Linha do tempo da edição">
       <div className="es-trilha-regua">{marcas.map((m) => <span key={m} style={{ left: `${(m / d) * 100}%` }}>{mmss(m)}</span>)}</div>
+      {linha.beats.length > 0 && <div className="es-faixa"><span className="es-faixa-nome">Beats</span><div className="es-faixa-corpo">
+        {linha.beats.map((b, k) => <i key={k} className={`es-bloco beat beat-${b.nome}`} style={{ left: pos(b.ini), width: larg(b) }} title={b.tratamento}>{b.nome}</i>)}
+      </div></div>}
       <div className="es-faixa"><span className="es-faixa-nome">Cortes</span><div className="es-faixa-corpo">
         {linha.trechos.map((t, k) => { const ini = acumulado; acumulado += t.fim - t.ini; return <i key={k} className="es-bloco corte" style={{ left: `${(ini / d) * 100}%`, width: `${((t.fim - t.ini) / d) * 100}%` }} /> })}
       </div></div>

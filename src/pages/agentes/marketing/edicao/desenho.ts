@@ -5,6 +5,7 @@ import { ativo, tempoFinal, type Cobertura, type LinhaTempo, type Rosto } from '
 import type { Cenas } from './cenas'
 import type { MidiaPronta } from './midias'
 import { caixaArredondada, desenharChave, desenharLegenda, desenharTexto } from './legenda'
+import { areaCartao, filtroPessoa, finalizar, fundoCartao, molduraCartao, pip, VISUAL_PADRAO, type Visual } from './acabamento'
 
 type Area = { x: number; y: number; w: number; h: number }
 const ENTRADA = 0.3
@@ -74,8 +75,15 @@ function fundoDaMarca(ctx: CanvasRenderingContext2D, L: number, A: number) {
 
 // cor = filtro aplicado só à imagem da pessoa (ex.: correção de vídeo HDR de celular, que no canvas sai estourado)
 // cenas = o desenhista das cenas animadas (cenas.ts); a cena ativa ganha da mídia de apoio no mesmo momento
-export function desenharQuadro(ctx: CanvasRenderingContext2D, v: HTMLVideoElement, linha: LinhaTempo, midias: (MidiaPronta | undefined)[], cor?: string, cenas?: Cenas) {
-  const comCor = (fazer: () => void) => { ctx.filter = cor ?? 'none'; fazer(); ctx.filter = 'none' }
+// visual = enquadramento, PiP e acabamento escolhidos na etapa Estilo (acabamento.ts)
+export function desenharQuadro(ctx: CanvasRenderingContext2D, v: HTMLVideoElement, linha: LinhaTempo, midias: (MidiaPronta | undefined)[], cor?: string, cenas?: Cenas, visual: Visual = VISUAL_PADRAO) {
+  const filtro = filtroPessoa(visual, cor)
+  const comCor = (fazer: () => void) => { ctx.filter = filtro ?? 'none'; fazer(); ctx.filter = 'none' }
+  desenharCamadas(ctx, v, linha, midias, comCor, cenas, visual)
+  finalizar(ctx, visual, v.currentTime)
+}
+
+function desenharCamadas(ctx: CanvasRenderingContext2D, v: HTMLVideoElement, linha: LinhaTempo, midias: (MidiaPronta | undefined)[], comCor: (f: () => void) => void, cenas: Cenas | undefined, visual: Visual) {
   const t = v.currentTime
   const { width: L, height: A } = ctx.canvas
   if (v.videoWidth) { ctx.fillStyle = '#000'; ctx.fillRect(0, 0, L, A) } else fundoDaMarca(ctx, L, A)
@@ -86,23 +94,37 @@ export function desenharQuadro(ctx: CanvasRenderingContext2D, v: HTMLVideoElemen
   const m: MidiaPronta | undefined = cena && quadroCena ? { tipo: 'imagem', el: quadroCena, largura: quadroCena.width, altura: quadroCena.height } : cob ? midias[cob.midia] : undefined
   const tela = { x: 0, y: 0, w: L, h: A }
   const layout = m && cob ? cob.layout : null
-  if (layout === 'cheia') desenharMidia(ctx, m!, cob!, t, tela)
+  const temPessoa = !!v.videoWidth
+  const emCartao = visual.enquadramento === 'cartao' && temPessoa
+  if (layout === 'cheia') {
+    desenharMidia(ctx, m!, cob!, t, tela)
+    if (visual.pip && temPessoa) pip(ctx, (a) => comCor(() => pessoa(ctx, v, a, 1.35, linha.rosto, 0.42)), t - cob!.ini)
+  }
   else if (layout === 'dividida') {
     desenharMidia(ctx, m!, cob!, t, { x: 0, y: 0, w: L, h: A / 2 })
     comCor(() => pessoa(ctx, v, { x: 0, y: A / 2, w: L, h: A / 2 }, zoom, linha.rosto, 0.38))
+  } else if (emCartao) {
+    fundoCartao(ctx, visual, t)
+    const a = areaCartao(L, A)
+    molduraCartao(ctx, a, () => comCor(() => pessoa(ctx, v, a, zoom, linha.rosto)))
+    if (layout === 'cartao') desenharCartao(ctx, m!, cob!, t)
   } else {
     comCor(() => pessoa(ctx, v, tela, zoom, linha.rosto))
     if (layout === 'cartao') desenharCartao(ctx, m!, cob!, t)
   }
   // cena animada em tela cheia: ela já traz os textos; legenda e texto grande saem enquanto ela está na tela
   if (cena && quadroCena && layout === 'cheia') return
+  // papel claro: uma faixa escura atrás da legenda para ela continuar legível
+  if (emCartao && visual.acabamento === 'papel' && linha.estiloLegenda !== 'nenhuma') {
+    ctx.fillStyle = 'rgba(24,20,16,0.86)'; ctx.beginPath(); ctx.roundRect(L * 0.06, A * 0.775, L * 0.88, A * 0.155, L * 0.03); ctx.fill()
+  }
   const texto = ativo(linha.textos, t)
   if (texto) desenharTexto(ctx, texto.texto, texto.posicao, texto.animacao, t - texto.ini)
   const dividida = layout === 'dividida'
-  const baseLegenda = dividida ? A * 0.5 + L * 0.03 : layout === 'cartao' ? A * 0.86 : linha.posicaoLegenda === 'meio' ? A * 0.58 : A * 0.8
+  const baseLegenda = dividida ? A * 0.5 + L * 0.03 : layout === 'cartao' || emCartao ? A * 0.86 : linha.posicaoLegenda === 'meio' ? A * 0.58 : A * 0.8
   if (linha.estiloLegenda === 'chave') {
     const chave = ativo(linha.chaves, t)
-    if (chave) desenharChave(ctx, chave.texto, dividida ? A * 0.5 : layout === 'cartao' ? A * 0.84 : A * 0.72)
+    if (chave) desenharChave(ctx, chave.texto, dividida ? A * 0.5 : layout === 'cartao' || emCartao ? A * 0.84 : A * 0.72)
   } else if (linha.estiloLegenda === 'palavras') {
     const grupo = ativo(linha.legendas, t)
     if (grupo) desenharLegenda(ctx, grupo, t, linha.caixaAlta, baseLegenda)

@@ -3706,3 +3706,12 @@ a.sala-agente:hover { border-color: var(--ouro); transform: translateY(-2px); }
   .qf-linha > input { grid-column: 1 / -1; }
 }
 .qf-check { display: flex !important; flex-direction: row !important; justify-content: flex-start; align-items: center; gap: 8px; margin: 0; } .qf-check input { width: auto; margin: 0; }
+.es-amostra.em-cartao { background: radial-gradient(circle at 70% 15%, rgba(201,164,92,.25), #0a0a0b 70%); }
+.es-amostra-cartao { position: absolute; left: 7%; right: 7%; top: 6%; bottom: 26%; border-radius: 10px; background: radial-gradient(circle at 50% 35%, #3a3128 0, #17140f 70%); box-shadow: 0 6px 18px rgba(0,0,0,.6); }
+.es-amostra.acab-papel.em-cartao { background: #efe8dc; }
+.es-amostra.acab-arquivo { filter: grayscale(1) contrast(1.1); }
+.es-amostra.acab-cinema::after, .es-amostra.acab-arquivo::after { content: ''; position: absolute; inset: 0; background: radial-gradient(circle, transparent 45%, rgba(0,0,0,.55)); pointer-events: none; }
+.es-amostra.acab-papel .es-amostra-txt b { color: #fff; }
+.es-bloco.beat { background: rgba(255,255,255,.06); border: 1px solid var(--borda); color: var(--muted); font-size: .68rem; text-transform: capitalize; font-style: normal; overflow: hidden; white-space: nowrap; padding: 0 4px; display: flex; align-items: center; }
+.es-bloco.beat-gancho, .es-bloco.beat-chamada, .es-bloco.beat-oferta { background: var(--ouro-fundo); border-color: var(--ouro); color: var(--ouro); }
+.es-bloco.beat-virada, .es-bloco.beat-prova { background: rgba(164,110,230,.15); border-color: #a46ee6; color: #c8a4f2; }
