@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { supabase } from '../../../lib/supabase'
 import { Campo, Erro, InputNumero, Modal } from '../../../components/ui'
 import type { Config } from './modelo'
+import { EmailEnvio } from './EmailEnvio'
 
 const CAMPOS_CARTA = '{nome} {primeiro_nome} {cpf} {email} {detalhamento} {valor_principal} {valor_encargos} {valor_total} {multa_pct} {juros_pct} {produto} {primeira_em_aberto} {parcelas_em_aberto} {prazo} {link_boleto} {data_envio} {razao_social} {cnpj} {endereco} {cidade} {email_contato} {whatsapp_contato} {remetente_nome}'
 
@@ -26,6 +27,7 @@ export function ConfigNotificacao({ cfg, eu, aoFechar, aoSalvar }: Props) {
   }
   return (
     <Modal titulo="Notificação extrajudicial — dados e modelos" aberto onFechar={aoFechar} largo>
+      <EmailEnvio />
       <div className="not-config">
         <Campo rotulo="Razão social"><input {...txt('razao_social')} placeholder="Como está no CNPJ" /></Campo>
         <Campo rotulo="CNPJ"><input {...txt('cnpj')} /></Campo>

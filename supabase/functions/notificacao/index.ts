@@ -1,10 +1,11 @@
-// Notificação extrajudicial das cobranças: boleto no Asaas (prazo de N dias), carta por e-mail (Resend), negativação no
+// Notificação extrajudicial das cobranças: boleto no Asaas (prazo de N dias), carta por e-mail (Gmail da empresa), negativação no
 // Serasa pelo Asaas, e o aviso do Asaas quando o boleto é pago. Cada passo fica no histórico da cobrança (prova).
 // Ações (administrador): testar · enviar {ids} · negativar {ids}. Aviso do Asaas: POST com o cabeçalho asaas-access-token.
 // Travas (orientação do advogado): só depois de ele liberar a carta, só compras até a data de corte, só parcelas vencidas
 // (+ multa e juros), uma carta e um boleto por CPF, só em horário comercial, Hotmart lida há menos de 2 horas.
 import { createClient, type SupabaseClient } from 'npm:@supabase/supabase-js@2.45.4'
 import { campos, contaItem, horarioComercial, preencher, type Dados, type Item } from './modelo.ts'
+import { emailPronto, enviarEmail } from './email.ts'
 
 const cors = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type', 'Access-Control-Allow-Methods': 'POST, OPTIONS' }
 const json = (corpo: unknown, status = 200) => new Response(JSON.stringify(corpo), { status, headers: { ...cors, 'Content-Type': 'application/json' } })
@@ -37,17 +38,6 @@ async function clienteAsaas(k: string, c: Dados, doc: string, end: End | null) {
     notificationDisabled: true,
   })
   return novo.id as string
-}
-
-// ── e-mail (Resend) ───────────────────────────────────────────────────
-async function enviarEmail(cred: Cred, para: string, assunto: string, texto: string, responderPara: string | null) {
-  const r = await fetch('https://api.resend.com/emails', {
-    method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${cred.api_key}` },
-    body: JSON.stringify({ from: cred.remetente, to: [para], subject: assunto, text: texto, ...(responderPara ? { reply_to: responderPara } : {}) }),
-  })
-  const d = await r.json().catch(() => ({}))
-  if (!r.ok) throw new Error(`E-mail: ${d?.message ?? r.status}`)
-  return d.id as string
 }
 
 const registrar = (db: SupabaseClient, id: unknown, canal: string, resultado: string, observacao: string | null, quem: string) =>
@@ -199,7 +189,13 @@ Deno.serve(async (req) => {
   if (acao === 'testar') {
     const r: Record<string, unknown> = {}
     try { const conta = await asaas(kAsaas, '/myAccount'); r.asaas = { ok: true, conta: conta?.name ?? conta?.companyName ?? 'ok', ambiente: kAsaas.includes('_hmlg_') ? 'teste' : 'produção' } } catch (e) { r.asaas = { ok: false, erro: kAsaas ? (e as Error).message : 'sem chave' } }
-    r.email = email.api_key && email.remetente ? { ok: true, remetente: email.remetente } : { ok: false, erro: 'falta a chave ou o remetente' }
+    // o teste do e-mail manda uma mensagem curta para o próprio remetente (confirma usuário, senha de app e remetente)
+    if (!emailPronto(email)) r.email = { ok: false, erro: 'falta o usuário, a senha de app ou o remetente' }
+    else try {
+      const para = email.remetente.match(/<([^>]+)>/)?.[1] ?? email.remetente
+      await enviarEmail(email, para, 'Teste do envio de cobranças', `Este é um teste do envio de notificações do sistema (${new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })}). Se chegou, está funcionando.`, null)
+      r.email = { ok: true, remetente: email.remetente, para }
+    } catch (e) { r.email = { ok: false, erro: (e as Error).message } }
     return json(r)
   }
 
@@ -221,7 +217,7 @@ Deno.serve(async (req) => {
     if (!horarioComercial()) return json({ erro: 'Notificação só em horário comercial: segunda a sexta, das 9h às 18h.' }, 400)
     if (!cfg?.advogado_liberou_em) return json({ erro: 'O advogado ainda não liberou a carta. Marque a liberação em "dados e modelos" depois que ele revisar.' }, 400)
     if (!cfg?.razao_social || !cfg?.cnpj) return json({ erro: 'Preencha os dados da empresa em "dados e modelos".' }, 400)
-    if (!email.api_key || !email.remetente) return json({ erro: 'Cadastre o e-mail em Integrações.' }, 400)
+    if (!emailPronto(email)) return json({ erro: 'Cadastre o e-mail de cobrança em Integrações.' }, 400)
     // entram também as outras dívidas abertas da mesma pessoa (mesmo CPF), para sair uma carta e um boleto só
     const docs = new Set<string>()
     const { data: confEsc } = await db.from('v_cobranca_conferencia').select('cobranca_id,cpf').in('cobranca_id', ids)

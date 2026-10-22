@@ -3124,6 +3124,9 @@ a.sala-agente:hover { border-color: var(--ouro); transform: translateY(-2px); }
 .not-config { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 14px; }
 .not-carta { white-space: pre-wrap; font-family: inherit; font-size: .92rem; line-height: 1.55; background: var(--painel-2); border: 1px solid var(--borda); border-radius: 10px; padding: 16px; max-height: 60vh; overflow-y: auto; }
 @media (max-width: 640px) { .not-config { grid-template-columns: 1fr; } }
+.not-email { padding: 12px 14px; margin-bottom: 14px; border: 1px solid var(--borda); border-radius: 12px; background: var(--painel); }
+.not-email h3 { margin: 0; font-size: 1rem; }
+.not-email .not-config > :last-child { grid-column: 1 / -1; }
 
 /* nota da pessoa (0 a 100) + temperatura */
 .selo-nota { display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; vertical-align: middle; }

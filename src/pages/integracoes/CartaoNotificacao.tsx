@@ -1,4 +1,4 @@
-// Cartões das integrações da notificação extrajudicial: Asaas (boleto e negativação) e E-mail (Resend).
+// Cartões das integrações da notificação extrajudicial: Asaas (boleto e negativação) e E-mail de cobrança (Gmail).
 // As chaves ficam cifradas no cofre do banco; a tela só mostra se já foram cadastradas.
 import { useState } from 'react'
 import { supabase } from '../../lib/supabase'
@@ -13,8 +13,9 @@ const CAMPOS: Record<string, Campo[]> = {
     { k: 'webhook_token', r: 'Token do aviso (webhook)', d: 'Invente uma senha longa, cole aqui e no Asaas (Integrações → Webhooks → Token de autenticação)', secreto: true },
   ],
   email: [
-    { k: 'api_key', r: 'Chave de API do Resend', d: 'No Resend: API Keys → Create API Key (permissão de envio). Começa com re_', secreto: true },
-    { k: 'remetente', r: 'Remetente', d: 'Nome e e-mail do domínio verificado, ex.: Unique HOF Academy <cobranca@seudominio.com.br>' },
+    { k: 'usuario', r: 'Usuário do Gmail', d: 'O e-mail que faz login no Google Workspace, ex.: administracao@seudominio.com.br' },
+    { k: 'senha_app', r: 'Senha de app', d: 'As 16 letras criadas em myaccount.google.com/apppasswords', secreto: true },
+    { k: 'remetente', r: 'Remetente', d: 'Nome e e-mail liberados em "Enviar e-mail como", ex.: Unique HOF Academy - Cobrança <cobranca@seudominio.com.br>' },
   ],
 }
 const URL_AVISO = 'https://gpvxzkmqiikuftbjvncd.supabase.co/functions/v1/notificacao'
@@ -83,11 +84,11 @@ export function CartoesNotificacao() {
         <li>Em <b>Integrações → Webhooks</b>, crie um webhook com a URL <code>{URL_AVISO}</code>, os eventos de <b>Cobrança</b> e de <b>Negativação</b>, e um token de autenticação (a mesma senha que você colar aqui).</li>
         <li>Peça ao seu gerente do Asaas para liberar <b>negativação pela API</b>.</li>
       </ol>} />
-    <Cartao id="email" nome="E-mail (Resend)" texto="Envia a notificação por e-mail com o domínio da empresa e guarda o número de cada envio (prova de que foi enviado)."
+    <Cartao id="email" nome="E-mail de cobrança (Gmail)" texto="Envia a notificação pelo Gmail da empresa (Google Workspace) e guarda o número de cada envio (prova de que foi enviado). As respostas dos alunos caem nessa caixa."
       passos={<ol className="integ-passos">
-        <li>Crie a conta em resend.com.</li>
-        <li>Em <b>Domains</b>, adicione o domínio da empresa e coloque no DNS os 2 registros que ele mostrar (quem cuida do site faz isso). Espere ficar “Verified”.</li>
-        <li>Em <b>API Keys</b>, crie uma chave e cole aqui, junto com o remetente (ex.: Unique HOF Academy &lt;cobranca@seudominio.com.br&gt;).</li>
+        <li>No Admin Console do Google, em <b>Usuários</b>, abra um usuário que já existe e adicione o e-mail alternativo <b>cobranca</b> (sem custo).</li>
+        <li>No Gmail desse usuário: <b>Configurações → Contas → Enviar e-mail como → Adicionar outro endereço</b>, com o cobranca@ e sem marcar “Tratar como alias”.</li>
+        <li>Com a verificação em duas etapas ligada, crie a senha de app em <b>myaccount.google.com/apppasswords</b> e cole aqui com o usuário e o remetente.</li>
       </ol>} />
     <div className="acoes"><button className="btn btn-contorno" onClick={testar}>Testar Asaas e e-mail</button>{teste && <span className="muted pequeno">{teste}</span>}</div>
   </>)
