@@ -51,7 +51,9 @@ export async function montarVideo(arquivo: File, linha: LinhaTempo, vertical: bo
   audio.createMediaElementSource(v).connect(saida)
   const fluxo = new MediaStream([...canvas.captureStream(30).getVideoTracks(), ...gravacao.stream.getAudioTracks()])
   const tipo = formatoGravacao()
-  const gravador = new MediaRecorder(fluxo, { mimeType: tipo, videoBitsPerSecond: 4_500_000 })
+  // o armazenamento aceita até 50 MB por arquivo: vídeo longo sai com menos bits por segundo para caber (com folga)
+  const taxa = Math.max(1_200_000, Math.min(4_500_000, Math.floor((44 * 8 * 1024 * 1024) / Math.max(1, linha.duracao)) - 192_000))
+  const gravador = new MediaRecorder(fluxo, { mimeType: tipo, videoBitsPerSecond: taxa })
   const partes: Blob[] = []
   gravador.ondataavailable = (e) => { if (e.data.size) partes.push(e.data) }
   let feito = 0

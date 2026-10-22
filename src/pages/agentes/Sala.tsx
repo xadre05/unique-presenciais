@@ -13,6 +13,7 @@ import { creditosDe } from './creditos'
 import type { PerfilMarketing } from './marca/dados'
 import { BotaoAjuda } from './ajuda/BotaoAjuda'
 import { RecadoSocial } from './RecadoSocial'
+import { fluxoDe } from './marketing/fluxo'
 
 function situacao(a: AgenteNaSala, temChave: boolean): { txt: string; tom: string } {
   if (!a.disponivel) return { txt: a.escopo === 'clinical' ? 'Para clínicas · Em breve' : 'Em breve', tom: 'neutro' }
@@ -32,7 +33,7 @@ export const BASE_MARCA: { rotulo: string; icone: string; ok: (p: PerfilMarketin
   { rotulo: 'Regras e limites', icone: 'alerta', ok: (p) => !!p.evitar && !!p.conselho },
 ]
 
-function CartaoAgente({ a, temChave }: { a: AgenteNaSala; temChave: boolean }) {
+function CartaoAgente({ a, temChave, apelido }: { a: AgenteNaSala; temChave: boolean; apelido?: string }) {
   const st = situacao(a, temChave)
   const pronto = a.disponivel && temChave
   const destino = a.disponivel && !temChave ? '/agentes/central' : `/agentes/${a.id}`
@@ -41,8 +42,8 @@ function CartaoAgente({ a, temChave }: { a: AgenteNaSala; temChave: boolean }) {
       <div className="sala-card-foto"><Retrato agente={a.id} estado={a.estado} alto={250} aguardando={a.dados?.aguardando} /></div>
       <div className="sala-card-info">
         <span className="sala-card-icone"><Icone nome={a.icone} tam={24} /></span>
-        <b className="sala-card-nome">{a.nome}</b>
-        <span className="sala-card-papel">{a.papel}.</span>
+        <b className="sala-card-nome">{apelido ?? a.nome}</b>
+        <span className="sala-card-papel">{apelido ? `Social media · ${a.papel}` : a.papel}.</span>
         <span className="sala-card-linha" />
         <span className={`sala-pilula tom-${st.tom}`}>{st.txt}</span>
         <span className={`sala-card-botao${a.disponivel && !temChave ? ' cheio' : ''}`}>{a.disponivel && !temChave ? 'Configurar' : pronto ? 'Abrir' : 'Ver detalhes'}</span>
@@ -101,7 +102,7 @@ export default function Sala() {
       <RecadoSocial perfilMarketing={perfil.dados?.perfil as Record<string, unknown> | undefined} />
 
 
-      <div className="sala-grade">{visiveis.map((a) => <CartaoAgente key={a.id} a={a} temChave={temChave} />)}</div>
+      <div className="sala-grade">{visiveis.map((a) => <CartaoAgente key={a.id} a={a} temChave={temChave} apelido={a.id === 'marketing' ? fluxoDe(p as Record<string, unknown>).apelido : undefined} />)}</div>
 
       <div className="sala-baixo">
         <section className="bloco">

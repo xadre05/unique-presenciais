@@ -18,7 +18,8 @@ export type Fluxo = {
 export const FLUXO_PADRAO: Fluxo = { apelido: 'Júlia', grava: [], aprova_pauta: [], aprova_edicao: [], dias_antes: 2, telefones: {} }
 export const fluxoDe = (perfil?: Record<string, unknown> | null): Fluxo => ({ ...FLUXO_PADRAO, ...((perfil?.fluxo ?? {}) as Partial<Fluxo>) })
 
-export type Bruto = { caminho: string; nome: string; tamanho: number; em: string; por?: string }
+// partes: o vídeo sobe em pedaços de até 40 MB (o armazenamento aceita até 50 MB por arquivo); caminho é o da parte 0
+export type Bruto = { caminho: string; nome: string; tamanho: number; em: string; por?: string; partes?: string[] }
 export const brutoDe = (p: Peca) => (p.conteudo as { bruto?: Bruto }).bruto
 
 export type Passo = 'pauta' | 'gravar' | 'edicao' | 'aprovar_edicao' | 'producao' | 'final' | 'pronto' | 'publicado' | 'ideia' | 'descartada'
