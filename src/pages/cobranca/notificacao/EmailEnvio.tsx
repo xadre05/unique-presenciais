@@ -47,7 +47,9 @@ export function EmailEnvio() {
       <div className="not-config">
         {CAMPOS.map((c) => (
           <Campo key={c.k} rotulo={`${c.r}${lista.includes(c.k) ? ' ✓' : ''}`} dica={c.d}>
-            <input type={c.secreto ? 'password' : 'text'} autoComplete="off" value={v[c.k] ?? ''} placeholder={lista.includes(c.k) ? '(já cadastrado: deixe vazio para manter)' : c.exemplo ?? 'Cole aqui'}
+            {/* sem type=password: o navegador não preenche sozinho o login e a senha de quem está usando o sistema */}
+            <input type="text" name={`email-envio-${c.k}`} autoComplete="off" data-lpignore="true" data-1p-ignore spellCheck={false}
+              className={c.secreto ? 'campo-secreto' : undefined} value={v[c.k] ?? ''} placeholder={lista.includes(c.k) ? '(já cadastrado: deixe vazio para manter)' : c.exemplo ?? 'Cole aqui'}
               onChange={(e) => setV({ ...v, [c.k]: e.target.value })} />
           </Campo>
         ))}

@@ -3126,6 +3126,7 @@ a.sala-agente:hover { border-color: var(--ouro); transform: translateY(-2px); }
 @media (max-width: 640px) { .not-config { grid-template-columns: 1fr; } }
 .not-email { padding: 12px 14px; margin-bottom: 14px; border: 1px solid var(--borda); border-radius: 12px; background: var(--painel); }
 .not-email h3 { margin: 0; font-size: 1rem; }
+.campo-secreto { -webkit-text-security: disc; }
 .not-email .not-config > :last-child { grid-column: 1 / -1; }
 
 /* nota da pessoa (0 a 100) + temperatura */
