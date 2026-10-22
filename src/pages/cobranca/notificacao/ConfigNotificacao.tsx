@@ -5,6 +5,7 @@ import { Campo, Erro, InputNumero, Modal } from '../../../components/ui'
 import type { Config } from './modelo'
 import { EmailEnvio } from './EmailEnvio'
 import { InterBanco } from './InterBanco'
+import { AsaasBanco } from './AsaasBanco'
 import { IACobranca } from './IACobranca'
 
 const CAMPOS_CARTA = '{nome} {primeiro_nome} {cpf} {email} {detalhamento} {valor_principal} {valor_encargos} {valor_total} {multa_pct} {juros_pct} {produto} {primeira_em_aberto} {parcelas_em_aberto} {prazo} {link_boleto} {linha_digitavel} {pix_copia_cola} {data_envio} {razao_social} {cnpj} {endereco} {cidade} {email_contato} {whatsapp_contato} {remetente_nome}'
@@ -31,6 +32,7 @@ export function ConfigNotificacao({ cfg, eu, aoFechar, aoSalvar, inline }: Props
   const conteudo = (<>
       <h3 className="not-subtitulo">Envio e banco</h3>
       <EmailEnvio />
+      <AsaasBanco />
       <InterBanco />
       <IACobranca cfg={cfg} aoMudar={aoSalvar} />
       <h3 className="not-subtitulo">Dados da empresa e travas</h3>
