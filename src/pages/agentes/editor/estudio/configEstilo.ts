@@ -24,5 +24,5 @@ export function pedidoDoConfig(c?: ConfigEstilo) {
 
 export function descreverConfig(c: ConfigEstilo) {
   const v = (k: ChaveConfig) => (c[k] ? (OPCOES[k].valores as Record<string, string>)[c[k]!] : null)
-  return [v('ritmo') && `ritmo ${v('ritmo')!.toLowerCase()}`, v('legenda') && `legendas ${v('legenda')!.toLowerCase()}`, v('imagens') && `imagens ${v('imagens')!.toLowerCase()}`, v('efeitos') && `efeitos ${v('efeitos')!.toLowerCase()}`].filter(Boolean).join(', ')
+  return [v('ritmo') && `ritmo ${v('ritmo')!.toLowerCase()}`, v('legenda') && `legendas ${v('legenda')!.toLowerCase()}`, v('imagens') && `imagens ${v('imagens')!.toLowerCase()}`, v('efeitos') && `efeitos sonoros: ${v('efeitos')!.toLowerCase()}`].filter(Boolean).join(', ')
 }

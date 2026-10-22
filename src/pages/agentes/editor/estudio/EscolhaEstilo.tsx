@@ -84,7 +84,7 @@ export function EscolhaEstilo({ e, pecaId, aoMudar }: { e: Estudio; pecaId: stri
         <section className={`es-opcao${atual === 'nova' || abrirNova ? ' marcada' : ''}`} onClick={() => setAbrirNova(true)}>
           <header><h3>Nova referência</h3><span className="es-radio" /></header>
           <p className="muted pequeno">Só para este vídeo</p>
-          {(abrirNova || comRef) && <div className="es-nova" onClick={(x) => x.stopPropagation()}><NovaReferencia e={e} pecaId={pecaId} aoMudar={aoMudar} /></div>}
+          {<div className="es-nova" onClick={(x) => x.stopPropagation()}><NovaReferencia e={e} pecaId={pecaId} aoMudar={aoMudar} /></div>}
         </section>
       </div>
       {!(abrirNova && !comRef) && <ConfigDoEstilo pecaId={pecaId} base={casa} config={e.edicao.config_estilo ?? {}} aoMudar={aoMudar} />}
