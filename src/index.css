@@ -3705,3 +3705,4 @@ a.sala-agente:hover { border-color: var(--ouro); transform: translateY(-2px); }
   .qf-check small { display: inline; }
   .qf-linha > input { grid-column: 1 / -1; }
 }
+.qf-check { display: flex !important; flex-direction: row !important; justify-content: flex-start; align-items: center; gap: 8px; margin: 0; } .qf-check input { width: auto; margin: 0; }
