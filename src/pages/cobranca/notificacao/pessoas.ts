@@ -46,6 +46,7 @@ export function agrupar(cs: Cobranca[], conf: Map<string, Conferencia>, ex: Map<
     const pend: string[] = []
     if (!c0.email) pend.push('e-mail')
     if (doc.length !== 11 && doc.length !== 14) pend.push('CPF')
+    if (!notificada && !enderecoBoleto(ex.get(c0.id))) pend.push('endereço')
     return {
       chave, nome: c0.aluno_nome ?? 'Sem nome', email: c0.email, telefone: lista.find((c) => c.telefone)?.telefone ?? null, cpf: doc || null, cobrancas: lista, itens,
       principal: notificada ? lista.reduce((s, c) => s + Number(c.boleto_principal ?? 0), 0) : soma((x) => x.principal),
@@ -65,6 +66,13 @@ function itemDe(c: Cobranca, k: Conferencia | undefined, e: Extra | undefined): 
     parcelas_pagas: k?.pagas ?? e?.parcelas_pagas ?? null, valor_parcela: parcela, parou_em: k?.parou_em ?? c.parou_em,
     vencidas: Number(k?.vencidas ?? (parcela ? Math.round(Number(c.valor_vencido ?? 0) / parcela) : 0)),
   }
+}
+
+// endereço completo no Brasil (rua, cidade, UF e CEP) é exigido pelo banco no boleto
+const UFS = 'AC AL AP AM BA CE DF ES GO MA MT MS MG PA PB PR PE PI RJ RN RS RO RR SC SP SE TO'.split(' ')
+export function enderecoBoleto(ex: Extra | undefined) {
+  const e = ex?.endereco ?? {}
+  return String(e.zip_code ?? '').replace(/\D/g, '').length === 8 && !!e.address && !!e.city && UFS.includes(String(e.state ?? '').toUpperCase())
 }
 
 // endereço completo é exigido pelo Serasa para negativar

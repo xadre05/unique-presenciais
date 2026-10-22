@@ -4,8 +4,9 @@ import { supabase } from '../../../lib/supabase'
 import { Campo, Erro, InputNumero, Modal } from '../../../components/ui'
 import type { Config } from './modelo'
 import { EmailEnvio } from './EmailEnvio'
+import { InterBanco } from './InterBanco'
 
-const CAMPOS_CARTA = '{nome} {primeiro_nome} {cpf} {email} {detalhamento} {valor_principal} {valor_encargos} {valor_total} {multa_pct} {juros_pct} {produto} {primeira_em_aberto} {parcelas_em_aberto} {prazo} {link_boleto} {data_envio} {razao_social} {cnpj} {endereco} {cidade} {email_contato} {whatsapp_contato} {remetente_nome}'
+const CAMPOS_CARTA = '{nome} {primeiro_nome} {cpf} {email} {detalhamento} {valor_principal} {valor_encargos} {valor_total} {multa_pct} {juros_pct} {produto} {primeira_em_aberto} {parcelas_em_aberto} {prazo} {link_boleto} {linha_digitavel} {pix_copia_cola} {data_envio} {razao_social} {cnpj} {endereco} {cidade} {email_contato} {whatsapp_contato} {remetente_nome}'
 
 type Props = { cfg: Config; eu: string; aoFechar: () => void; aoSalvar: () => void }
 
@@ -28,6 +29,7 @@ export function ConfigNotificacao({ cfg, eu, aoFechar, aoSalvar }: Props) {
   return (
     <Modal titulo="Notificação extrajudicial — dados e modelos" aberto onFechar={aoFechar} largo>
       <EmailEnvio />
+      <InterBanco />
       <div className="not-config">
         <Campo rotulo="Razão social"><input {...txt('razao_social')} placeholder="Como está no CNPJ" /></Campo>
         <Campo rotulo="CNPJ"><input {...txt('cnpj')} /></Campo>

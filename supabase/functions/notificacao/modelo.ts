@@ -50,6 +50,7 @@ export function campos(p: Dados, itens: Item[], cfg: Dados, hoje: string): Recor
     valor_parcela: um ? brl(um.valor_parcela) : '—', primeira_em_aberto: data(itens.map((it) => it.parou_em).filter(Boolean).sort()[0]),
     parcelas_em_aberto: String(itens.reduce((s, it) => s + contaItem(it, hoje, m, j).cobradas, 0)),
     prazo: data(p.prazo_ate), link_boleto: String(p.boleto_url ?? '[o link do boleto entra aqui]'), data_envio: data(hoje),
+    linha_digitavel: String(p.boleto_linha || '[a linha digitável entra aqui]'), pix_copia_cola: String(p.boleto_pix || '[o Pix copia e cola entra aqui]'),
     razao_social: String(cfg.razao_social ?? '[razão social]'), cnpj: String(cfg.cnpj ?? '[CNPJ]'), endereco: String(cfg.endereco ?? '[endereço]'),
     cidade: String(cfg.cidade ?? '[cidade]'), email_contato: String(cfg.email_contato ?? '[e-mail]'), whatsapp_contato: String(cfg.whatsapp_contato ?? '[WhatsApp]'),
     remetente_nome: String(cfg.remetente_nome ?? cfg.razao_social ?? ''),

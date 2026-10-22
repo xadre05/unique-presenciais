@@ -63,9 +63,11 @@ export function PainelNotificacao({ lista, nomeConta, aoMudar, eu }: Props) {
     const ids = prontas.flatMap((p) => p.cobrancas.map((c) => c.id))
     let feitos = 0
     const falhas: string[] = []
-    for (let i = 0; i < ids.length; i += 20) {
-      setMsg(`Processando ${Math.min(i + 20, ids.length)} de ${ids.length}…`)
-      const { data, error } = await supabase.functions.invoke('notificacao', { body: { acao, ids: ids.slice(i, i + 20) } })
+    // o boleto do banco leva alguns segundos para sair: no envio, de 5 em 5 (cada chamada tem limite de tempo)
+    const lote = acao === 'enviar' ? 5 : 20
+    for (let i = 0; i < ids.length; i += lote) {
+      setMsg(`Processando ${Math.min(i + lote, ids.length)} de ${ids.length}…`)
+      const { data, error } = await supabase.functions.invoke('notificacao', { body: { acao, ids: ids.slice(i, i + lote) } })
       if (error || data?.erro) { falhas.push(data?.erro ?? error?.message ?? 'erro'); break }
       feitos += data.feitos
       for (const f of data.falhas ?? []) falhas.push(`${f.nome}: ${f.motivo}`)
@@ -126,8 +128,8 @@ export function PainelNotificacao({ lista, nomeConta, aoMudar, eu }: Props) {
         <p className="muted pequeno">O prazo e o link do boleto entram no envio. Os juros são calculados no dia do envio. WhatsApp: “{preencher(config.whatsapp_modelo ?? '', valores(carta))}”</p>
       </Modal>}
       {confirmar && <Modal titulo={confirmar === 'enviar' ? 'Enviar notificações' : 'Pedir negativação'} aberto onFechar={() => setConfirmar(null)}>
-        <p>{prontas.length} de {escolhidas.length} pessoa(s) selecionada(s) estão prontas, somando <b>{brl(prontas.reduce((s, p) => s + p.total, 0))}</b>.{escolhidas.length > prontas.length && ' As outras ficam de fora (falta CPF, e-mail, endereço ou os 5 dias depois do prazo).'}</p>
-        {confirmar === 'enviar' ? <p className="muted pequeno">Para cada pessoa: um boleto no Asaas com vencimento em {config?.prazo_dias ?? 5} dias (somando os cursos dela) e a carta por e-mail. Antes de enviar, o sistema confere de novo se a dívida continua em aberto na Hotmart. Depois, avise cada uma no WhatsApp pelo botão “Avisar”.</p>
+        <p>{prontas.length} de {escolhidas.length} pessoa(s) selecionada(s) estão prontas, somando <b>{brl(prontas.reduce((s, p) => s + p.total, 0))}</b>.{escolhidas.length > prontas.length && ' As outras ficam de fora (falta CPF, e-mail, endereço completo ou os 5 dias depois do prazo).'}</p>
+        {confirmar === 'enviar' ? <p className="muted pequeno">Para cada pessoa: um boleto com Pix no Banco Inter com vencimento em {config?.prazo_dias ?? 5} dias (somando os cursos dela) e a carta por e-mail. Antes de enviar, o sistema confere de novo se a dívida continua em aberto na Hotmart. Depois, avise cada uma no WhatsApp pelo botão “Avisar”.</p>
           : <p className="muted pequeno">Antes de pedir, o sistema confere de novo na Hotmart se a pessoa pagou alguma parcela depois da notificação. O Asaas manda o pedido ao Serasa, que envia uma carta ao endereço da pessoa com mais 10 dias para pagar antes de negativar.</p>}
         <div className="modal-acoes"><button className="btn" onClick={() => setConfirmar(null)}>Cancelar</button><button className="btn btn-ouro" disabled={!prontas.length} onClick={() => executar(confirmar)}>{confirmar === 'enviar' ? `Enviar ${prontas.length}` : `Pedir ${prontas.length}`}</button></div>
       </Modal>}
