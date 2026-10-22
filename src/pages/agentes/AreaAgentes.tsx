@@ -14,7 +14,6 @@ import AgentePlanejado from './AgentePlanejado'
 import Aprovacoes from './Aprovacoes'
 import Historico from './Historico'
 import CentralMarca from './CentralMarca'
-import Tarefas from './Tarefas'
 import PaginaAutomacoes from './automacoes/PaginaAutomacoes'
 import ComoUsar from './ajuda/ComoUsar'
 import EstudioVideo from './editor/EstudioVideo'
@@ -43,7 +42,6 @@ export default function AreaAgentes() {
         <nav>
           <span className="nav-grupo">Operação</span>
           <NavLink to="/agentes" end><Icone nome="equipe" /> Visão geral</NavLink>
-          <NavLink to="/agentes/tarefas"><Icone nome="check" /> Tarefas</NavLink>
           <NavLink to="/agentes/aprovacoes"><Icone nome="documento" /> Aprovações</NavLink>
           <NavLink to="/agentes/automacoes"><Icone nome="raio" /> Automações</NavLink>
           <NavLink to="/agentes/historico"><Icone nome="historico" /> Histórico</NavLink>
@@ -80,7 +78,7 @@ export default function AreaAgentes() {
           <Route path="historico" element={<Historico />} />
           <Route path="automacoes" element={<PaginaAutomacoes />} />
           <Route path="marca" element={<CentralMarca />} />
-          <Route path="tarefas" element={<Tarefas />} />
+          <Route path="tarefas" element={<Navigate to="/agentes/aprovacoes" replace />} />
           <Route path="ajuda" element={<ComoUsar />} />
           <Route path=":id" element={<AgentePlanejado />} />
           <Route path="*" element={<Navigate to="/agentes" replace />} />
