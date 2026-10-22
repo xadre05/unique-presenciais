@@ -43,7 +43,7 @@ export default function Aprovacoes() {
     <div className="pagina">
       <header className="pagina-topo"><div><h1>Aprovações <BotaoAjuda id="aprovar" /></h1><p className="muted">O que cada agente preparou e espera uma decisão. Clique para decidir dentro do agente.</p></div></header>
       {!pecas.carregando && !lista.length && <Vazio>Nada esperando você.</Vazio>}
-      <div className="caixa-lista">{lista.map((l) => {
+      <div className="aprov-lista">{lista.map((l) => {
         const v = visualDe(l.agente)
         return (
           <Link key={l.link} to={l.link} className={`caixa-linha${l.alerta ? ' alerta' : ''}`} style={{ ['--cor-agente' as string]: v.cor }}>

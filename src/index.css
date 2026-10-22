@@ -3651,7 +3651,7 @@ a.sala-agente:hover { border-color: var(--ouro); transform: translateY(-2px); }
 .sg-voz small { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .sg-previa { display: grid; gap: 8px; padding: 12px; border: 1px solid var(--borda); border-radius: 12px; }
 .sg-previa audio { width: 100%; }
-.caixa-lista { display: grid; gap: 10px; max-width: 820px; }
+.aprov-lista { display: grid; gap: 10px; max-width: 820px; }
 .caixa-linha { display: flex; align-items: center; gap: 14px; padding: 12px 16px; border: 1px solid var(--borda); border-left: 3px solid var(--cor-agente, var(--ouro)); border-radius: 14px; background: var(--painel); color: inherit; text-decoration: none; }
 .caixa-linha:hover { border-color: var(--cor-agente, var(--ouro)); }
 .caixa-linha > svg:last-child { color: var(--muted); flex: none; }
@@ -3749,3 +3749,80 @@ a.sala-agente:hover { border-color: var(--ouro); transform: translateY(-2px); }
 .cob-config { max-width: 980px; display: grid; gap: 14px; }
 .cob-config .not-subtitulo:first-child { margin-top: 0; }
 .cob-config .modal-acoes { position: sticky; bottom: 0; background: var(--fundo, var(--bg)); padding: 10px 0; }
+
+/* ── Atendimento → Conversas (3 colunas: lista · conversa · contexto) ── */
+.caixa { grid-template-columns: 340px minmax(0, 1fr) 330px; flex: 1 1 auto; }
+.caixa-lista { display: flex; flex-direction: column; min-height: 0; max-width: none; gap: 0; }
+.caixa-lista-topo { padding: 16px 14px 12px; gap: 10px; }
+.cl-titulo { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.cl-titulo h2 { margin: 0; font-family: 'Fraunces', Georgia, serif; font-size: 1.45rem; font-weight: 600; }
+.cl-numero { display: flex; align-items: center; gap: 8px; border: 1px solid var(--borda); border-radius: 10px; background: var(--painel-2); padding: 0 6px 0 12px; font-size: .88rem; }
+.cl-numero select { flex: 1; border: none; background: transparent; padding: 8px 4px; }
+.cl-chips { display: flex; gap: 6px; flex-wrap: wrap; }
+.cl-chips button { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--borda); background: var(--painel-2); color: var(--texto); border-radius: 99px; padding: 5px 12px; font: inherit; font-size: .82rem; cursor: pointer; }
+.cl-chips button.ativo { border-color: var(--ouro); background: var(--ouro-fundo); color: var(--ouro-forte); }
+.cl-chips button > span { background: var(--ouro); color: #111; border-radius: 99px; padding: 0 7px; font-size: .72rem; font-weight: 700; }
+.ci-chips { display: flex; gap: 5px; flex-wrap: wrap; margin-top: 2px; }
+.ci-chip { font-size: .72rem; padding: 1px 8px; border-radius: 99px; border: 1px solid var(--borda); background: var(--painel-2); color: var(--muted); }
+.ci-chip.ouro { border-color: rgba(201,164,92,.45); color: var(--ouro-forte); background: var(--ouro-fundo); }
+.ci-chip.ia { border-color: rgba(127,169,217,.45); color: var(--info); background: var(--info-fundo); }
+.ci-chip.apagado { opacity: .8; }
+
+.chat-nome { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.chat-selo { font-size: .72rem; font-weight: 600; padding: 2px 9px; border-radius: 99px; border: 1px solid var(--borda); background: var(--painel-2); color: var(--texto); }
+.chat-selo.ok { color: var(--ok); border-color: rgba(111,191,138,.4); background: var(--ok-fundo); }
+.chat-selo.ia { color: var(--info); border-color: rgba(127,169,217,.4); background: var(--info-fundo); }
+.chat-selo.alerta { color: var(--alerta); border-color: rgba(224,176,79,.4); background: var(--alerta-fundo); }
+.chat-espera { display: flex; align-items: center; gap: 8px; padding: 9px 18px; font-size: .88rem; background: var(--alerta-fundo); color: var(--alerta); border-bottom: 1px solid rgba(224,176,79,.3); }
+.chat-espera.atrasada { background: var(--erro-fundo); color: var(--erro); border-bottom-color: rgba(226,120,107,.3); }
+.msg-nota-linha { display: flex; align-items: center; gap: 12px; margin: 8px 0; }
+.msg-nota-linha::before, .msg-nota-linha::after { content: ''; flex: 1; border-top: 1px solid var(--borda); }
+.msg-nota-linha .msg-nota { max-width: 70%; align-self: auto; }
+.msg-nota .msg-autor { display: flex; align-items: center; gap: 5px; }
+.msg-status.st-entregue, .msg-status.st-enviada { color: var(--muted); }
+
+.modo-escrever { align-items: center; }
+.modo-escrever .espaco { flex: 1; }
+.ce-prontas { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--ouro) !important; color: var(--ouro-forte) !important; background: var(--ouro-fundo) !important; }
+.ce-janela { display: flex; gap: 6px; align-items: flex-start; color: var(--alerta); background: var(--alerta-fundo); border-radius: 8px; padding: 7px 10px; }
+.ce-ia { border-color: rgba(201,164,92,.4); }
+.ce-rodape { margin-top: -2px; }
+
+.caixa-contato { padding: 0 0 20px; gap: 0; }
+.cx-titulo { display: flex; justify-content: space-between; align-items: center; padding: 18px 18px 10px; font-size: .78rem; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+.cx-secao { margin: 0 12px 10px; border: 1px solid var(--borda); border-radius: 12px; background: var(--painel-2); }
+.cx-secao-topo { width: 100%; display: flex; align-items: center; gap: 10px; padding: 12px 14px; background: none; border: none; color: var(--texto); font: inherit; cursor: pointer; text-align: left; }
+.cx-secao-topo b { flex: 1; font-weight: 600; }
+.cx-secao-corpo { padding: 0 14px 14px; display: flex; flex-direction: column; gap: 10px; }
+.cx-secao-corpo .cc-cabeca .at-avatar.grande { width: 48px; height: 48px; font-size: 1rem; }
+.cx-secao-corpo textarea { width: 100%; }
+.cx-dados { display: grid; grid-template-columns: auto 1fr; gap: 6px 14px; margin: 0; font-size: .88rem; }
+.cx-dados dt { color: var(--muted); }
+.cx-dados dd { margin: 0; min-width: 0; overflow-wrap: anywhere; }
+.cx-ia { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.cx-ia > div { display: flex; flex-direction: column; gap: 2px; }
+.caixa-contato .resumo-unique { margin: 0 12px; }
+
+.rp-fundo { position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 60; display: flex; justify-content: flex-end; }
+.rp-gaveta { width: min(760px, 100%); height: 100%; background: var(--painel); border-left: 1px solid var(--borda); display: flex; flex-direction: column; gap: 12px; padding: 18px; box-shadow: -20px 0 60px rgba(0,0,0,.5); }
+.rp-topo { display: flex; align-items: flex-start; gap: 10px; }
+.rp-topo > div { flex: 1; }
+.rp-topo h2 { margin: 0 0 2px; font-family: 'Fraunces', Georgia, serif; }
+.rp-corpo { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); gap: 14px; }
+.rp-lista { list-style: none; margin: 0; padding: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; }
+.rp-lista li { display: flex; align-items: stretch; border: 1px solid var(--borda); border-radius: 10px; background: var(--painel-2); }
+.rp-lista li.sel { border-color: var(--ouro); background: var(--ouro-fundo); }
+.rp-estrela { background: none; border: none; color: var(--ouro); font-size: 1.1rem; padding: 0 4px 0 12px; cursor: pointer; }
+.rp-item { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; text-align: left; background: none; border: none; color: var(--texto); font: inherit; padding: 10px 12px 10px 6px; cursor: pointer; }
+.rp-item span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rp-vazio { border: none !important; background: none !important; padding: 8px; }
+.rp-previa { border: 1px solid var(--borda); border-radius: 12px; padding: 14px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
+.rp-previa h3 { margin: 0; }
+.rp-texto { white-space: pre-wrap; background: var(--painel-2); border: 1px solid var(--borda); border-radius: 10px; padding: 12px; }
+.rp-acoes { display: flex; justify-content: flex-end; gap: 8px; margin-top: auto; }
+@media (max-width: 1400px) { .caixa { grid-template-columns: 320px minmax(0, 1fr); } }
+@media (max-width: 760px) {
+  .caixa { grid-template-columns: 1fr; }
+  .rp-corpo { grid-template-columns: 1fr; }
+  .rp-gaveta { padding: 14px; }
+}
