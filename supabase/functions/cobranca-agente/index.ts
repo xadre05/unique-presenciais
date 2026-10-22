@@ -1,5 +1,5 @@
 // Agente de Cobrança (WhatsApp). Conversa sozinho com quem deve, com os dados reais da dívida (Hotmart + notificação):
-// tira dúvidas, manda segunda via, fecha acordo dentro dos limites (Cobranças → "Dados, modelos e travas") e, quando
+// tira dúvidas, manda segunda via, fecha acordo dentro dos limites (Cobranças → Configurações) e, quando
 // não pode resolver (contestação, "já paguei", fora dos limites), avisa a equipe e para de insistir naquele ponto.
 // Ações:
 //   responder  sistema (x-cron-chave, chamado pelo crm-whatsapp quando chega mensagem no número da cobrança) {conversa_id, mensagem_id}
@@ -8,6 +8,7 @@
 import { createClient, type SupabaseClient } from 'npm:@supabase/supabase-js@2.45.4'
 import { config, contexto, ficha, type Cfg, type Contexto } from './dados.ts'
 import { cancelarBoleto, emitirBoleto, enderecoBoleto, interPronto, usarInter } from './inter.ts'
+import { boletoAsaas, cancelarAsaas } from './asaas.ts'
 
 const cors = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-cron-chave', 'Access-Control-Allow-Methods': 'POST, OPTIONS' }
 const json = (corpo: unknown, status = 200) => new Response(JSON.stringify(corpo), { status, headers: { ...cors, 'Content-Type': 'application/json' } })
@@ -71,7 +72,8 @@ const registrar = (db: SupabaseClient, ids: string[], resultado: string, observa
 const pedirAjuda = (db: SupabaseClient, ids: string[], motivo: string) =>
   db.from('cobrancas').update({ ia_atencao: motivo.slice(0, 300), ia_atencao_em: new Date().toISOString() }).in('id', ids)
 
-// acordo: boleto novo (à vista, sem multa e juros se permitido) no Inter e cancela o anterior
+// acordo: boleto novo (à vista, sem multa e juros se permitido) no Inter, ou no Asaas se o Inter não estiver configurado;
+// cancela o boleto anterior (menos o que já foi para negativação)
 async function fecharAcordo(db: SupabaseClient, c: Contexto, cfg: Cfg, vencPedido: string | undefined) {
   const dia = hoje(), limite = somaDias(dia, cfg.acordo_prazo_max_dias)
   const venc = vencPedido && /^\d{4}-\d{2}-\d{2}$/.test(vencPedido) && vencPedido >= dia && vencPedido <= limite ? vencPedido : limite
@@ -79,40 +81,56 @@ async function fecharAcordo(db: SupabaseClient, c: Contexto, cfg: Cfg, vencPedid
   const valor = Math.round(c.dividas.reduce((s, x) => s + valorDe(x), 0) * 100) / 100
   const ids = c.dividas.map((x) => x.id)
   if (!(valor >= 2.5)) return { texto: '', erro: 'valor do acordo inválido' }
-  const { data: cred } = await db.rpc('ler_credenciais_integracao', { p_integracao: 'inter' })
+  const [{ data: cred }, { data: credAsaas }] = await Promise.all([db.rpc('ler_credenciais_integracao', { p_integracao: 'inter' }), db.rpc('ler_credenciais_integracao', { p_integracao: 'asaas' })])
+  const kAsaas = String(credAsaas?.api_key ?? '')
+  const usaInter = interPronto(cred ?? {})
   const { data: conf } = await db.from('v_cobranca_conferencia').select('cpf').in('cobranca_id', ids).not('cpf', 'is', null).limit(1).maybeSingle()
   const { data: cob } = await db.from('cobrancas').select('email, aluno_nome, telefone').eq('id', ids[0]).single()
   const { data: hc } = await db.from('hotmart_compradores').select('documento, endereco').eq('email', String(cob?.email ?? '').toLowerCase()).maybeSingle()
   const cpf = String(conf?.cpf ?? hc?.documento ?? '').replace(/\D/g, '')
-  const motivoSem = !interPronto(cred ?? {}) ? 'o Inter ainda não está configurado' : cpf.length !== 11 && cpf.length !== 14 ? 'sem CPF' : !enderecoBoleto(hc?.endereco ?? null) ? 'sem endereço completo' : null
+  const motivoSem = !usaInter && !kAsaas ? 'nenhum banco configurado (Inter ou Asaas)' : cpf.length !== 11 && cpf.length !== 14 ? 'sem CPF'
+    : usaInter && !enderecoBoleto(hc?.endereco ?? null) ? 'sem endereço completo' : null
   const agora = new Date().toISOString()
   const base = { etapa: 'acordo', acordo_em: agora, acordo_forma: 'à vista pelo WhatsApp (IA)', acordo_parcelas: 1, acordo_primeiro_venc: venc, atualizado_em: agora }
+  const dataBR = venc.split('-').reverse().join('/')
   if (motivoSem) {
     for (const x of c.dividas) await db.from('cobrancas').update({ ...base, acordo_valor: valorDe(x) }).eq('id', x.id)
-    await registrar(db, ids, `Acordo aceito pelo WhatsApp: ${brl(valor)} até ${venc.split('-').reverse().join('/')}`, `Boleto não gerado automaticamente (${motivoSem}).`)
-    await pedirAjuda(db, ids, `Acordo aceito (${brl(valor)} até ${venc.split('-').reverse().join('/')}): gerar e mandar o boleto (${motivoSem})`)
+    await registrar(db, ids, `Acordo aceito pelo WhatsApp: ${brl(valor)} até ${dataBR}`, `Boleto não gerado automaticamente (${motivoSem}).`)
+    await pedirAjuda(db, ids, `Acordo aceito (${brl(valor)} até ${dataBR}): gerar e mandar o boleto (${motivoSem})`)
     return { texto: 'Combinado! Vou gerar o boleto com esse valor e te mando aqui ainda hoje.' }
   }
   const grupo = crypto.randomUUID()
-  const b = await usarInter(cred, async (x) => {
-    const novo = await emitirBoleto(x, { seuNumero: grupo.replace(/-/g, '').slice(0, 15), valor, vencimento: venc,
-      pagador: { nome: String(cob?.aluno_nome ?? c.nome ?? ''), cpf, email: String(cob?.email ?? ''), telefone: String(cob?.telefone ?? c.telefone), end: hc?.endereco ?? null },
-      linhas: [`Acordo: ${c.dividas.map((d) => d.produto).join(', ')}`.slice(0, 78), cfg.acordo_tira_encargos ? 'Pagamento à vista sem multa e juros, conforme acordo pelo WhatsApp.' : 'Acordo feito pelo WhatsApp.'] })
-    for (const antigo of new Set(c.dividas.filter((d) => d.boleto_banco === 'inter' && d.boleto_id).map((d) => d.boleto_id!))) await cancelarBoleto(x, antigo, 'Substituído por acordo').catch(() => null)
-    return novo
-  })
-  let url = ''
-  if (b.pdf) {
-    const caminho = `cobranca/boletos/${grupo}.pdf`
-    const { error } = await db.storage.from('arquivos').upload(caminho, new Blob([b.pdf], { type: 'application/pdf' }), { contentType: 'application/pdf', upsert: true })
-    if (!error) url = (await db.storage.from('arquivos').createSignedUrl(caminho, 90 * 86400)).data?.signedUrl ?? ''
+  const produtos = c.dividas.map((d) => d.produto).join(', ')
+  const pessoa = { nome: String(cob?.aluno_nome ?? c.nome ?? ''), cpf, email: String(cob?.email ?? ''), telefone: String(cob?.telefone ?? c.telefone), end: hc?.endereco ?? null }
+  // boleto anterior que ainda pode ser cancelado (o que já foi pedido para negativação fica)
+  const antigos = (banco: string) => [...new Set(c.dividas.filter((d) => d.boleto_banco === banco && d.boleto_id && !String(d.fase_legal ?? '').startsWith('negativ')).map((d) => d.boleto_id!))]
+  let novo: { id: string; banco: string; url: string; linha: string | null; pix: string | null }
+  if (usaInter) {
+    const b = await usarInter(cred, async (x) => {
+      const n = await emitirBoleto(x, { seuNumero: grupo.replace(/-/g, '').slice(0, 15), valor, vencimento: venc, pagador: pessoa,
+        linhas: [`Acordo: ${produtos}`.slice(0, 78), cfg.acordo_tira_encargos ? 'Pagamento à vista sem multa e juros, conforme acordo pelo WhatsApp.' : 'Acordo feito pelo WhatsApp.'] })
+      for (const id of antigos('inter')) await cancelarBoleto(x, id, 'Substituído por acordo').catch(() => null)
+      return n
+    })
+    let url = ''
+    if (b.pdf) {
+      const caminho = `cobranca/boletos/${grupo}.pdf`
+      const { error } = await db.storage.from('arquivos').upload(caminho, new Blob([b.pdf], { type: 'application/pdf' }), { contentType: 'application/pdf', upsert: true })
+      if (!error) url = (await db.storage.from('arquivos').createSignedUrl(caminho, 90 * 86400)).data?.signedUrl ?? ''
+    }
+    novo = { id: b.codigo, banco: 'inter', url, linha: b.linha, pix: b.pix || null }
+  } else {
+    const b = await boletoAsaas(kAsaas, { ...pessoa, ref: ids[0] }, valor, venc, `Acordo — ${produtos}`, grupo)
+    for (const id of antigos('asaas')) await cancelarAsaas(kAsaas, id).catch(() => null)
+    novo = { id: b.id, banco: 'asaas', url: b.url, linha: null, pix: null }
   }
   for (const x of c.dividas) {
-    await db.from('cobrancas').update({ ...base, acordo_valor: valorDe(x), boleto_id: b.codigo, boleto_banco: 'inter', boleto_url: url || null, boleto_linha: b.linha, boleto_pix: b.pix || null,
+    await db.from('cobrancas').update({ ...base, acordo_valor: valorDe(x), boleto_id: novo.id, boleto_banco: novo.banco, boleto_url: novo.url || null, boleto_linha: novo.linha, boleto_pix: novo.pix,
       boleto_valor: valorDe(x), boleto_principal: x.principal, boleto_encargos: cfg.acordo_tira_encargos ? 0 : x.encargos, prazo_ate: venc, notificacao_grupo: grupo }).eq('id', x.id)
   }
-  await registrar(db, ids, `Acordo fechado pelo WhatsApp: ${brl(valor)} à vista até ${venc.split('-').reverse().join('/')} (boleto novo no Inter)`, null)
-  return { texto: [`Pronto! Boleto de ${brl(valor)} com vencimento em ${venc.split('-').reverse().join('/')}:`, url || `Linha digitável: ${b.linha}`, b.pix ? `Pix copia e cola: ${b.pix}` : ''].filter(Boolean).join('\n') }
+  await registrar(db, ids, `Acordo fechado pelo WhatsApp: ${brl(valor)} à vista até ${dataBR} (boleto novo no ${novo.banco === 'inter' ? 'Inter' : 'Asaas'})`, null)
+  const pagar = novo.banco === 'asaas' ? `Pague por boleto ou Pix neste link: ${novo.url}` : novo.url || `Linha digitável: ${novo.linha}`
+  return { texto: [`Pronto! Boleto de ${brl(valor)} com vencimento em ${dataBR}:`, pagar, novo.pix ? `Pix copia e cola: ${novo.pix}` : ''].filter(Boolean).join('\n') }
 }
 
 async function enviarWhats(url: string, chave: string, corpo: Record<string, unknown>) {
@@ -171,6 +189,9 @@ Deno.serve(async (req) => {
     if (corpo.acao === 'avisar' && sistema) {
       const cfg = await config(db)
       if (!cfg.ia_ligada || !cfg.ia_canal_id) return json({ pulou: 'IA desligada' })
+      // número de teste (simulador): não manda o aviso de uma carta de verdade para lá, e a cobrança não fica como avisada
+      const { data: canalIA } = await db.from('crm_canais').select('tipo').eq('id', cfg.ia_canal_id).maybeSingle()
+      if (!canalIA || canalIA.tipo === 'teste') return json({ pulou: 'número da IA é o de teste' })
       return json(await enviarWhats(url, String(chave), { canal_id: cfg.ia_canal_id, telefone: corpo.telefone, nome: corpo.nome, texto: corpo.texto }))
     }
 
