@@ -9,9 +9,10 @@ import { IACobranca } from './IACobranca'
 
 const CAMPOS_CARTA = '{nome} {primeiro_nome} {cpf} {email} {detalhamento} {valor_principal} {valor_encargos} {valor_total} {multa_pct} {juros_pct} {produto} {primeira_em_aberto} {parcelas_em_aberto} {prazo} {link_boleto} {linha_digitavel} {pix_copia_cola} {data_envio} {razao_social} {cnpj} {endereco} {cidade} {email_contato} {whatsapp_contato} {remetente_nome}'
 
-type Props = { cfg: Config; eu: string; aoFechar: () => void; aoSalvar: () => void }
+// na aba Configurações de Cobranças fica na página (inline); no painel da notificação, num modal
+type Props = { cfg: Config; eu: string; aoFechar?: () => void; aoSalvar: () => void; inline?: boolean }
 
-export function ConfigNotificacao({ cfg, eu, aoFechar, aoSalvar }: Props) {
+export function ConfigNotificacao({ cfg, eu, aoFechar, aoSalvar, inline }: Props) {
   const [v, setV] = useState<Config>(cfg)
   const [erro, setErro] = useState<string | null>(null)
   const [salvando, setSalvando] = useState(false)
@@ -27,11 +28,12 @@ export function ConfigNotificacao({ cfg, eu, aoFechar, aoSalvar }: Props) {
     if (error) { setSalvando(false); return setErro(error.message) }
     aoSalvar()
   }
-  return (
-    <Modal titulo="Notificação extrajudicial — dados e modelos" aberto onFechar={aoFechar} largo>
+  const conteudo = (<>
+      <h3 className="not-subtitulo">Envio e banco</h3>
       <EmailEnvio />
       <InterBanco />
       <IACobranca cfg={cfg} aoMudar={aoSalvar} />
+      <h3 className="not-subtitulo">Dados da empresa e travas</h3>
       <div className="not-config">
         <Campo rotulo="Razão social"><input {...txt('razao_social')} placeholder="Como está no CNPJ" /></Campo>
         <Campo rotulo="CNPJ"><input {...txt('cnpj')} /></Campo>
@@ -50,6 +52,7 @@ export function ConfigNotificacao({ cfg, eu, aoFechar, aoSalvar }: Props) {
       </div>
       <label className="check not-libera"><input type="checkbox" checked={!!v.advogado_liberou_em} onChange={(e) => setV({ ...v, advogado_liberou_em: e.target.checked ? new Date().toISOString() : null, advogado_liberou_por: e.target.checked ? eu : null })} />
         {' '}O advogado revisou esta carta e liberou o envio{v.advogado_liberou_em ? ` (marcado por ${v.advogado_liberou_por ?? eu})` : ''}</label>
+      <h3 className="not-subtitulo">Modelos da carta e do WhatsApp</h3>
       <Campo rotulo="Assunto do e-mail"><input {...txt('carta_assunto')} /></Campo>
       <Campo rotulo="Carta (texto do e-mail)" dica="Revisada pelo advogado antes do primeiro envio. Se mudar o texto, peça para ele revisar de novo."><textarea rows={16} {...txt('carta_modelo')} /></Campo>
       <Campo rotulo="Mensagem de WhatsApp (enviada no mesmo dia)"><textarea rows={7} {...txt('whatsapp_modelo')} /></Campo>
@@ -62,7 +65,8 @@ export function ConfigNotificacao({ cfg, eu, aoFechar, aoSalvar }: Props) {
       <p className="muted pequeno">Fora desses limites a IA não fecha nada: diz que vai verificar e avisa você.</p>
       <p className="muted pequeno">Campos que o sistema preenche: {CAMPOS_CARTA}</p>
       <Erro msg={erro} />
-      <div className="modal-acoes"><button className="btn" onClick={aoFechar}>Cancelar</button><button className="btn btn-ouro" disabled={salvando} onClick={salvar}>{salvando ? 'Salvando…' : 'Salvar'}</button></div>
-    </Modal>
-  )
+  </>)
+  const botoes = <div className="modal-acoes">{aoFechar && <button className="btn" onClick={aoFechar}>Cancelar</button>}<button className="btn btn-ouro" disabled={salvando} onClick={salvar}>{salvando ? 'Salvando…' : 'Salvar'}</button></div>
+  if (inline) return <section className="cob-config">{conteudo}{botoes}</section>
+  return <Modal titulo="Notificação extrajudicial — dados e modelos" aberto onFechar={aoFechar ?? aoSalvar} largo>{conteudo}{botoes}</Modal>
 }

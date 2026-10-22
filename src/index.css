@@ -3745,3 +3745,7 @@ a.sala-agente:hover { border-color: var(--ouro); transform: translateY(-2px); }
 .es-bloco.beat { background: rgba(255,255,255,.06); border: 1px solid var(--borda); color: var(--muted); font-size: .68rem; text-transform: capitalize; font-style: normal; overflow: hidden; white-space: nowrap; padding: 0 4px; display: flex; align-items: center; }
 .es-bloco.beat-gancho, .es-bloco.beat-chamada, .es-bloco.beat-oferta { background: var(--ouro-fundo); border-color: var(--ouro); color: var(--ouro); }
 .es-bloco.beat-virada, .es-bloco.beat-prova { background: rgba(164,110,230,.15); border-color: #a46ee6; color: #c8a4f2; }
+/* Cobranças → Configurações (formulário na página) */
+.cob-config { max-width: 980px; display: grid; gap: 14px; }
+.cob-config .not-subtitulo:first-child { margin-top: 0; }
+.cob-config .modal-acoes { position: sticky; bottom: 0; background: var(--fundo, var(--bg)); padding: 10px 0; }

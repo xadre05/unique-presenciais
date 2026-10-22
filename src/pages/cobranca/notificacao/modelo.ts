@@ -81,7 +81,7 @@ export type Config = {
   whatsapp_contato: string | null; remetente_nome: string | null; prazo_dias: number; carta_assunto: string | null; carta_modelo: string | null; whatsapp_modelo: string | null
   acordo_tira_encargos: boolean; acordo_parcelas_max: number; acordo_prazo_max_dias: number; ia_canal_id: string | null; ia_ligada: boolean
   advogado_liberou_em: string | null; advogado_liberou_por: string | null; compra_ate: string; multa_pct: number; juros_mes_pct: number
-  nome_fantasia: string | null; cnpj_anterior: string | null; cnpj_anterior_ate: string | null
+  nome_fantasia: string | null; cnpj_anterior: string | null; cnpj_anterior_ate: string | null; atualizado_em?: string | null
 }
 // por cobrança online: CPF, data da compra e as dúvidas que pedem conferência na Hotmart (v_cobranca_conferencia)
 export type Conferencia = {

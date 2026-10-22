@@ -10,13 +10,12 @@ import { Icone } from '../../../components/Icone'
 import { linkWhatsComTexto, nomeCurtoConta, registrarContato, useContasHotmart, type Cobranca } from '../dados'
 import { campos, FASES, horarioComercial, preencher, type Conferencia, type Config, type Dados, type Extra } from './modelo'
 import { ABAS, abaDe, agrupar, semEndereco, type Aba, type Pessoa } from './pessoas'
-import { ConfigNotificacao } from './ConfigNotificacao'
 import { ConferirHotmart } from './ConferirHotmart'
 import { TesteIA } from './TesteIA'
 
-type Props = { lista: Cobranca[]; nomeConta: (id: string | null) => string; aoMudar: () => void; eu: string }
+type Props = { lista: Cobranca[]; nomeConta: (id: string | null) => string; aoMudar: () => void; eu: string; aoConfigurar: () => void }
 
-export function PainelNotificacao({ lista, nomeConta, aoMudar, eu }: Props) {
+export function PainelNotificacao({ lista, nomeConta, aoMudar, eu, aoConfigurar }: Props) {
   const extras = useConsulta<Extra[]>(() => supabase.rpc('cobrancas_para_notificar'), [])
   const conf = useConsulta<Conferencia[]>(() => supabase.from('v_cobranca_conferencia').select('*'), [lista])
   const cfg = useConsulta<Config>(() => supabase.from('cobranca_config').select('*').single(), [])
@@ -27,7 +26,6 @@ export function PainelNotificacao({ lista, nomeConta, aoMudar, eu }: Props) {
   const [carta, setCarta] = useState<Pessoa | null>(null)
   const [conferir, setConferir] = useState<Cobranca | null>(null)
   const [confirmar, setConfirmar] = useState<'enviar' | 'negativar' | null>(null)
-  const [editar, setEditar] = useState(false)
   const [teste, setTeste] = useState<Cobranca | null>(null)
   const [msg, setMsg] = useState<string | null>(null)
   const hoje = hojeISO()
@@ -85,7 +83,7 @@ export function PainelNotificacao({ lista, nomeConta, aoMudar, eu }: Props) {
       <div className={config?.advogado_liberou_em ? 'faixa-info' : 'faixa-alerta'}><Icone nome={config?.advogado_liberou_em ? 'check' : 'alerta'} tam={18} /><span>
         {config?.advogado_liberou_em ? <>Carta liberada pelo advogado em {dataBR(config.advogado_liberou_em)} ({config.advogado_liberou_por}). </> : <><b>Envio travado até o advogado liberar a carta.</b> </>}
         Parcelas vencidas há mais de 5 anos não são cobradas (prescrição){prescritas.length ? <>: <b>{prescritas.length} pessoa(s)</b> saíram da lista por isso</> : ''}. Só compras até <b>{dataBR(config?.compra_ate)}</b> (as mais novas aguardam a posição da Hotmart). Cobra só as parcelas vencidas + multa {config?.multa_pct ?? 2}% e juros {config?.juros_mes_pct ?? 1}% ao mês. Envio em horário comercial{comercial ? '' : ' (agora está fora)'}.
-        {' '}<button type="button" className="link" onClick={() => setEditar(true)}>Dados, modelos e travas</button></span></div>
+        {' '}<button type="button" className="link" onClick={aoConfigurar}>Configurações</button></span></div>
       <nav className="abas">{ABAS.map(([k, r]) => <button key={k} className={aba === k ? 'ativa' : ''} onClick={() => { setAba(k); setMarcadas(new Set()) }}>{r} <span className="muted">{agrupar(naAba(k), kMap, ex, config ?? null, hoje).length}</span></button>)}</nav>
       <div className="pg-filtros">
         <label className="select-icone pg-rotulado"><span>Conta:</span><select value={conta} onChange={(e) => setConta(e.target.value)}><option value="">Todas</option>{(contas.dados ?? []).map((x) => <option key={x.id} value={x.id}>{nomeCurtoConta(x.nome)}</option>)}</select></label>
@@ -140,7 +138,6 @@ export function PainelNotificacao({ lista, nomeConta, aoMudar, eu }: Props) {
       </Modal>}
       {conferir && <ConferirHotmart c={conferir} k={kMap.get(conferir.id)} eu={eu} aoFechar={() => setConferir(null)} aoSalvar={() => { setConferir(null); aoMudar(); conf.recarregar() }} />}
       {teste && <TesteIA c={teste} aoFechar={() => { setTeste(null); aoMudar() }} />}
-      {editar && config && <ConfigNotificacao cfg={config} eu={eu} aoFechar={() => setEditar(false)} aoSalvar={() => { setEditar(false); cfg.recarregar() }} />}
     </div>
   )
 }

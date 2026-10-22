@@ -14,6 +14,7 @@ import { CartaoCobranca } from './CartaoCobranca'
 import { TEMPERATURA, useNotasDePessoas } from '../crm/nota'
 import { RecebimentosCobranca } from './RecebimentosCobranca'
 import { PainelNotificacao } from './notificacao/PainelNotificacao'
+import { ConfiguracoesCobranca } from './notificacao/ConfiguracoesCobranca'
 
 const POR_VEZ = 40
 
@@ -33,7 +34,7 @@ export default function FilaCobranca() {
   const cobrancas = useCobrancas(), contas = useContasHotmart()
   const vendedoras = useConsulta<{ id: string; nome: string }[]>(() => supabase.from('vendedoras').select('id,nome').eq('ativa', true).order('nome'), [])
   const [qs] = useSearchParams()
-  const [tela, setTela] = useState<'fila' | 'notificacao' | 'recebimentos'>('fila')
+  const [tela, setTela] = useState<'fila' | 'notificacao' | 'recebimentos' | 'config'>(qs.get('aba') === 'config' ? 'config' : 'fila')
   const [aba, setAba] = useState<Aba>(qs.get('busca') ? 'todas' : 'a_contatar')
   const [ordem, setOrdem] = useState<Ordem>('antigas')
   const [f, setF] = useState<Filtro>({ origem: '', conta: '', idade: '', quem: '', busca: qs.get('busca') ?? '' })
@@ -70,10 +71,11 @@ export default function FilaCobranca() {
           <button type="button" role="tab" aria-selected={tela === 'fila'} className={tela === 'fila' ? 'ativa' : ''} onClick={() => setTela('fila')}>Fila</button>
           <button type="button" role="tab" aria-selected={tela === 'notificacao'} className={tela === 'notificacao' ? 'ativa' : ''} onClick={() => setTela('notificacao')}>Notificação extrajudicial</button>
           <button type="button" role="tab" aria-selected={tela === 'recebimentos'} className={tela === 'recebimentos' ? 'ativa' : ''} onClick={() => setTela('recebimentos')}>Recebimentos e comissão</button>
+          <button type="button" role="tab" aria-selected={tela === 'config'} className={tela === 'config' ? 'ativa' : ''} onClick={() => setTela('config')}><Icone nome="engrenagem" tam={14} /> Configurações</button>
         </div>}
       </header>
 
-      {tela === 'notificacao' ? <PainelNotificacao lista={todas} nomeConta={nomeConta} aoMudar={cobrancas.recarregar} eu={eu} /> : tela === 'recebimentos' ? <RecebimentosCobranca cobrancas={cobrancas.dados ?? []} nomeVend={nomeVend} aoMudar={cobrancas.recarregar} /> : (<>
+      {tela === 'config' ? <ConfiguracoesCobranca eu={eu} /> : tela === 'notificacao' ? <PainelNotificacao lista={todas} nomeConta={nomeConta} aoMudar={cobrancas.recarregar} eu={eu} aoConfigurar={() => setTela('config')} /> : tela === 'recebimentos' ? <RecebimentosCobranca cobrancas={cobrancas.dados ?? []} nomeVend={nomeVend} aoMudar={cobrancas.recarregar} /> : (<>
         <section className="kpis at-kpis-4">
           <Kpi rotulo="Dívida total" valor={brl(somaRestante(abertas))} tom="erro" sub={`${new Set(abertas.map((c) => c.email ?? c.chave)).size} pessoas · tudo o que falta pagar do contrato`} />
           <Kpi rotulo="Já venceu" valor={brl(somaVencido(abertas))} sub="parte da dívida com a data já passada" />
