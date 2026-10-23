@@ -116,11 +116,25 @@ export function Kpi({ rotulo, valor, tom, sub }: { rotulo: string; valor: string
   )
 }
 
+// menu da esquerda recolhido (só os ícones): a escolha fica guardada neste navegador
+const CHAVE_MENU = 'menu-recolhido'
+function lerRecolhido() { try { return localStorage.getItem(CHAVE_MENU) === '1' } catch { return false } }
+function aplicarRecolhido(sim: boolean) {
+  document.body.classList.toggle('menu-recolhido', sim)
+  // com o menu recolhido, o nome de cada item aparece ao passar o mouse
+  document.querySelectorAll<HTMLAnchorElement>('.lateral nav a').forEach((a) => { if (sim) a.title = a.textContent?.trim() ?? ''; else a.removeAttribute('title') })
+}
+
 export function Marca({ grande, sub = 'Comercial' }: { grande?: boolean; sub?: string }) {
+  const [recolhido, setRecolhido] = useState(lerRecolhido)
+  useEffect(() => { if (!grande) aplicarRecolhido(recolhido) }, [grande, recolhido])
+  const alternar = () => { const n = !recolhido; setRecolhido(n); try { localStorage.setItem(CHAVE_MENU, n ? '1' : '0') } catch { /* navegador não deixou guardar */ } }
   return (
     <div className={`marca-logo${grande ? ' grande' : ''}`}>
       <img src="/logo-unique.png" alt="Unique HOF Academy" />
+      <img className="marca-icone" src="/icone-192.png" alt="" aria-hidden="true" />
       <span className="marca-sub">{sub}</span>
+      {!grande && <button type="button" className="recolher-menu" onClick={alternar} aria-label={recolhido ? 'Abrir o menu' : 'Recolher o menu'} title={recolhido ? 'Abrir o menu' : 'Recolher o menu'}>{recolhido ? '»' : '«'}</button>}
     </div>
   )
 }
