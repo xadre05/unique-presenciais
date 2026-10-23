@@ -32,7 +32,7 @@ export function TabelaSistemas({ uso, abrir, abrirSistema }: Props) {
                   <td>{proxima ? <button className="link" onClick={() => abrir(proxima)}>{proxima.nome}</button> : <span className="muted">—</span>}
                     {proxima && <span className="muted pequeno"> · {NOME_STATUS[proxima.status]}</span>}</td>
                   <td>{trava ? <button className="link alerta-txt pequeno" onClick={() => abrir(trava)}>{trava.bloqueio ? 'Bloqueio' : 'Decisão'}</button> : <span className="muted">—</span>}</td>
-                  <td><button className="link pequeno" onClick={() => abrirSistema(s.nome)}>Ver épicos →</button></td>
+                  <td><button className="link pequeno" onClick={() => abrirSistema(s.nome)}>Ver →</button></td>
                 </tr>
               )
             })}
