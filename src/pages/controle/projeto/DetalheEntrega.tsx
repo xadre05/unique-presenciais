@@ -5,6 +5,7 @@ import { supabase } from '../../../lib/supabase'
 import { dataBR } from '../../../lib/format'
 import { Campo, Erro, Modal } from '../../../components/ui'
 import { Icone } from '../../../components/Icone'
+import { AntesDePublicar, PrioridadePrazo, Travas } from './CamposEntrega'
 import { NOME_QUEM, NOME_STATUS, camposDoStatus, type Entrega, type Quem, type StatusEntrega, type UsoProjeto } from './dados'
 
 type Props = { entrega: Entrega; uso: UsoProjeto; aoFechar: () => void }
@@ -44,6 +45,7 @@ export function DetalheEntrega({ entrega, uso, aoFechar }: Props) {
           <button key={s} className={`prj-status-btn${entrega.status === s ? ' ativo' : ''}`} onClick={() => mudarStatus(s)}>{NOME_STATUS[s]}</button>
         ))}
       </div>
+      <PrioridadePrazo entrega={entrega} uso={uso} />
       <p className="muted pequeno">
         {entrega.semana ? `Semana de ${dataBR(entrega.semana)}` : 'Ainda não foi escolhida para uma semana'}
         {entrega.publicado_em ? ` · publicada em ${dataBR(entrega.publicado_em.slice(0, 10))}` : ''}
@@ -67,9 +69,14 @@ export function DetalheEntrega({ entrega, uso, aoFechar }: Props) {
         <button className="btn btn-mini" onClick={addTarefa} disabled={!nova.trim()}>Adicionar</button>
       </div>
 
+      <Travas key={`${entrega.bloqueio}|${entrega.decisao}`} entrega={entrega} uso={uso} />
       <Campo rotulo="Decisões e pontos combinados" dica="O que foi discutido sobre esta entrega, para ninguém esquecer.">
         <textarea rows={4} value={notas} onChange={(e) => setNotas(e.target.value)} placeholder="Ex.: 22/10 — vitalícios primeiro; quem está devendo fica fora" />
       </Campo>
+      {(entrega.status === 'testar' || entrega.status === 'publicado') && <>
+        <h3>Antes de publicar</h3>
+        <AntesDePublicar entrega={entrega} uso={uso} />
+      </>}
       {(entrega.status === 'testar' || entrega.status === 'publicado') && (
         <Campo rotulo="O que mudou (resumo da publicação)"><textarea rows={3} value={resumo} onChange={(e) => setResumo(e.target.value)} /></Campo>
       )}

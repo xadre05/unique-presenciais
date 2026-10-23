@@ -9,11 +9,15 @@ export type StatusEpico = 'planejado' | 'andamento' | 'concluido' | 'pausado'
 export type StatusEntrega = 'espera' | 'semana' | 'construindo' | 'testar' | 'publicado'
 export type Quem = 'claude' | 'alexandre' | 'equipe'
 
-export type Epico = { id: string; nome: string; descricao: string | null; fase: number; ordem: number; status: StatusEpico; criado_em: string }
+export type Epico = { id: string; nome: string; descricao: string | null; fase: number; ordem: number; status: StatusEpico; sistema: string | null; criado_em: string }
 export type Entrega = {
   id: string; epico_id: string; nome: string; pronto_quando: string | null; status: StatusEntrega; semana: string | null
   ordem: number; resumo: string | null; notas: string | null; publicado_em: string | null; criado_em: string
+  prioridade: Prioridade; prazo: string | null; bloqueio: string | null; decisao: string | null; quem_resolve: QuemResolve | null; impacto: string | null
+  chk_conferido: boolean; chk_testado: boolean; chk_aprovado: boolean
 }
+export type Prioridade = 'alta' | 'media' | 'baixa'
+export type QuemResolve = 'alexandre' | 'claude' | 'equipe' | 'terceiro'
 export type Tarefa = { id: string; entrega_id: string; titulo: string; quem: Quem; feito: boolean; ordem: number }
 export type Ideia = { id: string; texto: string; status: 'nova' | 'triada' | 'descartada'; epico_id: string | null; entrega_id: string | null; criado_em: string }
 
@@ -40,6 +44,35 @@ export const COLUNAS: { status: StatusEntrega; rotulo: string; explica: string }
 export const NOME_STATUS: Record<StatusEntrega, string> = { espera: 'Na lista de espera', semana: 'Nesta semana', construindo: 'Construindo', testar: 'Para você testar', publicado: 'Publicado' }
 export const TOM_STATUS: Record<StatusEntrega, string> = { espera: 'neutro', semana: 'info', construindo: 'ouro', testar: 'alerta', publicado: 'ok' }
 export const NOME_QUEM: Record<Quem, string> = { claude: 'Claude', alexandre: 'Alexandre', equipe: 'Equipe' }
+export const NOME_RESOLVE: Record<QuemResolve, string> = { alexandre: 'Alexandre', claude: 'Claude', equipe: 'Equipe', terceiro: 'Outra empresa ou pessoa' }
+export const PRIORIDADE: Record<Prioridade, { rotulo: string; tom: string; peso: number }> = {
+  alta: { rotulo: 'Alta', tom: 'erro', peso: 0 }, media: { rotulo: 'Média', tom: 'alerta', peso: 1 }, baixa: { rotulo: 'Baixa', tom: 'neutro', peso: 2 },
+}
+
+// os sistemas do ecossistema (cada épico pertence a um), na ordem em que aparecem
+export const SISTEMAS: { nome: string; explica: string; icone: string }[] = [
+  { nome: 'Comercial', explica: 'Turmas, matrículas e vendas', icone: 'turmas' },
+  { nome: 'Atendimento', explica: 'Conversas, contatos e listas', icone: 'whats' },
+  { nome: 'Financeiro', explica: 'Cobrança, comissões e caixa', icone: 'dinheiro' },
+  { nome: 'Campanhas', explica: 'Black, páginas e lançamentos', icone: 'grafico' },
+  { nome: 'Agentes', explica: 'IAs, automações e conteúdo', icone: 'raio' },
+  { nome: 'Controle', explica: 'Serviços, monitor e projeto', icone: 'links' },
+  { nome: 'Unique Clinical', explica: 'Clínica e pacientes', icone: 'pessoa_check' },
+  { nome: 'Clube', explica: 'Área de membros própria', icone: 'livro' },
+]
+
+/** Situação de um sistema pelo que está andando nele agora. */
+export function situacaoSistema(abertas: Entrega[]) {
+  if (abertas.some((e) => e.bloqueio)) return { rotulo: 'Bloqueado', tom: 'erro' }
+  if (abertas.some((e) => e.status === 'testar')) return { rotulo: 'Em validação', tom: 'alerta' }
+  if (abertas.some((e) => e.status === 'construindo' || e.status === 'semana')) return { rotulo: 'Em desenvolvimento', tom: 'info' }
+  return { rotulo: 'Em produção', tom: 'ok' }
+}
+
+/** Ordem de "o que vem primeiro": testar, construindo, semana; depois prioridade e prazo. */
+const PESO_STATUS: Record<StatusEntrega, number> = { testar: 0, construindo: 1, semana: 2, espera: 3, publicado: 4 }
+export const ordemTrabalho = (a: Entrega, b: Entrega) => PESO_STATUS[a.status] - PESO_STATUS[b.status]
+  || PRIORIDADE[a.prioridade].peso - PRIORIDADE[b.prioridade].peso || (a.prazo ?? '9999').localeCompare(b.prazo ?? '9999') || a.ordem - b.ordem
 
 /** Domingo da semana de uma data (a semana vai de domingo a sábado). */
 export function domingoDe(iso = hojeISO()) {
@@ -94,3 +127,10 @@ export function camposDoStatus(status: StatusEntrega, atual: Entrega): Partial<E
   c.publicado_em = status === 'publicado' ? atual.publicado_em ?? new Date().toISOString() : null
   return c
 }
+
+/** Desenvolvido, validado e publicado são coisas diferentes: os três primeiros precisam estar marcados antes de publicar. */
+export const PASSOS_PUBLICAR: { campo: 'chk_conferido' | 'chk_testado' | 'chk_aprovado'; rotulo: string }[] = [
+  { campo: 'chk_conferido', rotulo: 'Código conferido (sem erros, monta e abre)' },
+  { campo: 'chk_testado', rotulo: 'Testado na tela, no computador e no celular' },
+  { campo: 'chk_aprovado', rotulo: 'Aprovado pelo Alexandre' },
+]

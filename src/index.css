@@ -3984,3 +3984,53 @@ button.ci-chip { border: 1px dashed var(--borda); padding: 1px 8px; border-radiu
   .prj-fase-topo { border-right: none; border-bottom: 1px solid var(--borda); padding: 0 0 8px; }
   .prj-quadro { grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); overflow-x: visible; }
 }
+
+/* Projeto do ecossistema — visão geral 2.0 */
+.prj-filtros { display: flex; flex-wrap: wrap; gap: 10px 18px; align-items: center; margin-bottom: 14px; }
+.prj-filtros label { display: flex; align-items: center; gap: 8px; font-size: .85rem; color: var(--muted); }
+.prj-filtros select { min-width: 150px; }
+.prj-kpis-4 { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-bottom: 16px; }
+.prj-cartao-kpi { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 14px; padding: 16px 18px; border: 1px solid var(--borda); border-radius: 12px; background: var(--painel); color: var(--texto); text-decoration: none; min-width: 0; }
+.prj-cartao-kpi:hover { border-color: var(--ouro); }
+.prj-cartao-kpi > svg { color: var(--ouro); }
+.prj-cartao-kpi.erro > svg { color: var(--erro); }
+.prj-cartao-kpi.alerta > svg { color: var(--alerta); }
+.prj-cartao-kpi b { display: block; font-size: .95rem; }
+.prj-cartao-kpi strong { display: block; font-size: 1.6rem; line-height: 1.2; }
+.prj-cartao-kpi .pequeno { color: var(--ouro); white-space: nowrap; align-self: end; }
+.prj-grade-2 { display: grid; grid-template-columns: minmax(0, 1.75fr) minmax(0, 1fr); gap: 14px; align-items: start; margin-bottom: 22px; }
+.prj-caixa { background: var(--painel); border: 1px solid var(--borda); border-radius: 12px; padding: 14px 16px; min-width: 0; }
+.prj-caixa h2 { font-size: 1.05rem; margin: 0 0 10px; }
+.prj-tabela { width: 100%; border-collapse: collapse; font-size: .88rem; }
+.prj-tabela th { text-align: left; color: var(--muted); font-weight: 500; font-size: .78rem; padding: 6px 8px; border-bottom: 1px solid var(--borda); white-space: nowrap; }
+.prj-tabela td { padding: 9px 8px; border-bottom: 1px solid var(--borda); vertical-align: middle; }
+.prj-tabela tr:last-child td { border-bottom: none; }
+.prj-tabela .link { text-align: left; }
+.prj-celula-nome { overflow-wrap: anywhere; }
+.prj-sistema { display: flex; align-items: center; gap: 10px; }
+.prj-sistema > svg { color: var(--ouro); flex-shrink: 0; }
+.prj-sistema > span { display: flex; flex-direction: column; min-width: 0; }
+.prj-travas-lista { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 10px; }
+.prj-travas-lista li { border: 1px solid var(--borda); border-radius: 10px; padding: 10px 12px; background: var(--painel-2); }
+.prj-travas-lista li.bloqueio { border-left: 3px solid var(--erro); }
+.prj-travas-lista li.decisao { border-left: 3px solid var(--alerta); }
+.prj-trava-tipo { display: flex; align-items: center; gap: 6px; font-size: .78rem; color: var(--erro); }
+.decisao .prj-trava-tipo { color: var(--alerta); }
+.prj-trava-nome { display: block; text-align: left; font-weight: 600; margin: 4px 0 2px; }
+.prj-travas-lista p { margin: 0 0 8px; color: var(--muted); }
+.prj-trava-rodape { display: flex; flex-wrap: wrap; gap: 6px 16px; border-top: 1px solid var(--borda); padding-top: 6px; }
+.prj-trava-rodape > span { display: flex; flex-direction: column; }
+.prj-conf { padding: 8px 0; border-bottom: 1px solid var(--borda); }
+.prj-conf:last-child { border-bottom: none; }
+.prj-conf ol { list-style: none; padding: 0; margin: 8px 0 4px; display: flex; flex-direction: column; gap: 6px; }
+.prj-conf li { display: grid; grid-template-columns: 22px 1fr auto; align-items: center; gap: 8px; font-size: .86rem; }
+.prj-conf li .pequeno { color: var(--muted); }
+.prj-conf li.ok .pequeno { color: var(--ok); }
+.prj-conf-num { width: 20px; height: 20px; border-radius: 50%; background: var(--ouro); color: #1a1408; font-size: .72rem; font-weight: 700; display: flex; align-items: center; justify-content: center; }
+.prj-conf li.ok .prj-conf-num { background: var(--ok); }
+.prj-checklist { margin: 0 0 10px 18px; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.prj-travas { border-top: 1px solid var(--borda); margin-top: 10px; padding-top: 6px; }
+.prj-titulo-roteiro { font-size: 1.05rem; margin: 6px 0 10px; }
+@media (max-width: 1100px) { .prj-grade-2 { grid-template-columns: 1fr; } .prj-kpis-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 560px) { .prj-kpis-4 { grid-template-columns: 1fr; } }
+.tabela-rolagem { overflow-x: auto; }

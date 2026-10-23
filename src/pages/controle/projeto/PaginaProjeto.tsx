@@ -26,8 +26,8 @@ export default function PaginaProjeto() {
 
   return (
     <div className="pagina larga">
-      <header className="pagina-topo"><div><h1>Projeto do ecossistema</h1>
-        <p className="muted">Fases e épicos do ecossistema, o que está sendo feito nesta semana e a caixa de ideias. Ideia nova entra na caixa; o que entra na semana é escolhido no domingo.</p></div></header>
+      <header className="pagina-topo"><div><h1>Desenvolvimento do ecossistema</h1>
+        <p className="muted">Sistemas, entregas, bloqueios e decisões num lugar só. Ideia nova entra na caixa de ideias; o que entra na semana é escolhido no domingo.</p></div></header>
       <nav className="abas">
         {ABAS.map(([id, rotulo, icone]) => (
           <button key={id} className={aba === id ? 'ativa' : ''} onClick={() => irPara(id)}><Icone nome={icone} tam={16} /> {rotulo}{id === 'ideias' && novas > 0 && <span className="prj-conta">{novas}</span>}</button>
@@ -36,7 +36,8 @@ export default function PaginaProjeto() {
       <Erro msg={uso.erro} />
       {!uso.dados ? (!uso.erro && <Vazio>Carregando o projeto…</Vazio>) : (
         <>
-          {aba === 'geral' && <VisaoGeral uso={uso} irPara={irPara} abrirEpico={(id) => irPara('epicos', { epico: id })} />}
+          {aba === 'geral' && <VisaoGeral uso={uso} abrir={abrir} abrirEpico={(id) => irPara('epicos', { epico: id })}
+            abrirSistema={(s) => { const ep = uso.dados?.epicos.find((e) => (e.sistema ?? 'Agentes') === s); if (ep) irPara('epicos', { epico: ep.id }) }} />}
           {aba === 'semana' && <QuadroSemana uso={uso} abrir={abrir} />}
           {aba === 'epicos' && <Epicos uso={uso} selecionado={params.get('epico')} selecionar={(id) => irPara('epicos', { epico: id })} abrir={abrir} />}
           {aba === 'ideias' && <Ideias uso={uso} />}
