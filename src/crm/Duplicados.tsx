@@ -27,7 +27,10 @@ export default function Duplicados({ empresaId }: { empresaId: string }) {
   }
   const ignorar = (p: Par) => { const n = [...ignorados, `${p.a}|${p.b}`]; setIgnorados(n); guardarLista(CHAVE_IGNORADOS, n) }
   const lista = (pares ?? []).filter((p) => !ignorados.includes(`${p.a}|${p.b}`))
-  const lado = (nome: string | null, tel: string | null) => <span><b>{nome || 'Sem nome'}</b><span className="muted pequeno"> {telefoneLegivel(tel)}</span></span>
+  const lado = (nome: string | null, tel: string | null, manter: string, juntarId: string) => (
+    <div className="dup-lado"><span><b>{nome || 'Sem nome'}</b><span className="muted pequeno"> {telefoneLegivel(tel)}</span></span>
+      <button className="btn btn-mini" disabled={!!ocupado} onClick={() => juntar(manter, juntarId)}>Ficar com este</button></div>
+  )
   return (
     <section>
       <p className="muted">Pessoas que aparecem duas vezes (mesmo celular ou mesmo e-mail). Escolha qual cadastro fica: as conversas, tarefas e etiquetas do outro passam para ele.</p>
@@ -36,12 +39,8 @@ export default function Duplicados({ empresaId }: { empresaId: string }) {
         <ul className="dup-lista">
           {lista.map((p) => (
             <li key={`${p.a}|${p.b}`}>
-              <div className="dup-par">{lado(p.a_nome, p.a_telefone)}<span className="muted pequeno">e</span>{lado(p.b_nome, p.b_telefone)}<span className="ci-chip">{p.motivo}</span></div>
-              <div className="dup-acoes">
-                <button className="btn btn-mini" disabled={!!ocupado} onClick={() => juntar(p.a, p.b)}>Ficar com {p.a_nome?.split(' ')[0] || 'o 1º'}</button>
-                <button className="btn btn-mini" disabled={!!ocupado} onClick={() => juntar(p.b, p.a)}>Ficar com {p.b_nome?.split(' ')[0] || 'o 2º'}</button>
-                <button className="link pequeno" onClick={() => ignorar(p)}>Não são a mesma pessoa</button>
-              </div>
+              <div className="dup-par">{lado(p.a_nome, p.a_telefone, p.a, p.b)}{lado(p.b_nome, p.b_telefone, p.b, p.a)}</div>
+              <div className="dup-acoes"><span className="ci-chip">{p.motivo}</span><button className="link pequeno" onClick={() => ignorar(p)}>Não são a mesma pessoa</button></div>
             </li>
           ))}
         </ul>
