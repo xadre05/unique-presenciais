@@ -5,8 +5,8 @@ import type { Peca } from '../../comum'
 import { EMPRESA } from '../../marketing/useMarketing'
 import { useLogos } from '../../LogosMarca'
 import { bancoDe, bancoParaCampanha } from '../../BancoImagens'
-import { audioDoVideo } from '../../marketing/edicao/audio'
-import { edicaoDa, guardarEdicao, mesmoArquivo, pedirEdicao, transcrever, useTemEditor, type Edicao, type Receita } from '../../marketing/edicao/dados'
+import { transcreverVideo } from '../cortes/audioLongo'
+import { edicaoDa, guardarEdicao, mesmoArquivo, pedirEdicao, useTemEditor, type Edicao, type Receita } from '../../marketing/edicao/dados'
 import { CORRECAO_HDR, ehHdr, quadrosDoBruto } from '../../marketing/edicao/midias'
 import { montarLinhaTempo } from '../../marketing/edicao/linhaTempo'
 import { montarVideo } from '../../marketing/edicao/montagem'
@@ -115,9 +115,9 @@ export function useEstudio(peca: Peca, aoMudar: () => void) {
     let palavras = (corte || narracao || edicao.partes?.length) && edicao.palavras?.length && confere ? edicao.palavras : null
     let d = corte ? corte.ate - corte.de : edicao.arquivo?.duracao ?? 0
     if (!palavras) {
-      const audio = await audioDoVideo(arquivo)
-      d = audio.duracao; setDuracao(d); setOcupado('Transcrevendo a fala…')
-      palavras = (await transcrever(peca.id, audio.wav)).palavras
+      const t = await transcreverVideo(peca.id, arquivo, (texto) => setOcupado(texto))
+      d = t.duracao; setDuracao(d)
+      palavras = t.palavras
       if (!palavras.length) throw new Error('Não encontrei fala neste vídeo.')
       await guardarEdicao(peca.id, (e) => ({ ...e, arquivo: { nome: arquivo.name, tamanho: arquivo.size, duracao: d }, palavras: palavras!, partes: undefined, receitas: [] }))
     }

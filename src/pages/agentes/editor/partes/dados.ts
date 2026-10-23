@@ -2,8 +2,8 @@
 // e, depois de juntar, monta a transcrição do vídeo inteiro com o tempo de cada palavra deslocado pela parte.
 import { supabase } from '../../../../lib/supabase'
 import { EMPRESA } from '../../marketing/useMarketing'
-import { audioDoVideo } from '../../marketing/edicao/audio'
-import { transcrever, type ArquivoBruto } from '../../marketing/edicao/dados'
+import { type ArquivoBruto } from '../../marketing/edicao/dados'
+import { transcreverVideo } from '../cortes/audioLongo'
 import type { Palavra } from '../../marketing/edicao/linhaTempo'
 
 export type Papel = 'gancho' | 'corpo' | 'chamada' | 'completo'
@@ -11,9 +11,8 @@ export type Parte = { arquivo: File; duracao?: number; palavras?: Palavra[]; pap
 export type Ordem = { ordem: number[]; descartar: { parte: number; motivo: string }[]; papeis: { parte: number; papel: Papel }[]; explicacao: string }
 
 export async function lerParte(peca: string, parte: Parte): Promise<Parte> {
-  const audio = await audioDoVideo(parte.arquivo)
-  const { palavras } = await transcrever(peca, audio.wav)
-  return { ...parte, duracao: audio.duracao, palavras }
+  const { palavras, duracao } = await transcreverVideo(peca, parte.arquivo)
+  return { ...parte, duracao, palavras }
 }
 
 export const falaDa = (p: Parte) => (p.palavras ?? []).map((x) => x.p).join(' ')

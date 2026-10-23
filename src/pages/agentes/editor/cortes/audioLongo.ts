@@ -124,15 +124,34 @@ export async function lerAudioLongo(arquivo: File, aoBloco: (amostras: Int16Arra
   return total
 }
 
-export async function transcreverLongo(arquivo: File, aoProgresso: Progresso): Promise<{ palavras: Palavra[]; duracao: number }> {
+export async function transcreverLongo(arquivo: File, aoProgresso: Progresso, peca = ''): Promise<{ palavras: Palavra[]; duracao: number }> {
   const palavras: Palavra[] = []
   let inicioBloco = 0
   const duracao = await lerAudioLongo(arquivo, async (amostras, total) => {
     const ini = inicioBloco
     aoProgresso(`Transcrevendo ${Math.round(ini / 60)} a ${Math.round((ini + amostras.length / TAXA) / 60)} min de ${Math.round(total / 60)}…`, Math.min(0.99, (ini + amostras.length / TAXA) / total))
-    const r = await transcrever('', paraWav(amostras))
+    const r = await transcrever(peca, paraWav(amostras))
     for (const w of r.palavras) palavras.push({ p: w.p, i: w.i + ini, f: w.f + ini })
     inicioBloco += amostras.length / TAXA
   }, aoProgresso)
   return { palavras, duracao }
+}
+
+// Acima disso o Chrome não carrega o arquivo inteiro na memória (vídeo .MOV do iPhone passa fácil de 2 GB):
+// lê aos pedaços. Abaixo, o caminho de sempre, que serve para qualquer formato.
+const GRANDE = 400 * 1024 * 1024
+const semAviso: Progresso = () => {}
+
+/** Fala de um vídeo de qualquer tamanho, com o tempo de cada palavra. */
+export async function transcreverVideo(peca: string, arquivo: File, aoProgresso: Progresso = semAviso): Promise<{ palavras: Palavra[]; duracao: number }> {
+  if (arquivo.size > GRANDE) return transcreverLongo(arquivo, aoProgresso, peca)
+  try {
+    const audio = await audioDoVideo(arquivo)
+    const { palavras } = await transcrever(peca, audio.wav)
+    return { palavras, duracao: audio.duracao }
+  } catch (e) {
+    // arquivo que o navegador não consegue carregar de uma vez: tenta aos pedaços
+    if (e instanceof DOMException && e.name === 'NotReadableError') return transcreverLongo(arquivo, aoProgresso, peca)
+    throw e
+  }
 }
