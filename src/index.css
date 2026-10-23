@@ -4044,3 +4044,4 @@ button.ci-chip { border: 1px dashed var(--borda); padding: 1px 8px; border-radiu
 .es-andamento-barra { height: 8px; border-radius: 99px; background: var(--borda, #26262a); overflow: hidden; }
 .es-andamento-barra span { display: block; height: 100%; background: var(--ouro, #c9a45c); border-radius: 99px; transition: width 1s linear; }
 .es-pe-acoes { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+.ev-midias-resumo { display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center; margin: 10px 0; }

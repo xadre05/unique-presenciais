@@ -49,6 +49,8 @@ export function usarApoio(pecaId: string, edicao: Edicao, banco: ItemBanco[], ao
   }
   // tirar uma mídia muda a numeração: as coberturas das edições já feitas que apontavam para ela deixam de valer
   const remover = (n: number) => guardar((e) => ({ ...e, midias: (e.midias ?? []).filter((_, k) => k !== n) }))
+  // tirar várias de uma vez: todas, ou só as que ficaram sem arquivo depois de recarregar a página
+  const limpar = (soSemArquivo: boolean) => guardar((e) => ({ ...e, midias: soSemArquivo ? (e.midias ?? []).filter((m) => m.caminho || arquivos.has(chaveDe(m))) : [] }))
   const descrever = (n: number, texto: string) => guardar((e) => ({ ...e, midias: (e.midias ?? []).map((m, k) => (k === n ? { ...m, descricao: texto.trim() || undefined } : m)) }))
 
   const escolherMusica = async (f: File | null) => {
@@ -83,5 +85,5 @@ export function usarApoio(pecaId: string, edicao: Edicao, banco: ItemBanco[], ao
     return prontas.filter((x): x is NonNullable<typeof x> => !!x)
   }
 
-  return { midias, novasDoBanco, arquivos, apoio, musica, arquivoMusica, adicionar, remover, descrever, escolherMusica, mudarVolume, volume, paraAgente }
+  return { midias, novasDoBanco, arquivos, apoio, musica, arquivoMusica, adicionar, remover, limpar, descrever, escolherMusica, mudarVolume, volume, paraAgente }
 }

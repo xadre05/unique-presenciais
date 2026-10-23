@@ -21,11 +21,12 @@ function Miniatura({ arquivo }: { arquivo?: File }) {
 
 type Props = {
   midias: MidiaApoio[]; novasDoBanco: number; arquivos: Map<string, File>; musica?: MusicaFundo; arquivoMusica?: File
-  aoAdicionar: (f: File[]) => void; aoRemover: (n: number) => void; aoDescrever: (n: number, texto: string) => void
+  aoAdicionar: (f: File[]) => void; aoRemover: (n: number) => void; aoLimpar?: (soSemArquivo: boolean) => void; aoDescrever: (n: number, texto: string) => void
   aoMusica: (f: File | null) => void; aoVolume: (v: number) => void
 }
 
-export function ApoioEdicao({ midias, novasDoBanco, arquivos, musica, arquivoMusica, aoAdicionar, aoRemover, aoDescrever, aoMusica, aoVolume }: Props) {
+export function ApoioEdicao({ midias, novasDoBanco, arquivos, musica, arquivoMusica, aoAdicionar, aoRemover, aoLimpar, aoDescrever, aoMusica, aoVolume }: Props) {
+  const semArquivo = midias.filter((m) => !m.caminho && !arquivos.has(chaveDe(m))).length
   // o texto do que é cada mídia só é guardado quando a pessoa sai do campo
   const [rascunhos, setRascunhos] = useState<Record<number, string>>({})
   return (
@@ -34,6 +35,14 @@ export function ApoioEdicao({ midias, novasDoBanco, arquivos, musica, arquivoMus
       <p className="muted pequeno">As imagens do <Link to="/agentes/marca" className="link">Banco de imagens da marca</Link> (Base da marca) entram sozinhas{novasDoBanco ? ` (${novasDoBanco} nova(s) entram na próxima edição)` : ''}. Aqui você adiciona o que é só deste vídeo. O agente coloca por cima da fala nos momentos certos, em tela cheia ou dividida.</p>
       <label className="btn btn-contorno-ouro ev-arquivo"><Icone nome="importar" tam={16} /> Adicionar imagens ou clipes
         <input type="file" accept="image/*,video/*" multiple hidden onChange={(e) => { aoAdicionar([...(e.target.files ?? [])]); e.target.value = '' }} /></label>
+      {midias.length > 0 && (
+        <div className="ev-midias-resumo pequeno">
+          <span>{midias.length - semArquivo} de {midias.length} prontas{midias.length > 45 && ' · o agente olha as 45 primeiras'}</span>
+          {semArquivo > 0 && <span className="ev-falta">Faltam {semArquivo}: clique em "Adicionar imagens ou clipes" e escolha de novo todos os arquivos da mesma pasta (ele reconhece os que já estão na lista)</span>}
+          {aoLimpar && semArquivo > 0 && <button type="button" className="link pequeno" onClick={() => aoLimpar(true)}>Tirar as {semArquivo} sem arquivo</button>}
+          {aoLimpar && <button type="button" className="link pequeno" onClick={() => aoLimpar(false)}>Tirar todas</button>}
+        </div>
+      )}
       {midias.length > 0 && (
         <div className="ev-midias">
           {midias.map((m, n) => {
