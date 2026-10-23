@@ -36,7 +36,7 @@ function orientacaoDe(endereco: string) {
 function orientacoesDoBruto(vertical: boolean, duracao: number, midias: number) {
   return [
     vertical ? 'FORMATO: vídeo em pé (9:16).' : 'FORMATO: vídeo deitado (16:9), gravado na horizontal. O vídeo final sai deitado; enquadre pensando nisso e use "dividida" lado a lado só se couber.',
-    duracao > 120 ? 'VÍDEO LONGO DE VENDA: nada de corte seco de reels. Corte só erro, repetição, conversa fora do roteiro e pausa longa; mantenha cada frase inteira, com um respiro curto (0,2 a 0,4 s) antes do corte, e nunca corte no meio de uma ideia.' : '',
+    duracao > 120 ? 'BRUTO LONGO POR CAUSA DE ERROS: o vídeo final tem que ser enxuto e com ritmo. Tire tudo o que não é a fala final: erro, frase repetida (fica a última tentativa), conversa com a equipe, comentário fora do roteiro e pausa. Mas cada frase que fica entra INTEIRA, do começo ao fim: nunca corte dentro de uma frase nem pule palavras no meio dela. A dinâmica vem de zoom, imagens por cima, textos na tela e cortes entre frases, não de picotar a fala.' : '',
     'PREÇOS E NÚMEROS: nunca corte dentro de um número falado ("quatro mil novecentos e noventa e sete" fica inteiro, do começo ao fim). Se a pessoa errou ou tropeçou no preço, use a tomada em que ela falou certo e completo. Número na legenda e no texto da tela tem que ser o número inteiro que foi dito e bater com o roteiro.',
     midias ? `A equipe enviou ${midias} mídias de apoio para ESTE vídeo: use-as em "coberturas" sempre que a fala falar do que a mídia mostra (plataforma, presencial, turma, depoimento, Clinical, oferta).` : '',
   ]
