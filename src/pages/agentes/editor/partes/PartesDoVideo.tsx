@@ -99,7 +99,7 @@ export function PartesDoVideo({ peca, arquivos, edicao, aoJuntar, aoCancelar }: 
       {ocupado && <p className="pequeno pt-ocupado">{ocupado}</p>}
       {erro && <p className="nota pequeno"><Icone nome="alerta" tam={14} /> {erro}</p>}
       <div className="ev-escolha">
-        <button type="button" className="btn btn-ouro" disabled={!!ocupado || !ordem.length} onClick={juntar}><Icone nome="video" tam={15} /> Juntar e continuar</button>
+        <button type="button" className="btn btn-ouro" disabled={!!ocupado || !ordem.length} onClick={juntar}><Icone nome="video" tam={15} /> {ordem.length === 1 ? 'Usar este vídeo e continuar' : 'Juntar e continuar'}</button>
         {(guardada || erro) && <button type="button" className="btn btn-contorno-ouro" disabled={!!ocupado} onClick={organizar}><Icone nome="floco" tam={15} /> O agente organiza</button>}
         <button type="button" className="link pequeno" disabled={!!ocupado} onClick={aoCancelar}>Escolher outros arquivos</button>
       </div>
