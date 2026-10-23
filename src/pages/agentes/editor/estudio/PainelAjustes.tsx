@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { Icone } from '../../../../components/Icone'
 import type { Estudio } from './useEstudio'
+import { Andamento } from './Andamento'
 
 const hora = (iso: string) => new Date(iso).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
 
@@ -55,7 +56,7 @@ export function PainelAjustes({ e }: { e: Estudio }) {
             </div>
           </div>
         ))}
-        {e.ocupado && <div className="es-msg agente"><div><span className="es-msg-quem">Agente Editor</span><p className="muted">{e.ocupado}</p></div></div>}
+        {e.ocupado && <div className="es-msg agente"><div><span className="es-msg-quem">Agente Editor</span><Andamento texto={e.ocupado} /></div></div>}
       </div>
       <div className="es-pedido">
         <textarea rows={3} value={pedido} onChange={(x) => setPedido(x.target.value)} placeholder="O que você quer mudar?" disabled={!e.receita || !!e.ocupado}

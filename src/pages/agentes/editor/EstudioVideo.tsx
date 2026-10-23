@@ -21,6 +21,7 @@ import { PainelEtapa } from './estudio/PainelEtapa'
 import { PainelAjustes } from './estudio/PainelAjustes'
 import { TrilhaEdicao } from './estudio/TrilhaEdicao'
 import { ConcluirEdicao } from './estudio/ConcluirEdicao'
+import { Andamento } from './estudio/Andamento'
 
 type AbaMovel = 'previa' | 'etapas' | 'ajustes'
 
@@ -41,16 +42,16 @@ function Finalidade({ peca, aoMudar }: { peca: Peca; aoMudar: () => void }) {
   )
 }
 
-function Previa({ e, peca, aoTempo }: { e: Estudio; peca: Peca; aoTempo: (t: number) => void }) {
+function Previa({ e, aoTempo }: { e: Estudio; aoTempo: (t: number) => void }) {
   if (!e.receita) return (
-    <div className="es-vazio"><Icone nome="video" tam={30} /><p>{e.ocupado ?? 'A prévia aparece aqui depois que o agente editar.'}</p>
+    <div className="es-vazio">{e.ocupado ? <Andamento texto={e.ocupado} /> : <><Icone nome="video" tam={30} /><p>A prévia aparece aqui depois que o agente editar.</p></>}
       {!e.ocupado && <button type="button" className="btn btn-ouro btn-mini" onClick={() => e.setPasso(e.arquivo ? 'imagens' : 'video')}>{e.arquivo ? 'Revisar as etapas e editar' : 'Escolher o vídeo'}</button>}</div>
   )
   if (!e.linha || !e.url || !e.confere) return (
     <div className="es-vazio"><Icone nome="video" tam={30} /><p>Para ver a prévia, escolha neste computador o mesmo vídeo bruto{e.edicao.arquivo ? ` (${e.edicao.arquivo.nome})` : ''}.</p>
       <button type="button" className="btn btn-ouro btn-mini" onClick={() => e.setPasso('video')}>Escolher o vídeo</button></div>
   )
-  return <PreviaVideo url={e.url} linha={e.linha} vertical={peca.tipo !== 'video'} apoio={e.apoio.apoio} musica={e.apoio.musica} cor={e.cor} aoTempo={aoTempo} codigos={e.codigos} visual={e.visual} />
+  return <PreviaVideo url={e.url} linha={e.linha} vertical={e.vertical} apoio={e.apoio.apoio} musica={e.apoio.musica} cor={e.cor} aoTempo={aoTempo} codigos={e.codigos} visual={e.visual} />
 }
 
 function Barra({ e, aoConcluir }: { e: Estudio; aoConcluir: () => void }) {
@@ -102,7 +103,7 @@ function TelaEstudio({ peca, aoMudar }: { peca: Peca; aoMudar: () => void }) {
           <main className="es-centro">
             {e.passo ? <PainelEtapa e={e} peca={peca} aoMudar={aoMudar} /> : (<>
               <div className="es-centro-topo"><h3>Prévia do vídeo</h3></div>
-              <Previa e={e} peca={peca} aoTempo={setAgora} />
+              <Previa e={e} aoTempo={setAgora} />
               {e.linha && e.confere && <TrilhaEdicao linha={e.linha} agora={agora} />}
             </>)}
           </main>

@@ -4037,3 +4037,9 @@ button.ci-chip { border: 1px dashed var(--borda); padding: 1px 8px; border-radiu
 .prj-tabela td:last-child, .prj-tabela th:last-child { white-space: nowrap; }
 .prj-tabela td:first-child { min-width: 210px; }
 .prj-tabela td:nth-child(2) { white-space: nowrap; }
+
+/* Estúdio: andamento da edição (passo, tempo e barra) */
+.es-andamento { width: min(420px, 100%); display: grid; gap: 8px; text-align: left; }
+.es-andamento p { margin: 0; }
+.es-andamento-barra { height: 8px; border-radius: 99px; background: var(--borda, #26262a); overflow: hidden; }
+.es-andamento-barra span { display: block; height: 100%; background: var(--ouro, #c9a45c); border-radius: 99px; transition: width 1s linear; }

@@ -25,7 +25,7 @@ export function ConcluirEdicao({ e, peca, aoVoltar, aoMudar }: { e: Estudio; pec
         <div>
           <h3 className="ok-txt"><Icone nome="check" tam={18} /> Vídeo final pronto</h3>
           <p className="muted">Editado e pronto para ser entregue.</p>
-          <p className="pequeno"><b>{f.nome}</b><br /><span className="muted">{e.linha ? mmss(e.linha.duracao) : ''} · {peca.tipo === 'video' ? '1920 × 1080' : '1080 × 1920'} · {(f.arquivo.size / 1048576).toFixed(0)} MB</span></p>
+          <p className="pequeno"><b>{f.nome}</b><br /><span className="muted">{e.linha ? mmss(e.linha.duracao) : ''} · {e.vertical ? '1080 × 1920' : '1920 × 1080'} · {(f.arquivo.size / 1048576).toFixed(0)} MB</span></p>
           <a className="btn btn-contorno-ouro btn-mini" href={f.url} download={f.nome}><Icone nome="importar" tam={14} /> Baixar</a>
         </div>
         <ul className="es-checks">

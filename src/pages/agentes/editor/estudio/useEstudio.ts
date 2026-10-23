@@ -20,6 +20,17 @@ import { baixarBruto } from '../../marketing/edicao/brutoNuvem'
 import { usePerfilEditor } from '../dados'
 import type { Juntado } from '../partes/PartesDoVideo'
 
+// o navegador já entrega largura e altura de exibição (com o giro do celular aplicado)
+function orientacaoDe(endereco: string) {
+  return new Promise<boolean | null>((resolver) => {
+    const v = document.createElement('video')
+    v.preload = 'metadata'; v.muted = true
+    v.onloadedmetadata = () => resolver(v.videoWidth && v.videoHeight ? v.videoHeight > v.videoWidth : null)
+    v.onerror = () => resolver(null)
+    v.src = endereco
+  })
+}
+
 export type Passo = 'video' | 'conteudo' | 'estilo' | 'imagens'
 export const PASSOS: Passo[] = ['video', 'conteudo', 'estilo', 'imagens']
 const MAX_RECEITAS = 6
@@ -43,6 +54,9 @@ export function useEstudio(peca: Peca, aoMudar: () => void) {
   const [final, setFinal] = useState<VideoMontado | null>(null)
   const [hdr, setHdr] = useState(false)
   const [corrigirHdr, setCorrigirHdr] = useState(true)
+  // em pé ou deitado: segue o vídeo gravado (sem ler o vídeo ainda, vai pelo tipo da peça)
+  const [emPe, setEmPe] = useState<boolean | null>(null)
+  const vertical = emPe ?? peca.tipo !== 'video'
   // vídeo gravado em partes: os arquivos escolhidos, enquanto o agente organiza e a pessoa confere a ordem
   const [partes, setPartes] = useState<File[] | null>(null)
   // estilo: o escolhido neste vídeo ('' = estilo da casa) ou, sem escolha, o padrão definido em Estilos
@@ -68,7 +82,9 @@ export function useEstudio(peca: Peca, aoMudar: () => void) {
   const visual = useMemo(() => visualDoConfig(edicao.config_estilo), [edicao.config_estilo])
   const corte = (peca.conteudo as { corte?: { de: number; ate: number } }).corte
   const escolher = (f: File) => {
-    setErro(null); setArquivo(f); setUrl(URL.createObjectURL(f)); setFinal(null); setHdr(false); void ehHdr(f).then(setHdr)
+    const endereco = URL.createObjectURL(f)
+    setErro(null); setArquivo(f); setUrl(endereco); setFinal(null); setHdr(false); void ehHdr(f).then(setHdr)
+    setEmPe(null); void orientacaoDe(endereco).then(setEmPe)
     // capa do cartão na entrada do Editor (uma foto pequena do bruto)
     if (!edicao.capa) void quadrosDoBruto(f, 1, corte?.de, corte?.ate).then((q) => q[0] && guardarEdicao(peca.id, (x) => ({ ...x, capa: q[0].miniatura })))
   }
@@ -124,7 +140,7 @@ export function useEstudio(peca: Peca, aoMudar: () => void) {
     setOcupado('O agente está editando…')
     const { plano: rascunho } = await pedirEdicao(peca.id, palavras, d, await apoio.paraAgente(), { modeloRef, quadros: await quadrosDoBruto(arquivo, 4, corte?.de, corte?.ate), referencia: edicao.referencia, pedido: [narracao ? SEM_PESSOA : '', pedidoDoConfig(edicao.config_estilo)].filter(Boolean).join('\n') || undefined })
     if (rascunho.cenas?.length) setOcupado(`Animando ${rascunho.cenas.length} cena(s)…`)
-    const plano = await escreverCenas(peca.id, rascunho, palavras, peca.tipo !== 'video')
+    const plano = await escreverCenas(peca.id, rascunho, palavras, vertical)
     await guardarEdicao(peca.id, (e) => comReceita(e, { plano, em: new Date().toISOString() }))
     setPasso(null); setFinal(null)
   })
@@ -132,7 +148,7 @@ export function useEstudio(peca: Peca, aoMudar: () => void) {
     if (!edicao.palavras || !pedido.trim()) return
     const { plano: rascunho } = await pedirEdicao(peca.id, edicao.palavras, duracaoBruto, await apoio.paraAgente(), { pedido: pedido.trim(), lembrar: regra ? pedido.trim() : '', anterior: receita?.plano, modeloRef, quadros: arquivo ? await quadrosDoBruto(arquivo, 4, corte?.de, corte?.ate) : undefined, referencia: edicao.referencia })
     if (rascunho.cenas?.some((c) => !receita?.plano.cenas?.some((x) => x.descricao.trim() === c.descricao.trim()))) setOcupado('Animando as cenas…')
-    const plano = await escreverCenas(peca.id, rascunho, edicao.palavras, peca.tipo !== 'video', receita?.plano)
+    const plano = await escreverCenas(peca.id, rascunho, edicao.palavras, vertical, receita?.plano)
     await guardarEdicao(peca.id, (e) => comReceita(e, { plano, pedido: pedido.trim(), em: new Date().toISOString() }))
     setFinal(null)
   })
@@ -140,7 +156,7 @@ export function useEstudio(peca: Peca, aoMudar: () => void) {
     if (!arquivo || !linha) return
     setErro(null); setFinal(null); setProgresso(0)
     try {
-      const blob = await montarVideo(arquivo, linha, peca.tipo !== 'video', setProgresso, apoio.apoio, apoio.musica, cor, codigos, visual)
+      const blob = await montarVideo(arquivo, linha, vertical, setProgresso, apoio.apoio, apoio.musica, cor, codigos, visual)
       const ext = blob.type.includes('mp4') ? 'mp4' : 'webm'
       const nome = `${peca.titulo.replace(/[^\p{L}\p{N} -]/gu, '').trim().slice(0, 60) || 'video'} - V${versao + 1}.${ext}`
       setFinal({ url: URL.createObjectURL(blob), nome, arquivo: new File([blob], nome, { type: blob.type }) })
@@ -148,7 +164,7 @@ export function useEstudio(peca: Peca, aoMudar: () => void) {
   }
 
   return {
-    edicao, temEditor: temEditor.dados, apoio, arquivo, url, confere, escolher, hdr, corrigirHdr, setCorrigirHdr, cor,
+    vertical, edicao, temEditor: temEditor.dados, apoio, arquivo, url, confere, escolher, hdr, corrigirHdr, setCorrigirHdr, cor,
     modeloRef, escolherEstilo, receitas, versao, setVersao, receita, linha, duracaoBruto,
     passo, setPasso, ocupado, erro, progresso, final, editar, ajustar, gerarFinal, codigos, visual,
     partes, escolherVarios, juntou, cancelarPartes: () => setPartes(null),
