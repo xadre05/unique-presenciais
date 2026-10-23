@@ -112,6 +112,14 @@ const FERRAMENTA = {
   },
 }
 
+// ordem em que o agente escreve: o que faz o vídeo ter vida (imagens, textos, zoom) vem antes da lista longa de destaques,
+// para não ficar de fora se a resposta chegar no limite de tamanho
+const ORDEM_CAMPOS = ['beats', 'resumo', 'trechos', 'coberturas', 'textos', 'zooms', 'enquadramento', 'cenas', 'efeitos', 'efeitos_automaticos', 'legenda', 'chaves', 'destaques', 'correcoes', 'roteiro_identificado', 'faltou', 'checagem']
+{
+  const props = FERRAMENTA.input_schema.properties as Record<string, unknown>
+  FERRAMENTA.input_schema.properties = Object.fromEntries([...ORDEM_CAMPOS.filter((k) => k in props), ...Object.keys(props).filter((k) => !ORDEM_CAMPOS.includes(k))].map((k) => [k, props[k]])) as typeof FERRAMENTA.input_schema.properties
+}
+
 // padrão mínimo de um reels editado (docs: "Agente Editor de Vídeo — como deveria ser"). Vídeo só de rosto com legenda não é edição.
 const QUALIDADE = [
   'PADRÃO MÍNIMO (confira tudo antes de entregar e preencha "checagem"):',
@@ -224,9 +232,9 @@ async function editar(db: SupabaseClient, corpo: Record<string, unknown>) {
     e.observacoes ? `- orientações da equipe: ${e.observacoes}` : '',
   ].filter(Boolean).join('\n')
   const sistema = [
-    'Você é o editor de vídeo do Agente de Marketing de uma escola de harmonização orofacial. Edita vídeos verticais de fala para a câmera (reels).',
+    'Você é o editor de vídeo do Agente de Marketing de uma escola de harmonização orofacial. Edita vídeos de fala para a câmera: reels em pé e também vídeos de venda mais longos, em pé ou deitados (o formato vem no pedido).',
     'Você recebe a transcrição palavra por palavra (número | início | fim em segundos | palavra) e o roteiro que a pessoa usou para gravar.',
-    'Seu trabalho: escolher os trechos que ficam (corte seco, ritmo de reels), corrigir a legenda, escolher destaques, textos na tela e zooms.',
+    'Seu trabalho: escolher os trechos que ficam (cortes entre frases, com ritmo, sem nunca cortar dentro de uma frase), corrigir a legenda, escolher destaques, textos na tela e zooms.',
     'Regras: o vídeo começa direto no gancho (nada de "oi, gente" se houver gancho melhor); quando a pessoa repete uma frase, fica a melhor tomada (quase sempre a última, mais fluente); tire hesitações e pausas longas; não mude a ordem das ideias a não ser que o roteiro peça; não corte no meio de uma ideia.',
     'Nunca escreva na tela promessa de resultado, preço ou dado que a pessoa não falou.',
     'MÍDIAS DE APOIO (quando a equipe enviar): fotos, prints e clipes que você coloca por cima da fala em "coberturas", olhando as miniaturas. Regras: a mídia combina com o que está sendo dito naquele momento (falou da plataforma, mostra a tela da plataforma; falou do presencial, mostra a turma); cada cobertura de 1,5 a 5 segundos, terminando no fim de uma frase; o gancho (primeiros 2 a 3 segundos) fica com o rosto, a não ser que a mídia seja mais forte que a fala; em criativo de anúncio cubra de 30% a 60% do vídeo, alternando rosto e mídia para manter o ritmo; em vídeo de relacionamento, menos. "dividida" para explicações e listas (a pessoa continua aparecendo), "cheia" para impacto curto (resultado, oferta, prova). Não repita a mesma mídia seguida; varie o movimento. Mídia de antes e depois só se estiver descrita como autorizada.',
@@ -251,12 +259,12 @@ async function editar(db: SupabaseClient, corpo: Record<string, unknown>) {
     c.briefing?.finalidade === 'anuncio' ? 'ESTA PEÇA É UM CRIATIVO DE ANÚNCIO PAGO: ritmo rápido, gancho fortíssimo, mais coberturas.' : '',
     `DURAÇÃO DO BRUTO: ${Number(corpo.duracao ?? 0).toFixed(1)} s`,
     `TRANSCRIÇÃO:\n${palavras.map((w, n) => `${n}|${w.i.toFixed(2)}|${w.f.toFixed(2)}|${w.p}`).join('\n')}`,
-    'Entregue chamando OBRIGATORIAMENTE a ferramenta entregar_edicao.',
+    'Entregue chamando OBRIGATORIAMENTE a ferramenta entregar_edicao, direto, sem escrever nada antes nem depois dela (pense em silêncio). Seja econômico nas listas longas: destaques no máximo 1 a cada 6 palavras.',
   ].filter(Boolean).join('\n\n')
   const r = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: { 'x-api-key': String(chave), 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
-    body: JSON.stringify({ model: modelo, max_tokens: 16000, system: sistema, messages: [{ role: 'user', content: [
+    body: JSON.stringify({ model: modelo, max_tokens: 24000, system: sistema, messages: [{ role: 'user', content: [
       ...quadros.flatMap((q) => [{ type: 'text', text: `Quadro do vídeo bruto em ${q.t} s:` }, { type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: q.miniatura } }]),
       ...quadrosRef.flatMap((q) => [{ type: 'text', text: `Quadro da referência em ${q.t} s:` }, { type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: q.miniatura } }]),
       ...midias.filter((m) => m.miniatura).flatMap((m) => [{ type: 'text', text: `Mídia ${m.n}:` }, { type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: m.miniatura } }]),
@@ -273,6 +281,8 @@ async function editar(db: SupabaseClient, corpo: Record<string, unknown>) {
   // às vezes uma lista vem como texto JSON dentro da ferramenta: converte de volta
   if (plano && typeof plano === 'object') for (const [k, v] of Object.entries(plano)) { if (typeof v === 'string' && /^\s*[[{]/.test(v)) { try { plano[k] = JSON.parse(v) } catch { /* fica o texto */ } } }
   if (!plano?.trechos?.length) throw new Error('O agente não devolveu a edição. Tente de novo.')
+  // resposta cortada no limite de tamanho: avisa em vez de entregar uma edição pela metade sem dizer nada
+  if (resp.stop_reason === 'max_tokens') plano.resumo = `${String(plano.resumo ?? '')} (Atenção: a resposta do agente chegou no limite de tamanho e pode ter ficado incompleta; se faltar imagem ou texto na tela, peça de novo.)`
   const ent = Number(resp.usage?.input_tokens ?? 0), sai = Number(resp.usage?.output_tokens ?? 0)
   const p = PRECO[modelo]
   await registrar(db, empresa, 'edicao_video', pecaId, `Edição: ${String(plano.resumo ?? '')}`, (ent * p.entrada + sai * p.saida) / 1_000_000, modelo, ent, sai)
