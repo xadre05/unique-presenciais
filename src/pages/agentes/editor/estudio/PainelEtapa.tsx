@@ -72,7 +72,8 @@ export function PainelEtapa({ e, peca, aoMudar }: { e: Estudio; peca: Peca; aoMu
         <button type="button" className="btn btn-contorno" onClick={() => e.setPasso(i > 0 ? PASSOS[i - 1] : e.receita ? null : 'video')} disabled={i === 0 && !e.receita}><Icone nome="esquerda" tam={15} /> Voltar</button>
         {i < PASSOS.length - 1 ? <button type="button" className="btn btn-ouro" onClick={() => e.setPasso(PASSOS[i + 1])} disabled={p === 'video' && (!e.arquivo || !!e.partes)}>{PROXIMO[p]} <Icone nome="seta_dir" tam={15} /></button>
           : primeira ? <button type="button" className="btn btn-ouro" onClick={editar} disabled={!e.arquivo || !!e.ocupado}><Icone nome="floco" tam={15} /> Editar com o agente</button>
-            : <button type="button" className="btn btn-ouro" onClick={() => e.setPasso(null)}>Ver a prévia <Icone nome="seta_dir" tam={15} /></button>}
+            : <span className="es-pe-acoes"><button type="button" className="btn btn-contorno-ouro" onClick={editar} disabled={!e.arquivo || !!e.ocupado}><Icone nome="floco" tam={15} /> Editar de novo do zero</button>
+              <button type="button" className="btn btn-ouro" onClick={() => e.setPasso(null)}>Ver a prévia <Icone nome="seta_dir" tam={15} /></button></span>}
       </footer>
     </section>
   )

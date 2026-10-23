@@ -157,7 +157,8 @@ export function useEstudio(peca: Peca, aoMudar: () => void) {
   })
   const ajustar = (pedido: string, regra: boolean) => executar('O agente está ajustando…', async () => {
     if (!edicao.palavras || !pedido.trim()) return
-    const { plano: rascunho } = await pedirEdicao(peca.id, edicao.palavras, duracaoBruto, await apoio.paraAgente(), { pedido: pedido.trim(), lembrar: regra ? pedido.trim() : '', anterior: receita?.plano, modeloRef, quadros: arquivo ? await quadrosDoBruto(arquivo, 4, corte?.de, corte?.ate) : undefined, referencia: edicao.referencia })
+    const midias = await apoio.paraAgente()
+    const { plano: rascunho } = await pedirEdicao(peca.id, edicao.palavras, duracaoBruto, midias, { pedido: [pedido.trim(), ...orientacoesDoBruto(vertical, duracaoBruto, midias.length)].filter(Boolean).join('\n'), lembrar: regra ? pedido.trim() : '', anterior: receita?.plano, modeloRef, quadros: arquivo ? await quadrosDoBruto(arquivo, 4, corte?.de, corte?.ate) : undefined, referencia: edicao.referencia })
     if (rascunho.cenas?.some((c) => !receita?.plano.cenas?.some((x) => x.descricao.trim() === c.descricao.trim()))) setOcupado('Animando as cenas…')
     const plano = await escreverCenas(peca.id, rascunho, edicao.palavras, vertical, receita?.plano)
     await guardarEdicao(peca.id, (e) => comReceita(e, { plano, pedido: pedido.trim(), em: new Date().toISOString() }))
