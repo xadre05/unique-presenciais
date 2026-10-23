@@ -3913,3 +3913,71 @@ button.ci-chip { border: 1px dashed var(--borda); padding: 1px 8px; border-radiu
 .dup-par { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 .dup-acoes { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
 .dup-lado { display: flex; align-items: center; gap: 10px; border: 1px solid var(--borda); border-radius: 9px; padding: 6px 8px 6px 10px; background: var(--painel); }
+
+/* Controle → Projeto do ecossistema (fases, épicos, quadro da semana, caixa de ideias) */
+.prj-conta { display: inline-flex; align-items: center; justify-content: center; min-width: 20px; height: 20px; padding: 0 6px; border-radius: 10px; background: var(--painel-2); color: var(--muted); font-size: .75rem; font-weight: 600; }
+.abas button .prj-conta { background: var(--ouro); color: #1a1408; }
+.prj-kpis { grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); }
+.prj-kpi-btn { background: none; border: none; padding: 0; text-align: left; font: inherit; color: inherit; cursor: pointer; display: grid; }
+.prj-kpi-btn:hover .kpi { border-color: var(--ouro); }
+.prj-barra { display: block; height: 6px; border-radius: 3px; background: var(--painel-2); overflow: hidden; }
+.prj-barra > span { display: block; height: 100%; background: var(--ouro); border-radius: 3px; }
+.prj-fases { display: grid; grid-template-columns: repeat(5, minmax(220px, 1fr)); gap: 12px; overflow-x: auto; padding-bottom: 6px; }
+.prj-fase { background: var(--painel); border: 1px solid var(--borda); border-radius: 12px; padding: 12px; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.prj-fase-topo { display: flex; flex-direction: column; gap: 2px; padding-bottom: 6px; border-bottom: 1px solid var(--borda); }
+.prj-fase-num { font-size: .68rem; letter-spacing: .14em; text-transform: uppercase; color: var(--ouro); }
+.prj-epico { display: flex; flex-direction: column; gap: 6px; text-align: left; font: inherit; color: inherit; background: var(--painel-2); border: 1px solid var(--borda); border-radius: 10px; padding: 10px 12px; cursor: pointer; }
+.prj-epico:hover { border-color: var(--ouro); }
+.prj-epico-andamento { border-left: 3px solid var(--ouro); }
+.prj-epico-concluido { border-left: 3px solid var(--ok); }
+.prj-epico-pausado { opacity: .6; }
+.prj-epico-topo { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+.prj-epico-desc { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.prj-semana-topo { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap; margin-bottom: 10px; }
+.prj-semana-topo h2 { margin: 0 0 4px; font-size: 1.1rem; }
+.prj-quadro { display: grid; grid-template-columns: repeat(4, minmax(220px, 1fr)); gap: 12px; overflow-x: auto; padding-bottom: 6px; }
+.prj-coluna { background: var(--painel); border: 1px solid var(--borda); border-radius: 12px; padding: 10px; display: flex; flex-direction: column; gap: 8px; min-height: 260px; transition: border-color .15s, background .15s; }
+.prj-coluna.sobre { border-color: var(--ouro); background: var(--ouro-fundo); }
+.prj-coluna-topo { display: flex; justify-content: space-between; align-items: center; }
+.prj-coluna-explica { margin: -4px 0 4px; }
+.prj-cartao { display: flex; flex-direction: column; gap: 6px; text-align: left; font: inherit; color: inherit; background: var(--painel-2); border: 1px solid var(--borda); border-radius: 10px; padding: 10px 12px; cursor: grab; }
+.prj-cartao:hover { border-color: var(--ouro); }
+.prj-cartao-epico { font-size: .7rem; letter-spacing: .06em; text-transform: uppercase; color: var(--ouro); }
+.prj-cartao-pronto { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.prj-escolher { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 14px; }
+.prj-escolher-item { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--borda); }
+.prj-status-linha { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 6px; }
+.prj-status-btn { background: var(--painel-2); border: 1px solid var(--borda); color: var(--muted); border-radius: 16px; padding: 5px 12px; font: inherit; font-size: .82rem; cursor: pointer; }
+.prj-status-btn.ativo { background: var(--ouro); border-color: var(--ouro); color: #1a1408; font-weight: 600; }
+.prj-tarefas { list-style: none; padding: 0; margin: 0 0 8px; }
+.prj-tarefas li { display: flex; align-items: center; gap: 8px; padding: 6px 0; border-bottom: 1px solid var(--borda); }
+.prj-tarefas li .check { flex: 1; }
+.prj-tarefas li.feito .check { color: var(--muted); text-decoration: line-through; }
+.prj-quem { font-size: .72rem; padding: 2px 8px; border-radius: 10px; background: var(--painel-2); color: var(--muted); }
+.prj-quem-alexandre { background: var(--alerta-fundo); color: var(--alerta); }
+.prj-quem-claude { background: var(--info-fundo); color: var(--info); }
+.prj-add { display: flex; gap: 8px; align-items: center; margin: 8px 0; }
+.prj-add input { flex: 1; min-width: 0; }
+.prj-add-ideia input { padding: 12px 14px; font-size: 1rem; }
+.prj-epicos { display: grid; grid-template-columns: 280px 1fr; gap: 18px; align-items: start; }
+.prj-epicos-lista { background: var(--painel); border: 1px solid var(--borda); border-radius: 12px; padding: 10px; display: flex; flex-direction: column; gap: 2px; position: sticky; top: 12px; }
+.prj-epico-item { display: flex; justify-content: space-between; gap: 8px; text-align: left; background: none; border: none; color: var(--texto); font: inherit; font-size: .9rem; padding: 7px 10px; border-radius: 8px; cursor: pointer; }
+.prj-epico-item:hover { background: var(--painel-2); }
+.prj-epico-item.ativo { background: var(--ouro-fundo); color: var(--ouro-forte); }
+.prj-epico-detalhe { background: var(--painel); border: 1px solid var(--borda); border-radius: 12px; padding: 16px 18px; min-width: 0; }
+.prj-epico-detalhe h3 { margin: 18px 0 6px; }
+.prj-entregas { list-style: none; padding: 0; margin: 0; }
+.prj-entregas li { display: flex; align-items: center; gap: 10px; padding: 7px 0; border-bottom: 1px solid var(--borda); }
+.prj-entregas li .link { flex: 1; text-align: left; }
+.prj-ordem { display: flex; flex-direction: column; }
+.prj-ordem .btn-icone { padding: 0; height: 16px; }
+.prj-lista-ideias { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 8px; }
+.prj-lista-ideias li { background: var(--painel); border: 1px solid var(--borda); border-radius: 10px; padding: 10px 12px; display: flex; flex-direction: column; gap: 8px; }
+.prj-lista-ideias.apagada li { flex-direction: row; justify-content: space-between; gap: 12px; opacity: .75; }
+.prj-triagem { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.prj-triagem select { max-width: 320px; }
+@media (max-width: 900px) {
+  .prj-epicos { grid-template-columns: 1fr; }
+  .prj-epicos-lista { position: static; }
+  .prj-fases, .prj-quadro { grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); overflow-x: visible; }
+}
