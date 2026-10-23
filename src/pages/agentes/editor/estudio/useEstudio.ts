@@ -31,6 +31,16 @@ function orientacaoDe(endereco: string) {
   })
 }
 
+// o que o agente precisa saber do vídeo gravado: formato, duração (vídeo longo pede corte mais suave) e mídias enviadas
+function orientacoesDoBruto(vertical: boolean, duracao: number, midias: number) {
+  return [
+    vertical ? 'FORMATO: vídeo em pé (9:16).' : 'FORMATO: vídeo deitado (16:9), gravado na horizontal. O vídeo final sai deitado; enquadre pensando nisso e use "dividida" lado a lado só se couber.',
+    duracao > 120 ? 'VÍDEO LONGO DE VENDA: nada de corte seco de reels. Corte só erro, repetição, conversa fora do roteiro e pausa longa; mantenha cada frase inteira, com um respiro curto (0,2 a 0,4 s) antes do corte, e nunca corte no meio de uma ideia.' : '',
+    'PREÇOS E NÚMEROS: nunca corte dentro de um número falado ("quatro mil novecentos e noventa e sete" fica inteiro, do começo ao fim). Se a pessoa errou ou tropeçou no preço, use a tomada em que ela falou certo e completo. Número na legenda e no texto da tela tem que ser o número inteiro que foi dito e bater com o roteiro.',
+    midias ? `A equipe enviou ${midias} mídias de apoio para ESTE vídeo: use-as em "coberturas" sempre que a fala falar do que a mídia mostra (plataforma, presencial, turma, depoimento, Clinical, oferta).` : '',
+  ]
+}
+
 export type Passo = 'video' | 'conteudo' | 'estilo' | 'imagens'
 export const PASSOS: Passo[] = ['video', 'conteudo', 'estilo', 'imagens']
 const MAX_RECEITAS = 6
@@ -138,7 +148,8 @@ export function useEstudio(peca: Peca, aoMudar: () => void) {
       await guardarEdicao(peca.id, (e) => ({ ...e, arquivo: { nome: arquivo.name, tamanho: arquivo.size, duracao: d }, palavras: palavras!, partes: undefined, receitas: [] }))
     }
     setOcupado('O agente está editando…')
-    const { plano: rascunho } = await pedirEdicao(peca.id, palavras, d, await apoio.paraAgente(), { modeloRef, quadros: await quadrosDoBruto(arquivo, 4, corte?.de, corte?.ate), referencia: edicao.referencia, pedido: [narracao ? SEM_PESSOA : '', pedidoDoConfig(edicao.config_estilo)].filter(Boolean).join('\n') || undefined })
+    const midias = await apoio.paraAgente()
+    const { plano: rascunho } = await pedirEdicao(peca.id, palavras, d, midias, { modeloRef, quadros: await quadrosDoBruto(arquivo, 4, corte?.de, corte?.ate), referencia: edicao.referencia, pedido: [narracao ? SEM_PESSOA : '', pedidoDoConfig(edicao.config_estilo), ...orientacoesDoBruto(vertical, d, midias.length)].filter(Boolean).join('\n') || undefined })
     if (rascunho.cenas?.length) setOcupado(`Animando ${rascunho.cenas.length} cena(s)…`)
     const plano = await escreverCenas(peca.id, rascunho, palavras, vertical)
     await guardarEdicao(peca.id, (e) => comReceita(e, { plano, em: new Date().toISOString() }))
