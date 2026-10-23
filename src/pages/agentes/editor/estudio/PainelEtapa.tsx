@@ -65,7 +65,7 @@ export function PainelEtapa({ e, peca, aoMudar }: { e: Estudio; peca: Peca; aoMu
       {p === 'conteudo' && <Conteudo peca={peca} aoMudar={aoMudar} />}
       {p === 'estilo' && <EscolhaEstilo e={e} pecaId={peca.id} aoMudar={aoMudar} />}
       {p === 'imagens' && <ApoioEdicao midias={e.apoio.midias} novasDoBanco={e.apoio.novasDoBanco.length} arquivos={e.apoio.arquivos} musica={e.edicao.musica ? { ...e.edicao.musica, volume: e.apoio.volume } : undefined} arquivoMusica={e.apoio.arquivoMusica}
-        aoAdicionar={e.apoio.adicionar} aoRemover={e.apoio.remover} aoLimpar={e.apoio.limpar} aoDescrever={e.apoio.descrever} aoMusica={e.apoio.escolherMusica} aoVolume={e.apoio.mudarVolume} />}
+        aoAdicionar={e.apoio.adicionar} aoRemover={e.apoio.remover} aoLimpar={e.apoio.limpar} enviando={e.apoio.enviando} aoDescrever={e.apoio.descrever} aoMusica={e.apoio.escolherMusica} aoVolume={e.apoio.mudarVolume} />}
       {p === 'imagens' && <GerarBroll pecaId={peca.id} palavras={e.edicao.palavras} aoMudar={aoMudar} />}
       {convite && <ConviteEditor />}
       <footer className="es-painel-pe">

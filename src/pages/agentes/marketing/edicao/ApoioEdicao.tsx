@@ -21,11 +21,11 @@ function Miniatura({ arquivo }: { arquivo?: File }) {
 
 type Props = {
   midias: MidiaApoio[]; novasDoBanco: number; arquivos: Map<string, File>; musica?: MusicaFundo; arquivoMusica?: File
-  aoAdicionar: (f: File[]) => void; aoRemover: (n: number) => void; aoLimpar?: (soSemArquivo: boolean) => void; aoDescrever: (n: number, texto: string) => void
+  aoAdicionar: (f: File[]) => void; aoRemover: (n: number) => void; aoLimpar?: (soSemArquivo: boolean) => void; enviando?: string | null; aoDescrever: (n: number, texto: string) => void
   aoMusica: (f: File | null) => void; aoVolume: (v: number) => void
 }
 
-export function ApoioEdicao({ midias, novasDoBanco, arquivos, musica, arquivoMusica, aoAdicionar, aoRemover, aoLimpar, aoDescrever, aoMusica, aoVolume }: Props) {
+export function ApoioEdicao({ midias, novasDoBanco, arquivos, musica, arquivoMusica, aoAdicionar, aoRemover, aoLimpar, enviando, aoDescrever, aoMusica, aoVolume }: Props) {
   const semArquivo = midias.filter((m) => !m.caminho && !arquivos.has(chaveDe(m))).length
   // o texto do que é cada mídia só é guardado quando a pessoa sai do campo
   const [rascunhos, setRascunhos] = useState<Record<number, string>>({})
@@ -34,7 +34,8 @@ export function ApoioEdicao({ midias, novasDoBanco, arquivos, musica, arquivoMus
       <h4><span>2</span> Imagens, clipes e música (opcional)</h4>
       <p className="muted pequeno">As imagens do <Link to="/agentes/marca" className="link">Banco de imagens da marca</Link> (Base da marca) entram sozinhas{novasDoBanco ? ` (${novasDoBanco} nova(s) entram na próxima edição)` : ''}. Aqui você adiciona o que é só deste vídeo. O agente coloca por cima da fala nos momentos certos, em tela cheia ou dividida.</p>
       <label className="btn btn-contorno-ouro ev-arquivo"><Icone nome="importar" tam={16} /> Adicionar imagens ou clipes
-        <input type="file" accept="image/*,video/*" multiple hidden onChange={(e) => { aoAdicionar([...(e.target.files ?? [])]); e.target.value = '' }} /></label>
+        <input type="file" accept="image/*,video/*" multiple hidden disabled={!!enviando} onChange={(e) => { aoAdicionar([...(e.target.files ?? [])]); e.target.value = '' }} /></label>
+      {enviando && <span className="pequeno muted"> {enviando}</span>}
       {midias.length > 0 && (
         <div className="ev-midias-resumo pequeno">
           <span>{midias.length - semArquivo} de {midias.length} prontas{midias.length > 45 && ' · o agente olha as 45 primeiras'}</span>
@@ -51,7 +52,7 @@ export function ApoioEdicao({ midias, novasDoBanco, arquivos, musica, arquivoMus
               <div key={chaveDe(m)} className="ev-midia">
                 <Miniatura arquivo={arquivo} />
                 <span className="ev-nome" title={m.nome}>{n + 1}. {m.nome}</span>
-                {m.caminho ? <span className="muted pequeno">Do banco da marca</span> : !arquivo && <span className="ev-falta">Escolha este arquivo de novo para usar</span>}
+                {m.caminho ? <span className="muted pequeno">{m.propria ? 'Guardada neste vídeo' : 'Do banco da marca'}</span> : !arquivo && <span className="ev-falta">Escolha este arquivo de novo para usar</span>}
                 <input type="text" placeholder="O que é (ex.: alunas no presencial)" value={rascunhos[n] ?? m.descricao ?? ''}
                   onChange={(e) => setRascunhos((r) => ({ ...r, [n]: e.target.value }))}
                   onBlur={(e) => { if (e.target.value !== (m.descricao ?? '')) aoDescrever(n, e.target.value) }} />

@@ -13,6 +13,16 @@ const NENHUMA: MidiaApoio[] = []
 export const chaveDe = (m: Pick<MidiaApoio, 'nome' | 'tamanho' | 'caminho'>) => (m.caminho ? `banco:${m.caminho}` : `${m.nome}|${m.tamanho}`)
 const doBanco = (b: ItemBanco): MidiaApoio => ({ nome: b.nome, tamanho: 0, tipo: b.tipo, descricao: descricaoParaAgente(b), caminho: b.caminho })
 
+const LIMITE_NUVEM = 45 * 1024 * 1024
+async function guardarNaNuvem(pecaId: string, f: File): Promise<MidiaApoio> {
+  const base: MidiaApoio = { nome: f.name, tamanho: f.size, tipo: tipoDoArquivo(f)!, propria: true }
+  if (f.size > LIMITE_NUVEM) return { ...base, propria: undefined }
+  const caminho = `apoio/${pecaId}/${f.size}_${f.name.normalize('NFD').replace(/[^\w.-]/g, '_')}`
+  // o nome leva o tamanho: o mesmo arquivo escolhido de novo já está guardado (aí o envio diz que já existe)
+  const { error } = await supabase.storage.from('arquivos').upload(caminho, f, { contentType: f.type || undefined })
+  return !error || /exist|duplicate/i.test(error.message) ? { ...base, caminho } : { ...base, propria: undefined }
+}
+
 async function baixar(m: MidiaApoio) {
   const { data } = await supabase.storage.from(m.bucket ?? 'arquivos').download(m.caminho!)
   return data ? new File([data], m.nome, { type: data.type || (m.tipo === 'video' ? 'video/mp4' : 'image/jpeg') }) : undefined
@@ -40,12 +50,25 @@ export function usarApoio(pecaId: string, edicao: Edicao, banco: ItemBanco[], ao
     return () => { vivo = false }
   }, [midias]) // eslint-disable-line react-hooks/exhaustive-deps
 
+  const [enviando, setEnviando] = useState<string | null>(null)
+  // cada mídia escolhida é guardada na nuvem (pasta deste vídeo): depois de recarregar a página ela volta sozinha,
+  // com a miniatura, sem escolher de novo. Arquivo grande demais para guardar fica só neste computador, como antes.
   const adicionar = async (fs: File[]) => {
     const validos = fs.filter((f) => tipoDoArquivo(f))
-    setArquivos((m) => new Map([...m, ...validos.map((f) => [chaveDe({ nome: f.name, tamanho: f.size }), f] as const)]))
-    // o que já está na lista (mesmo nome e tamanho) só volta a ter arquivo; o resto entra no fim da lista
-    const novos = validos.filter((f) => !midias.some((m) => !m.caminho && m.nome === f.name && m.tamanho === f.size))
-    if (novos.length) await guardar((e) => ({ ...e, midias: [...(e.midias ?? []), ...novos.map((f): MidiaApoio => ({ nome: f.name, tamanho: f.size, tipo: tipoDoArquivo(f)! }))] }))
+    const guardadas: MidiaApoio[] = []
+    try {
+      for (const [k, f] of validos.entries()) {
+        setEnviando(`Guardando ${k + 1} de ${validos.length}…`)
+        guardadas.push(await guardarNaNuvem(pecaId, f))
+      }
+    } finally { setEnviando(null) }
+    setArquivos((m) => new Map([...m, ...guardadas.map((g, k) => [chaveDe(g), validos[k]] as const)]))
+    // o que já está na lista (mesmo nome e tamanho) passa a apontar para a cópia guardada, no mesmo lugar; o resto entra no fim
+    const mesma = (m: MidiaApoio, g: MidiaApoio) => m.nome === g.nome && (m.tamanho === g.tamanho || m.caminho === g.caminho)
+    await guardar((e) => {
+      const lista = (e.midias ?? []).map((m) => { const g = guardadas.find((x) => mesma(m, x)); return g ? { ...g, descricao: m.descricao ?? g.descricao } : m })
+      return { ...e, midias: [...lista, ...guardadas.filter((g) => !lista.some((m) => mesma(m, g)))] }
+    })
   }
   // tirar uma mídia muda a numeração: as coberturas das edições já feitas que apontavam para ela deixam de valer
   const remover = (n: number) => guardar((e) => ({ ...e, midias: (e.midias ?? []).filter((_, k) => k !== n) }))
@@ -85,5 +108,5 @@ export function usarApoio(pecaId: string, edicao: Edicao, banco: ItemBanco[], ao
     return prontas.filter((x): x is NonNullable<typeof x> => !!x)
   }
 
-  return { midias, novasDoBanco, arquivos, apoio, musica, arquivoMusica, adicionar, remover, limpar, descrever, escolherMusica, mudarVolume, volume, paraAgente }
+  return { midias, novasDoBanco, arquivos, apoio, musica, arquivoMusica, adicionar, enviando, remover, limpar, descrever, escolherMusica, mudarVolume, volume, paraAgente }
 }

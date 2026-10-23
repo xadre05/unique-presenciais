@@ -4,7 +4,7 @@ import type { Cobertura } from './linhaTempo'
 
 // caminho = mídia do banco de imagens da marca (guardada no sistema; abre sozinha, sem escolher o arquivo de novo)
 // bucket = onde está guardada (padrão "arquivos"; clipes gerados ficam em "videos")
-export type MidiaApoio = { nome: string; tamanho: number; tipo: 'imagem' | 'video'; descricao?: string; caminho?: string; bucket?: 'arquivos' | 'videos'; gerada?: boolean }
+export type MidiaApoio = { nome: string; tamanho: number; tipo: 'imagem' | 'video'; descricao?: string; caminho?: string; bucket?: 'arquivos' | 'videos'; gerada?: boolean; propria?: boolean }
 export type MidiaPronta = { tipo: 'imagem' | 'video'; el: HTMLImageElement | HTMLVideoElement | ImageBitmap; largura: number; altura: number }
 
 export const tipoDoArquivo = (f: File): 'imagem' | 'video' | null => (f.type.startsWith('image/') ? 'imagem' : f.type.startsWith('video/') ? 'video' : null)
