@@ -8,9 +8,10 @@ import { telefoneLegivel } from '../nucleo'
 import { horaCurta, type BaseCRM, type Conversa } from '../tipos'
 import ProximasAcoes from '../Acoes'
 import { Avatar, interesseDe } from '../Pecas'
+import { EtiquetasConversa, ResumoIA } from './ExtrasConversa'
 
 type Ficha = { id: string; nome: string | null; telefone: string | null; emails: string[]; tags: string[]; cidade: string | null; uf: string | null; etapa_id: string | null; observacoes: string | null; nao_contatar: boolean; origem: string | null; primeira_origem: Record<string, string> | null; responsavel_id: string | null }
-type Props = { contatoId: string; base: BaseCRM; aberto: boolean; onFechar: () => void; extra?: (contatoId: string) => ReactNode; conv?: Conversa; aoMudarConversa?: () => void }
+type Props = { contatoId: string; base: BaseCRM; aberto: boolean; onFechar: () => void; extra?: (contatoId: string) => ReactNode; conv?: Conversa; aoMudarConversa?: () => void; etiquetas?: string[] }
 
 function Secao({ titulo, icone, children, inicial = true }: { titulo: string; icone: string; children: ReactNode; inicial?: boolean }) {
   const [aberta, setAberta] = useState(inicial)
@@ -22,7 +23,7 @@ function Secao({ titulo, icone, children, inicial = true }: { titulo: string; ic
   )
 }
 
-export function PainelContato({ contatoId, base, aberto, onFechar, extra, conv, aoMudarConversa }: Props) {
+export function PainelContato({ contatoId, base, aberto, onFechar, extra, conv, aoMudarConversa, etiquetas = [] }: Props) {
   const [c, setC] = useState<Ficha | null>(null)
   const [obs, setObs] = useState('')
   const [nome, setNome] = useState('')
@@ -48,6 +49,7 @@ export function PainelContato({ contatoId, base, aberto, onFechar, extra, conv, 
   return (
     <aside className={`caixa-contato${aberto ? ' aberto' : ''}`}>
       <div className="cx-titulo"><span>Contexto</span><button className="btn-icone so-celular" onClick={onFechar} aria-label="Fechar">×</button></div>
+      {conv && <Secao titulo="Resumo da IA" icone="floco" inicial={!!conv.resumo}><ResumoIA key={conv.id} conv={conv} aoMudar={aoMudarConversa} /></Secao>}
       <Secao titulo="Contato" icone="usuario">
         <div className="cc-cabeca">
           <Avatar nome={c.nome || c.telefone} grande />
@@ -65,6 +67,7 @@ export function PainelContato({ contatoId, base, aberto, onFechar, extra, conv, 
         {tags.length > 0 && <div className="tags">{tags.slice(0, 12).map((t) => <Badge key={t}>{t}</Badge>)}</div>}
         {c.nao_contatar && <div className="erro-txt pequeno">Pediu para não receber mensagens.</div>}
       </Secao>
+      {conv && <Secao titulo="Etiquetas da conversa" icone="filtro" inicial={!!conv.etiquetas?.length}><EtiquetasConversa key={conv.id} conv={conv} sugestoes={etiquetas} aoMudar={aoMudarConversa} /></Secao>}
       <Secao titulo="Funil" icone="comissoes">
         <span className="muted pequeno">Etapa atual</span>
         <select className="cc-etapa" style={{ borderColor: etapa?.cor ?? undefined }} value={c.etapa_id ?? ''} onChange={(e) => alterar({ etapa_id: e.target.value || null, etapa_em: new Date().toISOString() })}>

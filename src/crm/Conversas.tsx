@@ -1,14 +1,17 @@
 // CRM — NÚCLEO: caixa de conversas (WhatsApp) da empresa, em tempo real. Três colunas: a lista (conversas/Lista),
 // a conversa aberta (conversas/Chat) e o contexto do contato (conversas/Contexto). Nada da Unique aqui: o painel extra
 // do contato vem de fora (prop painelExtra).
-import { useCallback, useEffect, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { supabase } from '../lib/supabase'
 import { Erro, Modal } from '../components/ui'
 import { Icone } from '../components/Icone'
 import { servidorWhats, type BaseCRM, type Conversa } from './tipos'
 import { ListaConversas, type Aba, type Filtros } from './conversas/Lista'
 import { Chat } from './conversas/Chat'
-import { aguardandoResposta } from './conversas/util'
+import { aguardandoResposta, estaAdiada } from './conversas/util'
+import { NovaConversa } from './conversas/NovaConversa'
+import { Paleta, type Comando } from './conversas/Paleta'
+import { useAtalho } from './conversas/atalhos'
 
 export type { Aba } from './conversas/Lista'
 export { PainelContato } from './conversas/Contexto'
@@ -18,11 +21,14 @@ export default function Conversas({ empresaId, usuarioId, base, painelExtra, ini
 }) {
   const [convs, setConvs] = useState<Conversa[]>([])
   const [aba, setAba] = useState<Aba>(abaInicial ?? 'minhas')
-  const [f, setF] = useState<Filtros>({ busca: '', canal: '', naoLidas: false, aguardando: false })
+  const [f, setF] = useState<Filtros>({ busca: '', canal: '', naoLidas: false, aguardando: false, adiadas: false, etiqueta: '', ordem: 'recentes' })
   const [achados, setAchados] = useState<Map<string, string | null> | null>(null)   // busca dentro das mensagens
   const [sel, setSel] = useState<string | null>(inicial ?? null)
   const [erro, setErro] = useState<string | null>(null)
   const [simular, setSimular] = useState(false)
+  const [nova, setNova] = useState(false)
+  const [paleta, setPaleta] = useState(false)
+  useAtalho('k', useCallback(() => setPaleta(true), []))
 
   const carregar = useCallback(async () => {
     const { data, error } = await supabase.from('crm_conversas')
@@ -52,8 +58,22 @@ export default function Conversas({ empresaId, usuarioId, base, painelExtra, ini
     }, 350)
     return () => clearTimeout(t)
   }, [termo, empresaId])
-  const lista = convs.filter((c) => doAba(c, aba) && (!f.naoLidas || c.nao_lidas > 0) && (!f.aguardando || aguardandoResposta(c)) && (!f.canal || c.canal_id === f.canal)
+  // adiada some da lista (menos no filtro "Adiadas" e na busca) até a hora marcada ou até a pessoa escrever de novo
+  const lista = convs.filter((c) => doAba(c, aba) && (f.adiadas ? estaAdiada(c) : (!estaAdiada(c) || !!termo)) && (!f.naoLidas || c.nao_lidas > 0) && (!f.aguardando || aguardandoResposta(c))
+    && (!f.canal || c.canal_id === f.canal) && (!f.etiqueta || (c.etiquetas ?? []).includes(f.etiqueta))
     && (!termo || `${c.contato?.nome ?? ''} ${c.contato?.telefone ?? ''}`.toLowerCase().includes(termo) || !!achados?.has(c.id)))
+  // maior espera: quem escreveu e está sem resposta há mais tempo primeiro
+  if (f.ordem === 'espera') lista.sort((a, b) => Number(aguardandoResposta(b)) - Number(aguardandoResposta(a)) || (a.ultima_em ?? '').localeCompare(b.ultima_em ?? ''))
+  const etiquetas = useMemo(() => [...new Set(convs.flatMap((c) => c.etiquetas ?? []))].sort(), [convs])
+  const abrir = useCallback((id: string) => setSel(id), [])
+  const comandos: Comando[] = [
+    { id: 'nova', rotulo: 'Nova conversa', icone: 'mais', fazer: () => setNova(true) },
+    { id: 'minhas', rotulo: 'Ir para Minhas', icone: 'usuario', fazer: () => setAba('minhas') },
+    { id: 'fila', rotulo: 'Ir para a Fila', icone: 'lista', fazer: () => setAba('fila') },
+    ...(base.souAdmin ? [{ id: 'todas', rotulo: 'Ir para Todas', icone: 'whats', fazer: () => setAba('todas') }] : []),
+    { id: 'resolvidas', rotulo: 'Ir para Resolvidas', icone: 'check', fazer: () => setAba('resolvidas') },
+    { id: 'aguardando', rotulo: 'Mostrar só quem aguarda resposta', icone: 'relogio', fazer: () => setF({ ...f, aguardando: true, ordem: 'espera' }) },
+  ]
   const atual = convs.find((c) => c.id === sel) ?? null
   const teste = base.canais.find((k) => k.tipo === 'teste')
   const canalAtual = atual ? base.canais.find((k) => k.id === atual.canal_id) : undefined
@@ -61,10 +81,12 @@ export default function Conversas({ empresaId, usuarioId, base, painelExtra, ini
   return (
     <div className={`caixa${atual ? ' com-conversa' : ''}`}>
       <ListaConversas base={base} convs={convs} lista={lista} aba={aba} setAba={setAba} doAba={doAba} f={f} setF={setF} achados={achados} sel={sel} abrir={setSel} erro={erro}
-        aoSimular={base.souAdmin && teste ? () => setSimular(true) : null} />
-      {atual ? <Chat key={atual.id} conv={atual} usuarioId={usuarioId} base={base} onVoltar={() => setSel(null)} onMudou={carregar} painelExtra={painelExtra}
+        aoSimular={base.souAdmin && teste ? () => setSimular(true) : null} aoNova={() => setNova(true)} etiquetas={etiquetas} />
+      {atual ? <Chat key={atual.id} conv={atual} usuarioId={usuarioId} base={base} onVoltar={() => setSel(null)} onMudou={carregar} painelExtra={painelExtra} etiquetas={etiquetas}
           rodape={canalAtual?.tipo === 'teste' && base.souAdmin ? <RespostaSimulada canalId={canalAtual.id} telefone={atual.contato?.telefone ?? ''} /> : null} />
         : <div className="caixa-vazia"><Icone nome="whats" tam={40} /><p className="muted">Escolha uma conversa.</p></div>}
+      {nova && <NovaConversa base={base} aoFechar={() => setNova(false)} aoCriar={(id) => { setNova(false); carregar(); setSel(id); setAba('minhas') }} />}
+      {paleta && <Paleta comandos={comandos} convs={convs} abrirConversa={abrir} aoFechar={() => setPaleta(false)} />}
       {simular && <SimularEntrada empresaId={empresaId} base={base} onFechar={() => setSimular(false)} onFeito={(id) => { setSimular(false); carregar(); setSel(id); setAba(base.souAdmin ? 'todas' : 'fila') }} />}
     </div>
   )

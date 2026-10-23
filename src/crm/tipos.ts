@@ -12,12 +12,15 @@ export type Conversa = {
   id: string; empresa_id: string; contato_id: string; canal_id: string; status: 'aberta' | 'resolvida'; atendente_id: string | null
   com_ia: boolean; nao_lidas: number; ultima_mensagem: string | null; ultima_em: string | null; ultima_direcao: string | null
   aguardando_resposta: boolean; criado_em: string
+  adiada_ate?: string | null; adiada_em?: string | null; etiquetas?: string[]; resumo?: string | null; resumo_em?: string | null; csat_nota?: number | null; csat_pedido_em?: string | null
   contato?: { id: string; nome: string | null; telefone: string | null; etapa_id: string | null; tags?: string[]; origem?: string | null }
 }
 export type Mensagem = {
   id: string; conversa_id: string; direcao: 'entrada' | 'saida'; autor: 'contato' | 'atendente' | 'ia' | 'sistema' | 'disparo'
   autor_id: string | null; tipo: string; texto: string | null; midia_url: string | null; status: string; erro: string | null; criado_em: string
+  midia_nome?: string | null; midia_mime?: string | null; transcricao?: string | null; modelo?: string | null
 }
+export type ModeloMeta = { id: string; canal_id: string; nome: string; idioma: string; categoria: string; corpo: string; status: string; motivo: string | null }
 export type Nota = { id: string; conversa_id: string; autor_id: string | null; texto: string; criado_em: string }
 export type Membro = { usuario_id: string; nome: string | null; papel: 'admin' | 'atendente'; ativo: boolean; disponivel: boolean; recebe_leads: boolean }
 export type Resposta = { id: string; atalho: string; texto: string }
@@ -58,8 +61,9 @@ export function useBaseCRM(empresaId: string) {
   const [config, setConfig] = useState<ConfigEmpresa>({})
   const [motivos, setMotivos] = useState<string[]>([])
   const [cadencias, setCadencias] = useState<Cadencia[]>([])
+  const [modelos, setModelos] = useState<ModeloMeta[]>([])
   const carregar = useCallback(async () => {
-    const [c, e, q, cfg, mp, cad, r, a] = await Promise.all([
+    const [c, e, q, cfg, mp, cad, r, a, mo] = await Promise.all([
       supabase.from('crm_canais').select('*').eq('empresa_id', empresaId).order('criado_em'),
       supabase.from('crm_etapas').select('*').eq('empresa_id', empresaId).order('ordem'),
       supabase.rpc('crm_membros_empresa', { p_empresa: empresaId }),
@@ -68,16 +72,18 @@ export function useBaseCRM(empresaId: string) {
       supabase.from('crm_cadencias').select('id,nome,passos,ativa,tipo_tarefa').eq('empresa_id', empresaId).order('nome'),
       supabase.from('crm_respostas').select('id,atalho,texto').eq('empresa_id', empresaId).order('atalho'),
       supabase.rpc('crm_sou_admin', { p_empresa: empresaId }),
+      supabase.from('crm_modelos').select('id,canal_id,nome,idioma,categoria,corpo,status,motivo').eq('empresa_id', empresaId).order('nome'),
     ])
     setCanais((c.data as Canal[]) ?? []); setEtapas((e.data as Etapa[]) ?? []); setEquipe((q.data as Membro[]) ?? [])
     setRespostas((r.data as Resposta[]) ?? []); setSouAdmin(a.data === true)
     setConfig(((cfg.data as { config?: ConfigEmpresa } | null)?.config) ?? {})
     setMotivos(((mp.data as { nome: string }[]) ?? []).map((x) => x.nome))
     setCadencias((cad.data as Cadencia[]) ?? [])
+    setModelos((mo.data as ModeloMeta[]) ?? [])
   }, [empresaId])
   useEffect(() => { carregar() }, [carregar])
   const nomeDe = (id: string | null | undefined) => (id ? equipe.find((m) => m.usuario_id === id)?.nome ?? 'Alguém da equipe' : null)
-  return { canais, etapas, equipe, respostas, souAdmin, config, motivos, cadencias, nomeDe, recarregar: carregar }
+  return { canais, etapas, equipe, respostas, souAdmin, config, motivos, cadencias, modelos, nomeDe, recarregar: carregar }
 }
 export type BaseCRM = ReturnType<typeof useBaseCRM>
 

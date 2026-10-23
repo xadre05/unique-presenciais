@@ -3,27 +3,33 @@ import { useEffect, useState } from 'react'
 import { supabase, SUPABASE_URL } from '../lib/supabase'
 import { Badge, Campo, Erro, InputNumero, Modal } from '../components/ui'
 import { STATUS_CANAL, TIPO_CANAL, type BaseCRM, type Cadencia, type Canal, type Etapa, type Passo } from './tipos'
+import { ConfigModelos } from './conversas/Modelos'
+import Duplicados from './Duplicados'
 
 const URL_FUNCAO = `${SUPABASE_URL}/functions/v1/crm-whatsapp`
 
 export default function ConfigAtendimento({ empresaId, base }: { empresaId: string; base: BaseCRM }) {
-  const [aba, setAba] = useState<'numeros' | 'etapas' | 'respostas' | 'followups' | 'regras' | 'motivos'>('numeros')
+  const [aba, setAba] = useState<'numeros' | 'modelos' | 'etapas' | 'respostas' | 'followups' | 'regras' | 'motivos' | 'duplicados'>('numeros')
   return (
     <div>
       <nav className="abas">
         <button className={aba === 'numeros' ? 'ativa' : ''} onClick={() => setAba('numeros')}>Números de WhatsApp</button>
+        <button className={aba === 'modelos' ? 'ativa' : ''} onClick={() => setAba('modelos')}>Modelos da Meta</button>
         <button className={aba === 'etapas' ? 'ativa' : ''} onClick={() => setAba('etapas')}>Etapas do funil</button>
         <button className={aba === 'respostas' ? 'ativa' : ''} onClick={() => setAba('respostas')}>Respostas prontas</button>
         <button className={aba === 'followups' ? 'ativa' : ''} onClick={() => setAba('followups')}>Follow-ups automáticos</button>
         <button className={aba === 'regras' ? 'ativa' : ''} onClick={() => setAba('regras')}>Tentativas e prazos</button>
         <button className={aba === 'motivos' ? 'ativa' : ''} onClick={() => setAba('motivos')}>Motivos de perda</button>
+        <button className={aba === 'duplicados' ? 'ativa' : ''} onClick={() => setAba('duplicados')}>Contatos duplicados</button>
       </nav>
       {aba === 'numeros' && <Numeros empresaId={empresaId} base={base} />}
+      {aba === 'modelos' && <ConfigModelos base={base} />}
       {aba === 'etapas' && <Etapas empresaId={empresaId} base={base} />}
       {aba === 'respostas' && <Respostas empresaId={empresaId} base={base} />}
       {aba === 'followups' && <Followups empresaId={empresaId} base={base} />}
       {aba === 'regras' && <RegrasContato empresaId={empresaId} base={base} />}
       {aba === 'motivos' && <Motivos empresaId={empresaId} base={base} />}
+      {aba === 'duplicados' && <Duplicados empresaId={empresaId} />}
     </div>
   )
 }
@@ -106,6 +112,7 @@ function EditarCanal({ empresaId, base, canal, onFechar, onFeito }: { empresaId:
         <h3>API oficial (Meta)</h3>
         <div className="form-grade">
           <Campo rotulo="ID do número (Phone number ID)"><input value={cfg.phone_number_id ?? ''} onChange={(e) => setCfg({ ...cfg, phone_number_id: e.target.value })} /></Campo>
+          <Campo rotulo="ID da conta do WhatsApp (WABA)" dica="Para os modelos aprovados. Fica no Gerenciador do WhatsApp (asset_id no endereço)"><input value={cfg.waba_id ?? ''} onChange={(e) => setCfg({ ...cfg, waba_id: e.target.value })} /></Campo>
         </div>
       </>)}
       {campoSegredo && (

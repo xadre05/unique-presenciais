@@ -2,16 +2,26 @@
 // CRM — WhatsApp (parte separada). Não conhece vendedora, Hotmart nem comissão.
 //
 // Ações (POST JSON {acao}):
-//   enviar           tela (login)       {conversa_id, texto} ou {contato_id, canal_id, texto}
-//   reenviar         tela (login)       {mensagem_id}  — tenta de novo uma mensagem que não saiu
-//   simular_entrada  tela (admin)       {canal_id, telefone, nome, texto, do_celular?}  — só no número de teste
-//   processar_fila   cron (x-cron-chave) manda o próximo lote dos disparos, no ritmo de cada número
-//   enviar_sistema   sistema (x-cron-chave) {conversa_id, texto} ou {canal_id, telefone, nome?, texto} — mensagem de um agente de IA
+//   enviar              tela (login)  {conversa_id | contato_id+canal_id | telefone+nome+canal_id} + {texto | midia | modelo}
+//                                     midia = {caminho, tipo, nome?, mime?, legenda?} (arquivo já no bucket crm-midia)
+//                                     modelo = {nome, idioma, parametros[]} (modelo aprovado pela Meta)
+//   reenviar            tela (login)  {mensagem_id}  — tenta de novo uma mensagem que não saiu
+//   transcrever         tela (login)  {mensagem_id}  — transcreve de novo um áudio
+//   modelos_sincronizar tela (admin)  {canal_id}     — puxa os modelos da conta da Meta
+//   modelo_criar        tela (admin)  {canal_id, nome, categoria, corpo, exemplo[]} — manda um modelo para aprovação
+//   simular_entrada     tela (admin)  {canal_id, telefone, nome, texto, do_celular?}  — só no número de teste
+//   processar_fila      cron (x-cron-chave) disparos, follow-ups e mensagens agendadas
+//   enviar_sistema      sistema (x-cron-chave) {conversa_id | canal_id+telefone+nome?} + {texto | modelo} — mensagem de um agente de IA
 // Número atendido por IA: config.ia_funcao = nome da função que responde (ex.: 'cobranca-agente'); cada mensagem que
 // chega é repassada a ela ({acao:'responder', conversa_id, mensagem_id}), sem esperar a resposta.
-//   webhook          provedor            ?canal=<id>&chave=<chave_webhook>  (mensagens que chegam)
+//   webhook             provedor      ?canal=<id>&chave=<chave_webhook>  (mensagens que chegam)
 // ════════════════════════════════════════════════════════════════════
 import { createClient, type SupabaseClient } from 'npm:@supabase/supabase-js@2.45.4'
+import type { Canal, Envio, Midia, Modelo } from './conectores.ts'
+import { lerWebhook, rotuloMidia, type Recebida } from './webhook.ts'
+import { canalESegredos, despachar, processarAgendadas, processarCadencias, processarFila } from './filas.ts'
+import { guardarRecebida, linkTemporario, transcreverGuardado } from './midia.ts'
+import { criarModelo, sincronizarModelos, textoDoModelo } from './modelos.ts'
 
 const cors = {
   'Access-Control-Allow-Origin': '*',
@@ -19,199 +29,102 @@ const cors = {
   'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
 }
 const json = (corpo: unknown, status = 200) => new Response(JSON.stringify(corpo), { status, headers: { ...cors, 'Content-Type': 'application/json' } })
-
-type Canal = { id: string; empresa_id: string; tipo: 'teste' | 'whatsapp_qr' | 'whatsapp_oficial'; nome: string; status: string; config: Record<string, unknown> }
-type Segredos = { segredos: Record<string, string>; chave_webhook: string }
-
-// ── conectores: cada tipo de número sabe mandar uma mensagem de texto ──
-async function mandarTexto(canal: Canal, seg: Segredos, telefone: string, texto: string, reenvio = false): Promise<string | null> {
-  // número de teste: "#falha" no texto simula uma mensagem que não saiu (na nova tentativa, sai)
-  if (canal.tipo === 'teste') { if (texto.includes('#falha') && !reenvio) throw new Error('Falha simulada no número de teste.'); return `teste-${crypto.randomUUID()}` }
-
-  if (canal.tipo === 'whatsapp_qr') {
-    // servidor próprio (Evolution API): config.url, config.instancia; segredo: apikey
-    const base = String(canal.config.url ?? '').replace(/\/$/, '')
-    const r = await fetch(`${base}/message/sendText/${encodeURIComponent(String(canal.config.instancia ?? ''))}`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json', apikey: seg.segredos.apikey ?? '' },
-      body: JSON.stringify({ number: telefone, text: texto }),
-    })
-    const d = await r.json().catch(() => ({}))
-    if (!r.ok) throw new Error(`O servidor do WhatsApp respondeu ${r.status}: ${JSON.stringify(d).slice(0, 200)}`)
-    return d?.key?.id ?? null
-  }
-
-  if (canal.tipo === 'whatsapp_oficial') {
-    // API oficial da Meta: config.phone_number_id; segredo: token
-    const r = await fetch(`https://graph.facebook.com/v21.0/${canal.config.phone_number_id}/messages`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${seg.segredos.token ?? ''}` },
-      body: JSON.stringify({ messaging_product: 'whatsapp', to: telefone, type: 'text', text: { body: texto } }),
-    })
-    const d = await r.json().catch(() => ({}))
-    if (!r.ok) throw new Error(d?.error?.message ?? `A Meta respondeu ${r.status}`)
-    return d?.messages?.[0]?.id ?? null
-  }
-  throw new Error('Tipo de número desconhecido.')
-}
-
-// ── conectores: o que chega pelo webhook ──
-// recebidas: a pessoa escreveu · ecos: a equipe mandou direto pelo celular · status: entregue/lida/falhou
-type Recebida = { telefone: string; nome: string | null; texto: string | null; tipo: string; id: string | null }
-type Status = { id: string; status: 'enviada' | 'entregue' | 'lida' | 'erro'; erro?: string }
-type Lido = { recebidas: Recebida[]; ecos: Recebida[]; status: Status[] }
-
-function tipoEvolution(msg: any) {
-  const texto = msg.conversation ?? msg.extendedTextMessage?.text ?? msg.imageMessage?.caption ?? msg.videoMessage?.caption ?? msg.documentMessage?.caption ?? null
-  const tipo = msg.imageMessage ? 'imagem' : msg.audioMessage ? 'audio' : msg.videoMessage ? 'video' : msg.documentMessage ? 'documento' : texto ? 'texto' : 'outro'
-  return { texto, tipo }
-}
-function tipoMeta(m: any) {
-  const texto = m.text?.body ?? m.image?.caption ?? m.video?.caption ?? m.document?.caption ?? m.button?.text ?? m.interactive?.button_reply?.title ?? m.interactive?.list_reply?.title ?? null
-  const tipo = m.type === 'image' ? 'imagem' : m.type === 'audio' ? 'audio' : m.type === 'video' ? 'video' : m.type === 'document' ? 'documento' : texto ? 'texto' : 'outro'
-  return { texto, tipo }
-}
-const STATUS_EVOLUTION: Record<string, Status['status']> = { SERVER_ACK: 'enviada', DELIVERY_ACK: 'entregue', READ: 'lida', PLAYED: 'lida', ERROR: 'erro', '2': 'enviada', '3': 'entregue', '4': 'lida', '5': 'lida', '0': 'erro' }
-const STATUS_META: Record<string, Status['status']> = { sent: 'enviada', delivered: 'entregue', read: 'lida', failed: 'erro' }
-
-function lerWebhook(canal: Canal, corpo: any): Lido {
-  const r: Lido = { recebidas: [], ecos: [], status: [] }
-  if (canal.tipo === 'whatsapp_qr') {
-    const evento = String(corpo?.event ?? '').toLowerCase().replace('_', '.')
-    const lista = Array.isArray(corpo?.data) ? corpo.data : [corpo?.data]
-    if (evento.includes('messages.upsert')) {
-      for (const m of lista) {
-        if (!m?.key) continue
-        const jid = String(m.key.remoteJid ?? '')
-        if (!jid.endsWith('@s.whatsapp.net')) continue          // ignora grupos, status e contatos sem número
-        const { texto, tipo } = tipoEvolution(m.message ?? {})
-        const item = { telefone: jid.split('@')[0], nome: m.key.fromMe ? null : (m.pushName ?? null), texto, tipo, id: m.key.id ?? null }
-        if (m.key.fromMe) r.ecos.push(item); else r.recebidas.push(item)
-      }
-    }
-    if (evento.includes('messages.update')) {
-      for (const u of lista) {
-        const id = u?.keyId ?? u?.key?.id
-        const st = STATUS_EVOLUTION[String(u?.status ?? u?.update?.status ?? '')]
-        if (id && st) r.status.push({ id, status: st })
-      }
-    }
-  }
-  if (canal.tipo === 'whatsapp_oficial') {
-    for (const e of corpo?.entry ?? []) for (const c of e.changes ?? []) {
-      const v = c.value ?? {}
-      const nomes: Record<string, string> = {}
-      for (const ct of v.contacts ?? []) nomes[ct.wa_id] = ct.profile?.name
-      for (const m of v.messages ?? []) {
-        const { texto, tipo } = tipoMeta(m)
-        r.recebidas.push({ telefone: m.from, nome: nomes[m.from] ?? null, texto, tipo, id: m.id ?? null })
-      }
-      // coexistência: o que a vendedora mandou pelo app WhatsApp Business do celular
-      for (const m of v.message_echoes ?? []) {
-        const { texto, tipo } = tipoMeta(m)
-        if (m.to) r.ecos.push({ telefone: String(m.to), nome: null, texto, tipo, id: m.id ?? null })
-      }
-      for (const s of v.statuses ?? []) {
-        const st = STATUS_META[String(s.status ?? '')]
-        if (s.id && st) r.status.push({ id: s.id, status: st, erro: s.errors?.[0]?.error_data?.details ?? s.errors?.[0]?.message ?? s.errors?.[0]?.title })
-      }
-    }
-  }
-  return r
-}
-
-const sortear = <T,>(xs: T[]) => xs[Math.floor(Math.random() * xs.length)]
-const primeiroNome = (n: string | null) => { const p = (n ?? '').trim().split(/\s+/)[0] ?? ''; return p ? p[0].toUpperCase() + p.slice(1).toLowerCase() : '' }
-const preencher = (t: string, nome: string | null) => t.replace(/\{primeiro_nome\}|\{nome\}/gi, primeiroNome(nome)).replace(/[ \t]+([,.!?])/g, '$1')
+const emSegundoPlano = (p: Promise<unknown>) => { const rt = (globalThis as { EdgeRuntime?: { waitUntil: (p: Promise<unknown>) => void } }).EdgeRuntime; if (rt) rt.waitUntil(p); else p.catch(() => null) }
 
 // número atendido por um agente de IA: repassa a mensagem que chegou (a função do agente decide se e o que responder)
 function repassarParaIA(canal: Canal, url: string, chave: string | null, rec: { conversa?: string; mensagem?: string } | null) {
   const funcao = String(canal.config?.ia_funcao ?? '')
   if (!funcao || !chave || !rec?.conversa) return
-  const tarefa = fetch(`${url}/functions/v1/${funcao}`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-cron-chave': chave }, body: JSON.stringify({ acao: 'responder', conversa_id: rec.conversa, mensagem_id: rec.mensagem }) })
-    .then((r) => r.text()).catch(() => null)
-  const rt = (globalThis as { EdgeRuntime?: { waitUntil: (p: Promise<unknown>) => void } }).EdgeRuntime
-  if (rt) rt.waitUntil(tarefa)
+  emSegundoPlano(fetch(`${url}/functions/v1/${funcao}`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-cron-chave': chave }, body: JSON.stringify({ acao: 'responder', conversa_id: rec.conversa, mensagem_id: rec.mensagem }) }).then((r) => r.text()).catch(() => null))
 }
 
-async function canalESegredos(db: SupabaseClient, canalId: string) {
-  const { data: canal } = await db.from('crm_canais').select('*').eq('id', canalId).single()
-  const { data: seg } = await db.from('crm_canais_segredos').select('*').eq('canal_id', canalId).single()
-  if (!canal || !seg) throw new Error('Número não encontrado.')
-  return { canal: canal as Canal, seg: seg as Segredos }
+async function receber(db: SupabaseClient, canal: Canal, seg: Awaited<ReturnType<typeof canalESegredos>>['seg'], m: Recebida) {
+  const { data: rec } = await db.rpc('crm_receber_mensagem', { p_canal: canal.id, p_telefone: m.telefone, p_nome: m.nome, p_texto: m.texto ?? rotuloMidia(m.tipo), p_tipo: m.tipo, p_id_externo: m.id })
+  if (!rec || rec.repetida) return null
+  if (m.midia && rec.mensagem) emSegundoPlano(guardarRecebida(db, canal, seg, rec.mensagem, m.midia, m.tipo))
+  // veio de anúncio "clique para WhatsApp": a origem fica no contato (só a primeira)
+  if (m.anuncio && rec.contato) await db.from('crm_contatos').update({ primeira_origem: m.anuncio }).eq('id', rec.contato).is('primeira_origem', null)
+  // resposta à pesquisa de satisfação (pedida ao resolver, vale por 48 h): só um número de 1 a 5
+  const nota = /^\s*([1-5])\s*$/.exec(m.texto ?? '')?.[1]
+  if (nota && rec.conversa) await db.from('crm_conversas').update({ csat_nota: Number(nota), csat_em: new Date().toISOString() }).eq('id', rec.conversa)
+    .is('csat_nota', null).gt('csat_pedido_em', new Date(Date.now() - 48 * 3600e3).toISOString())
+  return rec
 }
 
-// manda uma mensagem já registrada e atualiza o status
-async function despachar(db: SupabaseClient, msgId: string, canal: Canal, seg: Segredos, telefone: string, texto: string, reenvio = false) {
-  try {
-    const idExt = await mandarTexto(canal, seg, telefone, texto, reenvio)
-    await db.from('crm_mensagens').update({ status: 'enviada', id_externo: idExt }).eq('id', msgId)
-    return { ok: true as const }
-  } catch (e) {
-    const erro = (e as Error).message
-    await db.from('crm_mensagens').update({ status: 'erro', erro }).eq('id', msgId)
-    return { ok: false as const, erro }
+async function webhook(db: SupabaseClient, url: string, req: Request, u: URL) {
+  const { canal, seg } = await canalESegredos(db, u.searchParams.get('canal')!)
+  // verificação da Meta (GET com hub.challenge)
+  if (req.method === 'GET') return u.searchParams.get('hub.verify_token') === seg.chave_webhook ? new Response(u.searchParams.get('hub.challenge') ?? '') : json({ erro: 'chave' }, 403)
+  if (canal.tipo !== 'whatsapp_oficial' && u.searchParams.get('chave') !== seg.chave_webhook) return json({ erro: 'chave' }, 403)
+  const corpo = await req.json().catch(() => ({}))
+  // status de conexão (servidor próprio)
+  if (canal.tipo === 'whatsapp_qr' && String(corpo?.event ?? '').toLowerCase().includes('connection')) {
+    const st = String(corpo?.data?.state ?? '')
+    await db.from('crm_canais').update({ status: st === 'open' ? 'conectado' : st === 'connecting' ? 'conectando' : 'desconectado' }).eq('id', canal.id)
+    return json({ ok: true })
   }
+  const lido = lerWebhook(canal, corpo)
+  const chaveIA = canal.config?.ia_funcao ? ((await db.rpc('crm_chave_cron')).data as string | null) : null
+  for (const m of lido.recebidas) { const rec = await receber(db, canal, seg, m); if (rec) repassarParaIA(canal, url, chaveIA, rec) }
+  for (const m of lido.ecos) await db.rpc('crm_registrar_eco', { p_canal: canal.id, p_telefone: m.telefone, p_texto: m.texto ?? rotuloMidia(m.tipo), p_tipo: m.tipo, p_id_externo: m.id })
+  for (const s of lido.status) await db.rpc('crm_status_mensagem', { p_canal: canal.id, p_id_externo: s.id, p_status: s.status, p_erro: s.erro ?? null })
+  // qualquer aviso do número prova que ele está vivo
+  if (canal.status !== 'conectado' && (lido.recebidas.length || lido.ecos.length)) await db.from('crm_canais').update({ status: 'conectado', status_info: null }).eq('id', canal.id)
+  return json({ ok: true })
 }
 
-async function processarFila(db: SupabaseClient) {
-  const { data: itens, error } = await db.rpc('crm_proximos_envios', { p_max: 40 })
-  if (error) throw new Error(error.message)
-  const cache = new Map<string, { canal: Canal; seg: Segredos }>()
-  let enviados = 0, erros = 0
-  for (const it of (itens ?? []) as { item_id: string; disparo_id: string; contato_id: string; canal_id: string; empresa_id: string }[]) {
-    // trava o item (se outra execução pegou antes, pula)
-    const { data: travado } = await db.from('crm_disparo_itens').update({ status: 'enviado', enviado_em: new Date().toISOString() }).eq('id', it.item_id).eq('status', 'fila').select('atendente_id').maybeSingle()
-    if (!travado) continue
-    if (!cache.has(it.canal_id)) cache.set(it.canal_id, await canalESegredos(db, it.canal_id))
-    const { canal, seg } = cache.get(it.canal_id)!
-    const { data: d } = await db.from('crm_disparos').select('mensagens, atendente_id').eq('id', it.disparo_id).single()
-    const { data: c } = await db.from('crm_contatos').select('nome, telefone, nao_contatar, telefone_invalido').eq('id', it.contato_id).single()
-    if (!c?.telefone || c.nao_contatar || c.telefone_invalido) { await db.from('crm_disparo_itens').update({ status: 'pulado', erro: 'sem WhatsApp ou pediu para não receber' }).eq('id', it.item_id); continue }
-    await db.from('crm_conversas').upsert({ empresa_id: it.empresa_id, contato_id: it.contato_id, canal_id: it.canal_id, atendente_id: travado.atendente_id ?? d?.atendente_id ?? null },
-      { onConflict: 'canal_id,contato_id', ignoreDuplicates: true })
-    const { data: conv } = await db.from('crm_conversas').select('id').eq('canal_id', it.canal_id).eq('contato_id', it.contato_id).single()
-    const texto = preencher(String(sortear((d?.mensagens ?? ['']) as string[])), c.nome)
-    const { data: msgId } = await db.rpc('crm_registrar_saida', { p_conversa: conv!.id, p_texto: texto, p_autor: 'disparo', p_autor_id: null })
-    const r = await despachar(db, msgId as string, canal, seg, c.telefone, texto)
-    await db.from('crm_disparo_itens').update({ mensagem_id: msgId, ...(r.ok ? {} : { status: 'erro', erro: r.erro }) }).eq('id', it.item_id)
-    if (r.ok) enviados++; else erros++
+// o que vai sair (texto, arquivo ou modelo) e o texto que fica gravado na conversa
+type Pedido = { texto?: string; midia?: { caminho: string; tipo: Midia['tipo']; nome?: string; mime?: string; legenda?: string }; modelo?: Modelo }
+async function montarEnvio(db: SupabaseClient, canalId: string, p: Pedido): Promise<{ envio: Envio; texto: string; extra: Record<string, unknown> }> {
+  if (p.modelo) {
+    const { data: mod } = await db.from('crm_modelos').select('corpo, status').eq('canal_id', canalId).eq('nome', p.modelo.nome).eq('idioma', p.modelo.idioma).maybeSingle()
+    if (!mod) throw new Error('Modelo não encontrado neste número.')
+    if (mod.status !== 'APPROVED') throw new Error('Esse modelo ainda não foi aprovado pela Meta.')
+    const parametros = (p.modelo.parametros ?? []).map(String)
+    return { envio: { modelo: { ...p.modelo, parametros } }, texto: textoDoModelo(mod.corpo, parametros), extra: { modelo: JSON.stringify({ ...p.modelo, parametros }) } }
   }
-  // disparos sem nada na fila → concluídos
-  const { data: abertos } = await db.from('crm_disparos').select('id').eq('status', 'enviando')
-  for (const d of abertos ?? []) {
-    const { count } = await db.from('crm_disparo_itens').select('id', { count: 'exact', head: true }).eq('disparo_id', d.id).eq('status', 'fila')
-    if (!count) await db.from('crm_disparos').update({ status: 'concluido', concluido_em: new Date().toISOString() }).eq('id', d.id)
+  if (p.midia?.caminho) {
+    const link = await linkTemporario(db, p.midia.caminho)
+    return { envio: { midia: { tipo: p.midia.tipo, link, nome: p.midia.nome, legenda: p.midia.legenda } }, texto: p.midia.legenda?.trim() || rotuloMidia(p.midia.tipo) || '[arquivo]',
+      extra: { tipo: p.midia.tipo, midia_url: p.midia.caminho, midia_nome: p.midia.nome ?? null, midia_mime: p.midia.mime ?? null } }
   }
-  return { enviados, erros }
+  const texto = String(p.texto ?? '').trim()
+  if (!texto) throw new Error('Escreva a mensagem.')
+  return { envio: { texto }, texto, extra: {} }
 }
 
-// follow-ups automáticos: tarefas já são criadas no banco; aqui só saem as mensagens
-async function processarCadencias(db: SupabaseClient) {
-  const { data: itens, error } = await db.rpc('crm_cadencias_vencidas', { p_max: 50 })
-  if (error) throw new Error(error.message)
-  let enviadas = 0, sem_canal = 0
-  for (const it of (itens ?? []) as { inscricao_id: string; empresa_id: string; contato_id: string; texto: string | null; dados: Record<string, string> | null }[]) {
-    const { data: c } = await db.from('crm_contatos').select('nome, telefone, nao_contatar, telefone_invalido').eq('id', it.contato_id).single()
-    if (!c?.telefone || c.nao_contatar || c.telefone_invalido || !it.texto) continue
-    // conversa existente com esse contato; senão o número padrão da empresa
-    const { data: conv0 } = await db.from('crm_conversas').select('id, canal_id').eq('contato_id', it.contato_id).order('ultima_em', { ascending: false, nullsFirst: false }).limit(1).maybeSingle()
-    let canalId = conv0?.canal_id as string | undefined
-    if (!canalId) {
-      const { data: emp } = await db.from('crm_empresas').select('config').eq('id', it.empresa_id).single()
-      canalId = emp?.config?.canal_padrao
-      if (!canalId) { const { data: k } = await db.from('crm_canais').select('id').eq('empresa_id', it.empresa_id).eq('status', 'conectado').neq('tipo', 'teste').limit(1).maybeSingle(); canalId = k?.id }
-    }
-    if (!canalId) { sem_canal++; continue }
-    const { canal, seg } = await canalESegredos(db, canalId)
-    if (canal.status !== 'conectado') { sem_canal++; continue }
-    await db.from('crm_conversas').upsert({ empresa_id: it.empresa_id, contato_id: it.contato_id, canal_id: canalId }, { onConflict: 'canal_id,contato_id', ignoreDuplicates: true })
-    const { data: conv } = await db.from('crm_conversas').select('id').eq('canal_id', canalId).eq('contato_id', it.contato_id).single()
-    let texto = preencher(it.texto, c.nome)
-    for (const [k, v] of Object.entries(it.dados ?? {})) texto = texto.replaceAll(`{${k}}`, String(v ?? ''))
-    const { data: msgId } = await db.rpc('crm_registrar_saida', { p_conversa: conv!.id, p_texto: texto, p_autor: 'disparo', p_autor_id: null })
-    const r = await despachar(db, msgId as string, canal, seg, c.telefone, texto)
-    if (r.ok) enviadas++
-  }
-  return { enviadas, sem_canal }
+// a mesma mensagem, de novo (texto, arquivo ou modelo)
+async function envioDeNovo(db: SupabaseClient, m: { texto: string | null; tipo: string; midia_url: string | null; midia_nome: string | null; modelo: string | null }): Promise<Envio> {
+  if (m.modelo) return { modelo: JSON.parse(m.modelo) as Modelo }
+  if (m.midia_url) return { midia: { tipo: m.tipo as Midia['tipo'], link: await linkTemporario(db, m.midia_url), nome: m.midia_nome, legenda: m.texto?.startsWith('[') ? null : m.texto } }
+  return { texto: m.texto ?? '' }
+}
+
+async function contatoPorTelefone(db: SupabaseClient, empresa: string, telefone: string, nome: string | null, origem: string, tags: string[] = []) {
+  const tel = telefone.replace(/\D/g, '')
+  if (tel.length < 12) throw new Error('Telefone inválido: use 55 + DDD + número.')
+  let { data: c } = await db.from('crm_contatos').select('id, nao_contatar').eq('empresa_id', empresa).eq('telefone', tel).is('mesclado_em', null).maybeSingle()
+  if (!c) ({ data: c } = await db.from('crm_contatos').insert({ empresa_id: empresa, nome: nome || null, telefone: tel, origem, entrou_em: new Date().toISOString(), tags }).select('id, nao_contatar').single())
+  if (c?.nao_contatar) throw new Error('Essa pessoa pediu para não receber mensagens.')
+  return c!.id as string
+}
+async function conversaDe(db: SupabaseClient, empresa: string, contatoId: string, canalId: string, extra: Record<string, unknown> = {}) {
+  await db.from('crm_conversas').upsert({ empresa_id: empresa, contato_id: contatoId, canal_id: canalId, ...extra }, { onConflict: 'canal_id,contato_id', ignoreDuplicates: true })
+  const { data: v } = await db.from('crm_conversas').select('id').eq('canal_id', canalId).eq('contato_id', contatoId).single()
+  return v!.id as string
+}
+
+async function enviarNaConversa(db: SupabaseClient, conversaId: string, pedido: Pedido, autor: 'atendente' | 'ia', autorId: string | null) {
+  const { data: conv } = await db.from('crm_conversas').select('id, canal_id, contato_id').eq('id', conversaId).single()
+  const { data: contato } = await db.from('crm_contatos').select('telefone').eq('id', conv!.contato_id).single()
+  const { canal, seg } = await canalESegredos(db, conv!.canal_id)
+  if (canal.status !== 'conectado' && canal.tipo !== 'teste') return json({ erro: `O número "${canal.nome}" não está conectado.` }, 400)
+  const { envio, texto, extra } = await montarEnvio(db, canal.id, pedido)
+  const { data: msgId, error } = await db.rpc('crm_registrar_saida', { p_conversa: conv!.id, p_texto: texto, p_autor: autor, p_autor_id: autorId })
+  if (error) return json({ erro: error.message }, 400)
+  if (Object.keys(extra).length) await db.from('crm_mensagens').update(extra).eq('id', msgId)
+  const r = await despachar(db, msgId as string, canal, seg, contato!.telefone, envio)
+  return json(r.ok ? { ok: true, mensagem: msgId, conversa: conv!.id } : { erro: r.erro, mensagem: msgId, conversa: conv!.id }, r.ok ? 200 : 502)
 }
 
 Deno.serve(async (req) => {
@@ -219,128 +132,81 @@ Deno.serve(async (req) => {
   const url = Deno.env.get('SUPABASE_URL')!
   const db = createClient(url, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!)
   const u = new URL(req.url)
-
   try {
-    // ── webhook do provedor ──
-    const canalWebhook = u.searchParams.get('canal')
-    if (canalWebhook) {
-      const { canal, seg } = await canalESegredos(db, canalWebhook)
-      // verificação da Meta (GET com hub.challenge)
-      if (req.method === 'GET') {
-        return u.searchParams.get('hub.verify_token') === seg.chave_webhook ? new Response(u.searchParams.get('hub.challenge') ?? '') : json({ erro: 'chave' }, 403)
-      }
-      if (canal.tipo !== 'whatsapp_oficial' && u.searchParams.get('chave') !== seg.chave_webhook) return json({ erro: 'chave' }, 403)
-      const corpo = await req.json().catch(() => ({}))
-      // status de conexão (servidor próprio)
-      if (canal.tipo === 'whatsapp_qr' && String(corpo?.event ?? '').toLowerCase().includes('connection')) {
-        const st = String(corpo?.data?.state ?? '')
-        await db.from('crm_canais').update({ status: st === 'open' ? 'conectado' : st === 'connecting' ? 'conectando' : 'desconectado' }).eq('id', canal.id)
-        return json({ ok: true })
-      }
-      const lido = lerWebhook(canal, corpo)
-      const chaveIA = canal.config?.ia_funcao ? ((await db.rpc('crm_chave_cron')).data as string | null) : null
-      for (const m of lido.recebidas) {
-        const { data: rec } = await db.rpc('crm_receber_mensagem', { p_canal: canal.id, p_telefone: m.telefone, p_nome: m.nome, p_texto: m.texto, p_tipo: m.tipo, p_id_externo: m.id })
-        if (!rec?.repetida) repassarParaIA(canal, url, chaveIA, rec)
-      }
-      for (const m of lido.ecos) {
-        await db.rpc('crm_registrar_eco', { p_canal: canal.id, p_telefone: m.telefone, p_texto: m.texto, p_tipo: m.tipo, p_id_externo: m.id })
-      }
-      for (const s of lido.status) {
-        await db.rpc('crm_status_mensagem', { p_canal: canal.id, p_id_externo: s.id, p_status: s.status, p_erro: s.erro ?? null })
-      }
-      // qualquer aviso do número prova que ele está vivo
-      if (canal.status !== 'conectado' && (lido.recebidas.length || lido.ecos.length)) await db.from('crm_canais').update({ status: 'conectado', status_info: null }).eq('id', canal.id)
-      return json({ ok: true })
-    }
-
+    if (u.searchParams.get('canal')) return await webhook(db, url, req, u)
     const corpo = await req.json().catch(() => ({}))
     const acao = String(corpo.acao ?? '')
 
-    // ── fila de disparos (cron) ──
-    if (acao === 'processar_fila') {
+    // ── sistema (cron e agentes de IA) ──
+    if (acao === 'processar_fila' || acao === 'enviar_sistema') {
       const { data: chave } = await db.rpc('crm_chave_cron')
       if (!chave || req.headers.get('x-cron-chave') !== chave) return json({ erro: 'chave' }, 403)
-      return json({ disparos: await processarFila(db), followups: await processarCadencias(db) })
-    }
-
-    // ── mensagem de um agente de IA (conversa existente, ou número + telefone para começar uma) ──
-    if (acao === 'enviar_sistema') {
-      const { data: chave } = await db.rpc('crm_chave_cron')
-      if (!chave || req.headers.get('x-cron-chave') !== chave) return json({ erro: 'chave' }, 403)
-      const texto = String(corpo.texto ?? '').trim()
-      if (!texto) return json({ erro: 'sem texto' }, 400)
+      if (acao === 'processar_fila') return json({ disparos: await processarFila(db), followups: await processarCadencias(db), agendadas: await processarAgendadas(db) })
       let conversaId = corpo.conversa_id ? String(corpo.conversa_id) : null
       if (!conversaId) {
         const { canal } = await canalESegredos(db, String(corpo.canal_id ?? ''))
-        const tel = String(corpo.telefone ?? '').replace(/\D/g, '')
-        if (tel.length < 10) return json({ erro: 'telefone inválido' }, 400)
-        let { data: c } = await db.from('crm_contatos').select('id, nao_contatar').eq('empresa_id', canal.empresa_id).eq('telefone', tel).maybeSingle()
-        if (!c) ({ data: c } = await db.from('crm_contatos').insert({ empresa_id: canal.empresa_id, nome: corpo.nome ?? null, telefone: tel, origem: 'cobranca', entrou_em: new Date().toISOString(), tags: ['cobranca'] }).select('id, nao_contatar').single())
-        if (c?.nao_contatar) return json({ erro: 'pediu para não receber mensagens' }, 400)
-        await db.from('crm_conversas').upsert({ empresa_id: canal.empresa_id, contato_id: c!.id, canal_id: canal.id, com_ia: true }, { onConflict: 'canal_id,contato_id', ignoreDuplicates: true })
-        const { data: v } = await db.from('crm_conversas').select('id').eq('canal_id', canal.id).eq('contato_id', c!.id).single()
-        conversaId = v!.id
+        const contato = await contatoPorTelefone(db, canal.empresa_id, String(corpo.telefone ?? ''), corpo.nome ?? null, 'cobranca', ['cobranca'])
+        conversaId = await conversaDe(db, canal.empresa_id, contato, canal.id, { com_ia: true })
       }
-      const { data: conv } = await db.from('crm_conversas').select('id, canal_id, contato_id').eq('id', conversaId!).single()
-      const { data: contato } = await db.from('crm_contatos').select('telefone').eq('id', conv!.contato_id).single()
-      const { canal, seg } = await canalESegredos(db, conv!.canal_id)
-      if (canal.status !== 'conectado') return json({ erro: `O número "${canal.nome}" não está conectado.` }, 400)
-      const { data: msgId, error } = await db.rpc('crm_registrar_saida', { p_conversa: conv!.id, p_texto: texto, p_autor: 'ia', p_autor_id: null })
-      if (error) return json({ erro: error.message }, 400)
-      const r = await despachar(db, msgId as string, canal, seg, contato!.telefone, texto)
-      return json(r.ok ? { ok: true, conversa: conv!.id, mensagem: msgId } : { erro: r.erro, conversa: conv!.id }, r.ok ? 200 : 502)
+      return await enviarNaConversa(db, conversaId, { texto: corpo.texto, modelo: corpo.modelo }, 'ia', null)
     }
 
     // daqui para baixo: pessoa logada, com as regras de acesso dela
     const usuario = createClient(url, Deno.env.get('SUPABASE_ANON_KEY')!, { global: { headers: { Authorization: req.headers.get('Authorization') ?? '' } } })
     const { data: eu } = await usuario.auth.getUser()
     if (!eu?.user) return json({ erro: 'Entre no sistema de novo.' }, 401)
+    const souAdmin = async (empresa: string) => (await usuario.rpc('crm_sou_admin', { p_empresa: empresa })).data === true
 
     if (acao === 'enviar') {
-      const texto = String(corpo.texto ?? '').trim()
-      if (!texto) return json({ erro: 'Escreva a mensagem.' }, 400)
       let conversaId = corpo.conversa_id ? String(corpo.conversa_id) : null
       if (!conversaId) {
-        // começar conversa nova com um contato
-        const { data: c } = await usuario.from('crm_contatos').select('id, empresa_id').eq('id', String(corpo.contato_id ?? '')).maybeSingle()
-        if (!c) return json({ erro: 'Contato não encontrado.' }, 404)
-        const { data: k } = await usuario.from('crm_canais').select('id').eq('id', String(corpo.canal_id ?? '')).eq('empresa_id', c.empresa_id).maybeSingle()
+        // começar conversa nova: com um contato já cadastrado ou só com o telefone
+        const { data: k } = await usuario.from('crm_canais').select('id, empresa_id').eq('id', String(corpo.canal_id ?? '')).maybeSingle()
         if (!k) return json({ erro: 'Escolha o número.' }, 400)
-        await db.from('crm_conversas').upsert({ empresa_id: c.empresa_id, contato_id: c.id, canal_id: k.id, atendente_id: eu.user.id }, { onConflict: 'canal_id,contato_id', ignoreDuplicates: true })
-        const { data: v } = await db.from('crm_conversas').select('id').eq('canal_id', k.id).eq('contato_id', c.id).single()
-        conversaId = v!.id
+        let contato = corpo.contato_id ? String(corpo.contato_id) : null
+        if (contato) { const { data: c } = await usuario.from('crm_contatos').select('id').eq('id', contato).eq('empresa_id', k.empresa_id).maybeSingle(); if (!c) return json({ erro: 'Contato não encontrado.' }, 404) }
+        else contato = await contatoPorTelefone(db, k.empresa_id, String(corpo.telefone ?? ''), corpo.nome ?? null, 'manual')
+        conversaId = await conversaDe(db, k.empresa_id, contato, k.id, { atendente_id: eu.user.id })
       }
-      const { data: conv } = await usuario.from('crm_conversas').select('id, canal_id, atendente_id, contato_id').eq('id', conversaId!).maybeSingle()
+      const { data: conv } = await usuario.from('crm_conversas').select('id, atendente_id').eq('id', conversaId).maybeSingle()
       if (!conv) return json({ erro: 'Conversa não encontrada.' }, 404)
       if (!conv.atendente_id) await db.from('crm_conversas').update({ atendente_id: eu.user.id }).eq('id', conv.id)   // quem responde assume
-      const { data: contato } = await db.from('crm_contatos').select('telefone').eq('id', conv.contato_id).single()
-      const { canal, seg } = await canalESegredos(db, conv.canal_id)
-      if (canal.status !== 'conectado') return json({ erro: `O número "${canal.nome}" não está conectado.` }, 400)
-      const { data: msgId, error } = await db.rpc('crm_registrar_saida', { p_conversa: conv.id, p_texto: texto, p_autor: 'atendente', p_autor_id: eu.user.id })
-      if (error) return json({ erro: error.message }, 400)
-      const r = await despachar(db, msgId as string, canal, seg, contato!.telefone, texto)
-      return json(r.ok ? { ok: true, mensagem: msgId, conversa: conv.id } : { erro: r.erro, mensagem: msgId }, r.ok ? 200 : 502)
+      return await enviarNaConversa(db, conv.id, { texto: corpo.texto, midia: corpo.midia, modelo: corpo.modelo }, 'atendente', eu.user.id)
     }
 
     if (acao === 'reenviar') {
       // a pessoa só consegue ler a mensagem se pode ver a conversa (regras de acesso dela)
-      const { data: m } = await usuario.from('crm_mensagens').select('id, conversa_id, texto, status, direcao').eq('id', String(corpo.mensagem_id ?? '')).maybeSingle()
+      const { data: m } = await usuario.from('crm_mensagens').select('id, conversa_id, texto, tipo, status, direcao, midia_url, midia_nome, modelo').eq('id', String(corpo.mensagem_id ?? '')).maybeSingle()
       if (!m || m.direcao !== 'saida') return json({ erro: 'Mensagem não encontrada.' }, 404)
       if (m.status !== 'erro') return json({ erro: 'Essa mensagem já saiu.' }, 400)
       const { data: conv } = await db.from('crm_conversas').select('canal_id, contato_id').eq('id', m.conversa_id).single()
       const { data: contato } = await db.from('crm_contatos').select('telefone').eq('id', conv!.contato_id).single()
       const { canal, seg } = await canalESegredos(db, conv!.canal_id)
-      if (canal.status !== 'conectado') return json({ erro: `O número "${canal.nome}" não está conectado.` }, 400)
+      if (canal.status !== 'conectado' && canal.tipo !== 'teste') return json({ erro: `O número "${canal.nome}" não está conectado.` }, 400)
       await db.from('crm_mensagens').update({ status: 'pendente', erro: null }).eq('id', m.id)
-      const r = await despachar(db, m.id, canal, seg, contato!.telefone, m.texto ?? '', true)
+      const r = await despachar(db, m.id, canal, seg, contato!.telefone, await envioDeNovo(db, m), true)
       return json(r.ok ? { ok: true } : { erro: r.erro }, r.ok ? 200 : 502)
+    }
+
+    if (acao === 'transcrever') {
+      const { data: m } = await usuario.from('crm_mensagens').select('id, empresa_id, midia_url, midia_mime, tipo').eq('id', String(corpo.mensagem_id ?? '')).maybeSingle()
+      if (!m?.midia_url || m.tipo !== 'audio') return json({ erro: 'Áudio não encontrado.' }, 404)
+      await transcreverGuardado(db, m.empresa_id, m.id, m.midia_url, m.midia_mime)
+      const { data: t } = await db.from('crm_mensagens').select('transcricao').eq('id', m.id).single()
+      return t?.transcricao ? json({ ok: true, transcricao: t.transcricao }) : json({ erro: 'Não consegui transcrever (falta a chave da OpenAI em Agentes → Configurações?).' }, 400)
+    }
+
+    if (acao === 'modelos_sincronizar' || acao === 'modelo_criar') {
+      const { canal, seg } = await canalESegredos(db, String(corpo.canal_id ?? ''))
+      if (!(await souAdmin(canal.empresa_id))) return json({ erro: 'Só o administrador.' }, 403)
+      if (canal.tipo !== 'whatsapp_oficial') return json({ erro: 'Modelos só existem na API oficial da Meta.' }, 400)
+      if (acao === 'modelos_sincronizar') return json({ ok: true, modelos: await sincronizarModelos(db, canal, seg) })
+      return json({ ok: true, ...(await criarModelo(db, canal, seg, { nome: String(corpo.nome ?? ''), categoria: String(corpo.categoria ?? 'UTILITY'), corpo: String(corpo.corpo ?? ''), exemplo: (corpo.exemplo ?? []).map(String) })) })
     }
 
     if (acao === 'simular_entrada') {
       const { canal } = await canalESegredos(db, String(corpo.canal_id ?? ''))
-      const { data: admin } = await usuario.rpc('crm_sou_admin', { p_empresa: canal.empresa_id })
-      if (admin !== true) return json({ erro: 'Só o administrador.' }, 403)
+      if (!(await souAdmin(canal.empresa_id))) return json({ erro: 'Só o administrador.' }, 403)
       if (canal.tipo !== 'teste') return json({ erro: 'Simulação só no número de teste.' }, 400)
       const tel = String(corpo.telefone ?? '').replace(/\D/g, '')
       if (tel.length < 10) return json({ erro: 'Telefone inválido.' }, 400)
