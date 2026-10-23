@@ -1,7 +1,7 @@
 -- Carga inicial do Controle → Projeto: tudo o que foi conversado até 22/10/2026, triado por épico.
 -- Só roda se ainda não houver épicos (não duplica).
 do $$
-declare e uuid; x uuid;
+declare e uuid; x uuid; dom date := date_trunc('week', current_date + 1)::date - 1;
 begin
   if exists (select 1 from proj_epicos) then return; end if;
 
@@ -13,7 +13,7 @@ begin
     (e, 'Asaas ligado: boleto, Pix e negativação', 'publicado', 1, now(), null),
     (e, 'Configurações da cobrança num lugar só', 'publicado', 2, now(), null);
   insert into proj_entregas (epico_id, nome, pronto_quando, status, ordem, semana) values
-    (e, 'Modelos de utilidade da cobrança aprovados na Meta', 'Aviso da carta e lembretes da régua aprovados no número oficial', 'semana', 3, date_trunc('week', current_date + 1)::date - 1)
+    (e, 'Modelos de utilidade da cobrança aprovados na Meta', 'Aviso da carta e lembretes da régua aprovados no número oficial', 'semana', 3, dom)
     returning id into x;
   insert into proj_tarefas (entrega_id, titulo, quem, ordem) values
     (x, 'Escrever os modelos de aviso e lembrete', 'claude', 0), (x, 'Mandar para aprovação da Meta', 'claude', 1), (x, 'Conferir o texto', 'alexandre', 2);
@@ -30,7 +30,7 @@ begin
     (e, 'Caixa de conversas nova: mídia, modelos da Meta, adiar, agendar, resumo da IA, Ctrl+K', 'publicado', 1, now()),
     (e, 'Contatos duplicados: juntar com um clique', 'publicado', 2, now());
   insert into proj_entregas (epico_id, nome, pronto_quando, status, ordem, semana) values
-    (e, 'Terminar a tela de Conversas e a Minha fila', 'Minha fila mostra só o que é real (sem o número de teste) e a tela não quebra no computador nem no celular', 'semana', 3, date_trunc('week', current_date + 1)::date - 1);
+    (e, 'Terminar a tela de Conversas e a Minha fila', 'Minha fila mostra só o que é real (sem o número de teste) e a tela não quebra no computador nem no celular', 'semana', 3, dom);
   insert into proj_entregas (epico_id, nome, status, ordem) values
     (e, 'Números das vendedoras dentro do sistema', 'espera', 4),
     (e, 'Controle das vendedoras: tempo de resposta, conversas paradas, vendas e comissão', 'espera', 5);
@@ -38,13 +38,13 @@ begin
   insert into proj_epicos (nome, descricao, fase, ordem, status) values
     ('Disparos e públicos da Black', 'Mandar a Black para o público certo pelo número oficial e saber quem recebeu, leu, respondeu e comprou.', 1, 2, 'andamento') returning id into e;
   insert into proj_entregas (epico_id, nome, pronto_quando, status, ordem, semana) values
-    (e, 'Públicos salvos + disparo com modelo da Meta + etiquetas de rastreio', 'Consigo salvar "alunos vitalícios", disparar um modelo aprovado e ver as etiquetas recebeu, leu, respondeu e comprou', 'semana', 0, date_trunc('week', current_date + 1)::date - 1)
+    (e, 'Públicos salvos + disparo com modelo da Meta + etiquetas de rastreio', 'Consigo salvar "alunos vitalícios", disparar um modelo aprovado e ver as etiquetas recebeu, leu, respondeu e comprou', 'semana', 0, dom)
     returning id into x;
   insert into proj_tarefas (entrega_id, titulo, quem, ordem) values
     (x, 'Banco: públicos, disparo com modelo, etiquetas automáticas', 'claude', 0), (x, 'Tela: salvar público e escolher modelo no disparo', 'claude', 1),
     (x, 'Servidor: enviar o modelo na fila do disparo', 'claude', 2), (x, 'Testar com um público pequeno', 'alexandre', 3);
   insert into proj_entregas (epico_id, nome, pronto_quando, status, ordem, semana) values
-    (e, 'Modelos da Black escritos pela IA a partir da campanha', 'A IA lê a campanha da Black e propõe modelos; mando para a Meta com um clique', 'semana', 1, date_trunc('week', current_date + 1)::date - 1);
+    (e, 'Modelos da Black escritos pela IA a partir da campanha', 'A IA lê a campanha da Black e propõe modelos; mando para a Meta com um clique', 'semana', 1, dom);
   insert into proj_entregas (epico_id, nome, status, ordem) values
     (e, 'Painel da Black: meta x realizado por dia, vendedora e origem', 'espera', 2),
     (e, 'Recuperação automática: boleto, Pix, carrinho abandonado e lead da página', 'espera', 3),
@@ -53,7 +53,7 @@ begin
   insert into proj_epicos (nome, descricao, fase, ordem, status) values
     ('Fábrica de software', 'Como o ecossistema é desenvolvido: épicos, entregas da semana e caixa de ideias.', 1, 3, 'andamento') returning id into e;
   insert into proj_entregas (epico_id, nome, pronto_quando, status, ordem, semana) values
-    (e, 'Área "Projeto do ecossistema" no Controle', 'Vejo as fases, o quadro da semana, os épicos e a caixa de ideias, e consigo mover e triar', 'testar', 0, date_trunc('week', current_date + 1)::date - 1);
+    (e, 'Área "Projeto do ecossistema" no Controle', 'Vejo as fases, o quadro da semana, os épicos e a caixa de ideias, e consigo mover e triar', 'testar', 0, dom);
 
   insert into proj_epicos (nome, descricao, fase, ordem) values
     ('Motor de automações', 'Um motor só (Quando → Faça → Depois) para WhatsApp, e-mail e Instagram, com rastreio por etiqueta.', 2, 0) returning id into e;
