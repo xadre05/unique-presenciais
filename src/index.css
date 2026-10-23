@@ -3922,25 +3922,26 @@ button.ci-chip { border: 1px dashed var(--borda); padding: 1px 8px; border-radiu
 .prj-kpi-btn:hover .kpi { border-color: var(--ouro); }
 .prj-barra { display: block; height: 6px; border-radius: 3px; background: var(--painel-2); overflow: hidden; }
 .prj-barra > span { display: block; height: 100%; background: var(--ouro); border-radius: 3px; }
-.prj-fases { display: grid; grid-template-columns: repeat(5, minmax(220px, 1fr)); gap: 12px; overflow-x: auto; padding-bottom: 6px; }
-.prj-fase { background: var(--painel); border: 1px solid var(--borda); border-radius: 12px; padding: 12px; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
-.prj-fase-topo { display: flex; flex-direction: column; gap: 2px; padding-bottom: 6px; border-bottom: 1px solid var(--borda); }
+.prj-fases { display: flex; flex-direction: column; gap: 12px; }
+.prj-fase { background: var(--painel); border: 1px solid var(--borda); border-radius: 12px; padding: 14px; display: grid; grid-template-columns: 190px minmax(0, 1fr); gap: 16px; min-width: 0; }
+.prj-fase-topo { display: flex; flex-direction: column; gap: 3px; padding-right: 12px; border-right: 1px solid var(--borda); }
+.prj-fase-epicos { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 10px; min-width: 0; }
+.prj-epico-nome { overflow-wrap: break-word; }
 .prj-fase-num { font-size: .68rem; letter-spacing: .14em; text-transform: uppercase; color: var(--ouro); }
-.prj-epico { display: flex; flex-direction: column; gap: 6px; text-align: left; font: inherit; color: inherit; background: var(--painel-2); border: 1px solid var(--borda); border-radius: 10px; padding: 10px 12px; cursor: pointer; }
+.prj-epico { display: flex; flex-direction: column; gap: 6px; min-width: 0; text-align: left; font: inherit; color: inherit; background: var(--painel-2); border: 1px solid var(--borda); border-radius: 10px; padding: 10px 12px; cursor: pointer; }
 .prj-epico:hover { border-color: var(--ouro); }
 .prj-epico-andamento { border-left: 3px solid var(--ouro); }
 .prj-epico-concluido { border-left: 3px solid var(--ok); }
 .prj-epico-pausado { opacity: .6; }
-.prj-epico-topo { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
 .prj-epico-desc { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .prj-semana-topo { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap; margin-bottom: 10px; }
 .prj-semana-topo h2 { margin: 0 0 4px; font-size: 1.1rem; }
 .prj-quadro { display: grid; grid-template-columns: repeat(4, minmax(220px, 1fr)); gap: 12px; overflow-x: auto; padding-bottom: 6px; }
-.prj-coluna { background: var(--painel); border: 1px solid var(--borda); border-radius: 12px; padding: 10px; display: flex; flex-direction: column; gap: 8px; min-height: 260px; transition: border-color .15s, background .15s; }
+.prj-coluna { min-width: 0; background: var(--painel); border: 1px solid var(--borda); border-radius: 12px; padding: 10px; display: flex; flex-direction: column; gap: 8px; min-height: 260px; transition: border-color .15s, background .15s; }
 .prj-coluna.sobre { border-color: var(--ouro); background: var(--ouro-fundo); }
 .prj-coluna-topo { display: flex; justify-content: space-between; align-items: center; }
 .prj-coluna-explica { margin: -4px 0 4px; }
-.prj-cartao { display: flex; flex-direction: column; gap: 6px; text-align: left; font: inherit; color: inherit; background: var(--painel-2); border: 1px solid var(--borda); border-radius: 10px; padding: 10px 12px; cursor: grab; }
+.prj-cartao { display: flex; flex-direction: column; gap: 6px; min-width: 0; overflow-wrap: break-word; text-align: left; font: inherit; color: inherit; background: var(--painel-2); border: 1px solid var(--borda); border-radius: 10px; padding: 10px 12px; cursor: grab; }
 .prj-cartao:hover { border-color: var(--ouro); }
 .prj-cartao-epico { font-size: .7rem; letter-spacing: .06em; text-transform: uppercase; color: var(--ouro); }
 .prj-cartao-pronto { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
@@ -3979,5 +3980,7 @@ button.ci-chip { border: 1px dashed var(--borda); padding: 1px 8px; border-radiu
 @media (max-width: 900px) {
   .prj-epicos { grid-template-columns: 1fr; }
   .prj-epicos-lista { position: static; }
-  .prj-fases, .prj-quadro { grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); overflow-x: visible; }
+  .prj-fase { grid-template-columns: 1fr; }
+  .prj-fase-topo { border-right: none; border-bottom: 1px solid var(--borda); padding: 0 0 8px; }
+  .prj-quadro { grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); overflow-x: visible; }
 }

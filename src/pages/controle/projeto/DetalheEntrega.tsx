@@ -13,15 +13,16 @@ export function DetalheEntrega({ entrega, uso, aoFechar }: Props) {
   const [nome, setNome] = useState(entrega.nome)
   const [pronto, setPronto] = useState(entrega.pronto_quando ?? '')
   const [resumo, setResumo] = useState(entrega.resumo ?? '')
+  const [notas, setNotas] = useState(entrega.notas ?? '')
   const [nova, setNova] = useState('')
   const [quem, setQuem] = useState<Quem>('claude')
   const p = uso.dados!
   const epico = p.epicos.find((e) => e.id === entrega.epico_id)
   const tarefas = p.tarefas.filter((t) => t.entrega_id === entrega.id)
   const feitas = tarefas.filter((t) => t.feito).length
-  const mudou = nome !== entrega.nome || pronto !== (entrega.pronto_quando ?? '') || resumo !== (entrega.resumo ?? '')
+  const mudou = nome !== entrega.nome || pronto !== (entrega.pronto_quando ?? '') || resumo !== (entrega.resumo ?? '') || notas !== (entrega.notas ?? '')
 
-  const salvar = () => uso.gravar(() => supabase.from('proj_entregas').update({ nome: nome.trim() || entrega.nome, pronto_quando: pronto.trim() || null, resumo: resumo.trim() || null }).eq('id', entrega.id))
+  const salvar = () => uso.gravar(() => supabase.from('proj_entregas').update({ nome: nome.trim() || entrega.nome, pronto_quando: pronto.trim() || null, resumo: resumo.trim() || null, notas: notas.trim() || null }).eq('id', entrega.id))
   const mudarStatus = (s: StatusEntrega) => uso.gravar(() => supabase.from('proj_entregas').update(camposDoStatus(s, entrega)).eq('id', entrega.id))
   const addTarefa = async () => {
     if (!nova.trim()) return
@@ -66,6 +67,9 @@ export function DetalheEntrega({ entrega, uso, aoFechar }: Props) {
         <button className="btn btn-mini" onClick={addTarefa} disabled={!nova.trim()}>Adicionar</button>
       </div>
 
+      <Campo rotulo="Decisões e pontos combinados" dica="O que foi discutido sobre esta entrega, para ninguém esquecer.">
+        <textarea rows={4} value={notas} onChange={(e) => setNotas(e.target.value)} placeholder="Ex.: 22/10 — vitalícios primeiro; quem está devendo fica fora" />
+      </Campo>
       {(entrega.status === 'testar' || entrega.status === 'publicado') && (
         <Campo rotulo="O que mudou (resumo da publicação)"><textarea rows={3} value={resumo} onChange={(e) => setResumo(e.target.value)} /></Campo>
       )}

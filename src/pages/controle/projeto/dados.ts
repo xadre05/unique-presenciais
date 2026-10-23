@@ -12,7 +12,7 @@ export type Quem = 'claude' | 'alexandre' | 'equipe'
 export type Epico = { id: string; nome: string; descricao: string | null; fase: number; ordem: number; status: StatusEpico; criado_em: string }
 export type Entrega = {
   id: string; epico_id: string; nome: string; pronto_quando: string | null; status: StatusEntrega; semana: string | null
-  ordem: number; resumo: string | null; publicado_em: string | null; criado_em: string
+  ordem: number; resumo: string | null; notas: string | null; publicado_em: string | null; criado_em: string
 }
 export type Tarefa = { id: string; entrega_id: string; titulo: string; quem: Quem; feito: boolean; ordem: number }
 export type Ideia = { id: string; texto: string; status: 'nova' | 'triada' | 'descartada'; epico_id: string | null; entrega_id: string | null; criado_em: string }
