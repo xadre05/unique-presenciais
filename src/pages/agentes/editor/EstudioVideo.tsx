@@ -48,8 +48,11 @@ function Previa({ e, aoTempo }: { e: Estudio; aoTempo: (t: number) => void }) {
       {!e.ocupado && <button type="button" className="btn btn-ouro btn-mini" onClick={() => e.setPasso(e.arquivo ? 'imagens' : 'video')}>{e.arquivo ? 'Revisar as etapas e editar' : 'Escolher o vídeo'}</button>}</div>
   )
   if (!e.linha || !e.url || !e.confere) return (
-    <div className="es-vazio"><Icone nome="video" tam={30} /><p>Para ver a prévia, escolha neste computador o mesmo vídeo bruto{e.edicao.arquivo ? ` (${e.edicao.arquivo.nome})` : ''}.</p>
-      <button type="button" className="btn btn-ouro btn-mini" onClick={() => e.setPasso('video')}>Escolher o vídeo</button></div>
+    <div className="es-vazio"><Icone nome="video" tam={30} />
+      <p>O vídeo fica só no seu computador. Para ver a prévia, escolha de novo o mesmo arquivo{e.edicao.arquivo ? <>: <b>{e.edicao.arquivo.nome}</b></> : ''}. A edição, as imagens e os textos já estão guardados.</p>
+      {e.arquivo && !e.confere && <p className="nota pequeno">O arquivo escolhido ({e.arquivo.name}) não é o mesmo da edição. Escolha {e.edicao.arquivo?.nome ?? 'o vídeo original'}.</p>}
+      <label className="btn btn-ouro btn-mini ev-arquivo">Escolher {e.edicao.arquivo?.nome ?? 'o vídeo'}
+        <input type="file" accept="video/*" hidden onChange={(x) => { const f = x.target.files?.[0]; if (f) e.escolherVarios([f]); x.target.value = '' }} /></label></div>
   )
   return <PreviaVideo url={e.url} linha={e.linha} vertical={e.vertical} apoio={e.apoio.apoio} musica={e.apoio.musica} cor={e.cor} aoTempo={aoTempo} codigos={e.codigos} visual={e.visual} />
 }
@@ -63,6 +66,7 @@ function Barra({ e, aoConcluir }: { e: Estudio; aoConcluir: () => void }) {
       <span className="muted pequeno es-barra-dica">{e.final ? 'Confira e entregue.' : e.receita ? 'Revise a prévia antes de gerar.' : ''}</span>
       {e.progresso !== null && <span className="es-barra-progresso"><span style={{ width: `${Math.round(e.progresso * 100)}%` }} /></span>}
       <span className="es-barra-acoes">
+        {e.receita && e.confere && !e.final && <button type="button" className="btn btn-contorno-ouro" disabled={!!e.ocupado || e.progresso !== null} onClick={() => void e.editar()}><Icone nome="floco" tam={15} /> Editar de novo do zero</button>}
         {e.final && <a className="btn btn-contorno" href={e.final.url} download={e.final.nome}><Icone nome="importar" tam={15} /> Baixar</a>}
         <button type="button" className="btn btn-contorno" disabled={!e.final} onClick={aoConcluir}><Icone nome="check" tam={15} /> Concluir edição</button>
         {!e.final && <button type="button" className="btn btn-ouro" disabled={!e.linha || !e.confere || !!e.ocupado || e.progresso !== null} onClick={() => void e.gerarFinal()}
