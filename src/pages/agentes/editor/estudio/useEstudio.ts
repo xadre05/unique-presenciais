@@ -117,7 +117,7 @@ export function useEstudio(peca: Peca, aoMudar: () => void) {
   const juntou = async (j: Juntado) => {
     const mesmo = mesmoArquivo(edicao.arquivo, j.arquivo)
     await guardarEdicao(peca.id, (e) => ({ ...e, arquivo: { nome: j.arquivo.name, tamanho: j.arquivo.size, duracao: j.duracao }, palavras: j.palavras, partes: j.partes, receitas: mesmo ? e.receitas : [] }))
-    deixarArquivo(peca.id, j.arquivo); escolher(j.arquivo); setDuracao(j.duracao); setPartes(null); aoMudar()
+    deixarArquivo(peca.id, j.arquivo, j.atalho); escolher(j.arquivo); setDuracao(j.duracao); setPartes(null); aoMudar()
   }
   // vídeo sem gravar: o "bruto" é a narração da IA, guardada na nuvem (volta sozinha, sem escolher arquivo)
   const narracao = (peca.conteudo as { narracao?: { caminho: string; nome: string } }).narracao

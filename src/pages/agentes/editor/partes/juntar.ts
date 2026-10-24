@@ -1,7 +1,7 @@
 // Junta várias partes gravadas (ex.: a Patrícia gravou em 3 pedaços) num vídeo só, SEM refazer a imagem: os quadros e
 // o som de cada parte são copiados como estão, um depois do outro (rápido, sem perder qualidade). Só funciona quando
 // as partes foram gravadas do mesmo jeito (mesmo celular e mesma configuração), o que é o normal.
-import { ALL_FORMATS, BlobSource, BufferTarget, Conversion, EncodedAudioPacketSource, EncodedPacket, EncodedPacketSink, EncodedVideoPacketSource, Input, Mp4OutputFormat, Output } from 'mediabunny'
+import { ALL_FORMATS, BlobSource, BufferTarget, Conversion, StreamTarget, EncodedAudioPacketSource, EncodedPacket, EncodedPacketSink, EncodedVideoPacketSource, Input, Mp4OutputFormat, Output } from 'mediabunny'
 
 type Lida = Awaited<ReturnType<typeof abrir>>
 
@@ -48,7 +48,20 @@ async function normalizar(f: File, largura: number, altura: number, aoProgresso?
   return new File([destino.buffer!], f.name.replace(/\.\w+$/, '') + '-ajustado.mp4', { type: 'video/mp4' })
 }
 
-export async function juntarVideos(arquivos: File[], nome: string, aoProgresso?: (fracao: number, texto?: string) => void): Promise<{ arquivo: File; duracoes: number[] }> {
+// Vídeo juntado grande (vários minutos em 4K passam de 4 GB, o limite da memória do navegador): é escrito direto num
+// arquivo do armazenamento interno do navegador (no disco, não na memória). O arquivo fica guardado ali e o atalho
+// dele permite reabrir depois de recarregar a página, sem escolher nada.
+type AtalhoInterno = FileSystemFileHandle
+async function destinoNoDisco(nome: string) {
+  try {
+    const pasta = await navigator.storage.getDirectory()
+    const atalho = await pasta.getFileHandle(nome.replace(/[\\/:*?"<>|]/g, '-'), { create: true })
+    const escrita = await atalho.createWritable()
+    return { atalho, alvo: new StreamTarget(escrita as unknown as WritableStream<{ type: 'write'; data: Uint8Array<ArrayBuffer>; position: number }>, { chunked: true }) }
+  } catch { return null } // navegador sem armazenamento interno: fica na memória (serve para vídeos menores)
+}
+
+export async function juntarVideos(arquivos: File[], nome: string, aoProgresso?: (fracao: number, texto?: string) => void): Promise<{ arquivo: File; duracoes: number[]; atalho?: AtalhoInterno }> {
   let partes = await Promise.all(arquivos.map(abrir))
   try { conferir(partes) } catch {
     // formatos diferentes: deixa todas iguais à primeira (largura e altura de exibição) e tenta de novo
@@ -60,8 +73,9 @@ export async function juntarVideos(arquivos: File[], nome: string, aoProgresso?:
     conferir(partes)
   }
   const [p] = partes
-  const destino = new BufferTarget()
-  const saida = new Output({ format: new Mp4OutputFormat({ fastStart: 'in-memory' }), target: destino })
+  const disco = await destinoNoDisco(nome)
+  const destino = disco ? null : new BufferTarget()
+  const saida = new Output({ format: new Mp4OutputFormat({ fastStart: disco ? false : 'in-memory' }), target: disco?.alvo ?? destino! })
   const fonteVideo = new EncodedVideoPacketSource(p.video.codec!)
   saida.addVideoTrack(fonteVideo, { rotation: p.video.rotation })
   const fonteAudio = p.audio && p.audio.codec ? new EncodedAudioPacketSource(p.audio.codec) : null
@@ -86,5 +100,10 @@ export async function juntarVideos(arquivos: File[], nome: string, aoProgresso?:
   }
   await saida.finalize()
   aoProgresso?.(1)
-  return { arquivo: new File([destino.buffer!], nome, { type: 'video/mp4' }), duracoes: partes.map((x) => x.duracao) }
+  const duracoes = partes.map((x) => x.duracao)
+  if (disco) {
+    const salvo = await disco.atalho.getFile()
+    return { arquivo: new File([salvo], nome, { type: 'video/mp4' }), duracoes, atalho: disco.atalho }
+  }
+  return { arquivo: new File([destino!.buffer!], nome, { type: 'video/mp4' }), duracoes }
 }

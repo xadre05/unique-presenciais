@@ -10,7 +10,7 @@ import { juntarVideos } from './juntar'
 import { CombinarCriativos } from './CombinarCriativos'
 import { falaDa, infoDa, juntarPalavras, lerParte, marcarRegravacoes, nomeDoJuntado, ordemGuardada, pedirOrdem, type Papel, type Parte } from './dados'
 
-export type Juntado = { arquivo: File; palavras: Palavra[]; partes: ArquivoBruto[]; duracao: number }
+export type Juntado = { arquivo: File; palavras: Palavra[]; partes: ArquivoBruto[]; duracao: number; atalho?: FileSystemFileHandle }
 type Props = { peca: Peca; arquivos: File[]; edicao: Edicao; aoJuntar: (j: Juntado) => Promise<void>; aoCancelar: () => void }
 
 const NOME_PAPEL: Record<Papel, string> = { gancho: 'Abertura', corpo: 'Conteúdo', chamada: 'Chamada final', completo: 'Completo', regravacao: 'Regravação de trecho' }
@@ -62,16 +62,16 @@ export function PartesDoVideo({ peca, arquivos, edicao, aoJuntar, aoCancelar }: 
     const reaproveita = !!guardada && !!edicao.palavras?.length && ordem.join() === guardada.join()
     const lidas = reaproveita ? partes : await ouvir(partes, ordem)
     const escolhidas = ordem.map((k) => lidas[k])
-    let arquivo = escolhidas[0].arquivo, duracoes = [escolhidas[0].duracao ?? edicao.arquivo?.duracao ?? 0]
+    let arquivo = escolhidas[0].arquivo, duracoes = [escolhidas[0].duracao ?? edicao.arquivo?.duracao ?? 0], atalho: FileSystemFileHandle | undefined
     if (escolhidas.length > 1) {
       setOcupado('Juntando as partes…')
       const r = await juntarVideos(escolhidas.map((p) => p.arquivo), nomeDoJuntado(peca.titulo), (fr, texto) => setOcupado(`${texto ?? 'Juntando as partes…'} ${Math.round(fr * 100)}%`))
-      arquivo = r.arquivo; duracoes = r.duracoes
+      arquivo = r.arquivo; duracoes = r.duracoes; atalho = r.atalho
     }
     const palavras = reaproveita ? edicao.palavras! : juntarPalavras(escolhidas, duracoes)
     if (!palavras.length) throw new Error('Não encontrei fala nas partes escolhidas.')
     setOcupado('Guardando…')
-    await aoJuntar({ arquivo, palavras, partes: escolhidas.map((p, k) => ({ ...infoDa(p), duracao: duracoes[k] })), duracao: duracoes.reduce((s, d) => s + d, 0) })
+    await aoJuntar({ arquivo, palavras, partes: escolhidas.map((p, k) => ({ ...infoDa(p), duracao: duracoes[k] })), duracao: duracoes.reduce((s, d) => s + d, 0), atalho })
   })
 
   const mudarPapel = (k: number, papel: Papel | '') => setPartes((ps) => ps.map((p, i) => (i === k ? { ...p, papel: papel || undefined } : p)))
