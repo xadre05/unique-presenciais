@@ -11,6 +11,8 @@ import { linkWhats, preencherMensagem, telefoneLegivel } from '../../crm/nucleo'
 import { SEGMENTOS, STATUS_LISTA, somar, type Campanha, type ItemLista, type Mensagem, type PorVendedora } from './comum'
 import { BarraLista } from './Listas'
 import { EditorMensagens } from './CriarLista'
+import { PainelRitmo, useRitmo } from './RitmoEnvio'
+import { MeuLink, useLinksPessoais } from './LinkPessoal'
 
 type Aba = 'a_contatar' | 'retornar' | 'andamento' | 'comprou' | 'fim' | 'todos'
 const ABERTOS = ['enviada', 'conversando', 'interessado']
@@ -40,6 +42,8 @@ export default function ListaTrabalho() {
   const [editarMsgs, setEditarMsgs] = useState(false)
   const [passar, setPassar] = useState(false)
   const hoje = hojeISO()
+  const ritmo = useRitmo(perfil?.id ?? 'eu')
+  const links = useLinksPessoais(isAdmin, lista)
 
   const base = useMemo(() => {
     const t = busca.trim().toLowerCase()
@@ -129,12 +133,13 @@ export default function ListaTrabalho() {
           <option value="">Todas as vendedoras</option>{porVend.map((v) => <option key={v.vendedora_id ?? '-'} value={v.vendedora_id ?? ''}>{v.vendedora_nome}</option>)}
         </select></label>}
       </div>
-      {aba === 'a_contatar' && conta('a_contatar') > 0 && <p className="muted pequeno">Mande no seu ritmo, com calma: muitas mensagens iguais em sequência fazem o WhatsApp bloquear o número. Personalize quando der.</p>}
+      {!isAdmin && <MeuLink link={links.meu} />}
+      {(aba === 'a_contatar' || aba === 'retornar' || aba === 'andamento') && <PainelRitmo enviadas={ritmo.enviadas} falta={ritmo.falta} />}
 
       <Erro msg={erro || q.erro || camp.erro} />
       {!q.carregando && visiveis.length === 0 ? <Vazio>{aba === 'a_contatar' ? 'Ninguém para contatar aqui. 👏' : 'Nenhum contato nesta aba.'}</Vazio> : (
         <div className="itens-lista">
-          {visiveis.slice(0, qtd).map((i) => <ItemCard key={i.id} i={i} msgs={c?.mensagens ?? []} atendente={perfil?.nome ?? ''} isAdmin={isAdmin} hoje={hoje} marcar={marcar} />)}
+          {visiveis.slice(0, qtd).map((i) => <ItemCard key={i.id} i={i} msgs={c?.mensagens ?? []} atendente={perfil?.nome ?? ''} link={links.de(i.vendedora_id)} isAdmin={isAdmin} hoje={hoje} marcar={(it, p) => { if (p.enviou) ritmo.registrar(); marcar(it, p) }} />)}
           {visiveis.length > qtd && <button className="btn btn-bloco" onClick={() => setQtd(qtd + POR_VEZ)}>Mostrar mais ({visiveis.length - qtd})</button>}
         </div>
       )}
@@ -145,13 +150,13 @@ export default function ListaTrabalho() {
   )
 }
 
-function ItemCard({ i, msgs, atendente, isAdmin, hoje, marcar }: { i: ItemLista; msgs: Mensagem[]; atendente: string; isAdmin: boolean; hoje: string; marcar: (i: ItemLista, p: Record<string, unknown>) => void }) {
+function ItemCard({ i, msgs, atendente, link: linkPessoal, isAdmin, hoje, marcar }: { i: ItemLista; msgs: Mensagem[]; atendente: string; link: string | null; isAdmin: boolean; hoje: string; marcar: (i: ItemLista, p: Record<string, unknown>) => void }) {
   const [m, setM] = useState(Math.min(i.tentativas > 0 ? 1 : 0, Math.max(0, msgs.length - 1)))
   const [anotando, setAnotando] = useState(false)
   const [nota, setNota] = useState(i.nota ?? '')
   const seg = SEGMENTOS[i.segmento ?? 'frio']
   const st = STATUS_LISTA[i.status]
-  const texto = msgs[m] ? preencherMensagem(msgs[m].texto, { nome: i.nome, atendente }) : ''
+  const texto = msgs[m] ? preencherMensagem(msgs[m].texto, { nome: i.nome, atendente, link: linkPessoal }) : ''
   const link = linkWhats(i.telefone, texto)
   const atrasado = i.retornar_em && i.retornar_em <= hoje && ABERTOS.includes(i.status)
   return (

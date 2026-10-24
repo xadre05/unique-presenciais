@@ -4049,3 +4049,10 @@ button.ci-chip { border: 1px dashed var(--borda); padding: 1px 8px; border-radiu
 .es-antes-depois span { display: grid; }
 .es-antes-depois b { font-size: 1.25rem; }
 .es-antes-depois p { flex-basis: 100%; margin: 0; }
+
+/* Listas das vendedoras: link pessoal e ritmo de envio */
+.meu-link { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 10px 12px; margin: 8px 0; border: 1px solid var(--borda, #26262a); border-radius: 10px; }
+.meu-link span { display: grid; flex: 1; min-width: 180px; }
+.ritmo-envio { display: flex; align-items: center; gap: 8px 14px; flex-wrap: wrap; padding: 8px 12px; margin: 6px 0 10px; border-radius: 10px; }
+.ritmo-envio.esperar { background: rgba(224, 176, 79, 0.12); color: var(--amarelo, #e0b04f); }
+.ritmo-envio.pode { background: rgba(111, 191, 138, 0.12); color: var(--verde, #6fbf8a); }

@@ -27,7 +27,7 @@ export function EditorMensagens({ msgs, setMsgs }: { msgs: Mensagem[]; setMsgs: 
         </div>
       ))}
       {msgs.length < 4 && <button type="button" className="btn btn-mini" onClick={() => setMsgs([...msgs, { titulo: `Mensagem ${msgs.length + 1}`, texto: '' }])}>+ outra mensagem</button>}
-      <p className="muted pequeno">Use <b>{'{nome}'}</b> para o primeiro nome do contato e <b>{'{atendente}'}</b> para o nome de quem manda. A vendedora pode ajustar o texto no WhatsApp antes de enviar.</p>
+      <p className="muted pequeno">Use <b>{'{nome}'}</b> para o primeiro nome do contato e <b>{'{atendente}'}</b> para o nome de quem manda e <b>{'{link}'}</b> para o link pessoal dela na página de vendas (a venda fica no nome dela). A vendedora pode ajustar o texto no WhatsApp antes de enviar.</p>
     </div>
   )
 }

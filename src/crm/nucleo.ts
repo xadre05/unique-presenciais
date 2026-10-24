@@ -50,10 +50,11 @@ export const primeiroNome = (n: string | null | undefined) => {
 }
 
 /** Troca {nome} (primeiro nome do contato) e {atendente} (primeiro nome de quem manda). */
-export function preencherMensagem(texto: string, v: { nome?: string | null; atendente?: string | null }) {
+export function preencherMensagem(texto: string, v: { nome?: string | null; atendente?: string | null; link?: string | null }) {
   return texto
     .replace(/\{primeiro_nome\}|\{nome\}/gi, primeiroNome(v.nome))
     .replace(/\{atendente\}/gi, primeiroNome(v.atendente))
+    .replace(/\{link\}/gi, v.link ?? '')
     .replace(/[ \t]+([,.!?])/g, '$1')
 }
 
