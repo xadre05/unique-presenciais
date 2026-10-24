@@ -5,6 +5,7 @@ import { supabase } from '../../../../lib/supabase'
 import { EMPRESA } from '../useMarketing'
 import { Cenas } from './cenas'
 import type { CenaPlano, Palavra, Plano } from './linhaTempo'
+import { codigoDoModelo, ehModeloCena } from './modelosCena'
 
 type Resposta = { codigo: string; nota?: number; critica?: string }
 async function pedirCena(corpo: Record<string, unknown>): Promise<Resposta> {
@@ -35,6 +36,12 @@ async function fotosDaCena(codigo: string, d: number, vertical: boolean) {
 
 async function escreverUma(pecaId: string, cena: CenaPlano, palavras: Palavra[], vertical: boolean): Promise<CenaPlano> {
   const d = Math.max(1.5, (palavras[cena.ate]?.f ?? 0) - (palavras[cena.de]?.i ?? 0))
+  // cena da biblioteca: o código já está pronto, só confere se desenha (sem custo de agente); se falhar, o agente escreve
+  if (ehModeloCena(cena.modelo)) {
+    const codigo = codigoDoModelo(cena.modelo, cena.dados, cena.layout)
+    const visto = await fotosDaCena(codigo, d, vertical)
+    if (!visto.erro) return { ...cena, codigo, nota: undefined, erro: undefined }
+  }
   const base = { peca: pecaId, descricao: cena.descricao, duracao: d, L: vertical ? 1080 : 1920, A: vertical ? 1920 : 1080, layout: cena.layout ?? 'cheia' }
   try {
     let { codigo } = await pedirCena(base)
@@ -55,7 +62,7 @@ export async function escreverCenas(pecaId: string, plano: Plano, palavras: Pala
   const cenas = plano.cenas ?? []
   if (!cenas.length) return plano
   const prontas = await Promise.all(cenas.map((c) => {
-    const igual = anterior?.cenas?.find((x) => x.codigo && x.descricao.trim() === c.descricao.trim() && (x.layout ?? 'cheia') === (c.layout ?? 'cheia'))
+    const igual = anterior?.cenas?.find((x) => x.codigo && x.descricao.trim() === c.descricao.trim() && (x.layout ?? 'cheia') === (c.layout ?? 'cheia') && x.modelo === c.modelo && JSON.stringify(x.dados ?? null) === JSON.stringify(c.dados ?? null))
     return igual ? Promise.resolve({ ...c, codigo: igual.codigo, nota: igual.nota }) : escreverUma(pecaId, c, palavras, vertical)
   }))
   return { ...plano, cenas: prontas }

@@ -20,6 +20,7 @@ import { baixarBruto } from '../../marketing/edicao/brutoNuvem'
 import { usePerfilEditor } from '../dados'
 import type { Juntado } from '../partes/PartesDoVideo'
 import { avisoRepeticoes, tomadasParaAgente } from './repeticoes'
+import { MODELOS_CENA } from '../../marketing/edicao/modelosCena'
 
 // o navegador já entrega largura e altura de exibição (com o giro do celular aplicado)
 function orientacaoDe(endereco: string) {
@@ -32,12 +33,20 @@ function orientacaoDe(endereco: string) {
   })
 }
 
+// cenas prontas no estilo da marca: o agente escolhe o modelo e manda só os textos (sai igual toda vez e sem custo)
+const BIBLIOTECA_CENAS = [
+  'BIBLIOTECA DE CENAS PRONTAS (prefira SEMPRE uma delas; descrição livre só quando nenhuma servir): em cada cena, preencha "modelo" e "dados" (JSON com os textos EXATOS do que foi falado) e escreva em "descricao" uma frase do que ela mostra.',
+  ...Object.entries(MODELOS_CENA).map(([id, m]) => `- ${id}: ${m.quando}. dados: ${m.dados}`),
+  'Em vídeo longo, use "capitulo" na troca de cada beat (layout cartao, 2 a 3 segundos), além das outras cenas.',
+].join('\n')
+
 // o que o agente precisa saber do vídeo gravado: formato, duração (vídeo longo pede corte mais suave) e mídias enviadas
 function orientacoesDoBruto(vertical: boolean, duracao: number, midias: number) {
   return [
     vertical ? 'FORMATO: vídeo em pé (9:16).' : 'FORMATO: vídeo deitado (16:9), gravado na horizontal. O vídeo final sai deitado; enquadre pensando nisso e use "dividida" lado a lado só se couber.',
     duracao > 120 ? 'BRUTO LONGO POR CAUSA DE ERROS: o vídeo final tem que ser enxuto e com ritmo. Tire tudo o que não é a fala final: erro, frase repetida (fica a última tentativa), conversa com a equipe, comentário fora do roteiro e pausa. Mas cada frase que fica entra INTEIRA, do começo ao fim: nunca corte dentro de uma frase nem pule palavras no meio dela. A dinâmica vem de zoom, imagens por cima, textos na tela e cortes entre frases, não de picotar a fala.' : '',
     'PREÇOS E NÚMEROS: nunca corte dentro de um número falado ("quatro mil novecentos e noventa e sete" fica inteiro, do começo ao fim). Se a pessoa errou ou tropeçou no preço, use a tomada em que ela falou certo e completo. Número na legenda e no texto da tela tem que ser o número inteiro que foi dito e bater com o roteiro.',
+    BIBLIOTECA_CENAS,
     midias ? `A equipe enviou ${midias} mídias de apoio para ESTE vídeo: use-as em "coberturas" sempre que a fala falar do que a mídia mostra (plataforma, presencial, turma, depoimento, Clinical, oferta).` : '',
   ]
 }

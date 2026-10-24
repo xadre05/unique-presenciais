@@ -27,7 +27,7 @@ export type Plano = {
   beats?: Beat[]
 }
 export type Beat = { de: number; ate: number; nome: string; tratamento?: string }
-export type CenaPlano = { de: number; ate: number; layout?: Layout; descricao: string; codigo?: string; erro?: string; nota?: number }
+export type CenaPlano = { de: number; ate: number; layout?: Layout; descricao: string; codigo?: string; erro?: string; nota?: number; modelo?: string; dados?: unknown }
 // como o texto grande entra na tela
 export type Animacao = 'pop' | 'deslizar' | 'digitar'
 export type EstiloLegenda = 'palavras' | 'chave' | 'nenhuma'
