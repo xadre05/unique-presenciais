@@ -59,7 +59,7 @@ function Previa({ e, aoTempo }: { e: Estudio; aoTempo: (t: number) => void }) {
 }
 
 function Barra({ e, aoConcluir }: { e: Estudio; aoConcluir: () => void }) {
-  const status = e.ocupado ? e.ocupado : e.progresso !== null ? `Montando o vídeo final… ${Math.round(e.progresso * 100)}%` : e.final ? 'Vídeo final pronto' : e.receita ? 'Prévia pronta' : 'Aguardando edição'
+  const status = e.ocupado ? e.ocupado : e.progresso !== null ? `Montando o vídeo final… ${Math.round(e.progresso * 100)}%` : e.final ? 'Vídeo final pronto' : e.receita ? (e.confere ? 'Prévia pronta' : 'Edição pronta: abra o vídeo de novo') : 'Aguardando edição'
   return (
     <footer className="es-barra">
       {e.receitas.length > 0 && <span className="es-barra-versao">V{e.versao + 1}</span>}
@@ -96,7 +96,7 @@ function TelaEstudio({ peca, aoMudar }: { peca: Peca; aoMudar: () => void }) {
             {!ehAvulso(peca) && <> · <Link className="link" to={`/agentes/marketing?peca=${peca.id}`}>Ver peça de origem</Link></>}</p>
         </div>
         {ehAvulso(peca) && !entregue && <Finalidade peca={peca} aoMudar={aoMudar} />}
-        <span className={`es-pilula${entregue ? ' ok' : e.receita ? ' ok' : ''}`}>{entregue ? 'Entregue' : e.final ? 'Vídeo final pronto' : e.receita ? 'Prévia pronta' : 'Em edição'}</span>
+        <span className={`es-pilula${entregue ? ' ok' : e.receita ? ' ok' : ''}`}>{entregue ? 'Entregue' : e.final ? 'Vídeo final pronto' : e.receita ? (e.confere ? 'Prévia pronta' : 'Edição pronta') : 'Em edição'}</span>
       </header>
       <Erro msg={e.erro} />
       {!concluir && <Caminho e={e} entregue={entregue} aoConcluir={() => setConcluir(true)} />}

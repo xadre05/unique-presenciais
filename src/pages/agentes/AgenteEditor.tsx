@@ -34,7 +34,7 @@ export default function AgenteEditor() {
   const [busca, setBusca] = useState('')
   const [filtro, setFiltro] = useState<Situacao | ''>('')
   const lista = (pecas.dados ?? []).filter((p) => p.conteudo.etapa !== 'ideia' && edicaoDa(p.conteudo).concluida?.destino !== 'trafego')
-    .filter((p) => (!filtro || situacaoDe(p) === filtro) && (!busca.trim() || p.titulo.toLowerCase().includes(busca.trim().toLowerCase())))
+    .filter((p) => (filtro ? situacaoDe(p) === filtro : situacaoDe(p) !== 'arquivado') && (!busca.trim() || p.titulo.toLowerCase().includes(busca.trim().toLowerCase())))
   const marca = useLogos(EMPRESA)
   const perfilMarca = marca.dados?.perfil ?? {}
   const todasCampanhas = (Array.isArray(perfilMarca.campanhas) ? perfilMarca.campanhas : []) as { id: string; nome: string; encerrada?: boolean }[]
@@ -72,7 +72,7 @@ export default function AgenteEditor() {
           </div>
           <Erro msg={pecas.erro} />
           {pecas.carregando && !pecas.dados ? <p className="muted">Carregando…</p> : !lista.length ? <Vazio>{busca || filtro ? 'Nenhum vídeo com esse filtro.' : 'Nenhum vídeo em edição ainda.'}</Vazio> : (
-            <div className="ed-grade">{lista.map((p) => <CartaoVideo key={p.id} p={p} campanha={nomeCampanha(p)} />)}</div>
+            <div className="ed-grade">{lista.map((p) => <CartaoVideo key={p.id} p={p} campanha={nomeCampanha(p)} aoMudar={pecas.recarregar} />)}</div>
           )}
         </section>
       )}

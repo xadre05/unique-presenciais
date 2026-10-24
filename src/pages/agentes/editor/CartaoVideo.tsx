@@ -3,13 +3,16 @@
 import { Link } from 'react-router-dom'
 import { Icone } from '../../../components/Icone'
 import type { Peca } from '../comum'
-import { edicaoDa } from '../marketing/edicao/dados'
+import { useState } from 'react'
+import { edicaoDa, guardarEdicao } from '../marketing/edicao/dados'
 import { destinoDa, ehAvulso } from '../marketing/peca/editor'
 
-export type Situacao = 'aguardando' | 'em_edicao' | 'previa' | 'entregue'
-export const NOME_SITUACAO: Record<Situacao, string> = { aguardando: 'Aguardando vídeo', em_edicao: 'Em edição', previa: 'Prévia pronta', entregue: 'Entregue' }
+export type Situacao = 'aguardando' | 'em_edicao' | 'previa' | 'entregue' | 'arquivado'
+// "Edição pronta" (e não "prévia pronta"): a prévia só aparece depois de abrir o vídeo de novo neste computador
+export const NOME_SITUACAO: Record<Situacao, string> = { aguardando: 'Aguardando vídeo', em_edicao: 'Em edição', previa: 'Edição pronta', entregue: 'Entregue', arquivado: 'Fora da lista' }
 export function situacaoDe(p: Peca): Situacao {
   const e = edicaoDa(p.conteudo)
+  if (e.arquivada) return 'arquivado'
   if (e.concluida) return 'entregue'
   if (e.receitas?.length) return 'previa'
   if (e.arquivo || e.palavras?.length) return 'em_edicao'
@@ -22,7 +25,8 @@ export function origemDe(p: Peca) {
 const DESTINO = { trafego: 'Tráfego', avulso: 'Marketing', post: 'Marketing' }
 const dia = (iso?: string) => (iso ? new Date(iso).toLocaleDateString('pt-BR') : '—')
 
-export function CartaoVideo({ p, campanha }: { p: Peca; campanha?: string }) {
+export function CartaoVideo({ p, campanha, aoMudar }: { p: Peca; campanha?: string; aoMudar: () => void }) {
+  const [tirar, setTirar] = useState(false)
   const e = edicaoDa(p.conteudo)
   const s = situacaoDe(p), o = origemDe(p)
   const duracao = e.arquivo?.duracao
@@ -41,6 +45,12 @@ export function CartaoVideo({ p, campanha }: { p: Peca; campanha?: string }) {
           <li><Icone nome="agenda" tam={13} /> Última edição: {dia(e.atualizado_em ?? p.atualizado_em)}</li>
         </ul>
         <Link to={`/agentes/editor/video/${p.id}`} className="btn btn-contorno-ouro btn-mini">Abrir no Estúdio</Link>
+        {/* tirar da lista não apaga nada: o vídeo some daqui e volta pelo filtro "Fora da lista" */}
+        <div className="ed-cartao-pe pequeno">
+          {s === 'arquivado' ? <button type="button" className="link" onClick={() => void guardarEdicao(p.id, (x) => ({ ...x, arquivada: undefined })).then(aoMudar)}>Voltar para a lista</button>
+            : tirar ? <><span className="muted">Tirar este vídeo da lista?</span><button type="button" className="link" onClick={() => void guardarEdicao(p.id, (x) => ({ ...x, arquivada: new Date().toISOString() })).then(aoMudar)}>Sim, tirar</button><button type="button" className="link" onClick={() => setTirar(false)}>Não</button></>
+              : <button type="button" className="link muted" onClick={() => setTirar(true)}><Icone nome="lixeira" tam={13} /> Tirar da lista</button>}
+        </div>
       </div>
     </article>
   )
