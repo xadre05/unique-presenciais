@@ -9,7 +9,8 @@ const limpa = (p: string) => p.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g
 
 export type Repeticao = { de: number; ate: number } // números das palavras que saem (inclusive)
 
-export function acharRepeticoes(palavras: Palavra[]): Repeticao[] {
+// parteDe: em vídeo juntado de partes, só vale repetição dentro da mesma parte (entre partes é regravação, outro caso)
+export function acharRepeticoes(palavras: Palavra[], parteDe?: (k: number) => number): Repeticao[] {
   const t = palavras.map((w) => limpa(w.p))
   const chave = (i: number) => t.slice(i, i + TAM).join(' ')
   const achadas: Repeticao[] = []
@@ -17,7 +18,7 @@ export function acharRepeticoes(palavras: Palavra[]): Repeticao[] {
     if (t.slice(i, i + TAM).some((x) => !x)) continue
     const k = chave(i)
     for (let j = i + TAM; j + TAM <= t.length && palavras[j].i - palavras[i].i <= JANELA_S; j++) {
-      if (chave(j) !== k) continue
+      if (chave(j) !== k || (parteDe && parteDe(i) !== parteDe(j))) continue
       // sai a primeira tentativa inteira (do começo até onde a repetição começa); pula o resto do trecho repetido
       const desvio = j - i
       achadas.push({ de: i, ate: j - 1 })
@@ -36,8 +37,8 @@ export function acharRepeticoes(palavras: Palavra[]): Repeticao[] {
   return juntas
 }
 
-export function avisoRepeticoes(palavras: Palavra[]) {
-  const r = acharRepeticoes(palavras)
+export function avisoRepeticoes(palavras: Palavra[], parteDe?: (k: number) => number) {
+  const r = acharRepeticoes(palavras, parteDe)
   if (!r.length) return ''
   const linhas = r.slice(0, 80).map((x) => `- palavras ${x.de} a ${x.ate} (${palavras[x.de].i.toFixed(1)} s): "${palavras.slice(x.de, Math.min(x.ate + 1, x.de + 12)).map((w) => w.p).join(' ')}${x.ate - x.de > 11 ? '…' : ''}" → sai; fica a repetição logo depois`)
   return `TOMADAS REPETIDAS JÁ ENCONTRADAS (a pessoa errou e repetiu a frase na hora). Estas palavras NÃO entram nos trechos; fica sempre a última tentativa, inteira:\n${linhas.join('\n')}`
@@ -46,8 +47,8 @@ export function avisoRepeticoes(palavras: Palavra[]) {
 // O agente ASSISTE as tentativas: para cada frase repetida, uma foto do meio de cada tentativa. Ele compara expressão,
 // olhar para a câmera, luz e se a fala saiu sem tropeço, e escolhe qual fica (inteira). Até 12 repetições por edição.
 export type FotoTomada = { t: number; miniatura: string }
-export async function tomadasParaAgente(palavras: Palavra[], fotografar: (tempos: number[]) => Promise<FotoTomada[]>) {
-  const r = acharRepeticoes(palavras).slice(0, 12)
+export async function tomadasParaAgente(palavras: Palavra[], fotografar: (tempos: number[]) => Promise<FotoTomada[]>, parteDe?: (k: number) => number, limite = 12) {
+  const r = acharRepeticoes(palavras, parteDe).slice(0, limite)
   if (!r.length) return { fotos: [] as FotoTomada[], aviso: '' }
   const ultima = palavras.length - 1
   const pares = r.map((x) => {
@@ -63,5 +64,5 @@ export async function tomadasParaAgente(palavras: Palavra[], fotografar: (tempos
     ...linhas,
     'No "resumo", diga em uma linha por repetição qual tentativa ficou e por quê (ex.: "frase do gancho: fiquei com a A, ela olha para a câmera e a luz está melhor").',
   ].join('\n')
-  return { fotos: fotos.length ? fotos : [], aviso: fotos.length ? aviso : avisoRepeticoes(palavras) }
+  return { fotos: fotos.length ? fotos : [], aviso: fotos.length ? aviso : avisoRepeticoes(palavras, parteDe) }
 }

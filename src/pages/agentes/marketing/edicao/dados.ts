@@ -9,7 +9,8 @@ import type { MidiaApoio } from './midias'
 import { destinoDa, type Destino } from '../peca/editor'
 import type { Peca } from '../../comum'
 
-export type ArquivoBruto = { nome: string; tamanho: number; duracao: number }
+// papel: o que a parte é no vídeo gravado em pedaços ('regravacao' = trecho do vídeo completo gravado de novo)
+export type ArquivoBruto = { nome: string; tamanho: number; duracao: number; papel?: string }
 export type Receita = { plano: Plano; pedido?: string; em: string }
 export type MusicaFundo = { nome: string; tamanho: number; volume: number }
 // final = o vídeo editado, guardado no armazenamento quando a edição é concluída (é ele que o Marketing ou o Tráfego

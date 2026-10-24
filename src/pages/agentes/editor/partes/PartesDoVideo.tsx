@@ -8,12 +8,12 @@ import type { ArquivoBruto, Edicao } from '../../marketing/edicao/dados'
 import type { Palavra } from '../../marketing/edicao/linhaTempo'
 import { juntarVideos } from './juntar'
 import { CombinarCriativos } from './CombinarCriativos'
-import { falaDa, infoDa, juntarPalavras, lerParte, nomeDoJuntado, ordemGuardada, pedirOrdem, type Papel, type Parte } from './dados'
+import { falaDa, infoDa, juntarPalavras, lerParte, marcarRegravacoes, nomeDoJuntado, ordemGuardada, pedirOrdem, type Papel, type Parte } from './dados'
 
 export type Juntado = { arquivo: File; palavras: Palavra[]; partes: ArquivoBruto[]; duracao: number }
 type Props = { peca: Peca; arquivos: File[]; edicao: Edicao; aoJuntar: (j: Juntado) => Promise<void>; aoCancelar: () => void }
 
-const NOME_PAPEL: Record<Papel, string> = { gancho: 'Abertura', corpo: 'Conteúdo', chamada: 'Chamada final', completo: 'Completo' }
+const NOME_PAPEL: Record<Papel, string> = { gancho: 'Abertura', corpo: 'Conteúdo', chamada: 'Chamada final', completo: 'Completo', regravacao: 'Regravação de trecho' }
 const tempo = (s?: number) => (s ? `${Math.floor(s / 60)}:${String(Math.round(s % 60)).padStart(2, '0')}` : '')
 const trecho = (p: Parte) => { const f = falaDa(p); return f.length > 160 ? `${f.slice(0, 160)}…` : f }
 const mover = (lista: number[], de: number, para: number) => { const n = [...lista]; const [x] = n.splice(de, 1); n.splice(para, 0, x); return n }
@@ -47,9 +47,13 @@ export function PartesDoVideo({ peca, arquivos, edicao, aoJuntar, aoCancelar }: 
     setOcupado('O agente está colocando as partes na ordem…')
     const r = await pedirOrdem(peca.id, lidas, roteiro)
     const papel = new Map(r.papeis.map((x) => [x.parte, x.papel])), fora = new Map(r.descartar.map((x) => [x.parte, x.motivo]))
-    setPartes(lidas.map((p, k) => ({ ...p, papel: papel.get(k + 1), fora: fora.get(k + 1) })))
-    setOrdem(r.ordem.map((n) => n - 1).filter((k) => !fora.has(k + 1)))
-    setExplicacao(r.explicacao)
+    const marcadas = lidas.map((p, k) => ({ ...p, papel: papel.get(k + 1), fora: fora.get(k + 1) }))
+    // trecho regravado nunca fica de fora: entra depois do vídeo completo e o agente escolhe a melhor versão ao editar
+    const reg = marcarRegravacoes(marcadas, r.ordem.map((n) => n - 1).filter((k) => !fora.has(k + 1)))
+    setPartes(reg.partes); setOrdem(reg.ordem)
+    setExplicacao(reg.achadas.length
+      ? `${reg.achadas.map((k) => `"${lidas[k].arquivo.name}"`).join(' e ')} ${reg.achadas.length > 1 ? 'são trechos regravados' : 'é um trecho regravado'} do vídeo completo. ${reg.achadas.length > 1 ? 'Entram' : 'Entra'} no final, e na edição o agente compara cada trecho com a versão do vídeo completo e fica com a melhor (luz, expressão e fala).`
+      : r.explicacao)
   })
   // partes já juntadas antes na mesma ordem: só junta de novo (sem ouvir nem perguntar ao agente)
   useEffect(() => { if (!iniciou.current && !guardada) { iniciou.current = true; void organizar() } }, []) // eslint-disable-line react-hooks/exhaustive-deps

@@ -25,6 +25,9 @@ export type Plano = {
   cenas?: CenaPlano[]
   // a fala dividida em blocos de intenção (gancho, virada, prova, oferta, chamada), planejada antes do resto
   beats?: Beat[]
+  // vídeo com trechos regravados: a lista de trechos é a ordem do vídeo final (um trecho regravado, gravado depois, entra
+  // no lugar do original); sem isto os trechos seguem a ordem do bruto
+  ordem_livre?: boolean
 }
 export type Beat = { de: number; ate: number; nome: string; tratamento?: string }
 export type CenaPlano = { de: number; ate: number; layout?: Layout; descricao: string; codigo?: string; erro?: string; nota?: number; modelo?: string; dados?: unknown }
@@ -52,7 +55,7 @@ const FOLGA_ANTES = 0.08, FOLGA_DEPOIS = 0.15, PAUSA_MAXIMA = 0.6
 
 function trechosEmTempo(palavras: Palavra[], plano: Plano, duracaoBruto: number) {
   const brutos: Intervalo[] = []
-  for (const t of [...plano.trechos].sort((a, b) => a.de - b.de)) {
+  for (const t of plano.ordem_livre ? plano.trechos : [...plano.trechos].sort((a, b) => a.de - b.de)) {
     const de = Math.max(0, t.de), ate = Math.min(palavras.length - 1, t.ate)
     let ini = palavras[de]?.i
     if (ini == null) continue
@@ -66,7 +69,8 @@ function trechosEmTempo(palavras: Palavra[], plano: Plano, duracaoBruto: number)
   const juntos: Intervalo[] = []
   for (const b of brutos.map((x) => ({ ini: Math.max(0, x.ini), fim: Math.min(duracaoBruto, x.fim) })).filter((x) => x.fim > x.ini)) {
     const ult = juntos.at(-1)
-    if (ult && b.ini <= ult.fim + 0.05) ult.fim = Math.max(ult.fim, b.fim)
+    // só emenda o que continua o trecho anterior no bruto (com ordem livre, o próximo pode ser de antes)
+    if (ult && b.ini >= ult.ini && b.ini <= ult.fim + 0.05) ult.fim = Math.max(ult.fim, b.fim)
     else juntos.push({ ...b })
   }
   return juntos
@@ -130,19 +134,28 @@ export function montarLinhaTempo(palavras: Palavra[], plano: Plano, duracaoBruto
 }
 
 // onde o vídeo bruto deve estar: dentro de um trecho segue; fora, pula para o próximo; depois do último, acabou (null)
+// Os trechos podem não estar na ordem do bruto (trecho regravado no lugar do original), então tudo se guia pela posição
+// na lista: dentro de um trecho, segue; fora, o trecho que acabou de terminar é o de fim mais próximo antes de t.
+const trechoDe = (t: number, trechos: Intervalo[]) => trechos.findIndex((x) => t >= x.ini && t < x.fim)
+function acabouDe(t: number, trechos: Intervalo[]) {
+  let k = -1
+  trechos.forEach((x, i) => { if (x.fim <= t && (k < 0 || x.fim > trechos[k].fim)) k = i })
+  return k
+}
 export function proximoTempo(t: number, trechos: Intervalo[]) {
-  for (const x of trechos) {
-    if (t < x.ini) return x.ini
-    if (t < x.fim) return t
-  }
-  return null
+  if (trechoDe(t, trechos) >= 0) return t
+  const k = acabouDe(t, trechos)
+  if (k < 0) return trechos[0]?.ini ?? null // antes de tudo: vai para o primeiro trecho
+  return trechos[k + 1]?.ini ?? null
 }
 
 // tempo no vídeo final ↔ tempo no bruto (para a barra da prévia)
 export function tempoFinal(t: number, trechos: Intervalo[]) {
+  const dentroDe = trechoDe(t, trechos), k = dentroDe >= 0 ? dentroDe : acabouDe(t, trechos)
+  if (k < 0) return 0
   let s = 0
-  for (const x of trechos) { if (t < x.ini) break; s += Math.min(t, x.fim) - x.ini }
-  return s
+  for (let i = 0; i < k; i++) s += trechos[i].fim - trechos[i].ini
+  return s + Math.min(t, trechos[k].fim) - trechos[k].ini
 }
 export function tempoBruto(alvo: number, trechos: Intervalo[]) {
   let s = 0
