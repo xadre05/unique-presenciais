@@ -23,11 +23,14 @@ export function Caminho({ e, entregue, aoConcluir }: Props) {
   return (
     <section className="es-caminho" aria-label="Caminho do vídeo">
       <ol>
-        {PASSOS.map((nome, k) => (
-          <li key={nome} className={k < atual ? 'feito' : k === atual ? 'agora' : ''}>
-            <span className="es-caminho-num">{k < atual ? <Icone nome="check" tam={12} /> : k + 1}</span>{nome}
-          </li>
-        ))}
+        {PASSOS.map((nome, k) => {
+          const feito = k < atual || (k === 1 && !!e.receita) // a edição já feita continua feita mesmo com o vídeo a reabrir
+          return (
+            <li key={nome} className={feito ? 'feito' : k === atual ? 'agora' : ''}>
+              <span className="es-caminho-num">{feito ? <Icone nome="check" tam={12} /> : k + 1}</span>{nome}
+            </li>
+          )
+        })}
       </ol>
       <div className="es-caminho-acao">
         {ocupado ? <span className="muted pequeno">Trabalhando… acompanhe no meio da tela.</span> : <ProximoPasso e={e} atual={atual} aoConcluir={aoConcluir} />}
