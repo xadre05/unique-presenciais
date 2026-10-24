@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 
 const PASSOS = [
   { chave: /lendo|ouvindo|transcrev|baixando/i, nome: 'Ouvindo o vídeo', tipico: 90 },
-  { chave: /editando|ajustando/i, nome: 'O agente está montando a edição', tipico: 120 },
+  { chave: /editando|ajustando|tomadas/i, nome: 'O agente está montando a edição', tipico: 120 },
   { chave: /animando/i, nome: 'Animando as cenas', tipico: 60 },
 ]
 const mmss = (s: number) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`

@@ -4045,3 +4045,7 @@ button.ci-chip { border: 1px dashed var(--borda); padding: 1px 8px; border-radiu
 .es-andamento-barra span { display: block; height: 100%; background: var(--ouro, #c9a45c); border-radius: 99px; transition: width 1s linear; }
 .es-pe-acoes { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
 .ev-midias-resumo { display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center; margin: 10px 0; }
+.es-antes-depois { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; padding: 10px 12px; margin: 6px 0 10px; border: 1px solid var(--borda, #26262a); border-radius: 10px; }
+.es-antes-depois span { display: grid; }
+.es-antes-depois b { font-size: 1.25rem; }
+.es-antes-depois p { flex-basis: 100%; margin: 0; }

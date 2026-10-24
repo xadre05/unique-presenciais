@@ -42,3 +42,26 @@ export function avisoRepeticoes(palavras: Palavra[]) {
   const linhas = r.slice(0, 80).map((x) => `- palavras ${x.de} a ${x.ate} (${palavras[x.de].i.toFixed(1)} s): "${palavras.slice(x.de, Math.min(x.ate + 1, x.de + 12)).map((w) => w.p).join(' ')}${x.ate - x.de > 11 ? '…' : ''}" → sai; fica a repetição logo depois`)
   return `TOMADAS REPETIDAS JÁ ENCONTRADAS (a pessoa errou e repetiu a frase na hora). Estas palavras NÃO entram nos trechos; fica sempre a última tentativa, inteira:\n${linhas.join('\n')}`
 }
+
+// O agente ASSISTE as tentativas: para cada frase repetida, uma foto do meio de cada tentativa. Ele compara expressão,
+// olhar para a câmera, luz e se a fala saiu sem tropeço, e escolhe qual fica (inteira). Até 12 repetições por edição.
+export type FotoTomada = { t: number; miniatura: string }
+export async function tomadasParaAgente(palavras: Palavra[], fotografar: (tempos: number[]) => Promise<FotoTomada[]>) {
+  const r = acharRepeticoes(palavras).slice(0, 12)
+  if (!r.length) return { fotos: [] as FotoTomada[], aviso: '' }
+  const ultima = palavras.length - 1
+  const pares = r.map((x) => {
+    const tam = Math.min(x.ate - x.de, 40)
+    const b0 = Math.min(x.ate + 1, ultima), b1 = Math.min(b0 + tam, ultima)
+    const meio = (a: number, z: number) => (palavras[a].i + palavras[z].f) / 2
+    return { ...x, b0, b1, ta: meio(x.de, x.ate), tb: meio(b0, b1) }
+  })
+  const fotos = await fotografar(pares.flatMap((p) => [p.ta, p.tb]))
+  const linhas = pares.map((p, k) => `${k + 1}. "${palavras.slice(p.de, Math.min(p.ate + 1, p.de + 10)).map((w) => w.p).join(' ')}…" — tentativa A: palavras ${p.de} a ${p.ate} (foto em ${p.ta.toFixed(1)} s); tentativa B: começa na palavra ${p.b0} (foto em ${p.tb.toFixed(1)} s)`)
+  const aviso = [
+    'TOMADAS REPETIDAS (a pessoa errou e repetiu a frase na hora). Para cada uma, olhe as duas fotos do vídeo bruto nos segundos indicados e escolha a MELHOR tentativa: expressão, olhar para a câmera, luz, postura e fala sem tropeço. Se ficarem parecidas, fica a última. Só UMA tentativa entra, inteira; a outra sai toda.',
+    ...linhas,
+    'No "resumo", diga em uma linha por repetição qual tentativa ficou e por quê (ex.: "frase do gancho: fiquei com a A, ela olha para a câmera e a luz está melhor").',
+  ].join('\n')
+  return { fotos: fotos.length ? fotos : [], aviso: fotos.length ? aviso : avisoRepeticoes(palavras) }
+}

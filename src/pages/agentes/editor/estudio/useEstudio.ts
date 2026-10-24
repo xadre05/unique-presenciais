@@ -7,7 +7,7 @@ import { useLogos } from '../../LogosMarca'
 import { bancoDe, bancoParaCampanha } from '../../BancoImagens'
 import { transcreverVideo } from '../cortes/audioLongo'
 import { edicaoDa, guardarEdicao, mesmoArquivo, pedirEdicao, useTemEditor, type Edicao, type Receita } from '../../marketing/edicao/dados'
-import { CORRECAO_HDR, ehHdr, quadrosDoBruto } from '../../marketing/edicao/midias'
+import { CORRECAO_HDR, ehHdr, quadrosDoBruto, quadrosEm } from '../../marketing/edicao/midias'
 import { montarLinhaTempo } from '../../marketing/edicao/linhaTempo'
 import { montarVideo } from '../../marketing/edicao/montagem'
 import { escreverCenas } from '../../marketing/edicao/escreverCenas'
@@ -19,7 +19,7 @@ import { brutoDe } from '../../marketing/fluxo'
 import { baixarBruto } from '../../marketing/edicao/brutoNuvem'
 import { usePerfilEditor } from '../dados'
 import type { Juntado } from '../partes/PartesDoVideo'
-import { avisoRepeticoes } from './repeticoes'
+import { avisoRepeticoes, tomadasParaAgente } from './repeticoes'
 
 // o navegador já entrega largura e altura de exibição (com o giro do celular aplicado)
 function orientacaoDe(endereco: string) {
@@ -150,7 +150,12 @@ export function useEstudio(peca: Peca, aoMudar: () => void) {
     }
     setOcupado('O agente está editando…')
     const midias = await apoio.paraAgente()
-    const { plano: rascunho } = await pedirEdicao(peca.id, palavras, d, midias, { modeloRef, quadros: await quadrosDoBruto(arquivo, 4, corte?.de, corte?.ate), referencia: edicao.referencia, pedido: [narracao ? SEM_PESSOA : '', pedidoDoConfig(edicao.config_estilo), ...orientacoesDoBruto(vertical, d, midias.length), avisoRepeticoes(palavras)].filter(Boolean).join('\n') || undefined })
+    // o agente assiste as tentativas repetidas: uma foto de cada (só no vídeo inteiro, não em corte de vídeo longo)
+    setOcupado('Olhando as tomadas repetidas…')
+    const tomadas = corte || narracao ? { fotos: [], aviso: avisoRepeticoes(palavras) } : await tomadasParaAgente(palavras, (t) => quadrosEm(arquivo, t))
+    setOcupado('O agente está editando…')
+    const quadros = [...await quadrosDoBruto(arquivo, 4, corte?.de, corte?.ate), ...tomadas.fotos]
+    const { plano: rascunho } = await pedirEdicao(peca.id, palavras, d, midias, { modeloRef, quadros, referencia: edicao.referencia, pedido: [narracao ? SEM_PESSOA : '', pedidoDoConfig(edicao.config_estilo), ...orientacoesDoBruto(vertical, d, midias.length), tomadas.aviso].filter(Boolean).join('\n') || undefined })
     if (rascunho.cenas?.length) setOcupado(`Animando ${rascunho.cenas.length} cena(s)…`)
     const plano = await escreverCenas(peca.id, rascunho, palavras, vertical)
     await guardarEdicao(peca.id, (e) => comReceita(e, { plano, em: new Date().toISOString() }))
@@ -159,7 +164,7 @@ export function useEstudio(peca: Peca, aoMudar: () => void) {
   const ajustar = (pedido: string, regra: boolean) => executar('O agente está ajustando…', async () => {
     if (!edicao.palavras || !pedido.trim()) return
     const midias = await apoio.paraAgente()
-    const { plano: rascunho } = await pedirEdicao(peca.id, edicao.palavras, duracaoBruto, midias, { pedido: [pedido.trim(), ...orientacoesDoBruto(vertical, duracaoBruto, midias.length), avisoRepeticoes(edicao.palavras)].filter(Boolean).join('\n'), lembrar: regra ? pedido.trim() : '', anterior: receita?.plano, modeloRef, quadros: arquivo ? await quadrosDoBruto(arquivo, 4, corte?.de, corte?.ate) : undefined, referencia: edicao.referencia })
+    const { plano: rascunho } = await pedirEdicao(peca.id, edicao.palavras, duracaoBruto, midias, { pedido: [pedido.trim(), ...orientacoesDoBruto(vertical, duracaoBruto, midias.length)].filter(Boolean).join('\n'), lembrar: regra ? pedido.trim() : '', anterior: receita?.plano, modeloRef, quadros: arquivo ? await quadrosDoBruto(arquivo, 4, corte?.de, corte?.ate) : undefined, referencia: edicao.referencia })
     if (rascunho.cenas?.some((c) => !receita?.plano.cenas?.some((x) => x.descricao.trim() === c.descricao.trim()))) setOcupado('Animando as cenas…')
     const plano = await escreverCenas(peca.id, rascunho, edicao.palavras, vertical, receita?.plano)
     await guardarEdicao(peca.id, (e) => comReceita(e, { plano, pedido: pedido.trim(), em: new Date().toISOString() }))

@@ -210,7 +210,7 @@ async function editar(db: SupabaseClient, corpo: Record<string, unknown>) {
   // mídias de apoio: número, tipo, o que é e a miniatura (JPEG pequeno) para o agente ver
   const midias = ((Array.isArray(corpo.midias) ? corpo.midias : []) as { n: number; tipo: string; descricao?: string; miniatura?: string }[]).slice(0, 45)
   // fotos do vídeo bruto: para ver o enquadramento (onde está o rosto) e o cenário
-  const quadros = ((Array.isArray(corpo.quadros) ? corpo.quadros : []) as { t: number; miniatura: string }[]).filter((q) => q.miniatura).slice(0, 6)
+  const quadros = ((Array.isArray(corpo.quadros) ? corpo.quadros : []) as { t: number; miniatura: string }[]).filter((q) => q.miniatura).slice(0, 30) // 4 do vídeo + até 24 das tentativas repetidas (o agente compara)
   // referência pedida só para este vídeo: fotos de um vídeo que a equipe quer imitar + o que ela quer dele
   const ref = (corpo.referencia && typeof corpo.referencia === 'object' ? corpo.referencia : null) as { nome?: string; texto?: string; quadros?: { t: number; miniatura: string }[] } | null
   const quadrosRef = (ref?.quadros ?? []).filter((q) => q.miniatura).slice(0, 8)

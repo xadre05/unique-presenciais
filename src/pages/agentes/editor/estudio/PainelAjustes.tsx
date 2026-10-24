@@ -4,8 +4,27 @@ import { useState } from 'react'
 import { Icone } from '../../../../components/Icone'
 import type { Estudio } from './useEstudio'
 import { Andamento } from './Andamento'
+import { acharRepeticoes } from './repeticoes'
 
 const hora = (iso: string) => new Date(iso).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+
+const mmss = (s: number) => `${Math.floor(s / 60)}:${String(Math.round(s % 60)).padStart(2, '0')}`
+
+// antes e depois: quanto o bruto tinha, quanto ficou e o que saiu (dá confiança de que o corte foi certo)
+function AntesDepois({ e }: { e: Estudio }) {
+  const bruto = e.duracaoBruto, editado = e.linha?.duracao
+  if (!bruto || !editado) return null
+  const saiu = Math.max(0, bruto - editado)
+  const repetidas = acharRepeticoes(e.edicao.palavras ?? []).length
+  return (
+    <div className="es-antes-depois">
+      <span><small className="muted">Bruto</small><b>{mmss(bruto)}</b></span>
+      <Icone nome="seta_dir" tam={16} />
+      <span><small className="muted">Editado</small><b>{mmss(editado)}</b></span>
+      <p className="pequeno muted">Saiu {mmss(saiu)} ({Math.round((saiu / bruto) * 100)}%){repetidas ? ` · ${repetidas} frase(s) repetida(s) encontrada(s)` : ''} · o que saiu foi erro, repetição, conversa e pausa</p>
+    </div>
+  )
+}
 
 function Qualidade({ e }: { e: Estudio }) {
   const linhas = (e.receita?.plano.checagem ?? '').split('\n').map((x) => x.replace(/^[-•\s]+/, '').trim()).filter(Boolean)
@@ -14,6 +33,7 @@ function Qualidade({ e }: { e: Estudio }) {
   return (
     <section className="es-qualidade">
       <h4>Qualidade da prévia</h4>
+      <AntesDepois e={e} />
       <p className="es-q"><Icone nome="check" tam={14} /> Áudio com limitador (sem estouro)</p>
       <p className="es-q">{e.hdr ? <><Icone nome="alerta" tam={14} /> Vídeo em HDR: <label><input type="checkbox" checked={e.corrigirHdr} onChange={(x) => e.setCorrigirHdr(x.target.checked)} /> corrigir brilho e cor</label></> : <><Icone nome="check" tam={14} /> Imagem sem ajuste necessário</>}</p>
       {(e.receita?.plano.cenas ?? []).map((c, k) => (

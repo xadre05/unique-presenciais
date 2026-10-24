@@ -68,6 +68,27 @@ export const duracaoDe = (m: MidiaPronta | undefined) => (m?.tipo === 'video' ? 
 
 // quadros do vídeo bruto (pequenos) para o agente ver o enquadramento: onde está o rosto, o cenário, se a pessoa se mexe
 // de/ate: só um trecho do vídeo (o corte de um vídeo longo)
+// fotos do vídeo bruto nos segundos pedidos (ex.: o meio de cada tentativa de uma frase repetida)
+export async function quadrosEm(f: File, tempos: number[]): Promise<{ t: number; miniatura: string }[]> {
+  const url = URL.createObjectURL(f)
+  const v = Object.assign(document.createElement('video'), { src: url, muted: true, playsInline: true, preload: 'auto' })
+  try {
+    await esperar(v, 'loadeddata')
+    if (!v.videoWidth) return []
+    const escala = 360 / Math.max(v.videoWidth, v.videoHeight)
+    const c = Object.assign(document.createElement('canvas'), { width: Math.round(v.videoWidth * escala), height: Math.round(v.videoHeight * escala) })
+    const ctx = c.getContext('2d')!
+    const lista: { t: number; miniatura: string }[] = []
+    for (const t of tempos) {
+      v.currentTime = Math.min(Math.max(0.2, t), v.duration - 0.2)
+      await esperar(v, 'seeked')
+      ctx.drawImage(v, 0, 0, c.width, c.height)
+      lista.push({ t: Math.round(t * 10) / 10, miniatura: c.toDataURL('image/jpeg', 0.7).split(',')[1] })
+    }
+    return lista
+  } catch { return [] } finally { URL.revokeObjectURL(url); v.removeAttribute('src') }
+}
+
 export async function quadrosDoBruto(f: File, n = 4, de?: number, ate?: number): Promise<{ t: number; miniatura: string }[]> {
   const url = URL.createObjectURL(f)
   const v = Object.assign(document.createElement('video'), { src: url, muted: true, playsInline: true, preload: 'auto' })
