@@ -8,6 +8,7 @@ import type { ArquivoBruto, Edicao } from '../../marketing/edicao/dados'
 import type { Palavra } from '../../marketing/edicao/linhaTempo'
 import { juntarVideos } from './juntar'
 import { CombinarCriativos } from './CombinarCriativos'
+import { OuvindoPartes, type EstadoParte } from './OuvindoPartes'
 import { falaDa, infoDa, juntarPalavras, lerParte, marcarRegravacoes, nomeDoJuntado, ordemGuardada, pedirOrdem, type Papel, type Parte } from './dados'
 
 export type Juntado = { arquivo: File; palavras: Palavra[]; partes: ArquivoBruto[]; duracao: number; atalho?: FileSystemFileHandle }
@@ -33,12 +34,19 @@ export function PartesDoVideo({ peca, arquivos, edicao, aoJuntar, aoCancelar }: 
     try { await fazer() } catch (e) { setErro(e instanceof Error ? e.message : 'Algo deu errado.') } finally { setOcupado(null) }
   }
   // ouve (transcreve) as partes que ainda não foram ouvidas
+  const [estados, setEstados] = useState<EstadoParte[] | null>(null)
   const ouvir = async (lista: Parte[], indices: number[]) => {
     const nova = [...lista]
-    for (const k of indices) {
-      if (nova[k].palavras) continue
+    const faltam = indices.filter((k) => !nova[k].palavras)
+    if (!faltam.length) return nova
+    const marcar = (k: number, e: Partial<EstadoParte>) => setEstados((es) => es && es.map((x, i) => (i === k ? { ...x, ...e } : x)))
+    setEstados(nova.map((p, k) => ({ nome: p.arquivo.name, situacao: faltam.includes(k) ? 'fila' : 'ouvida' })))
+    for (const k of faltam) {
       setOcupado(`Ouvindo a parte ${k + 1} de ${nova.length}…`)
-      nova[k] = await lerParte(peca.id, nova[k]); setPartes([...nova])
+      marcar(k, { situacao: 'ouvindo', inicio: Date.now(), fracao: 0, texto: undefined })
+      const lida = await lerParte(peca.id, nova[k], (texto, fracao) => marcar(k, { texto, fracao }), edicao.falas_partes)
+      marcar(k, { situacao: lida.reaproveitada ? 'guardada' : 'ouvida' })
+      nova[k] = lida; setPartes([...nova])
     }
     return nova
   }
@@ -100,7 +108,7 @@ export function PartesDoVideo({ peca, arquivos, edicao, aoJuntar, aoCancelar }: 
         </ul>
       </>}
       <CombinarCriativos peca={peca} partes={partes} ordem={ordem} ocupado={!!ocupado} ouvirTodas={async () => { try { return await ouvir(partes, partes.map((_, k) => k)) } finally { setOcupado(null) } }} />
-      {ocupado && <p className="pequeno pt-ocupado">{ocupado}</p>}
+      {ocupado && estados && /Ouvindo/.test(ocupado) ? <OuvindoPartes estados={estados} /> : ocupado && <p className="pequeno pt-ocupado">{ocupado}</p>}
       {erro && <p className="nota pequeno"><Icone nome="alerta" tam={14} /> {erro}</p>}
       <div className="ev-escolha">
         <button type="button" className="btn btn-ouro" disabled={!!ocupado || !ordem.length} onClick={juntar}><Icone nome="video" tam={15} /> {ordem.length === 1 ? 'Usar este vídeo e continuar' : 'Juntar e continuar'}</button>

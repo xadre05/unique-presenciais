@@ -2,7 +2,8 @@
 // e, depois de juntar, monta a transcrição do vídeo inteiro com o tempo de cada palavra deslocado pela parte.
 import { supabase } from '../../../../lib/supabase'
 import { EMPRESA } from '../../marketing/useMarketing'
-import { type ArquivoBruto } from '../../marketing/edicao/dados'
+import { guardarEdicao, type ArquivoBruto, type Edicao } from '../../marketing/edicao/dados'
+import type { Progresso } from '../cortes/audioLongo'
 import { transcreverVideo } from '../cortes/audioLongo'
 import type { Palavra } from '../../marketing/edicao/linhaTempo'
 
@@ -10,8 +11,14 @@ export type Papel = 'gancho' | 'corpo' | 'chamada' | 'completo' | 'regravacao'
 export type Parte = { arquivo: File; duracao?: number; palavras?: Palavra[]; papel?: Papel; fora?: string }
 export type Ordem = { ordem: number[]; descartar: { parte: number; motivo: string }[]; papeis: { parte: number; papel: Papel }[]; explicacao: string }
 
-export async function lerParte(peca: string, parte: Parte): Promise<Parte> {
-  const { palavras, duracao } = await transcreverVideo(peca, parte.arquivo)
+// cada parte é ouvida (transcrita, o que custa) UMA vez: a fala fica guardada na peça e volta pelo nome e tamanho
+// do arquivo, mesmo depois de recarregar a página ou escolher as partes de novo
+export async function lerParte(peca: string, parte: Parte, aoProgresso?: Progresso, guardadas: Edicao['falas_partes'] = []): Promise<Parte & { reaproveitada?: boolean }> {
+  const ja = guardadas.find((g) => g.nome === parte.arquivo.name && g.tamanho === parte.arquivo.size)
+  if (ja?.palavras.length) return { ...parte, duracao: ja.duracao, palavras: ja.palavras, reaproveitada: true }
+  const { palavras, duracao } = await transcreverVideo(peca, parte.arquivo, aoProgresso)
+  const nova = { nome: parte.arquivo.name, tamanho: parte.arquivo.size, duracao, palavras }
+  await guardarEdicao(peca, (e) => ({ ...e, falas_partes: [...(e.falas_partes ?? []).filter((g) => !(g.nome === nova.nome && g.tamanho === nova.tamanho)), nova].slice(-8) })).catch(() => { /* sem guardar: na próxima vez ouve de novo */ })
   return { ...parte, duracao, palavras }
 }
 

@@ -17,7 +17,9 @@ export type MusicaFundo = { nome: string; tamanho: number; volume: number }
 // recebem); concluida = quando e para onde foi entregue; referencia = o estilo pedido só para este vídeo
 export type VideoFinal = { caminho: string; nome: string; tamanho: number; em: string }
 export type ReferenciaVideo = { nome: string; texto: string; quadros: { t: number; miniatura: string }[] }
-export type Edicao = { arquivo?: ArquivoBruto; palavras?: Palavra[]; receitas?: Receita[]; midias?: MidiaApoio[]; musica?: MusicaFundo; atualizado_em?: string
+// falas_partes: a fala já transcrita de cada parte de um vídeo gravado em pedaços (não paga para ouvir de novo)
+export type FalaParte = { nome: string; tamanho: number; duracao: number; palavras: Palavra[] }
+export type Edicao = { falas_partes?: FalaParte[]; arquivo?: ArquivoBruto; palavras?: Palavra[]; receitas?: Receita[]; midias?: MidiaApoio[]; musica?: MusicaFundo; atualizado_em?: string
   final?: VideoFinal; concluida?: { em: string; destino: Destino }; arquivada?: string; referencia?: ReferenciaVideo; estilo_ref?: string; capa?: string; config_estilo?: ConfigEstilo
   // vídeo gravado em partes: as partes, na ordem em que foram juntadas (o arquivo bruto é a junção delas)
   partes?: ArquivoBruto[] }

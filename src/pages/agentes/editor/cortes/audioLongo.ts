@@ -146,7 +146,9 @@ const semAviso: Progresso = () => {}
 export async function transcreverVideo(peca: string, arquivo: File, aoProgresso: Progresso = semAviso): Promise<{ palavras: Palavra[]; duracao: number }> {
   if (arquivo.size > GRANDE) return transcreverLongo(arquivo, aoProgresso, peca)
   try {
+    aoProgresso('Lendo o áudio do vídeo…', 0.1)
     const audio = await audioDoVideo(arquivo)
+    aoProgresso('Transcrevendo a fala…', 0.5)
     const { palavras } = await transcrever(peca, audio.wav)
     return { palavras, duracao: audio.duracao }
   } catch (e) {
