@@ -22,6 +22,7 @@ import { PainelAjustes } from './estudio/PainelAjustes'
 import { TrilhaEdicao } from './estudio/TrilhaEdicao'
 import { ConcluirEdicao } from './estudio/ConcluirEdicao'
 import { Andamento } from './estudio/Andamento'
+import { ReabrirBruto } from './estudio/ReabrirBruto'
 
 type AbaMovel = 'previa' | 'etapas' | 'ajustes'
 
@@ -51,8 +52,7 @@ function Previa({ e, aoTempo }: { e: Estudio; aoTempo: (t: number) => void }) {
     <div className="es-vazio"><Icone nome="video" tam={30} />
       <p>O vídeo fica só no seu computador. Para ver a prévia, escolha de novo o mesmo arquivo{e.edicao.arquivo ? <>: <b>{e.edicao.arquivo.nome}</b></> : ''}. A edição, as imagens e os textos já estão guardados.</p>
       {e.arquivo && !e.confere && <p className="nota pequeno">O arquivo escolhido ({e.arquivo.name}) não é o mesmo da edição. Escolha {e.edicao.arquivo?.nome ?? 'o vídeo original'}.</p>}
-      <label className="btn btn-ouro btn-mini ev-arquivo">Escolher {e.edicao.arquivo?.nome ?? 'o vídeo'}
-        <input type="file" accept="video/*" hidden onChange={(x) => { const f = x.target.files?.[0]; if (f) e.escolherVarios([f]); x.target.value = '' }} /></label></div>
+      <ReabrirBruto pecaId={e.pecaId} nomeEsperado={e.edicao.arquivo?.nome} aoEscolher={e.escolher} /></div>
   )
   return <PreviaVideo url={e.url} linha={e.linha} vertical={e.vertical} apoio={e.apoio.apoio} musica={e.apoio.musica} cor={e.cor} aoTempo={aoTempo} codigos={e.codigos} visual={e.visual} />
 }

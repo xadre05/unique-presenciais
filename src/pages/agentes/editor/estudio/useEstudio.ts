@@ -12,7 +12,7 @@ import { montarLinhaTempo } from '../../marketing/edicao/linhaTempo'
 import { montarVideo } from '../../marketing/edicao/montagem'
 import { escreverCenas } from '../../marketing/edicao/escreverCenas'
 import { usarApoio } from '../../marketing/edicao/usarApoio'
-import { deixarArquivo, pegarArquivo, pegarPartes } from '../arquivoPendente'
+import { atalhoGuardado, deixarArquivo, pegarArquivo, pegarPartes } from '../arquivoPendente'
 import { baixarNarracao } from '../semGravar/dados'
 import { pedidoDoConfig, visualDoConfig } from './configEstilo'
 import { brutoDe } from '../../marketing/fluxo'
@@ -118,6 +118,10 @@ export function useEstudio(peca: Peca, aoMudar: () => void) {
     if (fs) return setPartes(fs)
     const f = pegarArquivo(peca.id)
     if (f) return escolher(f)
+    // atalho guardado e permissão ainda válida (o Chrome às vezes mantém): o vídeo volta sozinho, sem clique
+    void atalhoGuardado(peca.id).then(async (a) => {
+      if (a && (await a.queryPermission?.({ mode: 'read' })) === 'granted') { const g = await a.getFile().catch(() => null); if (g) { deixarArquivo(peca.id, g); escolher(g) } }
+    })
     if (narracao) void baixarNarracao(narracao).then((n) => { if (n) { deixarArquivo(peca.id, n); escolher(n) } })
     // vídeo enviado pela equipe (do celular, na lista "Para gravar"): baixa da nuvem
     else if (bruto) {
@@ -182,7 +186,7 @@ export function useEstudio(peca: Peca, aoMudar: () => void) {
   }
 
   return {
-    vertical, edicao, temEditor: temEditor.dados, apoio, arquivo, url, confere, escolher, hdr, corrigirHdr, setCorrigirHdr, cor,
+    pecaId: peca.id, vertical, edicao, temEditor: temEditor.dados, apoio, arquivo, url, confere, escolher, hdr, corrigirHdr, setCorrigirHdr, cor,
     modeloRef, escolherEstilo, receitas, versao, setVersao, receita, linha, duracaoBruto,
     passo, setPasso, ocupado, erro, progresso, final, editar, ajustar, gerarFinal, codigos, visual,
     partes, escolherVarios, juntou, cancelarPartes: () => setPartes(null),
