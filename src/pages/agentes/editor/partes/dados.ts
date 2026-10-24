@@ -57,7 +57,7 @@ function sequencias(p: Parte) {
   const t = (p.palavras ?? []).map((w) => limpa(w.p)).filter(Boolean)
   return t.slice(0, Math.max(0, t.length - 3)).map((_, i) => t.slice(i, i + 4).join(' '))
 }
-const PARTE_REPETIDA = 0.4
+const PARTE_REPETIDA = 0.25
 export function marcarRegravacoes(partes: Parte[], ordem: number[]): { partes: Parte[]; ordem: number[]; achadas: number[] } {
   const seq = partes.map((p) => sequencias(p))
   const todas = partes.map((_, k) => k)
