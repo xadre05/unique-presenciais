@@ -23,6 +23,7 @@ import { TrilhaEdicao } from './estudio/TrilhaEdicao'
 import { ConcluirEdicao } from './estudio/ConcluirEdicao'
 import { Andamento } from './estudio/Andamento'
 import { ReabrirBruto } from './estudio/ReabrirBruto'
+import { Caminho } from './estudio/Caminho'
 
 type AbaMovel = 'previa' | 'etapas' | 'ajustes'
 
@@ -98,6 +99,7 @@ function TelaEstudio({ peca, aoMudar }: { peca: Peca; aoMudar: () => void }) {
         <span className={`es-pilula${entregue ? ' ok' : e.receita ? ' ok' : ''}`}>{entregue ? 'Entregue' : e.final ? 'Vídeo final pronto' : e.receita ? 'Prévia pronta' : 'Em edição'}</span>
       </header>
       <Erro msg={e.erro} />
+      {!concluir && <Caminho e={e} entregue={entregue} aoConcluir={() => setConcluir(true)} />}
       {entregue && <VideoEntregue peca={peca} emEstudio />}
       {concluir && e.final ? <ConcluirEdicao e={e} peca={peca} aoVoltar={() => setConcluir(false)} aoMudar={() => { setConcluir(false); aoMudar() }} /> : (<>
         <nav className="es-abas-movel">{(['previa', 'etapas', 'ajustes'] as AbaMovel[]).map((a) => (
