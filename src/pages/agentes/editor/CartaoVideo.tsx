@@ -27,11 +27,16 @@ const dia = (iso?: string) => (iso ? new Date(iso).toLocaleDateString('pt-BR') :
 
 export function CartaoVideo({ p, campanha, aoMudar }: { p: Peca; campanha?: string; aoMudar: () => void }) {
   const [tirar, setTirar] = useState(false)
+  const [mudando, setMudando] = useState(false)
+  const mudar = async (arquivada: string | undefined) => {
+    setMudando(true)
+    try { await guardarEdicao(p.id, (x) => ({ ...x, arquivada })); setTirar(false); aoMudar() } finally { setMudando(false) }
+  }
   const e = edicaoDa(p.conteudo)
   const s = situacaoDe(p), o = origemDe(p)
   const duracao = e.arquivo?.duracao
   return (
-    <article className="ed-cartao">
+    <article className={`ed-cartao${s === 'arquivado' ? ' arquivado' : ''}`}>
       <Link to={`/agentes/editor/video/${p.id}`} className="ed-capa" aria-label={`Abrir ${p.titulo}`}>
         {e.capa ? <img src={`data:image/jpeg;base64,${e.capa}`} alt="" /> : <span className="ed-capa-vazia"><Icone nome="video" tam={26} /></span>}
         {duracao ? <span className="ed-duracao">{Math.floor(duracao / 60)}:{String(Math.round(duracao % 60)).padStart(2, '0')}</span> : null}
@@ -44,14 +49,25 @@ export function CartaoVideo({ p, campanha, aoMudar }: { p: Peca; campanha?: stri
           <li><Icone nome="enviar" tam={13} /> Destino: {DESTINO[destinoDa(p)]}</li>
           <li><Icone nome="agenda" tam={13} /> Última edição: {dia(e.atualizado_em ?? p.atualizado_em)}</li>
         </ul>
-        <Link to={`/agentes/editor/video/${p.id}`} className="btn btn-contorno-ouro btn-mini">Abrir no Estúdio</Link>
         {/* tirar da lista não apaga nada: o vídeo some daqui e volta pelo filtro "Fora da lista" */}
-        <div className="ed-cartao-pe pequeno">
-          {s === 'arquivado' ? <button type="button" className="link" onClick={() => void guardarEdicao(p.id, (x) => ({ ...x, arquivada: undefined })).then(aoMudar)}>Voltar para a lista</button>
-            : tirar ? <><span className="muted">Tirar este vídeo da lista?</span><button type="button" className="link" onClick={() => void guardarEdicao(p.id, (x) => ({ ...x, arquivada: new Date().toISOString() })).then(aoMudar)}>Sim, tirar</button><button type="button" className="link" onClick={() => setTirar(false)}>Não</button></>
-              : <button type="button" className="link muted" onClick={() => setTirar(true)}><Icone nome="lixeira" tam={13} /> Tirar da lista</button>}
+        <div className="ed-cartao-acoes">
+          <Link to={`/agentes/editor/video/${p.id}`} className="btn btn-contorno-ouro btn-mini">Abrir no Estúdio</Link>
+          {s === 'arquivado'
+            ? <button type="button" className="btn btn-contorno btn-mini" disabled={mudando} onClick={() => void mudar(undefined)}>Voltar para a lista</button>
+            : <button type="button" className="ed-tirar" title="Tirar da lista" aria-label="Tirar da lista" onClick={() => setTirar(true)}><Icone nome="lixeira" tam={16} /></button>}
         </div>
       </div>
+      {tirar && (
+        <div className="ed-confirma" role="alertdialog" aria-label="Tirar da lista">
+          <span className="ed-confirma-icone"><Icone nome="lixeira" tam={20} /></span>
+          <b>Tirar este vídeo da lista?</b>
+          <p className="pequeno">Nada é apagado: a edição e as imagens continuam guardadas. Para ver de novo, use o filtro <b>Fora da lista</b>.</p>
+          <div className="ed-confirma-botoes">
+            <button type="button" className="btn btn-contorno btn-mini" disabled={mudando} onClick={() => setTirar(false)}>Cancelar</button>
+            <button type="button" className="btn btn-perigo-cheio btn-mini" disabled={mudando} onClick={() => void mudar(new Date().toISOString())}>{mudando ? 'Tirando…' : 'Tirar da lista'}</button>
+          </div>
+        </div>
+      )}
     </article>
   )
 }

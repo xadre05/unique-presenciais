@@ -4071,3 +4071,20 @@ button.ci-chip { border: 1px dashed var(--borda); padding: 1px 8px; border-radiu
 .est-cenas-grade figure { margin: 0; display: grid; gap: 6px; }
 .est-cenas-grade canvas { width: 100%; height: auto; border-radius: 10px; border: 1px solid var(--borda, #26262a); background: #0a0a0b; }
 .est-cenas-grade figcaption { display: grid; gap: 2px; }
+
+/* cartão do editor: abrir + tirar da lista, com confirmação por cima do cartão */
+.ed-cartao { position: relative; }
+.ed-cartao.arquivado { opacity: .72; }
+.ed-cartao-acoes { display: flex; gap: 8px; align-items: stretch; margin-top: 4px; }
+.ed-cartao-acoes .btn { flex: 1; }
+.ed-tirar { flex: 0 0 auto; width: 34px; display: grid; place-items: center; border-radius: 8px; border: 1px solid var(--borda); background: transparent; color: var(--texto-2, #9a9a9a); cursor: pointer; transition: color .15s, border-color .15s, background .15s; }
+.ed-tirar:hover, .ed-tirar:focus-visible { color: #e07a6b; border-color: #d4685b; background: rgba(212,104,91,.08); }
+.ed-confirma { position: absolute; inset: 0; z-index: 2; display: grid; align-content: center; justify-items: center; gap: 8px; padding: 18px; text-align: center; background: rgba(14,14,16,.94); backdrop-filter: blur(3px); border-radius: inherit; animation: ed-confirma-entra .15s ease-out; }
+.ed-confirma b { font-size: 1rem; color: #fff; }
+.ed-confirma p { margin: 0; color: #c9c9c9; max-width: 260px; line-height: 1.4; }
+.ed-confirma p b { font-size: inherit; color: var(--ouro-forte); }
+.ed-confirma-icone { width: 42px; height: 42px; display: grid; place-items: center; border-radius: 50%; background: rgba(212,104,91,.15); color: #e07a6b; }
+.ed-confirma-botoes { display: flex; gap: 8px; margin-top: 6px; }
+.btn-perigo-cheio { background: #d4685b; border-color: #d4685b; color: #fff; }
+.btn-perigo-cheio:hover { background: #c25648; border-color: #c25648; }
+@keyframes ed-confirma-entra { from { opacity: 0 } to { opacity: 1 } }
