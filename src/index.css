@@ -4066,3 +4066,8 @@ button.ci-chip { border: 1px dashed var(--borda); padding: 1px 8px; border-radiu
 .es-caminho li.agora { color: var(--ouro, #c9a45c); font-weight: 600; }
 .es-caminho-num { display: inline-grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; border: 1px solid currentColor; font-size: .75rem; }
 .es-caminho-acao { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; }
+.est-cenas { margin-top: 18px; }
+.est-cenas-grade { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; margin-top: 10px; }
+.est-cenas-grade figure { margin: 0; display: grid; gap: 6px; }
+.est-cenas-grade canvas { width: 100%; height: auto; border-radius: 10px; border: 1px solid var(--borda, #26262a); background: #0a0a0b; }
+.est-cenas-grade figcaption { display: grid; gap: 2px; }

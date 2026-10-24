@@ -10,6 +10,7 @@ import { atualizarPerfil, esquecer, memoriaDe } from '../memoria'
 import { useReferencias, type Referencia } from '../referencias/dados'
 import { estiloDe, usePerfilEditor } from './dados'
 import { EstiloCasa } from './EstiloCasa'
+import { BibliotecaCenas } from './BibliotecaCenas'
 
 const LEGENDA = { palavras: 'Palavra por palavra', chave: 'Palavra-chave' }
 const EFEITOS = { muitos: 'Muitos', poucos: 'Poucos', nenhum: 'Nenhum' }
@@ -95,6 +96,7 @@ export function EstilosEdicao() {
           </table>
         )}
       </section>
+      <BibliotecaCenas />
     </div>
   )
 }
