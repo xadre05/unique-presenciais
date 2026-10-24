@@ -1,0 +1,2 @@
+-- 24/10/2026 — crm_minha_fila passou a ignorar conversas do canal de tipo 'teste' (simulador). Aplicado via migração
+-- crm_minha_fila_sem_numero_de_teste; o corpo completo está no banco (pg_get_functiondef('crm_minha_fila')).

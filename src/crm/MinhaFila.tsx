@@ -21,6 +21,15 @@ const minutosDesde = (iso: string) => Math.max(0, Math.round((Date.now() - new D
 const espera = (iso: string) => { const m = minutosDesde(iso); return m < 60 ? `${m} min` : m < 1440 ? `${Math.floor(m / 60)} h ${m % 60} min` : `${Math.floor(m / 1440)} dia(s)` }
 const amanha9 = () => { const d = new Date(); d.setDate(d.getDate() + 1); d.setHours(9, 0, 0, 0); return d.toISOString() }
 
+function agruparPorContato(lista: Tarefa[]) {
+  const porContato = new Map<string, Tarefa[]>()
+  for (const t of lista) porContato.set(t.contato_id, [...(porContato.get(t.contato_id) ?? []), t])
+  return [...porContato.values()].map((ts) => {
+    const ordem = [...ts].sort((a, b) => b.vence_em.localeCompare(a.vence_em))
+    return { principal: ordem[0], antigas: ordem.slice(1) }
+  })
+}
+
 const hora = (iso: string) => new Date(iso).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
 
 export default function MinhaFila({ empresaId, usuarioId, base, abrirConversa, abrirAba, prazoMin = 5, quemInicial }: {
@@ -57,13 +66,15 @@ export default function MinhaFila({ empresaId, usuarioId, base, abrirConversa, a
     return () => { clearInterval(t); supabase.removeChannel(ch) }
   }, [carregar, empresaId, quem])
 
-  const tarefa = async (id: string, campos: Record<string, unknown>) => {
-    const { error } = await supabase.from('crm_tarefas').update(campos).eq('id', id)
+  const tarefa = async (id: string | string[], campos: Record<string, unknown>) => {
+    const { error } = await supabase.from('crm_tarefas').update(campos).in('id', Array.isArray(id) ? id : [id])
     if (error) setErro(error.message); else carregar()
   }
   const disponivel = async (v: boolean) => { await supabase.rpc('crm_minha_disponibilidade', { p_empresa: empresaId, p_disponivel: v, p_usuario: quem }); base.recarregar() }
 
-  const tarefas = [...(f?.tarefas ?? [])].sort((a, b) => Number(b.tipo === 'recuperacao') - Number(a.tipo === 'recuperacao') || Number(b.atrasada) - Number(a.atrasada) || a.vence_em.localeCompare(b.vence_em))
+  // uma linha por pessoa: a cadência cria uma tarefa por dia (dia 1, 2, 3); vale a mais recente, as antigas ficam juntas
+  const grupos = agruparPorContato(f?.tarefas ?? [])
+  const tarefas = [...grupos.map((g) => g.principal)].sort((a, b) => Number(b.tipo === 'recuperacao') - Number(a.tipo === 'recuperacao') || Number(b.atrasada) - Number(a.atrasada) || a.vence_em.localeCompare(b.vence_em))
   const nada = f && f.esperando.length === 0 && tarefas.length === 0
   const atrasadas = tarefas.filter((t) => t.atrasada).length
   return (
@@ -122,6 +133,7 @@ export default function MinhaFila({ empresaId, usuarioId, base, abrirConversa, a
               <div className="at-lista">
                 {tarefas.map((t) => {
                   const tt = TIPO_TAREFA[t.tipo] ?? TIPO_TAREFA.outro
+                  const antigas = grupos.find((g) => g.principal.id === t.id)?.antigas ?? []
                   const wa = linkWhats(t.telefone)
                   return (
                     <div key={t.id} className={`at-tarefa${t.atrasada ? ' atrasada' : ''}`}>
@@ -131,8 +143,9 @@ export default function MinhaFila({ empresaId, usuarioId, base, abrirConversa, a
                         {detalhe[t.contato_id] && <span className="muted pequeno">Interesse: {detalhe[t.contato_id]}</span>}
                         <span className="pequeno"><Icone nome="whats" tam={13} /> {t.titulo} <span className={`at-tipo tipo-${tt.tom}`}>{tt.rotulo}</span></span>
                         {t.nota && <span className="muted pequeno">{t.nota}</span>}
+                        {antigas.length > 0 && <span className="muted pequeno">+ {antigas.length} tarefa(s) anterior(es) desta pessoa: {antigas.map((a) => a.titulo.split(':')[0]).join(' · ')}</span>}
                         <span className="at-tarefa-mini">
-                          <button className="link pequeno" onClick={() => tarefa(t.id, { feita_em: new Date().toISOString(), feita_por: usuarioId })}>✓ Feito</button>
+                          <button className="link pequeno" onClick={() => tarefa([t.id, ...antigas.map((a) => a.id)], { feita_em: new Date().toISOString(), feita_por: usuarioId })}>✓ Feito{antigas.length ? ` (fecha as ${antigas.length + 1})` : ''}</button>
                           <button className="link pequeno" onClick={() => tarefa(t.id, { vence_em: amanha9() })}>Amanhã</button>
                           <span className="muted pequeno">{horaCurta(t.vence_em)}</span>
                         </span>
